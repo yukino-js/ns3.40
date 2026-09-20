@@ -110,14 +110,14 @@ Makefile shortcuts: `make tcp`, `make udp` (single quick run), `make gen`
 
 ## Results Dashboard
 
-The [`lark/`](lark) app is a Vite + [@lark.js/mvc](https://github.com/hangtiancheng)
+The [`flowmonitor/`](flowmonitor) app is a Vite + [@yukino.js/lit-jsx](https://github.com/hangtiancheng)
 dashboard that renders the flowmonitor results (throughput, delay, jitter,
 loss, per-flow breakdowns) from `logs/`. It is deployed to GitHub Pages at
 <https://tianchenghang.github.io/ns3.40> via `.github/workflows/deploy.yml`.
 
 ```bash
 pnpm install
-pnpm --filter flowmonitor parse   # logs/*.flowmonitor -> lark/public/data
+pnpm --filter flowmonitor parse   # logs/*.flowmonitor -> flowmonitor/public/data
 pnpm --filter flowmonitor dev     # local dev server
 ```
 
