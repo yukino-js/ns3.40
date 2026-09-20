@@ -1,0 +1,17 @@
+{
+  "chat.editor.fontFamily": "Yukino, LXGW Wenkai",
+  "chat.fontFamily": "Yukino, LXGW Wenkai",
+  "debug.console.fontFamily": "Yukino, LXGW Wenkai",
+  "editor.codeLensFontFamily": "Yukino, LXGW Wenkai",
+  "editor.fontFamily": "Yukino, LXGW Wenkai",
+  "editor.inlayHints.fontFamily": "Yukino, LXGW Wenkai",
+  "editor.inlineSuggest.fontFamily": "Yukino, LXGW Wenkai",
+  "gitlens.blame.fontFamily": "Yukino, LXGW Wenkai",
+  "gitlens.currentLine.fontFamily": "Yukino, LXGW Wenkai",
+  "markdown.preview.fontFamily": "Yukino, LXGW Wenkai",
+  "notebook.markup.fontFamily": "Yukino, LXGW Wenkai",
+  "notebook.output.fontFamily": "Yukino, LXGW Wenkai",
+  "pgsql.resultsFontFamily": "Yukino, LXGW Wenkai",
+  "scm.inputFontFamily": "Yukino, LXGW Wenkai",
+  "terminal.integrated.fontFamily": "Yukino, LXGW Wenkai"
+}

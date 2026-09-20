@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -l \"thesis.docx\" \"thesis.tex\" && command -v pandoc && pandoc --version && command -v soffice && command -v pdftoppm)"
+    ]
+  }
+}
