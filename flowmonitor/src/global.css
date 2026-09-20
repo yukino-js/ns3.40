@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Light-DOM custom elements (createRenderRoot returns `this`): Lit's
+   default `:host { display: block }` never applies without a shadow
+   root, so the hosts fall back to `display: inline`. */
+fm-app,
+fm-dashboard,
+fm-scenario {
+  display: block;
+}
+
+@theme {
+  --color-surface-0: #f8fafc;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f1f5f9;
+  --color-surface-3: #e2e8f0;
+  --color-accent: #6366f1;
+  --color-accent-soft: #4f46e5;
+  --color-accent-dim: #4338ca;
+  --color-algo-swift: #0891b2;
+  --color-algo-bbr: #7c3aed;
+  --color-algo-cubic: #ea580c;
+  --color-algo-newreno: #16a34a;
+  --font-mono:
+    "Geist Mono", "Yukino", "Maple Mono", "Menlo", "Cascadia Code", monospace;
+  --font-sans: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
