@@ -11,10 +11,14 @@
     "draw": "node main.js draw",
     "summary": "node main.js summary",
     "plots": "node docs/plots/main.js",
-    "docs:build": "node docs/build.js"
+    "docs:build": "node docs/build.js",
+    "git:commit": "git add -A && git commit -m \"feat: Introduce new features\"",
+    "git:commit:skip": "git add -A && git commit -m \"feat: Introduce new features [skip ci]\"",
+    "git:push": "pnpm git:commit && git push origin main",
+    "git:push:skip": "pnpm git:commit:skip && git push origin main"
   },
   "devDependencies": {
-    "@types/node": "^24.9.2",
+    "@types/node": "^24.13.6",
     "fast-xml-parser": "^5.11.1",
     "playwright": "^1.63.0",
     "plotly.js-dist-min": "^4.1.1",

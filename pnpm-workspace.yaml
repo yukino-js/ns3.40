@@ -14,3 +14,5 @@
 
 packages:
   - flowmonitor
+minimumReleaseAgeExclude:
+  - '@yukino.js/lit-jsx@0.0.1'
