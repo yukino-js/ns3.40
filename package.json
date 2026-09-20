@@ -1,6 +1,6 @@
 {
   "name": "ns3.40",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "TcpSwift ns-3.40 simulation driver and thesis figure pipeline",
