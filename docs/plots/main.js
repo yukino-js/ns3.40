@@ -1161,7 +1161,7 @@ export async function plotArchitecture(renderer) {
     margin,
     canvas,
     components: shapes,
-    title: { text: "原生 C++ 拥塞控制回路" },
+    title: { text: "拥塞控制系统架构" },
   });
 
   return saveFigure(renderer, {
@@ -1223,7 +1223,7 @@ export async function plotWorkflow(renderer) {
   box(0.58, 0.53, 0.36, 0.09, "S3 两级 BDP 估计\n交付速率 · 最大值滤波");
   box(0.58, 0.38, 0.36, 0.09, "S4 α 自适应\nRTT · 快慢 EMA · 连续增长");
   box(0.58, 0.23, 0.36, 0.09, "S5a 目标窗口\n有界跟踪 α × BDP");
-  box(0.31, 0.06, 0.38, 0.08, "S6 原生写回\ncwnd · ssthresh");
+  box(0.31, 0.06, 0.38, 0.08, "S6 原生回调写回\ncwnd · ssthresh");
 
   arrow([0.50, 0.93], [0.50, 0.88], undefined, undefined);
   arrow([0.50, 0.80], [0.50, 0.745], undefined, undefined);

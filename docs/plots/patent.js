@@ -766,7 +766,7 @@ export async function plotWindowDecision(renderer) {
     margin,
     canvas,
     components: flow.shapes,
-    title: { text: "BDP 估计、参数自适应与窗口决策", size: 12 },
+    title: { text: "BDP 估计、参数自适应与拥塞窗口决策", size: 12 },
   });
 
   return saveFigure(renderer, {
