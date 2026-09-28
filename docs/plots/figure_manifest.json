@@ -43,26 +43,7 @@
       "S19"
     ]
   },
-  "stale_outputs_removed": [
-    "fig01_goodput_clean.pdf",
-    "fig01_goodput_clean.png",
-    "fig01_goodput_clean.svg",
-    "fig02_delay_clean.pdf",
-    "fig02_delay_clean.png",
-    "fig02_delay_clean.svg",
-    "fig03_tradeoff_clean.pdf",
-    "fig03_tradeoff_clean.png",
-    "fig03_tradeoff_clean.svg",
-    "fig04_udp_burst_clean.pdf",
-    "fig04_udp_burst_clean.png",
-    "fig04_udp_burst_clean.svg",
-    "fig06_architecture_zh.pdf",
-    "fig06_architecture_zh.png",
-    "fig06_architecture_zh.svg",
-    "fig07_workflow_zh.pdf",
-    "fig07_workflow_zh.png",
-    "fig07_workflow_zh.svg"
-  ],
+  "stale_outputs_removed": [],
   "figures": [
     {
       "stem": "fig01_goodput_clean",
