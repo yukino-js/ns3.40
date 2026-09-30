@@ -18,8 +18,8 @@
     "git:push:skip": "pnpm git:commit:skip && git push origin main"
   },
   "devDependencies": {
-    "@types/node": "^24.13.6",
-    "fast-xml-parser": "^5.11.1",
+    "@types/node": "^24.19.0",
+    "fast-xml-parser": "^5.11.2",
     "playwright": "^1.63.0",
     "plotly.js-dist-min": "^4.1.1",
     "typescript": "^6.0.3"
