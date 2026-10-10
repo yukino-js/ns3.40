@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA, 2008 Timo Bingmann
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Original Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * Enhancements: Timo Bingmann <timo.bingmann@student.kit.edu>
- */
 #include "gnuplot.h"
 
 #include "ns3/assert.h"
@@ -26,69 +7,26 @@
 
 namespace ns3 {
 
-// --- GnuplotDataset::Data ------------------------------------------------ //
-
-/**
- * \ingroup gnuplot
- *
- * Structure storing the data to plot.
- * Derived classes subclass this struct and add their own data fields.
- */
 struct GnuplotDataset::Data {
-  // *** Data Variables ***
 
-  unsigned int m_references; //!< ref/unref counter for garbage collection
+  unsigned int m_references;
 
-  std::string m_title; //!< Dataset title
-  std::string m_extra; //!< Extra parameters for the plot
+  std::string m_title;
+  std::string m_extra;
 
-  /**
-   * Initializes the reference counter to 1 and sets m_title and m_extra.
-   * \param title Dataset title
-   */
   Data(const std::string &title);
 
-  /// Required.
   virtual ~Data();
 
-  /**
-   * \brief Returns the plot type ("plot" or "splot").
-   * \returns the plot type ("plot" or "splot").
-   */
   virtual std::string GetCommand() const = 0;
 
-  /**
-   * Prints the plot description used as argument to (s)plot. Either
-   * the function expression or a datafile description. Should include
-   * m_title and m_extra in the output.
-   *
-   * If more than one output file is being generated, i.e. separate
-   * data and control files, then the index for the current dataset
-   * and the name for the data file are also included.
-   *
-   * \param os Output stream
-   * \param generateOneOutputFile If true, generate only one output file.
-   * \param dataFileDatasetIndex Dataset Index
-   * \param dataFileName Dataset file name
-   */
   virtual void PrintExpression(std::ostream &os, bool generateOneOutputFile,
                                unsigned int dataFileDatasetIndex,
                                std::string &dataFileName) const = 0;
 
-  /**
-   * Print the inline data file contents trailing the plot command. Empty for
-   * functions.
-   *
-   * \param os Output stream
-   * \param generateOneOutputFile If true, generate only one output file.
-   */
   virtual void PrintDataFile(std::ostream &os,
                              bool generateOneOutputFile) const = 0;
 
-  /**
-   * Checks to see if this GnuplotDataset is empty.
-   * \return    indicates if this GnuplotDataset is empty.
-   */
   virtual bool IsEmpty() const = 0;
 };
 
@@ -96,8 +34,6 @@ GnuplotDataset::Data::Data(const std::string &title)
     : m_references(1), m_title(title), m_extra(m_defaultExtra) {}
 
 GnuplotDataset::Data::~Data() {}
-
-// --- GnuplotDataset ------------------------------------------------------ //
 
 std::string GnuplotDataset::m_defaultExtra = "";
 
@@ -138,25 +74,13 @@ void GnuplotDataset::SetExtra(const std::string &extra) {
   m_data->m_extra = extra;
 }
 
-// --- Gnuplot2dDataset::Data2d -------------------------------------------- //
-
-/**
- * \ingroup gnuplot
- *
- * Structure storing the data to for a 2D plot.
- */
 struct Gnuplot2dDataset::Data2d : public GnuplotDataset::Data {
-  // *** Data Variables ***
 
-  Style m_style;         //!< The plotting style to use for this dataset.
-  ErrorBars m_errorBars; //!< Whether errorbars should be used for this dataset.
+  Style m_style;
+  ErrorBars m_errorBars;
 
-  PointSet m_pointset; //!< The set of points in this data set
+  PointSet m_pointset;
 
-  /**
-   * Initializes with the values from m_defaultStyle and m_defaultErrorBars.
-   * \param title Dataset title
-   */
   Data2d(const std::string &title);
 
   std::string GetCommand() const override;
@@ -176,8 +100,6 @@ std::string Gnuplot2dDataset::Data2d::GetCommand() const { return "plot"; }
 void Gnuplot2dDataset::Data2d::PrintExpression(
     std::ostream &os, bool generateOneOutputFile,
     unsigned int dataFileDatasetIndex, std::string &dataFileName) const {
-  // Print the appropriate thing based on whether separate output and
-  // date files are being generated.
   if (generateOneOutputFile) {
     os << "\"-\" ";
   } else {
@@ -270,8 +192,6 @@ void Gnuplot2dDataset::Data2d::PrintDataFile(std::ostream &os,
     }
   }
 
-  // Print the appropriate thing based on whether separate output and
-  // date files are being generated.
   if (generateOneOutputFile) {
     os << "e" << std::endl;
   } else {
@@ -282,11 +202,7 @@ void Gnuplot2dDataset::Data2d::PrintDataFile(std::ostream &os,
 
 bool Gnuplot2dDataset::Data2d::IsEmpty() const { return m_pointset.empty(); }
 
-// --- Gnuplot2dDataset ---------------------------------------------------- //
-
-/// Default plot style static instance
 Gnuplot2dDataset::Style Gnuplot2dDataset::m_defaultStyle = LINES;
-/// Default error bars type static instance
 Gnuplot2dDataset::ErrorBars Gnuplot2dDataset::m_defaultErrorBars = NONE;
 
 Gnuplot2dDataset::Gnuplot2dDataset(const std::string &title)
@@ -350,24 +266,10 @@ void Gnuplot2dDataset::AddEmptyLine() {
   reinterpret_cast<Data2d *>(m_data)->m_pointset.push_back(data);
 }
 
-// --- Gnuplot2dFunction::Function2d --------------------------------------- //
-
-/**
- * \ingroup gnuplot
- *
- * Structure storing the function to be used for a 2D plot.
- */
 struct Gnuplot2dFunction::Function2d : public GnuplotDataset::Data {
-  // *** Data Variables ***
 
-  std::string m_function; //!< Function to use
+  std::string m_function;
 
-  /**
-   * Initializes with the function and title.
-   *
-   * \param title Title of the plot
-   * \param function Function to plot
-   */
   Function2d(const std::string &title, const std::string &function);
 
   std::string GetCommand() const override;
@@ -404,8 +306,6 @@ void Gnuplot2dFunction::Function2d::PrintDataFile(
 
 bool Gnuplot2dFunction::Function2d::IsEmpty() const { return false; }
 
-// --- Gnuplot2dFunction --------------------------------------------------- //
-
 Gnuplot2dFunction::Gnuplot2dFunction(const std::string &title,
                                      const std::string &function)
     : GnuplotDataset(new Function2d(title, function)) {}
@@ -414,24 +314,12 @@ void Gnuplot2dFunction::SetFunction(const std::string &function) {
   reinterpret_cast<Function2d *>(m_data)->m_function = function;
 }
 
-// --- Gnuplot3dDataset::Data3d -------------------------------------------- //
-
-/**
- * \ingroup gnuplot
- *
- * Structure storing the data for a 3D plot.
- */
 struct Gnuplot3dDataset::Data3d : public GnuplotDataset::Data {
-  // *** Data Variables ***
 
-  std::string m_style; //!< The plotting style to use for this dataset.
+  std::string m_style;
 
-  PointSet m_pointset; //!< The set of points in this data set
+  PointSet m_pointset;
 
-  /**
-   * Initializes with value from m_defaultStyle.
-   * \param title Dataset title
-   */
   Data3d(const std::string &title);
 
   std::string GetCommand() const override;
@@ -481,8 +369,6 @@ void Gnuplot3dDataset::Data3d::PrintDataFile(std::ostream &os,
 
 bool Gnuplot3dDataset::Data3d::IsEmpty() const { return m_pointset.empty(); }
 
-// --- Gnuplot3dDataset ---------------------------------------------------- //
-
 std::string Gnuplot3dDataset::m_defaultStyle = "";
 
 Gnuplot3dDataset::Gnuplot3dDataset(const std::string &title)
@@ -511,24 +397,10 @@ void Gnuplot3dDataset::AddEmptyLine() {
   reinterpret_cast<Data3d *>(m_data)->m_pointset.push_back(data);
 }
 
-// --- Gnuplot3dFunction::Function3d --------------------------------------- //
-
-/**
- * \ingroup gnuplot
- *
- * Structure storing the function to be used for a 3D plot.
- */
 struct Gnuplot3dFunction::Function3d : public GnuplotDataset::Data {
-  // *** Data Variables ***
 
-  std::string m_function; //!< Function to use
+  std::string m_function;
 
-  /**
-   * Initializes with the function and title.
-   *
-   * \param title Title of the plot
-   * \param function Function to plot
-   */
   Function3d(const std::string &title, const std::string &function);
 
   std::string GetCommand() const override;
@@ -567,8 +439,6 @@ void Gnuplot3dFunction::Function3d::PrintDataFile(
 
 bool Gnuplot3dFunction::Function3d::IsEmpty() const { return false; }
 
-// --- Gnuplot3dFunction --------------------------------------------------- //
-
 Gnuplot3dFunction::Gnuplot3dFunction(const std::string &title,
                                      const std::string &function)
     : GnuplotDataset(new Function3d(title, function)) {}
@@ -576,8 +446,6 @@ Gnuplot3dFunction::Gnuplot3dFunction(const std::string &title,
 void Gnuplot3dFunction::SetFunction(const std::string &function) {
   reinterpret_cast<Function3d *>(m_data)->m_function = function;
 }
-
-// ------------------------------------------------------------------------- //
 
 Gnuplot::Gnuplot(const std::string &outputFilename, const std::string &title)
     : m_outputFilename(outputFilename),
@@ -627,11 +495,8 @@ void Gnuplot::AddDataset(const GnuplotDataset &dataset) {
 }
 
 void Gnuplot::GenerateOutput(std::ostream &os) {
-  // If this version of this function is called, it is assumed that a
-  // single output file is being generated.
   m_generateOneOutputFile = true;
 
-  // Send the gnuplot metadata to the same stream as the data stream.
   GenerateOutput(os, os, "");
 }
 
@@ -665,9 +530,6 @@ void Gnuplot::GenerateOutput(std::ostream &osControl, std::ostream &osData,
     return;
   }
 
-  // Determine the GetCommand() values of all datasets included. Check that all
-  // are equal and print the command.
-
   std::string command = m_datasets.begin()->m_data->GetCommand();
 
   for (auto i = m_datasets.begin() + 1; i != m_datasets.end(); ++i) {
@@ -677,15 +539,10 @@ void Gnuplot::GenerateOutput(std::ostream &osControl, std::ostream &osData,
 
   osControl << command << " ";
 
-  // Print all dataset expressions
-
   bool isDataEmpty;
   for (auto i = m_datasets.begin(); i != m_datasets.end();) {
-    // Only print the dataset if it's not empty.
     isDataEmpty = i->m_data->IsEmpty();
     if (!isDataEmpty) {
-      // Print the appropriate expression based on whether we are
-      // generating separate output and date files.
       i->m_data->PrintExpression(osControl, m_generateOneOutputFile,
                                  m_dataFileDatasetIndex, dataFileName);
 
@@ -699,8 +556,6 @@ void Gnuplot::GenerateOutput(std::ostream &osControl, std::ostream &osData,
   }
   osControl << std::endl;
 
-  // followed by the inline datafile.
-
   for (auto i = m_datasets.begin(); i != m_datasets.end(); i++) {
     i->m_data->PrintDataFile(osData, m_generateOneOutputFile);
   }
@@ -709,8 +564,6 @@ void Gnuplot::GenerateOutput(std::ostream &osControl, std::ostream &osData,
 void Gnuplot::SetDataFileDatasetIndex(unsigned int index) {
   m_dataFileDatasetIndex = index;
 }
-
-// ------------------------------------------------------------------------- //
 
 GnuplotCollection::GnuplotCollection(const std::string &outputFilename)
     : m_outputFilename(outputFilename),
@@ -733,8 +586,6 @@ Gnuplot &GnuplotCollection::GetPlot(unsigned int id) {
 }
 
 void GnuplotCollection::GenerateOutput(std::ostream &os) {
-  // If this version of this function is called, it is assumed that a
-  // single output file is being generated.
 
   if (!m_terminal.empty()) {
     os << "set terminal " << m_terminal << std::endl;
@@ -752,8 +603,6 @@ void GnuplotCollection::GenerateOutput(std::ostream &os) {
 void GnuplotCollection::GenerateOutput(std::ostream &osControl,
                                        std::ostream &osData,
                                        std::string dataFileName) {
-  // If this version of this function is called, it is assumed that
-  // separate output and date files are being generated.
 
   if (!m_terminal.empty()) {
     osControl << "set terminal " << m_terminal << std::endl;
@@ -767,7 +616,5 @@ void GnuplotCollection::GenerateOutput(std::ostream &osControl,
     i->GenerateOutput(osControl, osData, dataFileName);
   }
 }
-
-// ------------------------------------------------------------------------- //
 
 } // namespace ns3

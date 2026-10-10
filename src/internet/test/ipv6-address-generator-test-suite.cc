@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2008 University of Washington
- * Copyright (c) 2011 Atishay Jain
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/ipv6-address-generator.h"
 #include "ns3/simulation-singleton.h"
@@ -22,11 +5,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 network number allocator Test
- */
 class NetworkNumber6AllocatorTestCase : public TestCase {
 public:
   NetworkNumber6AllocatorTestCase();
@@ -77,11 +55,6 @@ void NetworkNumber6AllocatorTestCase::DoRun() {
                         "network should equal next network");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 address allocator Test
- */
 class AddressAllocator6TestCase : public TestCase {
 public:
   AddressAllocator6TestCase();
@@ -136,11 +109,6 @@ void AddressAllocator6TestCase::DoTeardown() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 network number and address allocator Test
- */
 class NetworkAndAddress6TestCase : public TestCase {
 public:
   NetworkAndAddress6TestCase();
@@ -178,11 +146,6 @@ void NetworkAndAddress6TestCase::DoRun() {
                         "address should equal next address for given prefix");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 example of an address generator Test
- */
 class ExampleAddress6GeneratorTestCase : public TestCase {
 public:
   ExampleAddress6GeneratorTestCase();
@@ -215,29 +178,14 @@ void ExampleAddress6GeneratorTestCase::DoRun() {
   address = Ipv6AddressGenerator::NextAddress(Ipv6Prefix(48));
   NS_TEST_EXPECT_MSG_EQ(address, Ipv6Address("2001:0AB8::0:5"),
                         "address should equal next address for given prefix");
-  //
-  // Allocate the next network based on the prefix passed in, which should
-  // be 2001:0AB0:0001
-  //
   Ipv6AddressGenerator::NextNetwork(Ipv6Prefix("FFFF:FFFF:FFFF::0"));
-  //
-  // reset first address to be allocated back to ::0:3
-  //
   Ipv6AddressGenerator::InitAddress(Ipv6Address("::3"), Ipv6Prefix(48));
-  //
-  // The first address we should get is the network and address ORed
-  //
   address = Ipv6AddressGenerator::NextAddress(Ipv6Prefix(48));
   NS_TEST_EXPECT_MSG_EQ(
       address, Ipv6Address("2001:0AB8:1::3"),
       "address should equal initialized address for given prefix");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 address collision Test
- */
 class AddressCollision6TestCase : public TestCase {
 public:
   AddressCollision6TestCase();
@@ -309,11 +257,6 @@ void AddressCollision6TestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(added, false, "address should not get allocated");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 address generator TestSuite
- */
 class Ipv6AddressGeneratorTestSuite : public TestSuite {
 public:
   Ipv6AddressGeneratorTestSuite() : TestSuite("ipv6-address-generator") {
@@ -325,6 +268,4 @@ public:
   }
 };
 
-static Ipv6AddressGeneratorTestSuite
-    g_ipv6AddressGeneratorTestSuite; //!< Static variable for test
-                                     //!< initialization
+static Ipv6AddressGeneratorTestSuite g_ipv6AddressGeneratorTestSuite;

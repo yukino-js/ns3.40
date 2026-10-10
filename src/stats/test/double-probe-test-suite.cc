@@ -1,18 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-// Include a header file from your module to test.
 #include "ns3/double-probe.h"
 #include "ns3/names.h"
 #include "ns3/nstime.h"
@@ -26,51 +12,37 @@
 
 using namespace ns3;
 
-/**
- * \ingroup stats-tests
- *
- * \brief Simple data emitter to check that a probe receives data.
- */
 class SampleEmitter : public Object {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
 
   SampleEmitter() { m_var = CreateObject<ExponentialRandomVariable>(); }
 
   ~SampleEmitter() override {}
 
-  /// Start emission of data.
   void Start() { Reschedule(); }
 
-  /// Reschedule a report \sa Report
   void Reschedule() {
     m_time = m_var->GetValue();
     Simulator::Schedule(Seconds(m_time), &SampleEmitter::Report, this);
     m_time += Simulator::Now().GetSeconds();
   }
 
-  /// \return the time delta of the next report.
   double GetTime() const { return m_time; }
 
-  /// \return a random variable, different for each reschedule.
   double GetValue() const { return aux; }
 
 private:
-  /// Reports a new value and reschedules \sa Reschedule
   void Report() {
     aux = m_var->GetValue();
     m_trace = aux;
     Reschedule();
   }
 
-  Ptr<ExponentialRandomVariable> m_var; //!< Random value generator.
-  double m_time;                        //!< Delta time between reschedules.
-  TracedValue<double> m_trace;          //!< Trace
-  double aux;                           //!< Emitted value.
+  Ptr<ExponentialRandomVariable> m_var;
+  double m_time;
+  TracedValue<double> m_trace;
+  double aux;
 };
 
 TypeId SampleEmitter::GetTypeId() {
@@ -83,11 +55,6 @@ TypeId SampleEmitter::GetTypeId() {
   return tid;
 }
 
-/**
- * \ingroup stats-tests
- *
- * \brief DoubleProbe class - Test case for connecting and receiving data.
- */
 class ProbeTestCase1 : public TestCase {
 public:
   ProbeTestCase1();
@@ -96,16 +63,10 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Trace sink.
-   * \param context Trace context
-   * \param oldValue Old value
-   * \param newValue New value
-   */
   void TraceSink(std::string context, double oldValue, double newValue);
-  uint32_t m_objectProbed; //!< Number of probes by Object
-  uint32_t m_pathProbed;   //!< Number of probed by Path
-  Ptr<SampleEmitter> m_s;  //!< Sample emitter pointer
+  uint32_t m_objectProbed;
+  uint32_t m_pathProbed;
+  Ptr<SampleEmitter> m_s;
 };
 
 ProbeTestCase1::ProbeTestCase1()
@@ -132,10 +93,7 @@ void ProbeTestCase1::TraceSink(std::string context, double oldValue,
 }
 
 void ProbeTestCase1::DoRun() {
-  // Defer creation of this until here because it is a random variable
   m_s = CreateObject<SampleEmitter>();
-  // Test that all instances of probe data are between time window specified
-  // Check also that probes can be hooked to sources by Object and by path
 
   Ptr<DoubleProbe> p = CreateObject<DoubleProbe>();
   p->SetName("testProbe");
@@ -145,34 +103,25 @@ void ProbeTestCase1::DoRun() {
   p->SetAttribute("Stop", TimeValue(Seconds(200.0)));
   Simulator::Stop(Seconds(300));
 
-  // Register our emitter object so we can fetch it by using the Config
-  // namespace
   Names::Add("/Names/SampleEmitter", m_s);
 
-  // Hook probe to the emitter.
   p->ConnectByObject("Emitter", m_s);
 
-  // Hook our test function to the probe trace source
   p->TraceConnect("Output", p->GetName(),
                   MakeCallback(&ProbeTestCase1::TraceSink, this));
 
-  // Repeat but hook the probe to the object this time using the Config
-  // name set above
   Ptr<DoubleProbe> p2 = CreateObject<DoubleProbe>();
   p2->SetName("testProbe2");
   p2->SetAttribute("Start", TimeValue(Seconds(100.0)));
   p2->SetAttribute("Stop", TimeValue(Seconds(200.0)));
 
-  // Hook probe to the emitter.
   p2->ConnectByPath("/Names/SampleEmitter/Emitter");
 
-  // Hook our test function to the  probe trace source
   p2->TraceConnect("Output", p2->GetName(),
                    MakeCallback(&ProbeTestCase1::TraceSink, this));
 
   Simulator::Run();
 
-  // Check that each trace sink was called
   NS_TEST_ASSERT_MSG_GT(m_objectProbed, 0,
                         "Trace sink for object probe never called");
   NS_TEST_ASSERT_MSG_GT(m_pathProbed, 0,
@@ -180,11 +129,6 @@ void ProbeTestCase1::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup stats-tests
- *
- * \brief DoubleProbe class TestSuite
- */
 class ProbeTestSuite : public TestSuite {
 public:
   ProbeTestSuite();
@@ -194,5 +138,4 @@ ProbeTestSuite::ProbeTestSuite() : TestSuite("double-probe", UNIT) {
   AddTestCase(new ProbeTestCase1, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static ProbeTestSuite probeTestSuite;

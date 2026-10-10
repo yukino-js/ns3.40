@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2006 Georgia Tech Research Corporation
- *               2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: George F. Riley<riley@ece.gatech.edu>
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "socket.h"
 
@@ -142,7 +122,7 @@ Ptr<Packet> Socket::Recv() {
 
 int Socket::Recv(uint8_t *buf, uint32_t size, uint32_t flags) {
   NS_LOG_FUNCTION(this << &buf << size << flags);
-  Ptr<Packet> p = Recv(size, flags); // read up to "size" bytes
+  Ptr<Packet> p = Recv(size, flags);
   if (!p) {
     return 0;
   }
@@ -199,10 +179,6 @@ bool Socket::NotifyConnectionRequest(const Address &from) {
   if (!m_connectionRequest.IsNull()) {
     return m_connectionRequest(this, from);
   } else {
-    // accept all incoming connections by default.
-    // this way people writing code don't have to do anything
-    // special like register a callback that returns true
-    // just to get incoming connections
     return true;
   }
 }
@@ -331,8 +307,6 @@ void Socket::SetIpTos(uint8_t tos) {
   Address address;
   GetSockName(address);
   if (GetSocketType() == NS3_SOCK_STREAM) {
-    // preserve the least two significant bits of the current TOS
-    // value, which are used for ECN
     tos &= 0xfc;
     tos |= m_ipTos & 0x3;
   }
@@ -350,9 +324,7 @@ void Socket::SetIpv6Tclass(int tclass) {
   Address address;
   GetSockName(address);
 
-  // If -1 or invalid values, use default
   if (tclass == -1 || tclass < -1 || tclass > 0xff) {
-    // Print a warning
     if (tclass < -1 || tclass > 0xff) {
       NS_LOG_WARN("Invalid IPV6_TCLASS value. Using default.");
     }
@@ -406,8 +378,6 @@ void Socket::Ipv6JoinGroup(Ipv6Address address,
 void Socket::Ipv6JoinGroup(Ipv6Address address) {
   NS_LOG_FUNCTION(this << address);
 
-  // Join Group. Note that joining a group with no sources means joining without
-  // source restrictions.
   std::vector<Ipv6Address> sourceAddresses;
   Ipv6JoinGroup(address, EXCLUDE, sourceAddresses);
 }
@@ -418,15 +388,10 @@ void Socket::Ipv6LeaveGroup() {
     NS_LOG_INFO(" The socket was not bound to any group.");
     return;
   }
-  // Leave Group. Note that joining a group with no sources means leaving it.
   std::vector<Ipv6Address> sourceAddresses;
   Ipv6JoinGroup(m_ipv6MulticastGroupAddress, INCLUDE, sourceAddresses);
   m_ipv6MulticastGroupAddress = Ipv6Address::GetAny();
 }
-
-/***************************************************************
- *           Socket Tags
- ***************************************************************/
 
 SocketIpTtlTag::SocketIpTtlTag() { NS_LOG_FUNCTION(this); }
 

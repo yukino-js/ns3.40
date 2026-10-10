@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello <natale.patriciello@gmail.com>
- *               2016 Stefano Avallone <stavallo@unina.it>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "traffic-control-layer.h"
 
@@ -80,7 +63,6 @@ void TrafficControlLayer::DoInitialize() {
 
   ScanDevices();
 
-  // initialize the root queue discs
   for (auto &ndi : m_netDevices) {
     if (ndi.second.m_rootQueueDisc) {
       ndi.second.m_rootQueueDisc->Initialize();
@@ -120,7 +102,6 @@ void TrafficControlLayer::ScanDevices() {
                                     << " of type "
                                     << dev->GetInstanceTypeId().GetName());
 
-    // note: there may be no NetDeviceQueueInterface aggregated to the device
     Ptr<NetDeviceQueueInterface> ndqi =
         dev->GetObject<NetDeviceQueueInterface>();
     NS_LOG_DEBUG("Pointer to NetDeviceQueueInterface: " << ndqi);
@@ -132,13 +113,7 @@ void TrafficControlLayer::ScanDevices() {
           "Device entry found; installing NetDeviceQueueInterface pointer "
           << ndqi << " to internal map");
       ndi->second.m_ndqi = ndqi;
-    } else if (ndqi)
-    // if no entry for the device is found, it means that no queue disc has been
-    // installed. Nonetheless, create an entry for the device and store a
-    // pointer to the NetDeviceQueueInterface object if the latter is not null,
-    // because the Traffic Control layer checks whether the device queue is
-    // stopped even when there is no queue disc.
-    {
+    } else if (ndqi) {
       NS_LOG_DEBUG(
           "No device entry found; create entry for device and store pointer to "
           "NetDeviceQueueInterface: "
@@ -147,7 +122,6 @@ void TrafficControlLayer::ScanDevices() {
       ndi = m_netDevices.find(dev);
     }
 
-    // if a queue disc is installed, set the wake callbacks on netdevice queues
     if (ndi != m_netDevices.end() && ndi->second.m_rootQueueDisc) {
       NS_LOG_DEBUG("Setting the wake callbacks on NetDevice queues");
       ndi->second.m_queueDiscsToWake.clear();
@@ -181,8 +155,6 @@ void TrafficControlLayer::ScanDevices() {
         ndi->second.m_queueDiscsToWake.push_back(ndi->second.m_rootQueueDisc);
       }
 
-      // set the NetDeviceQueueInterface object and the SendCallback on the
-      // queue discs into which packets are enqueued and dequeued by calling Run
       for (auto &q : ndi->second.m_queueDiscsToWake) {
         q->SetNetDeviceQueueInterface(ndqi);
         q->SetSendCallback([dev](Ptr<QueueDiscItem> item) {
@@ -200,7 +172,6 @@ void TrafficControlLayer::SetRootQueueDiscOnDevice(Ptr<NetDevice> device,
   auto ndi = m_netDevices.find(device);
 
   if (ndi == m_netDevices.end()) {
-    // No entry found for this device. Create one.
     m_netDevices[device] = {qDisc, nullptr, QueueDiscVector()};
   } else {
     NS_ABORT_MSG_IF(
@@ -238,7 +209,6 @@ void TrafficControlLayer::DeleteRootQueueDiscOnDevice(Ptr<NetDevice> device) {
   NS_ASSERT_MSG(ndi != m_netDevices.end() && ndi->second.m_rootQueueDisc,
                 "No root queue disc installed on device " << device);
 
-  // remove the root queue disc
   ndi->second.m_rootQueueDisc = nullptr;
   for (auto &q : ndi->second.m_queueDiscsToWake) {
     q->SetNetDeviceQueueInterface(nullptr);
@@ -248,12 +218,10 @@ void TrafficControlLayer::DeleteRootQueueDiscOnDevice(Ptr<NetDevice> device) {
 
   Ptr<NetDeviceQueueInterface> ndqi = ndi->second.m_ndqi;
   if (ndqi) {
-    // remove configured callbacks, if any
     for (std::size_t i = 0; i < ndqi->GetNTxQueues(); i++) {
       ndqi->GetTxQueue(i)->SetWakeCallback(MakeNullCallback<void>());
     }
   } else {
-    // remove the empty entry
     m_netDevices.erase(ndi);
   }
 }
@@ -267,8 +235,6 @@ void TrafficControlLayer::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
   if (!m_node) {
     Ptr<Node> node = this->GetObject<Node>();
-    // verify that it's a valid node and that
-    // the node was not set before
     if (node) {
       this->SetNode(node);
     }
@@ -319,27 +285,16 @@ void TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item) {
     devQueueIface = ndi->second.m_ndqi;
   }
 
-  // determine the transmission queue of the device where the packet will be
-  // enqueued
   std::size_t txq = 0;
   if (devQueueIface && devQueueIface->GetNTxQueues() > 1) {
     txq = devQueueIface->GetSelectQueueCallback()(item);
-    // otherwise, Linux determines the queue index by using a hash function
-    // and associates such index to the socket which the packet belongs to,
-    // so that subsequent packets of the same socket will be mapped to the
-    // same tx queue (__netdev_pick_tx function in net/core/dev.c). It is
-    // pointless to implement this in ns-3 because currently the multi-queue
-    // devices provide a select queue callback
   }
 
   NS_ASSERT(!devQueueIface || txq < devQueueIface->GetNTxQueues());
 
   if (ndi == m_netDevices.end() || !ndi->second.m_rootQueueDisc) {
-    // The device has no attached queue disc, thus add the header to the packet
-    // and send it directly to the device if the selected queue is not stopped
     item->AddHeader();
     if (!devQueueIface || !devQueueIface->GetTxQueue(txq)->IsStopped()) {
-      // a single queue device makes no use of the priority tag
       if (!devQueueIface || devQueueIface->GetNTxQueues() == 1) {
         SocketPriorityTag priorityTag;
         item->GetPacket()->RemovePacketTag(priorityTag);
@@ -349,8 +304,6 @@ void TrafficControlLayer::Send(Ptr<NetDevice> device, Ptr<QueueDiscItem> item) {
       m_dropped(item->GetPacket());
     }
   } else {
-    // Enqueue the packet in the queue disc associated with the netdevice queue
-    // selected for the packet and try to dequeue packets from such queue disc
     item->SetTxQueueIndex(txq);
 
     Ptr<QueueDisc> qDisc = ndi->second.m_queueDiscsToWake[txq];

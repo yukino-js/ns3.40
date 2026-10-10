@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipcs-classifier-record.h"
 #include "ns3/ipv4-address-helper.h"
@@ -32,12 +13,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax Scheduling Test Case
- */
 class Ns3WimaxSchedulingTestCase : public TestCase {
 public:
   Ns3WimaxSchedulingTestCase();
@@ -45,11 +20,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Run once function
-   * \param scheduler the wimax scheduler type
-   * \returns true if successful
-   */
   bool DoRunOnce(WimaxHelper::SchedulerType scheduler);
 };
 
@@ -86,25 +56,6 @@ bool Ns3WimaxSchedulingTestCase::DoRunOnce(
   Ipv4InterfaceContainer SSinterfaces = address.Assign(ssDevs);
   Ipv4InterfaceContainer BSinterface = address.Assign(bsDevs);
 
-  /*------------------------------*/
-  //  UdpServerHelper udpServer;
-  //  ApplicationContainer serverApps;
-  //  UdpClientHelper udpClient;
-  //  ApplicationContainer clientApps;
-  //
-  //  udpServer = UdpServerHelper (100);
-  //  serverApps = udpServer.Install (ssNodes.Get (0));
-  //  serverApps.Start (Seconds (1));
-  //  serverApps.Stop (Seconds (2));
-  //
-  //  udpClient = UdpClientHelper (SSinterfaces.GetAddress (0), 100);
-  //  udpClient.SetAttribute ("MaxPackets", UintegerValue (1200));
-  //  udpClient.SetAttribute ("Interval", TimeValue (Seconds (0.12)));
-  //  udpClient.SetAttribute ("PacketSize", UintegerValue (1024));
-  //  clientApps = udpClient.Install (ssNodes.Get (1));
-  //  clientApps.Start (Seconds (1));
-  //  clientApps.Stop (Seconds (2));
-
   Simulator::Stop(Seconds(2 + 0.1));
 
   IpcsClassifierRecord DlClassifierUgs(
@@ -137,12 +88,6 @@ void Ns3WimaxSchedulingTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax SF Type Test Case
- */
 class Ns3WimaxSFTypeTestCase : public TestCase {
 public:
   Ns3WimaxSFTypeTestCase();
@@ -150,11 +95,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Run once function
-   * \param schedulingType the scheduling type
-   * \returns true if successful
-   */
   bool DoRunOnce(ServiceFlow::SchedulingType schedulingType);
 };
 
@@ -193,25 +133,6 @@ bool Ns3WimaxSFTypeTestCase::DoRunOnce(
   Ipv4InterfaceContainer SSinterfaces = address.Assign(ssDevs);
   Ipv4InterfaceContainer BSinterface = address.Assign(bsDevs);
 
-  /*------------------------------*/
-  //  UdpServerHelper udpServer;
-  //  ApplicationContainer serverApps;
-  //  UdpClientHelper udpClient;
-  //  ApplicationContainer clientApps;
-  //
-  //  udpServer = UdpServerHelper (100);
-  //  serverApps = udpServer.Install (ssNodes.Get (0));
-  //  serverApps.Start (Seconds (1));
-  //  serverApps.Stop (Seconds (2));
-  //
-  //  udpClient = UdpClientHelper (SSinterfaces.GetAddress (0), 100);
-  //  udpClient.SetAttribute ("MaxPackets", UintegerValue (1200));
-  //  udpClient.SetAttribute ("Interval", TimeValue (Seconds (0.12)));
-  //  udpClient.SetAttribute ("PacketSize", UintegerValue (1024));
-  //  clientApps = udpClient.Install (ssNodes.Get (1));
-  //  clientApps.Start (Seconds (1));
-  //  clientApps.Stop (Seconds (2));
-
   Simulator::Stop(Seconds(2 + 0.1));
 
   IpcsClassifierRecord DlClassifier(
@@ -246,12 +167,6 @@ void Ns3WimaxSFTypeTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax QoS Test Suite
- */
 class Ns3WimaxQoSTestSuite : public TestSuite {
 public:
   Ns3WimaxQoSTestSuite();
@@ -262,4 +177,4 @@ Ns3WimaxQoSTestSuite::Ns3WimaxQoSTestSuite() : TestSuite("wimax-qos", SYSTEM) {
   AddTestCase(new Ns3WimaxSchedulingTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxQoSTestSuite ns3WimaxQoSTestSuite; ///< the test suite
+static Ns3WimaxQoSTestSuite ns3WimaxQoSTestSuite;

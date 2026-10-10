@@ -1,21 +1,4 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# Determine if the git repository is an ns-3 repository
-#
-# A repository is considered an ns-3 repository if it has at least one tag that
-# matches the regex ns-3*
 
 function(check_git_repo_has_ns3_tags HAS_TAGS GIT_VERSION_TAG)
   execute_process(
@@ -23,17 +6,13 @@ function(check_git_repo_has_ns3_tags HAS_TAGS GIT_VERSION_TAG)
     OUTPUT_VARIABLE GIT_TAG_OUTPUT ERROR_QUIET
   )
 
-  # Result will be empty in case of a shallow clone or no git repo
   if(NOT GIT_TAG_OUTPUT)
     return()
   endif()
 
-  string(REPLACE "\r" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT}) # remove CR (carriage
-                                                           # return)
-  string(REPLACE "\n" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT}) # remove LF (line
-                                                           # feed)
+  string(REPLACE "\r" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT})
+  string(REPLACE "\n" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT})
 
-  # Check if tag exists and return values to the caller
   string(LENGTH GIT_TAG_OUTPUT GIT_TAG_OUTPUT_LEN)
   set(${HAS_TAGS} FALSE PARENT_SCOPE)
   set(${GIT_VERSION_TAG} "" PARENT_SCOPE)
@@ -43,7 +22,6 @@ function(check_git_repo_has_ns3_tags HAS_TAGS GIT_VERSION_TAG)
   endif()
 endfunction()
 
-# Function to generate version fields from an ns-3 git repository
 function(check_ns3_closest_tags CLOSEST_TAG VERSION_COMMIT_HASH
          VERSION_DIRTY_FLAG VERSION_TAG_DISTANCE
 )
@@ -52,13 +30,9 @@ function(check_ns3_closest_tags CLOSEST_TAG VERSION_COMMIT_HASH
     OUTPUT_VARIABLE GIT_TAG_OUTPUT
   )
 
-  string(REPLACE "\r" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT}) # remove CR (carriage
-                                                           # return)
-  string(REPLACE "\n" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT}) # remove LF (line
-                                                           # feed)
+  string(REPLACE "\r" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT})
+  string(REPLACE "\n" "" GIT_TAG_OUTPUT ${GIT_TAG_OUTPUT})
 
-  # Split ns-3.<version>.<patch>(-RC<digit>)-distance-commit(-dirty) into a list
-  # ns;3.<version>.<patch>;(RC<digit);distance;commit(;dirty)
   string(REPLACE "-" ";" TAG_LIST "${GIT_TAG_OUTPUT}")
 
   list(GET TAG_LIST 0 NS)
@@ -104,33 +78,26 @@ function(configure_embedded_version)
     )
   else()
     if(EXISTS ${PROJECT_SOURCE_DIR}/.git)
-      # If the git history exists, check if ns-3 git tags were found
       check_git_repo_has_ns3_tags(HAS_NS3_TAGS NS3_VERSION_TAG)
     endif()
   endif()
 
   set(version_cache_file ${PROJECT_SOURCE_DIR}/src/core/model/version.cache)
 
-  # If git tags were found, extract the information
   if(HAS_NS3_TAGS)
     check_ns3_closest_tags(
       NS3_VERSION_CLOSEST_TAG NS3_VERSION_COMMIT_HASH NS3_VERSION_DIRTY_FLAG
       NS3_VERSION_TAG_DISTANCE
     )
-    # Split commit tag (ns-3.<minor>[.patch][-RC<digit>]) into
-    # (ns;3.<minor>[.patch];[-RC<digit>]):
     string(REPLACE "-" ";" NS3_VER_LIST ${NS3_VERSION_TAG})
     list(LENGTH NS3_VER_LIST NS3_VER_LIST_LEN)
 
-    # Get last version tag fragment (RC<digit>)
     set(RELEASE_CANDIDATE " ")
     if(${NS3_VER_LIST_LEN} GREATER 2)
       list(GET NS3_VER_LIST 2 RELEASE_CANDIDATE)
     endif()
 
-    # Get 3.<minor>[.patch]
     list(GET NS3_VER_LIST 1 VERSION_STRING)
-    # Split into a list 3;<minor>[;patch]
     string(REPLACE "." ";" VERSION_LIST ${VERSION_STRING})
     list(LENGTH VERSION_LIST VER_LIST_LEN)
 
@@ -144,7 +111,6 @@ function(configure_embedded_version)
       endif()
     endif()
 
-    # Transform list with 1 entry into strings
     set(NS3_VERSION_TAG "${NS3_VERSION_TAG}")
     set(NS3_VERSION_MAJOR "${NS3_VERSION_MAJOR}")
     set(NS3_VERSION_MINOR "${NS3_VERSION_MINOR}")
@@ -195,24 +161,17 @@ function(configure_embedded_version)
       string(REPLACE "'" "" line "${line}")
       string(REPLACE "\"" "" line "${line}")
 
-      # Get key and value
       list(GET line 0 varname)
       list(GET line 1 varvalue)
 
-      # If value is empty, replace with an empty string, assume its the release
-      # candidate string
       if((NOT varvalue) AND (NOT varvalue STREQUAL "0"))
         set(varvalue "\"\"")
       endif()
 
-      # Define version variables with the NS3_ prefix to configure
-      # version-defines.h header
       set(NS3_${varname} ${varvalue})
     endforeach()
     set(NS3_VERSION_CLOSEST_TAG ${NS3_CLOSEST_TAG})
 
-    # We overwrite the build profile from version.cache with the current build
-    # profile
     if(${cmakeBuildType} STREQUAL relwithdebinfo)
       set(NS3_VERSION_BUILD_PROFILE default)
     elseif((${cmakeBuildType} STREQUAL release) AND ${NS3_NATIVE_OPTIMIZATIONS})
@@ -227,7 +186,6 @@ function(configure_embedded_version)
     set(DIRTY "-dirty")
   endif()
 
-  # Add check-version target
   set(version
       ${NS3_VERSION_TAG}+${NS3_VERSION_TAG_DISTANCE}@${NS3_VERSION_COMMIT_HASH}${DIRTY}-${build_profile}
   )
@@ -235,7 +193,6 @@ function(configure_embedded_version)
   add_custom_target(check-version COMMAND echo ns-3 version: ${version})
   set(BUILD_VERSION_STRING ${version} PARENT_SCOPE)
 
-  # Enable embedding build version
   add_definitions(-DENABLE_BUILD_VERSION=1)
   configure_file(
     build-support/version-defines-template.h

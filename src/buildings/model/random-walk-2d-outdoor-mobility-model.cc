@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- * Copyright (c) 2019 University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * Author: Michele Polese <michele.polese@gmail.com>
- */
 #include "random-walk-2d-outdoor-mobility-model.h"
 
 #include "building-list.h"
@@ -145,8 +125,6 @@ void RandomWalk2dOutdoorMobilityModel::DoWalk(Time delayLeft) {
   nextPosition.y += speed.y * delayLeft.GetSeconds();
   m_event.Cancel();
 
-  // check if the nextPosition is inside a building, or if the line
-  // from position to the next position intersects a building
   auto outdoorBuilding = IsLineClearOfBuildings(position, nextPosition);
   bool outdoor = std::get<0>(outdoorBuilding);
   Ptr<Building> building = std::get<1>(outdoorBuilding);
@@ -177,7 +155,6 @@ void RandomWalk2dOutdoorMobilityModel::DoWalk(Time delayLeft) {
   } else {
     NS_LOG_LOGIC("Out of bounding box");
     nextPosition = m_bounds.CalculateIntersection(position, speed);
-    // check that this nextPosition is outdoor
     auto outdoorBuilding = IsLineClearOfBuildings(position, nextPosition);
     bool outdoor = std::get<0>(outdoorBuilding);
     Ptr<Building> building = std::get<1>(outdoorBuilding);
@@ -231,7 +208,6 @@ void RandomWalk2dOutdoorMobilityModel::DoWalk(Time delayLeft) {
   }
   NS_LOG_LOGIC("Position " << position << " NextPosition " << nextPosition);
 
-  // store the previous position
   m_prevPosition = position;
   NotifyCourseChange();
 }
@@ -246,8 +222,6 @@ RandomWalk2dOutdoorMobilityModel::IsLineClearOfBuildings(
   Ptr<Building> minIntersectionDistanceBuilding;
 
   for (auto bit = BuildingList::Begin(); bit != BuildingList::End(); ++bit) {
-    // check if this building intersects the line between the current and next
-    // positions this checks also if the next position is inside the building
     if ((*bit)->IsIntersect(currentPosition, nextPosition)) {
       NS_LOG_LOGIC("Building " << (*bit)->GetBoundaries()
                                << " intersects the line between "
@@ -272,7 +246,6 @@ Vector RandomWalk2dOutdoorMobilityModel::CalculateIntersectionFromOutside(
   bool inside = boundaries.IsInside(current);
   NS_ASSERT(!inside);
 
-  // get the closest side
   Rectangle rect = Rectangle(boundaries.xMin, boundaries.xMax, boundaries.yMin,
                              boundaries.yMax);
   NS_LOG_DEBUG("rect " << rect);
@@ -400,7 +373,6 @@ void RandomWalk2dOutdoorMobilityModel::AvoidBuilding(Time delayLeft,
     nextPosition.x += velocityVector.x * delayLeft.GetSeconds();
     nextPosition.y += velocityVector.y * delayLeft.GetSeconds();
 
-    // check if this is inside the current buildingBox
     auto outdoorBuilding =
         IsLineClearOfBuildings(intersectPosition, nextPosition);
     bool outdoor = std::get<0>(outdoorBuilding);
@@ -421,17 +393,12 @@ void RandomWalk2dOutdoorMobilityModel::AvoidBuilding(Time delayLeft,
     }
   }
 
-  // after m_maxIter iterations, the positions tested are all inside
-  // to avoid increasing m_maxIter too much, it is possible to perform a step
-  // back to the previous position and continue from there
   if (iter >= m_maxIter) {
     NS_LOG_INFO("Move back to the previous position");
 
-    // compute the difference between the previous position and the intersection
     Vector posDiff = m_prevPosition - intersectPosition;
-    // compute the distance
     double distance = CalculateDistance(m_prevPosition, intersectPosition);
-    double speed = distance / delayLeft.GetSeconds(); // compute the speed
+    double speed = distance / delayLeft.GetSeconds();
 
     NS_LOG_LOGIC("prev " << m_prevPosition << " intersectPosition "
                          << intersectPosition << " diff " << posDiff << " dist "
@@ -445,7 +412,6 @@ void RandomWalk2dOutdoorMobilityModel::AvoidBuilding(Time delayLeft,
     nextPosition.x += velocityVector.x * delayLeft.GetSeconds();
     nextPosition.y += velocityVector.y * delayLeft.GetSeconds();
 
-    // check if the path is clear
     auto outdoorBuilding =
         IsLineClearOfBuildings(intersectPosition, nextPosition);
     bool outdoor = std::get<0>(outdoorBuilding);
@@ -455,8 +421,6 @@ void RandomWalk2dOutdoorMobilityModel::AvoidBuilding(Time delayLeft,
                    << intersectPosition << " nextPosition " << nextPosition
                    << " " << outdoor << " building "
                    << std::get<1>(outdoorBuilding)->GetBoundaries());
-      // This error may be due to buildings being attached to one another, or to
-      // the boundary of the scenario.
       NS_FATAL_ERROR(
           "Not able to find an outdoor position. Try to increase the attribute "
           "MaxIterations "
@@ -474,7 +438,6 @@ void RandomWalk2dOutdoorMobilityModel::AvoidBuilding(Time delayLeft,
 }
 
 void RandomWalk2dOutdoorMobilityModel::DoDispose() {
-  // chain up
   MobilityModel::DoDispose();
 }
 

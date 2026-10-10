@@ -1,32 +1,4 @@
-/*
- * Copyright (c) 2008-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- *         Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
-// Network topology
-// //
-// //             n0   r    n1
-// //             |    _    |
-// //             ====|_|====
-// //                router
-// //
-// // - Tracing of queues and packet receptions to file
-// "simple-routing-ping6.tr"
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -41,28 +13,14 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SimpleRoutingPing6Example");
 
-/**
- * \class StackHelper
- * \brief Helper to set or get some IPv6 information about nodes.
- */
 class StackHelper {
 public:
-  /**
-   * \brief Add an address to a IPv6 node.
-   * \param n node
-   * \param interface interface index
-   * \param address IPv6 address to add
-   */
   inline void AddAddress(Ptr<Node> &n, uint32_t interface,
                          Ipv6Address address) {
     Ptr<Ipv6> ipv6 = n->GetObject<Ipv6>();
     ipv6->AddAddress(interface, address);
   }
 
-  /**
-   * \brief Print the routing table.
-   * \param n the node
-   */
   inline void PrintRoutingTable(Ptr<Node> &n) {
     Ptr<Ipv6StaticRouting> routing = nullptr;
     Ipv6StaticRoutingHelper routingHelper;
@@ -135,8 +93,6 @@ int main(int argc, char **argv) {
 
   stackHelper.PrintRoutingTable(n0);
 
-  /* Create a Ping application to send ICMPv6 echo request from n0 to n1 via r
-   */
   uint32_t packetSize = 1024;
   uint32_t maxPacketCount = 5;
   PingHelper ping(i2.GetAddress(1, 1));

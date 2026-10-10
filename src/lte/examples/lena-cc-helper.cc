@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Danilo Abrignani <danilo.abrignani@unibo.it>
- */
 
 #include "ns3/cc-helper.h"
 #include "ns3/component-carrier.h"
@@ -35,7 +17,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::ComponentCarrier::PrimaryCarrier",
                      BooleanValue(true));
 
-  // Parse again so you can override default values from the command line
   cmd.Parse(argc, argv);
 
   Ptr<CcHelper> cch = CreateObject<CcHelper>();
@@ -51,9 +32,6 @@ int main(int argc, char *argv[]) {
   Simulator::Stop(Seconds(1.05));
 
   Simulator::Run();
-
-  // GtkConfigStore config;
-  // config.ConfigureAttributes ();
 
   Simulator::Destroy();
   return 0;

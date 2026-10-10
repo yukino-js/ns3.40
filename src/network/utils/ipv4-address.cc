@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ipv4-address.h"
 
@@ -114,10 +96,6 @@ uint16_t Ipv4Mask::GetPrefixLength() const {
   return tmp;
 }
 
-/**
- *  Value of a not-yet-initialized IPv4 address, corresponding to
- * 102.102.102.102. This is totally arbitrary.
- */
 static constexpr uint32_t UNINITIALIZED = 0x66666666U;
 
 Ipv4Address::Ipv4Address() : m_address(UNINITIALIZED), m_initialized(false) {
@@ -186,8 +164,6 @@ Ipv4Address::GetSubnetDirectedBroadcast(const Ipv4Mask &mask) const {
 bool Ipv4Address::IsSubnetDirectedBroadcast(const Ipv4Mask &mask) const {
   NS_LOG_FUNCTION(this << mask);
   if (mask == Ipv4Mask::GetOnes()) {
-    // If the mask is 255.255.255.255, there is no subnet directed
-    // broadcast for this address.
     return false;
   }
   return ((Get() | mask.Get()) == Ipv4Address::GetBroadcast().Get());
@@ -214,17 +190,12 @@ bool Ipv4Address::IsBroadcast() const {
 }
 
 bool Ipv4Address::IsMulticast() const {
-  //
-  // Multicast addresses are defined as ranging from 224.0.0.0 through
-  // 239.255.255.255 (which is E0000000 through EFFFFFFF in hex).
-  //
   NS_LOG_FUNCTION(this);
   return (m_address >= 0xe0000000 && m_address <= 0xefffffff);
 }
 
 bool Ipv4Address::IsLocalMulticast() const {
   NS_LOG_FUNCTION(this);
-  // Link-Local multicast address is 224.0.0.0/24
   return (m_address & 0xffffff00) == 0xe0000000;
 }
 

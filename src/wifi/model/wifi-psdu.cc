@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-psdu.h"
 
@@ -42,7 +24,7 @@ WifiPsdu::WifiPsdu(Ptr<WifiMpdu> mpdu, bool isSingle) : m_isSingle(isSingle) {
   m_size = mpdu->GetSize();
 
   if (isSingle) {
-    m_size += 4; // A-MPDU Subframe header size
+    m_size += 4;
   }
 }
 
@@ -86,7 +68,6 @@ Ptr<const Packet> WifiPsdu::GetPacket() const {
 
 Mac48Address WifiPsdu::GetAddr1() const {
   Mac48Address ra = m_mpduList.at(0)->GetHeader().GetAddr1();
-  // check that the other MPDUs have the same RA
   for (std::size_t i = 1; i < m_mpduList.size(); i++) {
     if (m_mpduList.at(i)->GetHeader().GetAddr1() != ra) {
       NS_ABORT_MSG("MPDUs in an A-AMPDU must have the same receiver address");
@@ -97,7 +78,6 @@ Mac48Address WifiPsdu::GetAddr1() const {
 
 Mac48Address WifiPsdu::GetAddr2() const {
   Mac48Address ta = m_mpduList.at(0)->GetHeader().GetAddr2();
-  // check that the other MPDUs have the same TA
   for (std::size_t i = 1; i < m_mpduList.size(); i++) {
     if (m_mpduList.at(i)->GetHeader().GetAddr2() != ta) {
       NS_ABORT_MSG(
@@ -108,17 +88,11 @@ Mac48Address WifiPsdu::GetAddr2() const {
 }
 
 bool WifiPsdu::HasNav() const {
-  // When the contents of a received Duration/ID field, treated as an unsigned
-  // integer, are greater than 32 768, the contents are interpreted as
-  // appropriate for the frame type and subtype or ignored if the receiving MAC
-  // entity does not have a defined interpretation for that type and subtype
-  // (IEEE 802.11-2016 sec. 10.27.3)
   return (m_mpduList.at(0)->GetHeader().GetRawDuration() & 0x8000) == 0;
 }
 
 Time WifiPsdu::GetDuration() const {
   Time duration = m_mpduList.at(0)->GetHeader().GetDuration();
-  // check that the other MPDUs have the same Duration/ID
   for (std::size_t i = 1; i < m_mpduList.size(); i++) {
     if (m_mpduList.at(i)->GetHeader().GetDuration() != duration) {
       NS_ABORT_MSG("MPDUs in an A-AMPDU must have the same Duration/ID");
@@ -150,7 +124,6 @@ WifiMacHeader::QosAckPolicy WifiPsdu::GetAckPolicyForTid(uint8_t tid) const {
   auto it = m_mpduList.begin();
   bool found = false;
 
-  // find the first QoS Data frame with the given TID
   do {
     if ((*it)->GetHeader().IsQosData() &&
         (*it)->GetHeader().GetQosTid() == tid) {
@@ -162,8 +135,6 @@ WifiMacHeader::QosAckPolicy WifiPsdu::GetAckPolicyForTid(uint8_t tid) const {
 
   NS_ABORT_MSG_IF(!found, "No QoS Data frame in the PSDU");
 
-  // check that the other QoS Data frames with the given TID have the same ack
-  // policy
   while (it != m_mpduList.end()) {
     if ((*it)->GetHeader().IsQosData() &&
         (*it)->GetHeader().GetQosTid() == tid &&
@@ -244,10 +215,9 @@ Ptr<Packet> WifiPsdu::GetAmpduSubframe(std::size_t i) const {
 
 std::size_t WifiPsdu::GetAmpduSubframeSize(std::size_t i) const {
   NS_ASSERT(i < m_mpduList.size());
-  size_t subframeSize = 4; // A-MPDU Subframe header size
+  size_t subframeSize = 4;
   subframeSize += m_mpduList.at(i)->GetSize();
-  if (i != m_mpduList.size() - 1) // add padding if not last
-  {
+  if (i != m_mpduList.size() - 1) {
     subframeSize += MpduAggregator::CalculatePadding(subframeSize);
   }
   return subframeSize;

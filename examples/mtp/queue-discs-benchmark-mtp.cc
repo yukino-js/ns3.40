@@ -1,61 +1,4 @@
-/*
- * Copyright (c) 2015 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pasquale Imputato <p.imputato@gmail.com>
- *          Stefano Avallone <stefano.avallone@unina.it>
- */
 
-// This example serves as a benchmark for all the queue discs (with BQL enabled
-// or not)
-//
-// Network topology
-//
-//                192.168.1.0                             192.168.2.0
-// n1 ------------------------------------ n2
-// ----------------------------------- n3
-//   point-to-point (access link)                point-to-point (bottleneck
-//   link) 100 Mbps, 0.1 ms                            bandwidth [10 Mbps],
-//   delay [5 ms] qdiscs PfifoFast with capacity              qdiscs
-//   queueDiscType in {PfifoFast, ARED, CoDel, FqCoDel, PIE} [PfifoFast] of 1000
-//   packets                             with capacity of queueDiscSize packets
-//   [1000] netdevices queues with size of 100 packets  netdevices queues with
-//   size of netdevicesQueueSize packets [100] without BQL bql BQL [false]
-//   *** fixed configuration ***
-//
-// Two TCP flows are generated: one from n1 to n3 and the other from n3 to n1.
-// Additionally, n1 pings n3, so that the RTT can be measured.
-//
-// The output will consist of a number of ping Rtt such as:
-//
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=111 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=111 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=110 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=111 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=111 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=112 ms
-//    /NodeList/0/ApplicationList/2/$ns3::Ping/Rtt=111 ms
-//
-// The files output will consist of a trace file with bytes in queue and of a
-// trace file for limits (when BQL is enabled) both for bottleneck NetDevice on
-// n2, two files with upload and download goodput for flows configuration and a
-// file with flow monitor stats.
-//
-// If you use an AQM as queue disc on the bottleneck netdevices, you can observe
-// that the ping Rtt decrease. A further decrease can be observed when you
-// enable BQL.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -71,55 +14,28 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("BenchmarkQueueDiscs");
 
-/**
- * Print the queue limits.
- *
- * \param stream The output stream.
- * \param oldVal Old value.
- * \param newVal New value.
- */
 void LimitsTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                  uint32_t newVal) {
   *stream->GetStream() << Simulator::Now().GetSeconds() << " " << newVal
                        << std::endl;
 }
 
-/**
- * Print the bytes in the queue.
- *
- * \param stream The output stream.
- * \param oldVal Old value.
- * \param newVal New value.
- */
 void BytesInQueueTrace(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                        uint32_t newVal) {
   *stream->GetStream() << Simulator::Now().GetSeconds() << " " << newVal
                        << std::endl;
 }
 
-/**
- * Sample and print the queue goodput.
- *
- * \param app The Tx app.
- * \param stream The output stream.
- * \param period The sampling period.
- */
 static void GoodputSampling(ApplicationContainer app,
                             Ptr<OutputStreamWrapper> stream, float period) {
   Simulator::Schedule(Seconds(period), &GoodputSampling, app, stream, period);
   double goodput;
   uint64_t totalPackets = DynamicCast<PacketSink>(app.Get(0))->GetTotalRx();
-  goodput = totalPackets * 8 / (Simulator::Now().GetSeconds() * 1024); // Kbit/s
+  goodput = totalPackets * 8 / (Simulator::Now().GetSeconds() * 1024);
   *stream->GetStream() << Simulator::Now().GetSeconds() << " " << goodput
                        << std::endl;
 }
 
-/**
- * Print the ping RTT.
- *
- * \param context The context.
- * \param rtt The RTT.
- */
 static void PingRtt(std::string context, uint16_t, Time rtt) {
   std::cout << context << "=" << rtt.GetMilliSeconds() << " ms" << std::endl;
 }
@@ -136,7 +52,7 @@ int main(int argc, char *argv[]) {
   std::string flowsDatarate = "20Mbps";
   uint32_t flowsPacketsSize = 1000;
 
-  float startTime = 0.1F; // in s
+  float startTime = 0.1F;
   float simDuration = 60;
   float samplingPeriod = 1;
 
@@ -165,7 +81,6 @@ int main(int argc, char *argv[]) {
 
   float stopTime = startTime + simDuration;
 
-  // Create nodes
   NodeContainer n1;
   NodeContainer n2;
   NodeContainer n3;
@@ -173,7 +88,6 @@ int main(int argc, char *argv[]) {
   n2.Create(1);
   n3.Create(1);
 
-  // Create and configure access link and bottleneck link
   PointToPointHelper accessLink;
   accessLink.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
   accessLink.SetChannelAttribute("Delay", StringValue("0.1ms"));
@@ -189,12 +103,10 @@ int main(int argc, char *argv[]) {
   InternetStackHelper stack;
   stack.InstallAll();
 
-  // Access link traffic control configuration
   TrafficControlHelper tchPfifoFastAccess;
   tchPfifoFastAccess.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                                       StringValue("1000p"));
 
-  // Bottleneck link traffic control configuration
   TrafficControlHelper tchBottleneck;
 
   if (queueDiscType == "PfifoFast") {
@@ -289,13 +201,10 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::TcpSocket::SegmentSize",
                      UintegerValue(flowsPacketsSize));
 
-  // Flows configuration
-  // Bidirectional TCP streams with ping like flent tcp_bidirectional test.
   uint16_t port = 7;
   ApplicationContainer uploadApp;
   ApplicationContainer downloadApp;
   ApplicationContainer sourceApps;
-  // Configure and install upload flow
   Address addUp(InetSocketAddress(Ipv4Address::GetAny(), port));
   PacketSinkHelper sinkHelperUp("ns3::TcpSocketFactory", addUp);
   sinkHelperUp.SetAttribute("Protocol",
@@ -315,7 +224,6 @@ int main(int argc, char *argv[]) {
   sourceApps.Add(onOffHelperUp.Install(n1));
 
   port = 8;
-  // Configure and install download flow
   Address addDown(InetSocketAddress(Ipv4Address::GetAny(), port));
   PacketSinkHelper sinkHelperDown("ns3::TcpSocketFactory", addDown);
   sinkHelperDown.SetAttribute("Protocol",
@@ -334,7 +242,6 @@ int main(int argc, char *argv[]) {
   onOffHelperDown.SetAttribute("DataRate", StringValue(flowsDatarate));
   sourceApps.Add(onOffHelperDown.Install(n3));
 
-  // Configure and install ping
   PingHelper ping(n3Interface.GetAddress(0));
   ping.SetAttribute("VerboseMode", EnumValue(Ping::VerboseMode::QUIET));
   ping.Install(n1);
@@ -359,7 +266,6 @@ int main(int argc, char *argv[]) {
   Simulator::Schedule(Seconds(samplingPeriod), &GoodputSampling, downloadApp,
                       downloadGoodputStream, samplingPeriod);
 
-  // Flow monitor
   Ptr<FlowMonitor> flowMonitor;
   FlowMonitorHelper flowHelper;
   flowMonitor = flowHelper.InstallAll();

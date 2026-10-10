@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "ie-dot11s-perr.h"
 
@@ -42,11 +24,10 @@ void IePerr::Print(std::ostream &os) const {
 uint8_t IePerr::GetNumOfDest() const { return m_addressUnits.size(); }
 
 void IePerr::SerializeInformationField(Buffer::Iterator i) const {
-  i.WriteU8(0);                     // TTL
-  i.WriteU8(m_addressUnits.size()); // number of Destinations
+  i.WriteU8(0);
+  i.WriteU8(m_addressUnits.size());
   for (unsigned int j = 0; j < m_addressUnits.size(); j++) {
-    i.WriteU8(0); // not used // Bit 6: AE (Address Extension) subfield (1 =
-                  // destination external address is present, 0 = otherwise).
+    i.WriteU8(0);
     WriteTo(i, m_addressUnits[j].destination);
     i.WriteHtolsbU32(m_addressUnits[j].seqnum);
     i.WriteU8(0);
@@ -57,27 +38,24 @@ void IePerr::SerializeInformationField(Buffer::Iterator i) const {
 uint16_t IePerr::DeserializeInformationField(Buffer::Iterator start,
                                              uint16_t length) {
   Buffer::Iterator i = start;
-  i.Next(1); // TTL //Mode flags is not used now
+  i.Next(1);
   uint8_t numOfDest = i.ReadU8();
   NS_ABORT_UNLESS((2 + 13 * numOfDest) == length);
 
   for (unsigned int j = 0; j < numOfDest; j++) {
-    i.Next(1); // flags is not used now
+    i.Next(1);
     HwmpProtocol::FailedDestination unit;
     ReadFrom(i, unit.destination);
     unit.seqnum = i.ReadLsbtohU32();
     m_addressUnits.push_back(unit);
-    i.Next(2); // Reason
+    i.Next(2);
   }
   return i.GetDistanceFrom(start);
 }
 
 uint16_t IePerr::GetInformationFieldSize() const {
-  uint16_t retval = 1                           // TTL   //ModeFlags
-                    + 1                         // NumOfDests
-                    + 1 * m_addressUnits.size() // ModeFlags
-                    + (6 + 4) * m_addressUnits.size() +
-                    2 * m_addressUnits.size(); // Reason Code
+  uint16_t retval = 1 + 1 + 1 * m_addressUnits.size() +
+                    (6 + 4) * m_addressUnits.size() + 2 * m_addressUnits.size();
   return retval;
 }
 
@@ -94,11 +72,7 @@ void IePerr::AddAddressUnit(HwmpProtocol::FailedDestination unit) {
 }
 
 bool IePerr::IsFull() const {
-  // -fstrict-overflow sensitive, see bug 1868
-  return (GetInformationFieldSize() >
-          255 - 2  /* ID + LENGTH*/
-              - 13 // 10 /* Size of Mac48Address + uint32_t (one unit)*/
-  );
+  return (GetInformationFieldSize() > 255 - 2 - 13);
 }
 
 std::vector<HwmpProtocol::FailedDestination>

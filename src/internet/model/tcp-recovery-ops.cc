@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2018 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Viyom Mittal <viyommittal@gmail.com>
- *         Vivek Jain <jain.vivek.anand@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 #include "tcp-recovery-ops.h"
 
 #include "tcp-socket-state.h"
@@ -49,8 +28,6 @@ TcpRecoveryOps::~TcpRecoveryOps() { NS_LOG_FUNCTION(this); }
 void TcpRecoveryOps::UpdateBytesSent(uint32_t bytesSent) {
   NS_LOG_FUNCTION(this << bytesSent);
 }
-
-// Classic recovery
 
 NS_OBJECT_ENSURE_REGISTERED(TcpClassicRecovery);
 
@@ -91,11 +68,6 @@ void TcpClassicRecovery::DoRecovery(Ptr<TcpSocketState> tcb,
 
 void TcpClassicRecovery::ExitRecovery(Ptr<TcpSocketState> tcb) {
   NS_LOG_FUNCTION(this << tcb);
-  // Follow NewReno procedures to exit FR if SACK is disabled
-  // (RFC2582 sec.3 bullet #5 paragraph 2, option 2)
-  // In this implementation, actual m_cWnd value is reset to ssThresh
-  // immediately before calling ExitRecovery(), so we just need to
-  // reset the inflated cWnd trace variable
   tcb->m_cWndInfl = tcb->m_ssThresh.Get();
 }
 

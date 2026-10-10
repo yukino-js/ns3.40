@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Adrian Sai-wah Tam
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Adrian Sai-wah Tam <adrian.sw.tam@gmail.com>
- */
 
 #include "tcp-option-ts.h"
 
@@ -49,10 +31,10 @@ uint32_t TcpOptionTS::GetSerializedSize() const { return 10; }
 
 void TcpOptionTS::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
-  i.WriteU8(GetKind());        // Kind
-  i.WriteU8(10);               // Length
-  i.WriteHtonU32(m_timestamp); // Local timestamp
-  i.WriteHtonU32(m_echo);      // Echo timestamp
+  i.WriteU8(GetKind());
+  i.WriteU8(10);
+  i.WriteHtonU32(m_timestamp);
+  i.WriteHtonU32(m_echo);
 }
 
 uint32_t TcpOptionTS::Deserialize(Buffer::Iterator start) {
@@ -87,8 +69,6 @@ void TcpOptionTS::SetEcho(uint32_t ts) { m_echo = ts; }
 uint32_t TcpOptionTS::NowToTsValue() {
   uint64_t now = (uint64_t)Simulator::Now().GetMilliSeconds();
 
-  // high: (now & 0xFFFFFFFF00000000ULL) >> 32;
-  // low: now & 0xFFFFFFFF
   return (now & 0xFFFFFFFF);
 }
 

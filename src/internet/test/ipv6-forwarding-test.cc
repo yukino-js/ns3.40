@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/icmpv6-l4-protocol.h"
@@ -42,35 +24,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 Forwarding Test
- */
 class Ipv6ForwardingTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet.
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv6ForwardingTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -98,13 +61,9 @@ void Ipv6ForwardingTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv6ForwardingTest::DoRun() {
-  // Create topology
 
-  // Receiver Node
   Ptr<Node> rxNode = CreateObject<Node>();
-  // Forwarding Node
   Ptr<Node> fwNode = CreateObject<Node>();
-  // Sender Node
   Ptr<Node> txNode = CreateObject<Node>();
 
   NodeContainer net1nodes(rxNode, fwNode);
@@ -161,13 +120,11 @@ void Ipv6ForwardingTest::DoRun() {
   ipv6Addr = Ipv6InterfaceAddress(Ipv6Address("2001:2::2"), Ipv6Prefix(64));
   ipv6->AddAddress(ifIndex, ipv6Addr);
 
-  // Setup at least a route from the sender.
   Ptr<Ipv6StaticRouting> ipv6StaticRouting =
       Ipv6RoutingHelper::GetRouting<Ipv6StaticRouting>(
           txNode->GetObject<Ipv6>()->GetRoutingProtocol());
   ipv6StaticRouting->SetDefaultRoute(Ipv6Address("2001:2::1"), ifIndex);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -180,9 +137,6 @@ void Ipv6ForwardingTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "2001:1::2");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 0, "IPv6 Forwarding off");
 
@@ -199,11 +153,6 @@ void Ipv6ForwardingTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 Forwarding TestSuite
- */
 class Ipv6ForwardingTestSuite : public TestSuite {
 public:
   Ipv6ForwardingTestSuite() : TestSuite("ipv6-forwarding", UNIT) {
@@ -211,5 +160,4 @@ public:
   }
 };
 
-static Ipv6ForwardingTestSuite
-    g_ipv6forwardingTestSuite; //!< Static variable for test initialization
+static Ipv6ForwardingTestSuite g_ipv6forwardingTestSuite;

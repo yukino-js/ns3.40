@@ -1,40 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-// Network topology
-//
-//       n0    n1   n2   n3
-//       |     |    |    |
-//     =====================
-//
-//  node n0,n1,n3 pings to node n2
-//  node n0 generates protocol 2 (IGMP) to node n3
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -52,23 +16,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("CsmaPingExample");
 
-/**
- * Rx sink
- *
- * \param p The packer.
- * \param ad The sender address.
- */
 static void SinkRx(Ptr<const Packet> p, const Address &ad) {
   std::cout << *p << std::endl;
 }
 
-/**
- * Ping RTT trace sink
- *
- * \param context The context.
- * \param seqNo The Sequence Number.
- * \param rtt The RTT.
- */
 static void PingRtt(std::string context, uint16_t seqNo, Time rtt) {
   std::cout << context << " " << seqNo << " " << rtt << std::endl;
 }
@@ -82,12 +33,10 @@ int main(int argc, char *argv[]) {
                verbose);
   cmd.Parse(argc, argv);
 
-  // Here, we will explicitly create four nodes.
   NS_LOG_INFO("Create nodes.");
   NodeContainer c;
   c.Create(4);
 
-  // connect all our nodes to a shared channel.
   NS_LOG_INFO("Build Topology.");
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
@@ -95,12 +44,10 @@ int main(int argc, char *argv[]) {
   csma.SetDeviceAttribute("EncapsulationMode", StringValue("Llc"));
   NetDeviceContainer devs = csma.Install(c);
 
-  // add an ip stack to all nodes.
   NS_LOG_INFO("Add ip stack.");
   InternetStackHelper ipStack;
   ipStack.Install(c);
 
-  // assign ip addresses
   NS_LOG_INFO("Assign ip addresses.");
   Ipv4AddressHelper ip;
   ip.SetBase("192.168.1.0", "255.255.255.0");
@@ -134,15 +81,12 @@ int main(int argc, char *argv[]) {
   apps.Stop(Seconds(5.0));
 
   NS_LOG_INFO("Configure Tracing.");
-  // first, pcap tracing in non-promiscuous mode
   csma.EnablePcapAll("csma-ping", false);
 
   if (verbose) {
-    // then, print what the packet sink receives.
     Config::ConnectWithoutContext(
         "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx",
         MakeCallback(&SinkRx));
-    // finally, print the ping rtts.
     Config::Connect("/NodeList/*/ApplicationList/*/$ns3::Ping/Rtt",
                     MakeCallback(&PingRtt));
   }

@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/attribute.h"
 #include "ns3/config.h"
@@ -40,11 +12,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("RttEstimatorTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief RTT estimator Test
- */
 class RttEstimatorTestCase : public TestCase {
 public:
   RttEstimatorTestCase();
@@ -53,21 +20,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Check RTT values.
-   * \param rtt The RTT estimator.
-   * \param m The measurement.
-   * \param e The expected value.
-   * \param v The expected variance.
-   */
   void CheckValues(Ptr<RttEstimator> rtt, Time m, Time e, Time v);
-  /**
-   * \brief Check RTT values with a 1 nanosecond of tolerance.
-   * \param rtt The RTT estimator.
-   * \param m The measurement.
-   * \param e The expected value.
-   * \param v The expected variance.
-   */
   void CheckValuesWithTolerance(Ptr<RttEstimator> rtt, Time m, Time e, Time v);
 };
 
@@ -90,7 +43,6 @@ void RttEstimatorTestCase::CheckValuesWithTolerance(Ptr<RttEstimator> rtt,
 }
 
 void RttEstimatorTestCase::DoRun() {
-  // Set to a non-default value
   Config::SetDefault("ns3::RttEstimator::InitialEstimation",
                      TimeValue(MilliSeconds(500)));
   Config::SetDefault("ns3::RttMeanDeviation::Alpha", DoubleValue(0.5));
@@ -112,7 +64,6 @@ void RttEstimatorTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(ok, true, "Attribute should be gettable");
   NS_TEST_ASSERT_MSG_EQ_TOL(doubleval.Get(), 0.6, 0.001, "Beta not set");
 
-  // Reset to default values
   ok = rtt->SetAttributeFailSafe("InitialEstimation", TimeValue(Seconds(1)));
   NS_TEST_EXPECT_MSG_EQ(ok, true, "Attribute should be settable");
   ok = rtt->SetAttributeFailSafe("Alpha", DoubleValue(0.125));
@@ -130,21 +81,16 @@ void RttEstimatorTestCase::DoRun() {
                         "Incorrect initial variance");
   NS_TEST_EXPECT_MSG_EQ(rtt->GetNSamples(), 0, "Incorrect initial estimate");
 
-  // CheckValues (rtt, measurement, new estimate, new variance);
-  // Initial value:  SRTT <- measurement; RTTVAR <- measurement/2
   CheckValues(rtt, Time(Seconds(1)), Time(Seconds(1)), Time(MilliSeconds(500)));
-  // Subsequent values:  according to RFC 6298
   CheckValues(rtt, Time(MilliSeconds(1200)), Time(MilliSeconds(1025)),
               Time(MilliSeconds(425)));
   Ptr<RttEstimator> copy = rtt->Copy();
   CheckValues(rtt, Time(MilliSeconds(900)), Time(MicroSeconds(1009375)),
               Time(MilliSeconds(350)));
 
-  // Check behavior of copy; should have inherited state
   CheckValues(copy, Time(MilliSeconds(900)), Time(MicroSeconds(1009375)),
               Time(MilliSeconds(350)));
 
-  // Floating point arithmetic due to alpha and beta settings
   rtt->Reset();
   ok = rtt->SetAttributeFailSafe("Alpha", DoubleValue(0.1));
   NS_TEST_EXPECT_MSG_EQ(ok, true, "Attribute should be settable");
@@ -158,7 +104,6 @@ void RttEstimatorTestCase::DoRun() {
                            Time(MicroSeconds(1197500)),
                            Time(MilliSeconds(531)));
 
-  // Check boundary values; 0 will not update, 1 will use most recent value
   rtt->Reset();
   ok = rtt->SetAttributeFailSafe("Alpha", DoubleValue(0));
   NS_TEST_EXPECT_MSG_EQ(ok, true, "Attribute should be settable");
@@ -176,7 +121,6 @@ void RttEstimatorTestCase::DoRun() {
   CheckValues(rtt, Time(Seconds(2.5)), Time(Seconds(2.5)), Time(Seconds(1.5)));
   CheckValues(rtt, Time(Seconds(7)), Time(Seconds(7)), Time(Seconds(4.5)));
 
-  // recheck initial values
   rtt->Reset();
   NS_TEST_EXPECT_MSG_EQ(rtt->GetEstimate(), Time(Seconds(1)),
                         "Incorrect initial estimate");
@@ -187,11 +131,6 @@ void RttEstimatorTestCase::DoRun() {
 
 void RttEstimatorTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief RTT estimator TestSuite
- */
 class RttEstimatorTestSuite : public TestSuite {
 public:
   RttEstimatorTestSuite() : TestSuite("rtt-estimator", UNIT) {
@@ -199,5 +138,4 @@ public:
   }
 };
 
-static RttEstimatorTestSuite
-    g_rttEstimatorTestSuite; //!< Static variable for test initialization
+static RttEstimatorTestSuite g_rttEstimatorTestSuite;

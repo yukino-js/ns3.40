@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/adhoc-aloha-noack-ideal-phy-helper.h>
 #include <ns3/applications-module.h>
@@ -44,74 +26,38 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("OfdmWithWaveformGenerator");
 
-/// True for verbose output.
 static bool g_verbose = false;
 
-/**
- *
- *
- * \param context
- * \param p
- */
 void PhyTxStartTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY TX START p: " << p << std::endl;
   }
 }
 
-/**
- * PHY start TX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void PhyTxEndTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY TX END p: " << p << std::endl;
   }
 }
 
-/**
- * PHY end TX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void PhyRxStartTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY RX START p:" << p << std::endl;
   }
 }
 
-/**
- * PHY end OK RX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void PhyRxEndOkTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY RX END OK p:" << p << std::endl;
   }
 }
 
-/**
- * PHY end error RX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void PhyRxEndErrorTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY RX END ERROR p:" << p << std::endl;
   }
 }
 
-/**
- * Receive callback.
- *
- * \param socket The receiving socket.
- */
 void ReceivePacket(Ptr<Socket> socket) {
   Ptr<Packet> packet;
   uint64_t bytes = 0;
@@ -123,12 +69,6 @@ void ReceivePacket(Ptr<Socket> socket) {
   }
 }
 
-/**
- * Create a socket and prepare it for packet reception.
- *
- * \param node The node.
- * \return a new socket
- */
 Ptr<Socket> SetupPacketReceive(Ptr<Node> node) {
   TypeId tid = TypeId::LookupByName("ns3::PacketSocketFactory");
   Ptr<Socket> sink = Socket::CreateSocket(node, tid);
@@ -157,10 +97,10 @@ int main(int argc, char **argv) {
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> nodePositionList =
       CreateObject<ListPositionAllocator>();
-  nodePositionList->Add(Vector(5.0, 0.0, 0.0));  // TX node
-  nodePositionList->Add(Vector(0.0, 0.0, 0.0));  // RX node
-  nodePositionList->Add(Vector(30.0, 0.0, 0.0)); // Microwave Oven
-  nodePositionList->Add(Vector(0.0, 0.0, 0.0));  // Spectrum Analyzer
+  nodePositionList->Add(Vector(5.0, 0.0, 0.0));
+  nodePositionList->Add(Vector(0.0, 0.0, 0.0));
+  nodePositionList->Add(Vector(30.0, 0.0, 0.0));
+  nodePositionList->Add(Vector(0.0, 0.0, 0.0));
   mobility.SetPositionAllocator(nodePositionList);
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
@@ -170,23 +110,16 @@ int main(int argc, char **argv) {
   channelHelper.SetChannel("ns3::MultiModelSpectrumChannel");
   Ptr<SpectrumChannel> channel = channelHelper.Create();
 
-  /////////////////////////
-  // Configure ofdm nodes
-  ////////////////////////
-
   SpectrumValue5MhzFactory sf;
 
-  double txPower = 0.1; // Watts
+  double txPower = 0.1;
   uint32_t channelNumber = 4;
   Ptr<SpectrumValue> txPsd =
       sf.CreateTxPowerSpectralDensity(txPower, channelNumber);
 
-  // for the noise, we use the Power Spectral Density of thermal noise
-  // at room temperature. The value of the PSD will be constant over the band of
-  // interest.
-  const double k = 1.381e-23;   // Boltzmann's constant
-  const double T = 290;         // temperature in Kelvin
-  double noisePsdValue = k * T; // watts per hertz
+  const double k = 1.381e-23;
+  const double T = 290;
+  double noisePsdValue = k * T;
   Ptr<SpectrumValue> noisePsd = sf.CreateConstant(noisePsdValue);
 
   AdhocAlohaNoackIdealPhyHelper adhocAlohaOfdmHelper;
@@ -219,10 +152,6 @@ int main(int argc, char **argv) {
 
   Ptr<Socket> recvSink = SetupPacketReceive(ofdmNodes.Get(1));
 
-  /////////////////////////////////
-  // Configure waveform generator
-  /////////////////////////////////
-
   Ptr<SpectrumValue> mwoPsd =
       MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo1();
   NS_LOG_INFO("mwoPsd : " << *mwoPsd);
@@ -231,9 +160,8 @@ int main(int argc, char **argv) {
   waveformGeneratorHelper.SetChannel(channel);
   waveformGeneratorHelper.SetTxPowerSpectralDensity(mwoPsd);
 
-  waveformGeneratorHelper.SetPhyAttribute(
-      "Period",
-      TimeValue(Seconds(1.0 / 60))); // corresponds to 60 Hz
+  waveformGeneratorHelper.SetPhyAttribute("Period",
+                                          TimeValue(Seconds(1.0 / 60)));
   waveformGeneratorHelper.SetPhyAttribute("DutyCycle", DoubleValue(0.5));
   NetDeviceContainer waveformGeneratorDevices =
       waveformGeneratorHelper.Install(waveformGeneratorNodes);
@@ -244,36 +172,16 @@ int main(int argc, char **argv) {
                           ->GetPhy()
                           ->GetObject<WaveformGenerator>());
 
-  /////////////////////////////////
-  // Configure spectrum analyzer
-  /////////////////////////////////
-
   SpectrumAnalyzerHelper spectrumAnalyzerHelper;
   spectrumAnalyzerHelper.SetChannel(channel);
   spectrumAnalyzerHelper.SetRxSpectrumModel(SpectrumModelIsm2400MhzRes1Mhz);
   spectrumAnalyzerHelper.SetPhyAttribute("Resolution",
                                          TimeValue(MilliSeconds(2)));
   spectrumAnalyzerHelper.SetPhyAttribute("NoisePowerSpectralDensity",
-                                         DoubleValue(1e-15)); // -120 dBm/Hz
+                                         DoubleValue(1e-15));
   spectrumAnalyzerHelper.EnableAsciiAll("spectrum-analyzer-output");
   NetDeviceContainer spectrumAnalyzerDevices =
       spectrumAnalyzerHelper.Install(spectrumAnalyzerNodes);
-
-  /*
-    you can get a nice plot of the output of SpectrumAnalyzer with this gnuplot
-    script:
-
-    unset surface
-    set pm3d at s
-    set palette
-    set key off
-    set view 50,50
-    set xlabel "time (ms)"
-    set ylabel "freq (MHz)"
-    set zlabel "PSD (dBW/Hz)" offset 15,0,0
-    splot "./spectrum-analyzer-output-3-0.tr" using
-    ($1*1000.0):($2/1e6):(10*log10($3))
-  */
 
   Config::Connect("/NodeList/*/DeviceList/*/Phy/TxStart",
                   MakeCallback(&PhyTxStartTrace));

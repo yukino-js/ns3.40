@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011, 2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Lluis Parcerisa <lparcerisa@cttc.cat>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/double.h"
@@ -35,18 +16,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("Asn1EncodingTest");
 
-/**
- * \ingroup lte-test
- *
- * \brief Contains ASN encoding test utility functions.
- */
 class TestUtils {
 public:
-  /**
-   * Function to convert packet contents in hex format
-   * \param pkt the packet
-   * \returns the text string
-   */
   static std::string sprintPacketContentsHex(Ptr<Packet> pkt) {
     uint32_t psize = pkt->GetSize();
     uint8_t buffer[psize];
@@ -59,11 +30,6 @@ public:
     return std::string(oss.str() + "\n");
   }
 
-  /**
-   * Function to convert packet contents in binary format
-   * \param pkt the packet
-   * \returns the text string
-   */
   static std::string sprintPacketContentsBin(Ptr<Packet> pkt) {
     uint32_t psize = pkt->GetSize();
     uint8_t buffer[psize];
@@ -75,21 +41,12 @@ public:
     return std::string(oss.str() + "\n");
   }
 
-  /**
-   * Function to log packet contents
-   * \param pkt the packet
-   */
   static void LogPacketContents(Ptr<Packet> pkt) {
     NS_LOG_DEBUG("---- SERIALIZED PACKET CONTENTS (HEX): -------");
     NS_LOG_DEBUG("Hex: " << TestUtils::sprintPacketContentsHex(pkt));
     NS_LOG_DEBUG("Bin: " << TestUtils::sprintPacketContentsBin(pkt));
   }
 
-  /**
-   * Function to log packet info
-   * \param source T
-   * \param s the string
-   */
   template <class T> static void LogPacketInfo(T source, std::string s) {
     NS_LOG_DEBUG("--------- " << s.data() << " INFO: -------");
     std::ostringstream oss(std::ostringstream::out);
@@ -98,38 +55,17 @@ public:
   }
 };
 
-// --------------------------- CLASS RrcHeaderTestCase
-// -----------------------------
-/**
- * \ingroup lte-test
- *
- * \brief This class provides common functions to be inherited
- * by the children TestCases
- */
 class RrcHeaderTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param s the reference name
-   */
   RrcHeaderTestCase(std::string s);
   void DoRun() override = 0;
-  /**
-   * \brief Create radio resource config dedicated
-   * \returns LteRrcSap::RadioResourceConfigDedicated
-   */
   LteRrcSap::RadioResourceConfigDedicated CreateRadioResourceConfigDedicated();
-  /**
-   * \brief Assert equal radio resource config dedicated
-   * \param rrcd1 LteRrcSap::RadioResourceConfigDedicated # 1
-   * \param rrcd2 LteRrcSap::RadioResourceConfigDedicated # 2
-   */
   void AssertEqualRadioResourceConfigDedicated(
       LteRrcSap::RadioResourceConfigDedicated rrcd1,
       LteRrcSap::RadioResourceConfigDedicated rrcd2);
 
 protected:
-  Ptr<Packet> packet; ///< the packet
+  Ptr<Packet> packet;
 };
 
 RrcHeaderTestCase::RrcHeaderTestCase(std::string s) : TestCase(s) {}
@@ -316,11 +252,6 @@ void RrcHeaderTestCase::AssertEqualRadioResourceConfigDedicated(
   }
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Request Test Case
- */
 class RrcConnectionRequestTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionRequestTestCase();
@@ -340,24 +271,18 @@ void RrcConnectionRequestTestCase::DoRun() {
   RrcConnectionRequestHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionRequestHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // Remove header
   RrcConnectionRequestHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionRequestHeader>(destination,
                                                        "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetMmec(), destination.GetMmec(),
                         "Different m_mmec!");
   NS_TEST_ASSERT_MSG_EQ(source.GetMtmsi(), destination.GetMtmsi(),
@@ -366,11 +291,6 @@ void RrcConnectionRequestTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Setup Test Case
- */
 class RrcConnectionSetupTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionSetupTestCase();
@@ -391,24 +311,18 @@ void RrcConnectionSetupTestCase::DoRun() {
   RrcConnectionSetupHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionSetupHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionSetupHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionSetupHeader>(destination,
                                                      "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "RrcTransactionIdentifier");
@@ -420,11 +334,6 @@ void RrcConnectionSetupTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Setup Complete Test Case
- */
 class RrcConnectionSetupCompleteTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionSetupCompleteTestCase();
@@ -444,24 +353,18 @@ void RrcConnectionSetupCompleteTestCase::DoRun() {
   RrcConnectionSetupCompleteHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionSetupCompleteHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // Remove header
   RrcConnectionSetupCompleteHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionSetupCompleteHeader>(destination,
                                                              "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "RrcTransactionIdentifier");
@@ -469,11 +372,6 @@ void RrcConnectionSetupCompleteTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reconfiguration Complete Test Case
- */
 class RrcConnectionReconfigurationCompleteTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionReconfigurationCompleteTestCase();
@@ -496,25 +394,19 @@ void RrcConnectionReconfigurationCompleteTestCase::DoRun() {
   RrcConnectionReconfigurationCompleteHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionReconfigurationCompleteHeader>(
       source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionReconfigurationCompleteHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionReconfigurationCompleteHeader>(
       destination, "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "RrcTransactionIdentifier");
@@ -522,11 +414,6 @@ void RrcConnectionReconfigurationCompleteTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reconfiguration Test Case
- */
 class RrcConnectionReconfigurationTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionReconfigurationTestCase();
@@ -576,7 +463,6 @@ void RrcConnectionReconfigurationTestCase::DoRun() {
   msg.measConfig.measIdToRemoveList.push_back(4);
   msg.measConfig.measIdToRemoveList.push_back(18);
 
-  // Set measObjectToAddModList
   LteRrcSap::MeasObjectToAddMod measObjectToAddMod;
   measObjectToAddMod.measObjectId = 3;
   measObjectToAddMod.measObjectEutra.carrierFreq = 21;
@@ -603,7 +489,6 @@ void RrcConnectionReconfigurationTestCase::DoRun() {
       blackCellsToAddMod);
   msg.measConfig.measObjectToAddModList.push_back(measObjectToAddMod);
 
-  // Set reportConfigToAddModList
   LteRrcSap::ReportConfigToAddMod reportConfigToAddMod;
   reportConfigToAddMod.reportConfigId = 22;
   reportConfigToAddMod.reportConfigEutra.triggerType =
@@ -632,7 +517,6 @@ void RrcConnectionReconfigurationTestCase::DoRun() {
   reportConfigToAddMod.reportConfigEutra.reportAmount = 16;
   msg.measConfig.reportConfigToAddModList.push_back(reportConfigToAddMod);
 
-  // Set measIdToAddModList
   LteRrcSap::MeasIdToAddMod measIdToAddMod;
   LteRrcSap::MeasIdToAddMod measIdToAddMod2;
   measIdToAddMod.measId = 7;
@@ -667,29 +551,23 @@ void RrcConnectionReconfigurationTestCase::DoRun() {
 
   msg.radioResourceConfigDedicated = CreateRadioResourceConfigDedicated();
 
-  msg.haveNonCriticalExtension = false; // Danilo
+  msg.haveNonCriticalExtension = false;
   RrcConnectionReconfigurationHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionReconfigurationHeader>(source,
                                                                "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionReconfigurationHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionReconfigurationHeader>(destination,
                                                                "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "RrcTransactionIdentifier");
@@ -766,11 +644,6 @@ void RrcConnectionReconfigurationTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Handover Preparation Info Test Case
- */
 class HandoverPreparationInfoTestCase : public RrcHeaderTestCase {
 public:
   HandoverPreparationInfoTestCase();
@@ -817,24 +690,18 @@ void HandoverPreparationInfoTestCase::DoRun() {
   HandoverPreparationInfoHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<HandoverPreparationInfoHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   HandoverPreparationInfoHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<HandoverPreparationInfoHeader>(destination,
                                                           "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   AssertEqualRadioResourceConfigDedicated(
       source.GetAsConfig().sourceRadioResourceConfig,
       destination.GetAsConfig().sourceRadioResourceConfig);
@@ -883,11 +750,6 @@ void HandoverPreparationInfoTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reestablishment Request Test Case
- */
 class RrcConnectionReestablishmentRequestTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionReestablishmentRequestTestCase();
@@ -912,25 +774,19 @@ void RrcConnectionReestablishmentRequestTestCase::DoRun() {
   RrcConnectionReestablishmentRequestHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentRequestHeader>(source,
                                                                       "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionReestablishmentRequestHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentRequestHeader>(
       destination, "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetUeIdentity().cRnti,
                         destination.GetUeIdentity().cRnti, "cRnti");
   NS_TEST_ASSERT_MSG_EQ(source.GetUeIdentity().physCellId,
@@ -942,11 +798,6 @@ void RrcConnectionReestablishmentRequestTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reestablishment Test Case
- */
 class RrcConnectionReestablishmentTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionReestablishmentTestCase();
@@ -968,25 +819,19 @@ void RrcConnectionReestablishmentTestCase::DoRun() {
   RrcConnectionReestablishmentHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentHeader>(source,
                                                                "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionReestablishmentHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentHeader>(destination,
                                                                "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "rrcTransactionIdentifier");
@@ -997,11 +842,6 @@ void RrcConnectionReestablishmentTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reestablishment Complete Test Case
- */
 class RrcConnectionReestablishmentCompleteTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionReestablishmentCompleteTestCase();
@@ -1024,25 +864,19 @@ void RrcConnectionReestablishmentCompleteTestCase::DoRun() {
   RrcConnectionReestablishmentCompleteHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentCompleteHeader>(
       source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionReestablishmentCompleteHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionReestablishmentCompleteHeader>(
       destination, "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetRrcTransactionIdentifier(),
                         destination.GetRrcTransactionIdentifier(),
                         "rrcTransactionIdentifier");
@@ -1050,11 +884,6 @@ void RrcConnectionReestablishmentCompleteTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Rrc Connection Reject Test Case
- */
 class RrcConnectionRejectTestCase : public RrcHeaderTestCase {
 public:
   RrcConnectionRejectTestCase();
@@ -1074,24 +903,18 @@ void RrcConnectionRejectTestCase::DoRun() {
   RrcConnectionRejectHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<RrcConnectionRejectHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   RrcConnectionRejectHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<RrcConnectionRejectHeader>(destination,
                                                       "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   NS_TEST_ASSERT_MSG_EQ(source.GetMessage().waitTime,
                         destination.GetMessage().waitTime,
                         "Different waitTime!");
@@ -1099,11 +922,6 @@ void RrcConnectionRejectTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Measurement Report Test Case
- */
 class MeasurementReportTestCase : public RrcHeaderTestCase {
 public:
   MeasurementReportTestCase();
@@ -1140,23 +958,17 @@ void MeasurementReportTestCase::DoRun() {
   MeasurementReportHeader source;
   source.SetMessage(msg);
 
-  // Log source info
   TestUtils::LogPacketInfo<MeasurementReportHeader>(source, "SOURCE");
 
-  // Add header
   packet->AddHeader(source);
 
-  // Log serialized packet contents
   TestUtils::LogPacketContents(packet);
 
-  // remove header
   MeasurementReportHeader destination;
   packet->RemoveHeader(destination);
 
-  // Log destination info
   TestUtils::LogPacketInfo<MeasurementReportHeader>(destination, "DESTINATION");
 
-  // Check that the destination and source headers contain the same values
   LteRrcSap::MeasResults srcMeas = source.GetMessage().measResults;
   LteRrcSap::MeasResults dstMeas = destination.GetMessage().measResults;
 
@@ -1224,11 +1036,6 @@ void MeasurementReportTestCase::DoRun() {
   packet = nullptr;
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Asn1Encoding Test Suite
- */
 class Asn1EncodingSuite : public TestSuite {
 public:
   Asn1EncodingSuite();
@@ -1252,8 +1059,4 @@ Asn1EncodingSuite::Asn1EncodingSuite() : TestSuite("test-asn1-encoding", UNIT) {
   AddTestCase(new MeasurementReportTestCase(), TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 Asn1EncodingSuite g_asn1EncodingSuite;

@@ -1,50 +1,30 @@
-#
-# Copyright 2020 University of Washington
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation;
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Authors:  Hao Yin and Sebastien Deronne
-#
 import numpy as np
 import math
 
 
 def bianchi_ax(data_rate, ack_rate, k, difs):
-    # Parameters for 11ax
     nA = np.linspace(5, 50, 10)
     CWmin = 15
     CWmax = 1023
-    L_DATA = 1500 * 8  # data size in bits
-    L_ACK = 14 * 8  # ACK size in bits
-    # B = 1/(CWmin+1)
+    L_DATA = 1500 * 8
+    L_ACK = 14 * 8
     B = 0
     EP = L_DATA / (1 - B)
-    T_GI = 800e-9  # guard interval in seconds
-    T_SYMBOL_ACK = 4e-6  # symbol duration in seconds (for ACK)
-    T_SYMBOL_DATA = 12.8e-6 + T_GI  # symbol duration in seconds (for DATA)
-    T_PHY_ACK = 20e-6  # PHY preamble & header duration in seconds (for ACK)
-    T_PHY_DATA = 44e-6  # PHY preamble & header duration in seconds (for DATA)
-    L_SERVICE = 16  # service field length in bits
-    L_TAIL = 6  # tail length in bits
-    L_MAC = (30) * 8  # MAC header size in bits
-    L_APP_HDR = 8 * 8  # bits added by the upper layer(s)
+    T_GI = 800e-9
+    T_SYMBOL_ACK = 4e-6
+    T_SYMBOL_DATA = 12.8e-6 + T_GI
+    T_PHY_ACK = 20e-6
+    T_PHY_DATA = 44e-6
+    L_SERVICE = 16
+    L_TAIL = 6
+    L_MAC = (30) * 8
+    L_APP_HDR = 8 * 8
     T_SIFS = 16e-6
     T_DIFS = 34e-6
     T_SLOT = 9e-6
     delta = 1e-7
 
-    Aggregation_Type = "A_MPDU"  # A_MPDU or A_MSDU (HYBRID not fully supported)
+    Aggregation_Type = "A_MPDU"
     K_MSDU = 1
     K_MPDU = k
     L_MPDU_HEADER = 4
@@ -52,7 +32,7 @@ def bianchi_ax(data_rate, ack_rate, k, difs):
     if k <= 1:
         Aggregation_Type = "NONE"
 
-    N_DBPS = data_rate * T_SYMBOL_DATA  # number of data bits per OFDM symbol
+    N_DBPS = data_rate * T_SYMBOL_DATA
 
     if Aggregation_Type == "NONE":
         N_SYMBOLS = math.ceil(
@@ -85,13 +65,12 @@ def bianchi_ax(data_rate, ack_rate, k, difs):
         )
         T_DATA = T_PHY_DATA + (T_SYMBOL_DATA * N_SYMBOLS)
 
-    # Calculate ACK Duration
-    N_DBPS = ack_rate * T_SYMBOL_ACK  # number of data bits per OFDM symbol
+    N_DBPS = ack_rate * T_SYMBOL_ACK
     N_SYMBOLS = math.ceil((L_SERVICE + L_ACK + L_TAIL) / N_DBPS)
     T_ACK = T_PHY_ACK + (T_SYMBOL_ACK * N_SYMBOLS)
 
     T_s = T_DATA + T_SIFS + T_ACK + T_DIFS
-    if difs == 1:  # DIFS
+    if difs == 1:
         T_C = T_DATA + T_DIFS
     else:
         T_s = T_DATA + T_SIFS + T_ACK + T_DIFS + delta
@@ -144,7 +123,6 @@ def str_result(bianchi_result, mcs, bw):
     return str_bianchi
 
 
-# Settings for different MCS and mode
 data_rates_20MHz = [
     8.603e6,
     17.206e6,
@@ -258,7 +236,6 @@ ack_rates_160MHz = [
     24e6,
 ]
 
-# Generate results with frame aggregation disabled
 k = 1
 
 difs = 1

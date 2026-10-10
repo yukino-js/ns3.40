@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- * Copyright (c) 2010 Network Security Lab, University of Washington, Seattle.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Sidharth Nabar <snabar@uw.edu>, He Wu <mdzz@u.washington.edu>
- */
 
 #include "energy-source-container.h"
 
@@ -87,12 +67,7 @@ void EnergySourceContainer::Add(std::string sourceName) {
   m_sources.push_back(source);
 }
 
-/*
- * Private functions start here.
- */
-
 void EnergySourceContainer::DoDispose() {
-  // call Object::Dispose for all EnergySource objects
   for (auto i = m_sources.begin(); i != m_sources.end(); i++) {
     (*i)->DisposeDeviceModels();
     (*i)->Dispose();
@@ -101,7 +76,6 @@ void EnergySourceContainer::DoDispose() {
 }
 
 void EnergySourceContainer::DoInitialize() {
-  // call Object::Start for all EnergySource objects
   for (auto i = m_sources.begin(); i != m_sources.end(); i++) {
     (*i)->Initialize();
     (*i)->InitializeDeviceModels();

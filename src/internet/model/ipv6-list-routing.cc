@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ipv6-list-routing.h"
 
@@ -47,9 +30,6 @@ void Ipv6ListRouting::DoDispose() {
   NS_LOG_FUNCTION(this);
   for (auto rprotoIter = m_routingProtocols.begin();
        rprotoIter != m_routingProtocols.end(); rprotoIter++) {
-    // Note:  Calling dispose on these protocols causes memory leak
-    //        The routing protocols should not maintain a pointer to
-    //        this object, so Dispose () shouldn't be necessary.
     (*rprotoIter).second = nullptr;
   }
   m_routingProtocols.clear();
@@ -82,7 +62,6 @@ Ptr<Ipv6Route> Ipv6ListRouting::RouteOutput(Ptr<Packet> p,
   return nullptr;
 }
 
-// Patterned after Linux ip_route_input and ip_route_input_slow
 bool Ipv6ListRouting::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
                                  Ptr<const NetDevice> idev,
                                  const UnicastForwardCallback &ucb,
@@ -94,11 +73,9 @@ bool Ipv6ListRouting::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
       "RouteInput logic for node: " << m_ipv6->GetObject<Node>()->GetId());
 
   NS_ASSERT(m_ipv6);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv6->GetInterfaceForDevice(idev) >= 0);
   Ipv6Address dst = header.GetDestination();
 
-  // Check if input device supports IP forwarding
   uint32_t iif = m_ipv6->GetInterfaceForDevice(idev);
   if (!m_ipv6->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
@@ -106,7 +83,6 @@ bool Ipv6ListRouting::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
     return true;
   }
 
-  // We disable error callback for the called protocols.
   ErrorCallback nullEcb =
       MakeNullCallback<void, Ptr<const Packet>, const Ipv6Header &,
                        Socket::SocketErrno>();
@@ -119,7 +95,6 @@ bool Ipv6ListRouting::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
     }
   }
 
-  // No routing protocol has found a route.
   ecb(p, header, Socket::ERROR_NOROUTETOHOST);
   return false;
 }

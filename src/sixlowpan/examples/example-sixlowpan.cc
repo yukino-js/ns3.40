@@ -1,40 +1,4 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
-// Network topology
-//
-//      n0                                      n1
-//  +---------+                             +--------+
-//  | UDP     |             r               | UDP    |
-//  +---------+    +---------+--------+     +--------+
-//  | IPv6    |    | IPv6    | IPv6   |     | IPv6   |
-//  +---------+    +---------+        |     |        |
-//  | 6LoWPAN |    | 6LoWPAN |        |     |        |
-//  +---------+    +---------+--------+     +--------+
-//  | CSMA    |    | CSMA    | CSMA   |     | CSMA   |
-//  +---------+    +---------+--------+     +--------+
-//       |              |        |               |
-//       ================        =================
-//
-// - Tracing of queues and packet receptions to file "example-sixlowpan.tr"
-// Note that the Pcap packet dissection will not be very meaningful.
-// See the module's documentation for a discussion about this.
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -100,8 +64,6 @@ int main(int argc, char **argv) {
   i2.SetForwarding(0, true);
   i2.SetDefaultRouteInAllNodes(0);
 
-  /* Create a Ping6 application to send ICMPv6 echo request from n0 to n1 via r
-   */
   uint32_t packetSize = 200;
   uint32_t maxPacketCount = 50;
   Time interPacketInterval = Seconds(1.);

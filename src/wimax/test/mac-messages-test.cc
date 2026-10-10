@@ -1,39 +1,9 @@
-/*
- *  Copyright (c) 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *
- */
 #include "ns3/mac-messages.h"
 #include "ns3/service-flow.h"
 #include "ns3/test.h"
 
 using namespace ns3;
 
-/**
- * \ingroup wimax
- * \defgroup wimax-test wimax module tests
- */
-
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the DSA request message.
- */
 class DsaRequestTestCase : public TestCase {
 public:
   DsaRequestTestCase();
@@ -99,12 +69,6 @@ void DsaRequestTestCase::DoRun() {
                         "The sfRecv had the wrong traffic priority.");
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax Mac Messages Test Suite
- */
 class Ns3WimaxMacMessagesTestSuite : public TestSuite {
 public:
   Ns3WimaxMacMessagesTestSuite();
@@ -115,5 +79,4 @@ Ns3WimaxMacMessagesTestSuite::Ns3WimaxMacMessagesTestSuite()
   AddTestCase(new DsaRequestTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxMacMessagesTestSuite
-    ns3WimaxMacMessagesTestSuite; ///< the test suite
+static Ns3WimaxMacMessagesTestSuite ns3WimaxMacMessagesTestSuite;

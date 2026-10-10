@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- * Copyright (c) 2013 Budiarto Herman
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Original work authors (from lte-enb-rrc.cc):
- * - Nicola Baldo <nbaldo@cttc.es>
- * - Marco Miozzo <mmiozzo@cttc.es>
- * - Manuel Requena <manuel.requena@cttc.es>
- *
- * Converted to ANR interface by:
- * - Budiarto Herman <budiarto.herman@magister.fi>
- */
 
 #include "lte-anr.h"
 
@@ -54,11 +29,7 @@ TypeId LteAnr::GetTypeId() {
                         "neighbour cell",
                         UintegerValue(0),
                         MakeUintegerAccessor(&LteAnr::m_threshold),
-                        MakeUintegerChecker<uint8_t>(
-                            0,
-                            34)) // RSRQ range is [0..34] as per Section 9.1.7
-                                 // of 3GPP TS 36.133
-      ;
+                        MakeUintegerChecker<uint8_t>(0, 34));
   return tid;
 }
 
@@ -135,14 +106,11 @@ void LteAnr::DoReportUeMeas(LteRrcSap::MeasResults measResults) {
         !(measResults.measResultListEutra.empty())) {
       for (auto it = measResults.measResultListEutra.begin();
            it != measResults.measResultListEutra.end(); ++it) {
-        // Keep new RSRQ value reported for the neighbour cell
         NS_ASSERT_MSG(it->haveRsrqResult == true,
                       "RSRQ measure missing for cellId " << it->physCellId);
 
-        // Update Neighbour Relation Table
         auto itNrt = m_neighbourRelationTable.find(it->physCellId);
         if (itNrt != m_neighbourRelationTable.end()) {
-          // Update neighbour relation entry
           NS_LOG_LOGIC(this << " updating NRT of cell " << m_servingCellId
                             << " with entry of cell " << it->physCellId);
           if (!itNrt->second.noX2) {
@@ -153,7 +121,6 @@ void LteAnr::DoReportUeMeas(LteRrcSap::MeasResults measResults) {
           }
           itNrt->second.detectedAsNeighbour = true;
         } else {
-          // Discovered new neighbour
           NS_LOG_LOGIC(this << " inserting NRT of cell " << m_servingCellId
                             << " with newly discovered neighbouring cell "
                             << it->physCellId);
@@ -164,20 +131,14 @@ void LteAnr::DoReportUeMeas(LteRrcSap::MeasResults measResults) {
           neighbourRelation.detectedAsNeighbour = true;
           m_neighbourRelationTable[it->physCellId] = neighbourRelation;
         }
+      }
 
-      } // end of for (it = measResults.measResultListEutra.begin ())
-
-    } // end of if (measResults.haveMeasResultNeighCells &&
-      // !(measResults.measResultListEutra.empty ()))
-    else {
+    } else {
       NS_LOG_WARN(this << " Event A4 received without measurement results from "
                           "neighbouring cells");
-      /// \todo Remove neighbours in the NRT.
     }
-
-  } // end of else of if (measId != m_measId)
-
-} // end of DoReportUeMeas
+  }
+}
 
 void LteAnr::DoAddNeighbourRelation(uint16_t cellId) {
   NS_LOG_FUNCTION(this << cellId);
@@ -207,4 +168,4 @@ const LteAnr::NeighbourRelation_t *LteAnr::Find(uint16_t cellId) const {
   return &(it->second);
 }
 
-} // end of namespace ns3
+} // namespace ns3

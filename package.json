@@ -1,6 +1,7 @@
 {
+  "packageManager": "pnpm@12.10.1",
   "name": "ns3.40",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "TcpSwift ns-3.40 simulation driver and thesis figure pipeline",
@@ -11,13 +12,18 @@
     "draw": "node main.js draw",
     "summary": "node main.js summary",
     "plots": "node docs/plots/main.js",
-    "docs:build": "node docs/build.js"
+    "docs:build": "node docs/build.js",
+    "git:config": "git config user.name hangtiancheng && git config user.email '161043261@qq.com'",
+    "git:commit": "git add -A && git commit -m \"feat: Introduce new features\"",
+    "git:commit:skip": "git add -A && git commit -m \"feat: Introduce new features [skip ci]\"",
+    "git:push": "pnpm git:commit && git push origin main",
+    "git:push:skip": "pnpm git:commit:skip && git push origin main"
   },
   "devDependencies": {
-    "@types/node": "^24.9.2",
-    "fast-xml-parser": "^5.11.1",
-    "playwright": "^1.63.0",
-    "plotly.js-dist-min": "^4.1.1",
+    "@types/node": "^24.19.2",
+    "fast-xml-parser": "^5.11.2",
+    "playwright": "^1.64.0",
+    "plotly.js-dist-min": "^4.1.2",
     "typescript": "^6.0.3"
   }
 }

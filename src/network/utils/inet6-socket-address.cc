@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2008 Louis Pasteur University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "inet6-socket-address.h"
 
@@ -73,7 +55,7 @@ void Inet6SocketAddress::SetIpv6(Ipv6Address ipv6) {
 
 bool Inet6SocketAddress::IsMatchingType(const Address &addr) {
   NS_LOG_FUNCTION(&addr);
-  return addr.CheckCompatible(GetType(), 18); /* 16 (address) + 2  (port) */
+  return addr.CheckCompatible(GetType(), 18);
 }
 
 Inet6SocketAddress::operator Address() const { return ConvertTo(); }
@@ -103,4 +85,4 @@ uint8_t Inet6SocketAddress::GetType() {
   return type;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

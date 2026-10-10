@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/config-store-module.h"
 #include "ns3/core-module.h"
@@ -19,18 +6,8 @@
 
 using namespace ns3;
 
-/**
- * \ingroup configstore-examples
- * \ingroup examples
- *
- * \brief Example class to demonstrate use of the ns-3 Config Store
- */
 class ConfigExample : public Object {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId() {
     static TypeId tid =
         TypeId("ns3::ConfigExample")
@@ -41,15 +18,11 @@ public:
     return tid;
   }
 
-  int16_t m_int16; ///< value to configure
+  int16_t m_int16;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(ConfigExample);
 
-// Assign a new default value to A::TestInt16 (-5)
-// Configure a TestInt16 value for a special instance of A (to -3)
-// View the output from the config store
-//
 int main(int argc, char *argv[]) {
   std::string loadfile;
 
@@ -95,16 +68,9 @@ int main(int argc, char *argv[]) {
       iv.Get() == -3,
       "Cannot set ConfigExample's integer attribute via SetAttribute");
 
-  // These test objects are not rooted in any ns-3 configuration namespace.
-  // This is usually done automatically for ns3 nodes and channels, but
-  // we can establish a new root and anchor one of them there (note; we
-  // can't use two objects of the same type as roots).  Rooting one of these
-  // is necessary for it to show up in the config namespace so that
-  // ConfigureAttributes() will work below.
   Config::RegisterRootNamespaceObject(b_obj);
 
 #ifdef HAVE_LIBXML2
-  // Output config store to XML format
   Config::SetDefault("ns3::ConfigStore::Filename",
                      StringValue("output-attributes.xml"));
   Config::SetDefault("ns3::ConfigStore::FileFormat", StringValue("Xml"));
@@ -112,9 +78,8 @@ int main(int argc, char *argv[]) {
   ConfigStore outputConfig;
   outputConfig.ConfigureDefaults();
   outputConfig.ConfigureAttributes();
-#endif /* HAVE_LIBXML2 */
+#endif
 
-  // Output config store to txt format
   Config::SetDefault("ns3::ConfigStore::Filename",
                      StringValue("output-attributes.txt"));
   Config::SetDefault("ns3::ConfigStore::FileFormat", StringValue("RawText"));

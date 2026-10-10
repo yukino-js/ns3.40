@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Shravya Ks <shravya.ks0@gmail.com>
- *
- */
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
 
@@ -39,28 +20,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TcpEcnTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief checks if ECT, CWR and ECE bits are set correctly in different
- * scenarios
- *
- * This test suite will run four combinations of enabling ECN (sender off and
- * receiver off; sender on and receiver off; sender off and receiver on; sender
- * on and receiver on;) and checks that the TOS byte of eventual packets
- * transmitted or received have ECT, CWR, and ECE set correctly (or not). It
- * also checks if congestion window is being reduced by half only once per every
- * window on receipt of ECE flags
- *
- */
 class TcpEcnTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param testcase test case number
-   * \param desc Description about the ECN capabilities of sender and receiver
-   */
   TcpEcnTest(uint32_t testcase, const std::string &desc);
 
 protected:
@@ -73,51 +34,25 @@ protected:
   void ConfigureProperties() override;
 
 private:
-  uint32_t
-      m_cwndChangeCount; //!< Number of times the congestion window did change
-  uint32_t m_senderSent; //!< Number of segments sent by the sender
-  uint32_t m_senderReceived;   //!< Number of segments received by the sender
-  uint32_t m_receiverReceived; //!< Number of segments received by the receiver
-  uint32_t m_testcase;         //!< Test case type
+  uint32_t m_cwndChangeCount;
+  uint32_t m_senderSent;
+  uint32_t m_senderReceived;
+  uint32_t m_receiverReceived;
+  uint32_t m_testcase;
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief A TCP socket which sends certain data packets with CE flags set for
- * tests 5 and 6.
- *
- * The SendDataPacket function of this class sends data packets numbered 1 and 3
- * with CE flags set for test 5 to verify if ECE and CWR bits are correctly set
- * by receiver and sender respectively. It also sets CE flags on data packets 4
- * and 5 in test case 6 to check if sender reduces congestion window
- * appropriately and also only once per every window.
- *
- */
 class TcpSocketCongestedRouter : public TcpSocketMsgBase {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
-  uint32_t m_dataPacketSent; //!< Number of packets sent
-  uint8_t m_testcase;        //!< Test case type
+  uint32_t m_dataPacketSent;
+  uint8_t m_testcase;
 
   TcpSocketCongestedRouter() : TcpSocketMsgBase() { m_dataPacketSent = 0; }
 
-  /**
-   * \brief Constructor.
-   * \param other The object to copy from.
-   */
   TcpSocketCongestedRouter(const TcpSocketCongestedRouter &other)
       : TcpSocketMsgBase(other) {}
 
-  /**
-   * Set the test case type
-   * \param testCase Test case type
-   */
   void SetTestCase(uint8_t testCase);
 
 protected:
@@ -155,7 +90,7 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
   }
 
   Ptr<Packet> p = m_txBuffer->CopyFromSequence(maxSize, seq)->GetPacketCopy();
-  uint32_t sz = p->GetSize(); // Size of packet
+  uint32_t sz = p->GetSize();
   uint8_t flags = withAck ? TcpHeader::ACK : 0;
   uint32_t remainingData =
       m_txBuffer->SizeFromSequence(seq + SequenceNumber32(sz));
@@ -165,8 +100,6 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
     m_delAckCount = 0;
   }
 
-  // Sender should reduce the Congestion Window as a response to receiver's ECN
-  // Echo notification only once per window
   if (m_tcb->m_ecnState == TcpSocketState::ECN_ECE_RCVD &&
       m_ecnEchoSeq.Get() > m_ecnCWRSeq.Get() && !isRetransmission) {
     NS_LOG_DEBUG(TcpSocketState::EcnStateName[m_tcb->m_ecnState]
@@ -176,12 +109,6 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
     flags |= TcpHeader::CWR;
     NS_LOG_INFO("CWR flags set");
   }
-  /*
-   * Add tags for each socket option.
-   * Note that currently the socket adds both IPv4 tag and IPv6 tag
-   * if both options are set. Once the packet got to layer three, only
-   * the corresponding tags will be read.
-   */
   if (GetIpTos()) {
     SocketIpTosTag ipTosTag;
     if (m_testcase == 5 && (m_dataPacketSent == 1 || m_dataPacketSent == 3)) {
@@ -265,12 +192,10 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
 
   if (m_closeOnEmpty && (remainingData == 0)) {
     flags |= TcpHeader::FIN;
-    if (m_state ==
-        ESTABLISHED) { // On active close: I am the first one to send FIN
+    if (m_state == ESTABLISHED) {
       NS_LOG_DEBUG("ESTABLISHED -> FIN_WAIT_1");
       m_state = FIN_WAIT_1;
-    } else if (m_state ==
-               CLOSE_WAIT) { // On passive close: Peer sent me FIN already
+    } else if (m_state == CLOSE_WAIT) {
       NS_LOG_DEBUG("CLOSE_WAIT -> LAST_ACK");
       m_state = LAST_ACK;
     }
@@ -290,7 +215,6 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
   AddOptions(header);
 
   if (m_retxEvent.IsExpired()) {
-    // Schedules retransmit timeout. m_rto should be already doubled.
 
     NS_LOG_LOGIC(this << " SendDataPacket Schedule ReTxTimeout at time "
                       << Simulator::Now().GetSeconds() << " to expire at time "
@@ -319,12 +243,10 @@ uint32_t TcpSocketCongestedRouter::SendDataPacket(SequenceNumber32 seq,
 
   UpdateRttHistory(seq, sz, isRetransmission);
 
-  // Notify the application of the data being sent unless this is a retransmit
   if (seq + sz > m_tcb->m_highTxMark) {
     Simulator::ScheduleNow(&TcpSocketCongestedRouter::NotifyDataSent, this,
                            (seq + sz - m_tcb->m_highTxMark.Get()));
   }
-  // Update highTxMark
   m_tcb->m_highTxMark = std::max(seq + sz, m_tcb->m_highTxMark.Get());
   return sz;
 }
@@ -474,11 +396,6 @@ Ptr<TcpSocketMsgBase> TcpEcnTest::CreateSenderSocket(Ptr<Node> node) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP ECN TestSuite
- */
 class TcpEcnTestSuite : public TestSuite {
 public:
   TcpEcnTestSuite() : TestSuite("tcp-ecn-test", UNIT) {
@@ -503,7 +420,6 @@ public:
   }
 };
 
-static TcpEcnTestSuite
-    g_tcpECNTestSuite; //!< static var for test initialization
+static TcpEcnTestSuite g_tcpECNTestSuite;
 
 } // namespace ns3

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -34,29 +16,10 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This is an example to show how to configure an IEEE 802.11 Wi-Fi
-// network where the AP and the station use different 802.11 standards.
-//
-// It outputs the throughput for a given configuration: user can specify
-// the 802.11 versions for the AP and the station as well as their rate
-// adaptation algorithms. It also allows to decide whether the station,
-// the AP or both has/have traffic to send.
-//
-// Example for an IEEE 802.11ac station sending traffic to an 802.11a AP using
-// Ideal rate adaptation algorithm:
-// ./ns3 run "wifi-backward-compatibility --apVersion=80211a
-// --staVersion=80211ac --staRaa=Ideal"
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wifi-backward-compatibility");
 
-/**
- * Convert a string (e.g., "80211a") to a pair {WifiStandard, WifiPhyBand}
- *
- * \param version The WiFi standard version.
- * \return a pair of WifiStandard, WifiPhyBand
- */
 std::pair<WifiStandard, WifiPhyBand>
 ConvertStringToStandardAndBand(std::string version) {
   WifiStandard standard = WIFI_STANDARD_80211a;
@@ -93,8 +56,8 @@ ConvertStringToStandardAndBand(std::string version) {
 }
 
 int main(int argc, char *argv[]) {
-  uint32_t payloadSize = 1472; // bytes
-  double simulationTime = 10;  // seconds
+  uint32_t payloadSize = 1472;
+  double simulationTime = 10;
   std::string apVersion = "80211a";
   std::string staVersion = "80211n_5GHZ";
   std::string apRaa = "Minstrel";
@@ -147,7 +110,6 @@ int main(int argc, char *argv[]) {
   mac.SetType("ns3::StaWifiMac", "QosSupported", BooleanValue(true), "Ssid",
               SsidValue(ssid));
 
-  // Workaround needed as long as we do not fully support channel bonding
   uint16_t width = (staVersion == "80211ac" ? 20 : 0);
   channelValue.Set(WifiPhy::ChannelTuple{0, width, staBand, 0});
   phy.Set("ChannelSettings", channelValue);
@@ -162,7 +124,6 @@ int main(int argc, char *argv[]) {
   mac.SetType("ns3::ApWifiMac", "QosSupported", BooleanValue(true), "Ssid",
               SsidValue(ssid));
 
-  // Workaround needed as long as we do not fully support channel bonding
   width = (apVersion == "80211ac" ? 20 : 0);
   channelValue.Set(WifiPhy::ChannelTuple{0, width, apBand, 0});
   phy.Set("ChannelSettings", channelValue);
@@ -205,8 +166,8 @@ int main(int argc, char *argv[]) {
   if (apHasTraffic) {
     UdpClientHelper apClient(staNodeInterface.GetAddress(0), 5001);
     apClient.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-    apClient.SetAttribute("Interval", TimeValue(Time("0.00001"))); // packets/s
-    apClient.SetAttribute("PacketSize", UintegerValue(payloadSize)); // bytes
+    apClient.SetAttribute("Interval", TimeValue(Time("0.00001")));
+    apClient.SetAttribute("PacketSize", UintegerValue(payloadSize));
     ApplicationContainer apClientApp = apClient.Install(wifiApNode.Get(0));
     apClientApp.Start(Seconds(1.0));
     apClientApp.Stop(Seconds(simulationTime + 1));
@@ -215,8 +176,8 @@ int main(int argc, char *argv[]) {
   if (staHasTraffic) {
     UdpClientHelper staClient(apNodeInterface.GetAddress(0), 9);
     staClient.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-    staClient.SetAttribute("Interval", TimeValue(Time("0.00001"))); // packets/s
-    staClient.SetAttribute("PacketSize", UintegerValue(payloadSize)); // bytes
+    staClient.SetAttribute("Interval", TimeValue(Time("0.00001")));
+    staClient.SetAttribute("PacketSize", UintegerValue(payloadSize));
     ApplicationContainer staClientApp = staClient.Install(wifiStaNode.Get(0));
     staClientApp.Start(Seconds(1.0));
     staClientApp.Stop(Seconds(simulationTime + 1));
@@ -233,7 +194,7 @@ int main(int argc, char *argv[]) {
   if (apHasTraffic) {
     rxBytes = payloadSize *
               DynamicCast<UdpServer>(staServerApp.Get(0))->GetReceived();
-    throughput = (rxBytes * 8) / (simulationTime * 1000000.0); // Mbit/s
+    throughput = (rxBytes * 8) / (simulationTime * 1000000.0);
     std::cout << "AP Throughput: " << throughput << " Mbit/s" << std::endl;
     if (throughput == 0) {
       error = true;
@@ -242,7 +203,7 @@ int main(int argc, char *argv[]) {
   if (staHasTraffic) {
     rxBytes =
         payloadSize * DynamicCast<UdpServer>(apServerApp.Get(0))->GetReceived();
-    throughput = (rxBytes * 8) / (simulationTime * 1000000.0); // Mbit/s
+    throughput = (rxBytes * 8) / (simulationTime * 1000000.0);
     std::cout << "STA Throughput: " << throughput << " Mbit/s" << std::endl;
     if (throughput == 0) {
       error = true;

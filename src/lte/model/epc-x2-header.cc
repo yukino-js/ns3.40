@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "epc-x2-header.h"
 
@@ -56,7 +38,7 @@ void EpcX2Header::Serialize(Buffer::Iterator start) const {
   i.WriteU8(m_messageType);
   i.WriteU8(m_procedureCode);
 
-  i.WriteU8(0x00); // criticality = REJECT
+  i.WriteU8(0x00);
   i.WriteU8(m_lengthOfIes + 3);
   i.WriteHtonU16(0);
   i.WriteU8(m_numberOfIes);
@@ -103,8 +85,6 @@ void EpcX2Header::SetNumberOfIes(uint32_t numberOfIes) {
   m_numberOfIes = numberOfIes;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2HandoverRequestHeader);
 
 EpcX2HandoverRequestHeader::EpcX2HandoverRequestHeader()
@@ -144,24 +124,24 @@ uint32_t EpcX2HandoverRequestHeader::GetSerializedSize() const {
 void EpcX2HandoverRequestHeader::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
 
-  i.WriteHtonU16(10); // id = OLD_ENB_UE_X2AP_ID
-  i.WriteU8(0);       // criticality = REJECT
-  i.WriteU8(2);       // length of OLD_ENB_UE_X2AP_ID
+  i.WriteHtonU16(10);
+  i.WriteU8(0);
+  i.WriteU8(2);
   i.WriteHtonU16(m_oldEnbUeX2apId);
 
-  i.WriteHtonU16(5); // id = CAUSE
-  i.WriteU8(1 << 6); // criticality = IGNORE
-  i.WriteU8(1);      // length of CAUSE
+  i.WriteHtonU16(5);
+  i.WriteU8(1 << 6);
+  i.WriteU8(1);
   i.WriteU8(m_cause);
 
-  i.WriteHtonU16(11);       // id = TARGET_CELLID
-  i.WriteU8(0);             // criticality = REJECT
-  i.WriteU8(8);             // length of TARGET_CELLID
-  i.WriteHtonU32(0x123456); // fake PLMN
+  i.WriteHtonU16(11);
+  i.WriteU8(0);
+  i.WriteU8(8);
+  i.WriteHtonU32(0x123456);
   i.WriteHtonU32(m_targetCellId << 4);
 
-  i.WriteHtonU16(14); // id = UE_CONTEXT_INFORMATION
-  i.WriteU8(0);       // criticality = REJECT
+  i.WriteHtonU16(14);
+  i.WriteU8(0);
 
   i.WriteHtonU32(m_mmeUeS1apId);
   i.WriteHtonU64(m_ueAggregateMaxBitRateDownlink);
@@ -169,7 +149,7 @@ void EpcX2HandoverRequestHeader::Serialize(Buffer::Iterator start) const {
 
   std::vector<EpcX2Sap::ErabToBeSetupItem>::size_type sz =
       m_erabsToBeSetupList.size();
-  i.WriteHtonU32(sz); // number of bearers
+  i.WriteHtonU32(sz);
   for (int j = 0; j < (int)sz; j++) {
     i.WriteHtonU16(m_erabsToBeSetupList[j].erabId);
     i.WriteHtonU16(m_erabsToBeSetupList[j].erabLevelQosParameters.qci);
@@ -343,8 +323,6 @@ uint32_t EpcX2HandoverRequestHeader::GetLengthOfIes() const {
 uint32_t EpcX2HandoverRequestHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
-
-/////////////////////////////////////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(EpcX2HandoverRequestAckHeader);
 
@@ -525,8 +503,6 @@ uint32_t EpcX2HandoverRequestAckHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2HandoverPreparationFailureHeader);
 
 EpcX2HandoverPreparationFailureHeader::EpcX2HandoverPreparationFailureHeader()
@@ -623,8 +599,6 @@ uint32_t EpcX2HandoverPreparationFailureHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2SnStatusTransferHeader);
 
 EpcX2SnStatusTransferHeader::EpcX2SnStatusTransferHeader()
@@ -665,7 +639,7 @@ void EpcX2SnStatusTransferHeader::Serialize(Buffer::Iterator start) const {
 
   std::vector<EpcX2Sap::ErabsSubjectToStatusTransferItem>::size_type sz =
       m_erabsSubjectToStatusTransferList.size();
-  i.WriteHtonU16(sz); // number of ErabsSubjectToStatusTransferItems
+  i.WriteHtonU16(sz);
 
   for (int j = 0; j < (int)sz; j++) {
     EpcX2Sap::ErabsSubjectToStatusTransferItem item =
@@ -778,8 +752,6 @@ uint32_t EpcX2SnStatusTransferHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2UeContextReleaseHeader);
 
 EpcX2UeContextReleaseHeader::EpcX2UeContextReleaseHeader()
@@ -856,8 +828,6 @@ uint32_t EpcX2UeContextReleaseHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
 
-/////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2LoadInformationHeader);
 
 EpcX2LoadInformationHeader::EpcX2LoadInformationHeader()
@@ -890,20 +860,20 @@ uint32_t EpcX2LoadInformationHeader::GetSerializedSize() const {
 void EpcX2LoadInformationHeader::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
 
-  i.WriteHtonU16(6); // id = CELL_INFORMATION
-  i.WriteU8(1 << 6); // criticality = IGNORE
-  i.WriteU8(4);      // length of CELL_INFORMATION_ID
+  i.WriteHtonU16(6);
+  i.WriteU8(1 << 6);
+  i.WriteU8(4);
 
   std::vector<EpcX2Sap::CellInformationItem>::size_type sz =
       m_cellInformationList.size();
-  i.WriteHtonU16(sz); // number of cellInformationItems
+  i.WriteHtonU16(sz);
 
   for (int j = 0; j < (int)sz; j++) {
     i.WriteHtonU16(m_cellInformationList[j].sourceCellId);
 
     std::vector<EpcX2Sap::UlInterferenceOverloadIndicationItem>::size_type sz2;
     sz2 = m_cellInformationList[j].ulInterferenceOverloadIndicationList.size();
-    i.WriteHtonU16(sz2); // number of UlInterferenceOverloadIndicationItem
+    i.WriteHtonU16(sz2);
 
     for (int k = 0; k < (int)sz2; k++) {
       i.WriteU8(
@@ -912,7 +882,7 @@ void EpcX2LoadInformationHeader::Serialize(Buffer::Iterator start) const {
 
     std::vector<EpcX2Sap::UlHighInterferenceInformationItem>::size_type sz3;
     sz3 = m_cellInformationList[j].ulHighInterferenceInformationList.size();
-    i.WriteHtonU16(sz3); // number of UlHighInterferenceInformationItem
+    i.WriteHtonU16(sz3);
 
     for (int k = 0; k < (int)sz3; k++) {
       i.WriteHtonU16(m_cellInformationList[j]
@@ -1066,8 +1036,6 @@ uint32_t EpcX2LoadInformationHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
 
-////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(EpcX2ResourceStatusUpdateHeader);
 
 EpcX2ResourceStatusUpdateHeader::EpcX2ResourceStatusUpdateHeader()
@@ -1108,7 +1076,7 @@ void EpcX2ResourceStatusUpdateHeader::Serialize(Buffer::Iterator start) const {
 
   std::vector<EpcX2Sap::CellMeasurementResultItem>::size_type sz =
       m_cellMeasurementResultList.size();
-  i.WriteHtonU16(sz); // number of CellMeasurementResultItem
+  i.WriteHtonU16(sz);
 
   for (int j = 0; j < (int)sz; j++) {
     EpcX2Sap::CellMeasurementResultItem item = m_cellMeasurementResultList[j];
@@ -1217,8 +1185,6 @@ uint32_t EpcX2ResourceStatusUpdateHeader::GetLengthOfIes() const {
 uint32_t EpcX2ResourceStatusUpdateHeader::GetNumberOfIes() const {
   return m_numberOfIes;
 }
-
-///////////////////////////////////////////////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(EpcX2HandoverCancelHeader);
 

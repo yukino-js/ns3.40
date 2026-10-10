@@ -1,77 +1,23 @@
-/*
- * Copyright (c) 2022 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Biljana Bojovic <bbojovic@cttc.es>
- */
 
 #include "ns3/log.h"
 #include "ns3/matrix-array.h"
 #include "ns3/test.h"
 
-/**
- * \file
- * \ingroup core-tests
- * \ingroup matrixArray
- * \ingroup matrixArray-tests
- * MatrixArray test suite
- */
 namespace ns3 {
 
 namespace tests {
 
 NS_LOG_COMPONENT_DEFINE("MatrixArrayTest");
 
-/**
- * \ingroup matrixArray-tests
- *  MatrixArray test case for testing constructors, operators and other
- * functions
- */
 template <class T> class MatrixArrayTestCase : public TestCase {
 public:
   MatrixArrayTestCase<T>() = default;
-  /**
-   * Constructor
-   *
-   * \param [in] name reference name
-   */
   MatrixArrayTestCase<T>(const std::string &name);
 
-  /** Destructor. */
   ~MatrixArrayTestCase<T>() override;
-  /**
-   * \brief Copy constructor.
-   * Instruct the compiler to generate the implicitly declared copy constructor
-   */
   MatrixArrayTestCase<T>(const MatrixArrayTestCase<T> &) = default;
-  /**
-   * \brief Copy assignment operator.
-   * Instruct the compiler to generate the implicitly declared copy assignment
-   * operator. \return A reference to this MatrixArrayTestCase
-   */
   MatrixArrayTestCase<T> &operator=(const MatrixArrayTestCase<T> &) = default;
-  /**
-   * \brief Move constructor.
-   * Instruct the compiler to generate the implicitly declared move constructor
-   */
   MatrixArrayTestCase<T>(MatrixArrayTestCase<T> &&) = default;
-  /**
-   * \brief Move assignment operator.
-   * Instruct the compiler to generate the implicitly declared copy constructor
-   * \return A reference to this MatrixArrayTestCase
-   */
   MatrixArrayTestCase<T> &operator=(MatrixArrayTestCase<T> &&) = default;
 
 protected:
@@ -86,7 +32,6 @@ MatrixArrayTestCase<T>::MatrixArrayTestCase(const std::string &name)
 template <class T> MatrixArrayTestCase<T>::~MatrixArrayTestCase<T>() {}
 
 template <class T> void MatrixArrayTestCase<T>::DoRun() {
-  // test multiplication of matrices (MatrixArray containing only 1 matrix)
   MatrixArray<T> m1 = MatrixArray<T>(2, 3);
   MatrixArray<T> m2 = MatrixArray<T>(m1.GetNumCols(), m1.GetNumRows());
   for (size_t i = 0; i < m1.GetNumRows(); ++i) {
@@ -114,7 +59,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
     }
   }
 
-  // multiplication with a scalar value
   MatrixArray<T> m4 = m3 * (static_cast<T>(5.0));
   for (size_t i = 0; i < m4.GetNumCols(); ++i) {
     for (size_t j = 0; j < m4.GetNumRows(); ++j) {
@@ -124,7 +68,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   }
   NS_LOG_INFO("m4 = m3 * 5:" << m4);
 
-  // test multiplication of arrays of matrices
   MatrixArray<T> m5 = MatrixArray<T>(2, 3, 2);
   MatrixArray<T> m6 =
       MatrixArray<T>(m5.GetNumCols(), m5.GetNumRows(), m5.GetNumPages());
@@ -155,17 +98,14 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
       }
     }
   }
-  // test ostream operator
   NS_LOG_INFO("m5:" << m5);
   NS_LOG_INFO("m6:" << m6);
   NS_LOG_INFO("m7 = m5 * m6:" << m7);
 
-  // test transpose function
   MatrixArray<T> m8 = m5.Transpose();
   NS_TEST_ASSERT_MSG_EQ(m6, m8, "These two matrices should be equal");
   NS_LOG_INFO("m8 = m5.Transpose ()" << m8);
 
-  // test transpose using initialization arrays
   std::valarray<int> a{0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4};
   std::valarray<int> b{0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4};
   std::valarray<T> aCasted(a.size());
@@ -184,7 +124,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("m6 (5, 3, 1):" << m6);
   NS_LOG_INFO("m8 (5, 3, 1) = m5.Transpose ()" << m8);
 
-  // test 1D array creation, i.e. vector and transposing it
   MatrixArray<T> m9 = MatrixArray<T>(std::vector<T>({0, 1, 2, 3, 4, 5, 6, 7}));
   NS_TEST_ASSERT_MSG_EQ((m9.GetNumRows() == 8) && (m9.GetNumCols() == 1) &&
                             (m9.GetNumPages() == 1),
@@ -193,7 +132,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("Vector:" << m9);
   NS_LOG_INFO("Vector after transposing:" << m9.Transpose());
 
-  // Test basic operators
   MatrixArray<T> m10 = MatrixArray<T>(m9.GetNumRows(), m9.GetNumCols(),
                                       m9.GetNumPages(), m9.GetValues());
   NS_TEST_ASSERT_MSG_EQ(m10, m9, "m10 and m9 should be equal");
@@ -208,9 +146,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   m10 = m10 - m9;
   NS_TEST_ASSERT_MSG_EQ(m10, m9, "m10 and m9 should be equal");
 
-  // test multiplication by using an initialization matrixArray
-  // matrix dimensions in each page are 2x3, 3x2, and the resulting matrix per
-  // page is a square matrix 2x2
   a = {0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5};
   b = {0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1};
   std::valarray<int> c{2, 3, 4, 6, 2, 3, 4, 6};
@@ -240,10 +175,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("m12 (3,2,2):" << m12);
   NS_LOG_INFO("m13 = m11 * m12:" << m13);
 
-  // test multiplication by using an initialization matrixArray
-  // matrices have different number of elements per page
-  // matrix dimensions in each page are 4x3, 3x2, and the resulting matrix
-  // dimensions are 4x2
   a = std::valarray<int>(
       {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 4, 5});
   b = std::valarray<int>({0, 1, 0, 1, 0, 1, 0, 10, 0, 10, 0, 10});
@@ -276,10 +207,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("m12 (3,2,2):" << m12);
   NS_LOG_INFO("m13 = m11 * m12:" << m13);
 
-  // test multiplication by using an initialization matrixArray
-  // matrices have different number of elements per page
-  // matrix dimensions in each page are 1x3, 3x2, and the resulting matrix has
-  // dimensions 1x2
   a = std::valarray<int>({5, 4, 5, 5, 4, 5});
   b = std::valarray<int>({0, 1, 0, 1, 0, 1, 1, 2, 3, 10, 100, 1000});
   c = std::valarray<int>({4, 10, 28, 5450});
@@ -310,7 +237,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("m12 (3,2,2):" << m12);
   NS_LOG_INFO("m13 = m11 * m12:" << m13);
 
-  // test MultiplyByLeftAndRightMatrix
   std::valarray<int> d{1, 1, 1};
   std::valarray<int> e{1, 1};
   std::valarray<int> f{1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3};
@@ -338,7 +264,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   MatrixArray<T> m19 = m17.MultiplyByLeftAndRightMatrix(m15, m16);
   NS_TEST_ASSERT_MSG_EQ(m19, m18, "The matrices should be equal.");
 
-  // test MultiplyByLeftAndRightMatrix
   std::valarray<int> h{1, 3, 2, 2, 4, 0};
   std::valarray<int> j{2, 2, 3, 4, 1, 3, 0, 5};
   std::valarray<int> k{1, 2, 0, 0, 2, 3, 4, 1, 2, 3, 4, 1,
@@ -371,7 +296,6 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
   NS_LOG_INFO("m22:" << m22);
   NS_LOG_INFO("m24 = m20 * m22 * m21" << m24);
 
-  // test initialization with moving
   size_t lCastedSize = lCasted.size();
   NS_LOG_INFO("size() of lCasted before move: " << lCasted.size());
   MatrixArray<T> m25 = MatrixArray<T>(2, 2, 2, std::move(lCasted));
@@ -394,22 +318,10 @@ template <class T> void MatrixArrayTestCase<T>::DoRun() {
                         "The number of elements are not equal.");
 }
 
-/**
- * \ingroup matrixArray-tests
- *  Test for testing functions that apply to MatrixArrays that use complex
- * numbers, such as HermitianTranspose that is only defined for complex type
- */
 class ComplexMatrixArrayTestCase : public TestCase {
 public:
-  /** Constructor*/
   ComplexMatrixArrayTestCase();
-  /**
-   * Constructor
-   *
-   * \param [in] name reference name
-   */
   ComplexMatrixArrayTestCase(const std::string &name);
-  /** Destructor*/
   ~ComplexMatrixArrayTestCase() override;
 
 private:
@@ -442,13 +354,8 @@ void ComplexMatrixArrayTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(m2, m3, "m2 and m3 matrices should be equal");
 }
 
-/**
- * \ingroup matrixArray-tests
- * MatrixArray test suite
- */
 class MatrixArrayTestSuite : public TestSuite {
 public:
-  /** Constructor. */
   MatrixArrayTestSuite();
 };
 
@@ -460,10 +367,6 @@ MatrixArrayTestSuite::MatrixArrayTestSuite() : TestSuite("matrix-array-test") {
   AddTestCase(new ComplexMatrixArrayTestCase("Test ComplexMatrixArray"));
 }
 
-/**
- * \ingroup matrixArray-tests
- * MatrixArrayTestSuite instance variable.
- */
 static MatrixArrayTestSuite g_matrixArrayTestSuite;
 
 } // namespace tests

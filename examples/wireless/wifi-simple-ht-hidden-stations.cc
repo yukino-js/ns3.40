@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015 Sébastien Deronne
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -32,30 +14,13 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This example considers two hidden stations in an 802.11n network which
-// supports MPDU aggregation. The user can specify whether RTS/CTS is used and
-// can set the number of aggregated MPDUs.
-//
-// Example: ./ns3 run "wifi-simple-ht-hidden-stations --enableRts=1 --nMpdus=8"
-//
-// Network topology:
-//
-//   Wifi 192.168.1.0
-//
-//        AP
-//   *    *    *
-//   |    |    |
-//   n1   n2   n3
-//
-// Packets in this simulation belong to BestEffort Access Class (AC_BE).
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SimplesHtHiddenStations");
 
 int main(int argc, char *argv[]) {
-  uint32_t payloadSize = 1472; // bytes
-  double simulationTime = 10;  // seconds
+  uint32_t payloadSize = 1472;
+  double simulationTime = 10;
   uint32_t nMpdus = 1;
   uint32_t maxAmpduSize = 0;
   bool enableRts = false;
@@ -85,12 +50,8 @@ int main(int argc, char *argv[]) {
                        StringValue("0"));
   }
 
-  // Set the maximum size for A-MPDU with regards to the payload size
   maxAmpduSize = nMpdus * (payloadSize + 200);
 
-  // Set the maximum wireless range to 5 meters in order to reproduce a hidden
-  // nodes scenario, i.e. the distance between hidden stations is larger than 5
-  // meters
   Config::SetDefault("ns3::RangePropagationLossModel::MaxRange",
                      DoubleValue(5));
 
@@ -100,8 +61,7 @@ int main(int argc, char *argv[]) {
   wifiApNode.Create(1);
 
   YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
-  channel.AddPropagationLoss(
-      "ns3::RangePropagationLossModel"); // wireless range limited to 5 meters!
+  channel.AddPropagationLoss("ns3::RangePropagationLossModel");
 
   YansWifiPhyHelper phy;
   phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
@@ -131,15 +91,10 @@ int main(int argc, char *argv[]) {
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/BE_MaxAmpduSize",
       UintegerValue(maxAmpduSize));
 
-  // Setting mobility model
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
 
-  // AP is between the two stations, each station being located at 5 meters from
-  // the AP. The distance between the two stations is thus equal to 10 meters.
-  // Since the wireless range is limited to 5 meters, the two stations are
-  // hidden from each other.
   positionAlloc->Add(Vector(5.0, 0.0, 0.0));
   positionAlloc->Add(Vector(0.0, 0.0, 0.0));
   positionAlloc->Add(Vector(10.0, 0.0, 0.0));
@@ -150,7 +105,6 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNode);
   mobility.Install(wifiStaNodes);
 
-  // Internet stack
   InternetStackHelper stack;
   stack.Install(wifiApNode);
   stack.Install(wifiStaNodes);
@@ -162,7 +116,6 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer ApInterface;
   ApInterface = address.Assign(apDevice);
 
-  // Setting applications
   uint16_t port = 9;
   UdpServerHelper server(port);
   ApplicationContainer serverApp = server.Install(wifiApNode);
@@ -171,10 +124,9 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper client(ApInterface.GetAddress(0), port);
   client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  client.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+  client.SetAttribute("Interval", TimeValue(Time("0.0001")));
   client.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
-  // Saturated UDP traffic from stations to AP
   ApplicationContainer clientApp1 = client.Install(wifiStaNodes);
   clientApp1.Start(Seconds(1.0));
   clientApp1.Stop(Seconds(simulationTime + 1));

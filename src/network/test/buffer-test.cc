@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@cutebugs.net>
- */
 
 #include "ns3/buffer.h"
 #include "ns3/double.h"
@@ -24,25 +6,8 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network
- * \defgroup network-test Network module unit tests
- */
-
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * Buffer unit tests.
- */
 class BufferTest : public TestCase {
 private:
-  /**
-   * Checks the buffer content
-   * \param b The buffer to check
-   * \param n The number of bytes to check
-   * \param array The array of bytes that should be in the buffer
-   */
   void EnsureWrittenBytes(Buffer b, uint32_t n, uint8_t array[]);
 
 public:
@@ -82,10 +47,6 @@ void BufferTest::EnsureWrittenBytes(Buffer b, uint32_t n, uint8_t array[]) {
   }
 }
 
-/*
- * Works only when variadic macros are
- * available which is the case for gcc.
- */
 #define ENSURE_WRITTEN_BYTES(buffer, n, ...)                                   \
   {                                                                            \
     uint8_t bytes[] = {__VA_ARGS__};                                           \
@@ -156,7 +117,6 @@ void BufferTest::DoRun() {
   ENSURE_WRITTEN_BYTES(o, 6, 0xfe, 0xff, 0x69, 0xde, 0xad, 0xff);
   ENSURE_WRITTEN_BYTES(buffer, 7, 0xfd, 0xfd, 0xff, 0x69, 0xde, 0xad, 0xff);
 
-  // test 64-bit read/write
   Buffer buff64;
   buff64.AddAtStart(8);
   i = buff64.Begin();
@@ -179,7 +139,6 @@ void BufferTest::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(i.ReadNtohU64(), 0x0123456789abcdefLLU,
                         "could not read expected value");
 
-  // test self-assignment
   {
     Buffer a = o;
 #if defined(__clang__)
@@ -196,7 +155,6 @@ void BufferTest::DoRun() {
 #endif
   }
 
-  // test Remove start.
   buffer = Buffer(5);
   ENSURE_WRITTEN_BYTES(buffer, 5, 0, 0, 0, 0, 0);
   buffer.RemoveAtStart(1);
@@ -218,7 +176,6 @@ void BufferTest::DoRun() {
   ENSURE_WRITTEN_BYTES(buffer, 8, 0xbe, 0xaf, 0, 0, 0xde, 0xad, 0xbe, 0xaf);
   buffer.RemoveAtStart(5);
   ENSURE_WRITTEN_BYTES(buffer, 3, 0xad, 0xbe, 0xaf);
-  // test Remove end
   buffer = Buffer(5);
   ENSURE_WRITTEN_BYTES(buffer, 5, 0, 0, 0, 0, 0);
   buffer.RemoveAtEnd(1);
@@ -284,7 +241,6 @@ void BufferTest::DoRun() {
   i.Prev(100);
   i.WriteU8(1, 100);
 
-  // See \bugid{54}
   {
     const uint32_t actualSize = 72602;
     const uint32_t chunkSize = 67624;
@@ -347,7 +303,6 @@ void BufferTest::DoRun() {
   ENSURE_WRITTEN_BYTES(other, 9, 0x1, 0x2, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3,
                        0x4);
 
-  // See \bugid{1001}
   std::string ct("This is the next content of the buffer.");
   buffer = Buffer();
   buffer.AddAtStart(ct.size());
@@ -367,7 +322,6 @@ void BufferTest::DoRun() {
   }
   free(cBuf);
 
-  // See \bugid{2044}  Will not pass without bug2044 fix.
   buffer = Buffer(1);
   buffer.AddAtEnd(2);
   i = buffer.Begin();
@@ -387,12 +341,6 @@ void BufferTest::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(val1, val2, "Bad ReadNtohU16()");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Buffer TestSuite
- */
 class BufferTestSuite : public TestSuite {
 public:
   BufferTestSuite();
@@ -402,5 +350,4 @@ BufferTestSuite::BufferTestSuite() : TestSuite("buffer", UNIT) {
   AddTestCase(new BufferTest, TestCase::QUICK);
 }
 
-static BufferTestSuite
-    g_bufferTestSuite; //!< Static variable for test initialization
+static BufferTestSuite g_bufferTestSuite;

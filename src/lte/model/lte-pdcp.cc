@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011-2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-pdcp.h"
 
@@ -31,22 +12,15 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LtePdcp");
 
-/// LtePdcpSpecificLteRlcSapUser class
 class LtePdcpSpecificLteRlcSapUser : public LteRlcSapUser {
 public:
-  /**
-   * Constructor
-   *
-   * \param pdcp PDCP
-   */
   LtePdcpSpecificLteRlcSapUser(LtePdcp *pdcp);
 
-  // Interface provided to lower RLC entity (implemented from LteRlcSapUser)
   void ReceivePdcpPdu(Ptr<Packet> p) override;
 
 private:
   LtePdcpSpecificLteRlcSapUser();
-  LtePdcp *m_pdcp; ///< the PDCP
+  LtePdcp *m_pdcp;
 };
 
 LtePdcpSpecificLteRlcSapUser::LtePdcpSpecificLteRlcSapUser(LtePdcp *pdcp)
@@ -57,8 +31,6 @@ LtePdcpSpecificLteRlcSapUser::LtePdcpSpecificLteRlcSapUser() {}
 void LtePdcpSpecificLteRlcSapUser::ReceivePdcpPdu(Ptr<Packet> p) {
   m_pdcp->DoReceivePdu(p);
 }
-
-///////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(LtePdcp);
 
@@ -134,15 +106,12 @@ void LtePdcp::SetStatus(Status s) {
   m_rxSequenceNumber = s.rxSn;
 }
 
-////////////////////////////////////////
-
 void LtePdcp::DoTransmitPdcpSdu(
     LtePdcpSapProvider::TransmitPdcpSduParameters params) {
   NS_LOG_FUNCTION(this << m_rnti << static_cast<uint16_t>(m_lcid)
                        << params.pdcpSdu->GetSize());
   Ptr<Packet> p = params.pdcpSdu;
 
-  // Sender timestamp
   PdcpTag pdcpTag(Simulator::Now());
 
   LtePdcpHeader pdcpHeader;
@@ -171,7 +140,6 @@ void LtePdcp::DoTransmitPdcpSdu(
 void LtePdcp::DoReceivePdu(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << m_rnti << (uint32_t)m_lcid << p->GetSize());
 
-  // Receiver timestamp
   PdcpTag pdcpTag;
   Time delay;
   p->FindFirstMatchingByteTag(pdcpTag);

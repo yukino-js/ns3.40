@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *
- */
 
 #include "three-gpp-http-header.h"
 
@@ -37,7 +18,6 @@ ThreeGppHttpHeader::ThreeGppHttpHeader()
   NS_LOG_FUNCTION(this);
 }
 
-// static
 TypeId ThreeGppHttpHeader::GetTypeId() {
   static TypeId tid = TypeId("ns3::ThreeGppHttpHeader")
                           .SetParent<Header>()
@@ -61,19 +41,15 @@ uint32_t ThreeGppHttpHeader::Deserialize(Buffer::Iterator start) {
   NS_LOG_FUNCTION(this << &start);
   uint32_t bytesRead = 0;
 
-  // First block of 2 bytes (content type)
   m_contentType = start.ReadU16();
   bytesRead += 2;
 
-  // Second block of 4 bytes (content length)
   m_contentLength = start.ReadU32();
   bytesRead += 4;
 
-  // Third block of 8 bytes (client time stamp)
   m_clientTs = start.ReadU64();
   bytesRead += 8;
 
-  // Fourth block of 8 bytes (server time stamp)
   m_serverTs = start.ReadU64();
   bytesRead += 8;
 

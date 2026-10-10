@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2021 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * This example is inspired from examples/tutorial/third.cc by
- * substituting the CSMA network with another WiFi network.
- *
- * Author: Ameya Deshpande <ameyanrd@outlook.com>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -30,55 +9,6 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ssid.h"
 #include "ns3/wifi-module.h"
-
-/**
- * This example demonstrates how Nix works with
- * two Wifi networks on the same channel.
- *
- * IPv4 Network Topology
- * \verbatim
-    Wifi 10.1.1.0/24
-                   AP
-    *    *    *    *
-    |    |    |    |   10.1.2.0/24
-   n5   n6   n7   n0 -------------- n1   n2   n3   n4
-                     point-to-point  |    |    |    |
-                                     *    *    *    *
-                                    AP
-                                      Wifi 10.1.3.0/24
-   \endverbatim
- *
- * \verbatim
-    Wifi 2001:1::/64
-                   AP
-    *    *    *    *
-    |    |    |    |   2001:2::/64
-   n5   n6   n7   n0 -------------- n1   n2   n3   n4
-                     point-to-point  |    |    |    |
-                                     *    *    *    *
-                                    AP
-                                      Wifi 2001:3::/64
-   \endverbatim
- *
- * Expected Outputs:
- * IPv4:
- * \verbatim
-   Time: +7s, Nix Routing
-   Route path from Node 4 to Node 7, Nix Vector: 100011 (6 bits left)
-   10.1.1.3                 (Node 4)  ---->   10.1.1.4                 (Node 0)
-   10.1.2.1                 (Node 0)  ---->   10.1.2.2                 (Node 1)
-   10.1.3.4                 (Node 1)  ---->   10.1.3.3                 (Node 7)
-   \endverbatim
- *
- * IPv6:
- * \verbatim
-   Time: +7s, Nix Routing
-   Route path from Node 4 to Node 7, Nix Vector: 100011 (6 bits left)
-   2001:1::200:ff:fe00:5    (Node 4)  ---->   fe80::200:ff:fe00:6      (Node 0)
-   fe80::200:ff:fe00:1      (Node 0)  ---->   fe80::200:ff:fe00:2      (Node 1)
-   fe80::200:ff:fe00:a      (Node 1)  ---->   2001:3::200:ff:fe00:9    (Node 7)
-   \endverbatim
- */
 
 using namespace ns3;
 

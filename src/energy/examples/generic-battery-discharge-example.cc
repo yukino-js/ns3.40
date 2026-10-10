@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2023 Tokushima University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alberto Gallegos Ramonet <alramonet@is.tokushima-u.ac.jp>
- */
 
 #include <ns3/core-module.h>
 #include <ns3/energy-module.h>
@@ -26,27 +8,6 @@
 #include <string>
 
 using namespace ns3;
-
-/**
- * This example shows the use of batteries in ns-3.
- * 5 batteries of different chemistries are discharged
- * using a constant current. Batteries can be configured
- * manually using the necessary parameters or using
- * presets.
- *
- * In this example, only the first battery uses parameters
- * to form a NiMh battery. The rest of the batteries in this
- * example use defined presets with already tested parameters.
- *
- * Users can make their own battery presets by setting
- * the necessary parameters as in the example in the first
- * battery.
- *
- * Plot files are produced as a result of this example.
- * Graphs can be obtained from the plot using:
- *
- * $> gnuplot <plotname>.plt
- */
 
 Gnuplot battDischPlot1 = Gnuplot("BattDisch1.eps");
 Gnuplot2dDataset battDischDataset1;
@@ -69,11 +30,9 @@ Gnuplot2dDataset battDischDataset5;
 std::ofstream battDischFile5("BattDischCurve5.plt");
 
 void GraphBattery1(Ptr<GenericBatteryModel> es) {
-  // NiMh battery  Panasonic HHR650D NiMH
   double cellVoltage = es->GetSupplyVoltage();
   Time currentTime = Simulator::Now();
   battDischDataset1.Add(currentTime.GetMinutes(), cellVoltage);
-  // battDischDataset1.Add(currentTime.GetHours(), cellVoltage);
 
   if (!Simulator::IsFinished()) {
     Simulator::Schedule(Seconds(20), &GraphBattery1, es);
@@ -81,11 +40,9 @@ void GraphBattery1(Ptr<GenericBatteryModel> es) {
 }
 
 void GraphBattery2(Ptr<GenericBatteryModel> es) {
-  // CSB GP1272 Lead Acid
   double cellVoltage = es->GetSupplyVoltage();
   Time currentTime = Simulator::Now();
   battDischDataset2.Add(currentTime.GetMinutes(), cellVoltage);
-  // battDischDataset2.Add(currentTime.GetHours(), cellVoltage);
 
   if (!Simulator::IsFinished()) {
     Simulator::Schedule(Seconds(20), &GraphBattery2, es);
@@ -93,7 +50,6 @@ void GraphBattery2(Ptr<GenericBatteryModel> es) {
 }
 
 void GraphBattery3(Ptr<GenericBatteryModel> es) {
-  // Panasonic CGR18650DA Li-on
   double cellVoltage = es->GetSupplyVoltage();
   double dischargeCapacityAh = es->GetDrainedCapacity();
   battDischDataset3.Add(dischargeCapacityAh * 1000, cellVoltage);
@@ -104,11 +60,9 @@ void GraphBattery3(Ptr<GenericBatteryModel> es) {
 }
 
 void GraphBattery4(Ptr<GenericBatteryModel> es) {
-  // Rs Pro LGP12100 Lead Acid
   double cellVoltage = es->GetSupplyVoltage();
   Time currentTime = Simulator::Now();
   battDischDataset4.Add(currentTime.GetMinutes(), cellVoltage);
-  // battDischDataset4.Add(currentTime.GetHours(), cellVoltage);
 
   if (!Simulator::IsFinished()) {
     Simulator::Schedule(Seconds(20), &GraphBattery4, es);
@@ -116,10 +70,8 @@ void GraphBattery4(Ptr<GenericBatteryModel> es) {
 }
 
 void GraphBattery5(Ptr<GenericBatteryModel> es) {
-  // Panasonic N-700AAC NiCd
   double cellVoltage = es->GetSupplyVoltage();
   Time currentTime = Simulator::Now();
-  // battDischDataset5.Add(currentTime.GetMinutes(), cellVoltage);
   battDischDataset5.Add(currentTime.GetHours(), cellVoltage);
 
   if (!Simulator::IsFinished()) {
@@ -138,42 +90,26 @@ int main(int argc, char **argv) {
   Ptr<GenericBatteryModel> batteryModel;
   Ptr<SimpleDeviceEnergyModel> devicesEnergyModel;
 
-  //////////////////////// PANASONIC HHR650D NiMH discharge 1C,2C,5C
-  ///////////////////////
-
-  // Discharge 6.5A (1C)
   battDischDataset1 = Gnuplot2dDataset("Panasonic NiMH HHR650D 6.5 A (1C)");
 
   node = CreateObject<Node>();
   devicesEnergyModel = CreateObject<SimpleDeviceEnergyModel>();
   batteryModel = CreateObject<GenericBatteryModel>();
 
-  batteryModel->SetAttribute("FullVoltage", DoubleValue(1.39)); // Vfull
-  batteryModel->SetAttribute("MaxCapacity", DoubleValue(7.0));  // Q
+  batteryModel->SetAttribute("FullVoltage", DoubleValue(1.39));
+  batteryModel->SetAttribute("MaxCapacity", DoubleValue(7.0));
 
-  batteryModel->SetAttribute("NominalVoltage", DoubleValue(1.18));  // Vnom
-  batteryModel->SetAttribute("NominalCapacity", DoubleValue(6.25)); // QNom
+  batteryModel->SetAttribute("NominalVoltage", DoubleValue(1.18));
+  batteryModel->SetAttribute("NominalCapacity", DoubleValue(6.25));
 
-  batteryModel->SetAttribute("ExponentialVoltage", DoubleValue(1.28)); // Vexp
-  batteryModel->SetAttribute("ExponentialCapacity", DoubleValue(1.3)); // Qexp
+  batteryModel->SetAttribute("ExponentialVoltage", DoubleValue(1.28));
+  batteryModel->SetAttribute("ExponentialCapacity", DoubleValue(1.3));
 
-  batteryModel->SetAttribute("InternalResistance", DoubleValue(0.0046)); // R
-  batteryModel->SetAttribute("TypicalDischargeCurrent",
-                             DoubleValue(1.3)); // i typical
-  batteryModel->SetAttribute("CutoffVoltage",
-                             DoubleValue(1.0)); // End of charge.
+  batteryModel->SetAttribute("InternalResistance", DoubleValue(0.0046));
+  batteryModel->SetAttribute("TypicalDischargeCurrent", DoubleValue(1.3));
+  batteryModel->SetAttribute("CutoffVoltage", DoubleValue(1.0));
 
-  // Capacity Ah(qMax) * (Vfull) voltage * 3600 = (7 * 1.39 * 3.6) = 35028
-  batteryModel->SetAttribute("BatteryType",
-                             EnumValue(NIMH_NICD)); // Battery type
-
-  // The Generic battery model allow users to simulate different types of
-  // batteries based on some parameters. However, presets of batteries are
-  // included in ns-3, for example, the previous battery values can be
-  // configured using a helper to set a NiMh battery preset:
-
-  // batteryModel = DynamicCast<GenericBatteryModel>
-  //                (batteryHelper.Install(node,PANASONIC_HHR650D_NIMH));
+  batteryModel->SetAttribute("BatteryType", EnumValue(NIMH_NICD));
 
   devicesEnergyModel->SetEnergySource(batteryModel);
   batteryModel->AppendDeviceEnergyModel(devicesEnergyModel);
@@ -184,12 +120,10 @@ int main(int argc, char **argv) {
   GraphBattery1(batteryModel);
 
   battDischPlot1.AddDataset(battDischDataset1);
-  // 18717 secs around 5.3hrs, 750secs for 32.5 current, or   (4200 70 mins)
   Simulator::Stop(Seconds(3600));
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 13A (2C)
   battDischDataset1 = Gnuplot2dDataset("Panasonic NiMH HHR650D 13 A (2C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -209,7 +143,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 32.5A (5C)
   battDischDataset1 = Gnuplot2dDataset("Panasonic NiMH HHR650D 32.5 A (5C)");
   node = CreateObject<Node>();
   batteryModel = CreateObject<GenericBatteryModel>();
@@ -252,10 +185,6 @@ int main(int argc, char **argv) {
   battDischFile1.close();
   std::cout << "The end, plotting now\n";
 
-  //////////////////////// CSB GP1272 Lead Acid  discharge 0.5C, 0.9C
-  ///////////////
-
-  // Discharge 0.36A (0.05C)
   battDischDataset2 = Gnuplot2dDataset("CSB GP1272 0.36 A (0.05C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -275,7 +204,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 0.648A (0.09C)
   battDischDataset2 = Gnuplot2dDataset("CSB GP1272 0.648 A (0.09C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -318,10 +246,6 @@ int main(int argc, char **argv) {
   battDischFile2.close();
   std::cout << "The end, plotting now\n";
 
-  //////////////////////// Panasonic Li-on CGR18650DA,  discharge 0.2C,1C,2C
-  //////////////
-
-  // Discharge 0.466A (0.2C)
   battDischDataset3 =
       Gnuplot2dDataset("Panasonic Li-on CGR18650DA 0.466 A (0.2C)");
   node = CreateObject<Node>();
@@ -342,7 +266,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 2.33A (1C)
   battDischDataset3 =
       Gnuplot2dDataset("Panasonic Li-on CGR18650DA 2.33 A (1C)");
   node = CreateObject<Node>();
@@ -363,7 +286,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 4.66A (2C)
   battDischDataset3 =
       Gnuplot2dDataset("Panasonic Li-on CGR18650DA 4.66 A (2C)");
   node = CreateObject<Node>();
@@ -405,10 +327,6 @@ int main(int argc, char **argv) {
   battDischFile3.close();
   std::cout << "The end, plotting now\n";
 
-  //////////////////////// Rs PRO LGP12100 Lead Acid  discharge 0.05C, 1C
-  //////////////////
-
-  // Discharge 0.36A (0.05C)
   battDischDataset4 = Gnuplot2dDataset("Rs PRO LGP12100  5A (0.05C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -428,7 +346,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 100A (1C)
   battDischDataset4 = Gnuplot2dDataset("Rs PRO LGP12100  100A (1C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -471,10 +388,6 @@ int main(int argc, char **argv) {
   battDischFile4.close();
   std::cout << "The end, plotting now\n";
 
-  //////////////////////// Panasonic N-700AAC NiCd discharge
-  //////////////////////////////
-
-  // Discharge 0.7A (0.1C)
   battDischDataset5 = Gnuplot2dDataset("Panasonic N-700AAC  0.7A (0.01C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -494,7 +407,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 0.14A (0.2C)
   battDischDataset5 = Gnuplot2dDataset("Panasonic N-700AAC 0.14A (0.2C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(
@@ -514,7 +426,6 @@ int main(int argc, char **argv) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Discharge 0.35A (0.5C)
   battDischDataset5 = Gnuplot2dDataset("Panasonic N-700AAC 0.35A (0.5C)");
   node = CreateObject<Node>();
   batteryModel = DynamicCast<GenericBatteryModel>(

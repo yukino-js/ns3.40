@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- */
 
 #include "uan-net-device.h"
 
@@ -173,7 +155,6 @@ Ptr<Channel> UanNetDevice::GetChannel() const { return m_channel; }
 Address UanNetDevice::GetAddress() const { return m_mac->GetAddress(); }
 
 bool UanNetDevice::SetMtu(uint16_t mtu) {
-  /// \todo  Check this in MAC
   NS_LOG_WARN("UanNetDevice:  MTU is not implemented");
   m_mtu = mtu;
   return true;
@@ -189,7 +170,7 @@ Address UanNetDevice::GetBroadcast() const { return m_mac->GetBroadcast(); }
 
 bool UanNetDevice::IsMulticast() const { return true; }
 
-Address UanNetDevice::GetMulticast(Ipv4Address /* multicastGroup */) const {
+Address UanNetDevice::GetMulticast(Ipv4Address) const {
   return m_mac->GetBroadcast();
 }
 
@@ -210,11 +191,8 @@ bool UanNetDevice::Send(Ptr<Packet> packet, const Address &dest,
   return m_mac->Enqueue(packet, protocolNumber, udest);
 }
 
-bool UanNetDevice::SendFrom(Ptr<Packet> /* packet */,
-                            const Address & /* source */,
-                            const Address & /* dest */,
-                            uint16_t /* protocolNumber */) {
-  // Not yet implemented
+bool UanNetDevice::SendFrom(Ptr<Packet>, const Address &, const Address &,
+                            uint16_t) {
   NS_ASSERT_MSG(false, "Not yet implemented");
   return false;
 }
@@ -260,7 +238,6 @@ void UanNetDevice::AddLinkChangeCallback(Callback<void> callback) {
 }
 
 void UanNetDevice::SetPromiscReceiveCallback(PromiscReceiveCallback cb) {
-  // Not implemented yet
   NS_ASSERT_MSG(0, "Not yet implemented");
 }
 

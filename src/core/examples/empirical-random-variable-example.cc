@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/histogram.h"
@@ -28,34 +10,8 @@
 #include <iostream>
 #include <map>
 
-/**
- * \file
- * \ingroup core-examples randomvariable
- * \defgroup empirical-rng-example Core example: Empirical random variables use.
- *
- * Example program illustrating use of ns3::EmpiricalRandomVariable
- *
- * This example illustrates
- *
- *   * Creating an EmpiricalRandomVariable instance.
- *   * Switching the mode.
- *   * Using the sampling mode
- *   * Switching modes
- *   * Using the interpolating mode
- *
- * Consult the ns-3 manual for more information about the use of the
- * random number generator
- */
-
 using namespace ns3;
 
-/**
- * \ingroup empirical-rng-example
- *
- * \brief Sample the random variable only once.
- * \param mode Rng mode (Normal or Antithetic).
- * \param erv The empirical random variable.
- */
 void RunSingleSample(std::string mode, Ptr<EmpiricalRandomVariable> erv) {
   std::cout << "------------------------------" << std::endl;
   std::cout << "Sampling " << mode << std::endl;
@@ -73,16 +29,6 @@ void RunSingleSample(std::string mode, Ptr<EmpiricalRandomVariable> erv) {
   erv->SetInterpolate(false);
 }
 
-/**
- * \ingroup empirical-rng-example
- *
- * \brief Prints a stat line.
- * \param value The value to print.
- * \param count The number of times that value has been sampled.
- * \param n The total number of random values sampled.
- * \param sum The sum of the counts seen up to \p value, used to show
- *            the CDF for \p value.
- */
 void PrintStatsLine(const double value, const long count, const long n,
                     const long sum) {
   std::cout << std::fixed << std::setprecision(3) << std::setw(10) << std::right
@@ -92,15 +38,6 @@ void PrintStatsLine(const double value, const long count, const long n,
             << sum / static_cast<double>(n) * 100.0 << std::endl;
 }
 
-/**
- * \ingroup empirical-rng-example
- *
- * \brief Prints the summary.
- * \param sum The number of sampled values.
- * \param n The total number of random values to be drawn.
- * \param weighted The average of the sample.
- * \param expected The expected average of the sample.
- */
 void PrintSummary(long sum, long n, double weighted, double expected) {
   std::cout << std::endl;
   std::cout << "                      --------" << std::endl;
@@ -114,14 +51,6 @@ void PrintSummary(long sum, long n, double weighted, double expected) {
             << std::endl;
 }
 
-/**
- * \ingroup empirical-rng-example
- *
- * \brief Sample the random variable.
- * \param mode Rng mode (Normal or Antithetic).
- * \param erv The empirical random variable.
- * \param n Number of samples to draw.
- */
 void RunBothModes(std::string mode, Ptr<EmpiricalRandomVariable> erv, long n) {
   std::cout << std::endl;
   std::cout << "Sampling " << mode << std::endl;
@@ -149,8 +78,6 @@ void RunBothModes(std::string mode, Ptr<EmpiricalRandomVariable> erv, long n) {
   Histogram h(0.1);
   for (long i = 0; i < n; ++i) {
     h.AddValue(erv->GetValue());
-    // This could also be expressed as
-    //   h.AddValue (erv->Interpolate ());
   }
   erv->SetInterpolate(false);
   sum = 0;
@@ -189,17 +116,15 @@ int main(int argc, char *argv[]) {
     std::cout << "Antithetic sampling disabled" << std::endl;
   }
 
-  // Create the ERV in sampling mode
   Ptr<EmpiricalRandomVariable> erv = CreateObject<EmpiricalRandomVariable>();
 
-  //                          // Expectation for bin
-  erv->CDF(0.0, 0.0 / 15.0);  // 0
-  erv->CDF(0.2, 1.0 / 15.0);  // 0.2 1/15  =  2/150
-  erv->CDF(0.4, 3.0 / 15.0);  // 0.4 2/15  =  8/150
-  erv->CDF(0.6, 4.0 / 15.0);  // 0.6 1/15  =  6/150
-  erv->CDF(0.8, 7.0 / 15.0);  // 0.8 3/15  = 24/150
-  erv->CDF(1.0, 9.0 / 15.0);  // 1.0 2/15  = 20/150
-  erv->CDF(1.0, 15.0 / 15.0); // 1.0 6/15  = 60/150  <avg> = 120/150 = 0.8
+  erv->CDF(0.0, 0.0 / 15.0);
+  erv->CDF(0.2, 1.0 / 15.0);
+  erv->CDF(0.4, 3.0 / 15.0);
+  erv->CDF(0.6, 4.0 / 15.0);
+  erv->CDF(0.8, 7.0 / 15.0);
+  erv->CDF(1.0, 9.0 / 15.0);
+  erv->CDF(1.0, 15.0 / 15.0);
 
   if (single) {
     RunSingleSample("normal", erv);

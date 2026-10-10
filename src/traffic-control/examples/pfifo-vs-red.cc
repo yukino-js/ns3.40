@@ -1,35 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: John Abraham <john.abraham@gatech.edu>
- * Modified by:   Pasquale Imputato <p.imputato@gmail.com>
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -113,7 +82,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::RedQueueDisc::LinkDelay",
                      StringValue(bottleNeckLinkDelay));
 
-  // Create the point-to-point link helpers
   PointToPointHelper bottleNeckLink;
   bottleNeckLink.SetDeviceAttribute("DataRate", StringValue(bottleNeckLinkBw));
   bottleNeckLink.SetChannelAttribute("Delay", StringValue(bottleNeckLinkDelay));
@@ -125,7 +93,6 @@ int main(int argc, char *argv[]) {
   PointToPointDumbbellHelper d(nLeaf, pointToPointLeaf, nLeaf, pointToPointLeaf,
                                bottleNeckLink);
 
-  // Install Stack
   InternetStackHelper stack;
   for (uint32_t i = 0; i < d.LeftCount(); ++i) {
     stack.Install(d.GetLeft(i));
@@ -146,12 +113,10 @@ int main(int argc, char *argv[]) {
     tchBottleneck.Install(d.GetRight()->GetDevice(0));
   }
 
-  // Assign IP Addresses
   d.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.2.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.3.1.0", "255.255.255.0"));
 
-  // Install on/off app on all right side nodes
   OnOffHelper clientHelper("ns3::TcpSocketFactory", Address());
   clientHelper.SetAttribute(
       "OnTime", StringValue("ns3::UniformRandomVariable[Min=0.|Max=1.]"));
@@ -168,14 +133,13 @@ int main(int argc, char *argv[]) {
 
   ApplicationContainer clientApps;
   for (uint32_t i = 0; i < d.RightCount(); ++i) {
-    // Create an on/off app sending packets to the left side
     AddressValue remoteAddress(
         InetSocketAddress(d.GetLeftIpv4Address(i), port));
     clientHelper.SetAttribute("Remote", remoteAddress);
     clientApps.Add(clientHelper.Install(d.GetRight(i)));
   }
-  clientApps.Start(Seconds(1.0)); // Start 1 second after sink
-  clientApps.Stop(Seconds(15.0)); // Stop before the sink
+  clientApps.Start(Seconds(1.0));
+  clientApps.Stop(Seconds(15.0));
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 

@@ -8,7 +8,6 @@ CONVERT = convert -density 250
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify dia figures from which .png and .pdf figures need to be built
 
 IMAGES_DIA = \
 	$(FIGURES)/epc-ctrl-arch.dia \
@@ -75,7 +74,6 @@ IMAGES_DIA = \
 	$(FIGURES)/lena-radio-link-failure-one-enb.dia \
 	$(FIGURES)/lena-radio-link-failure-two-enb.dia
 
-# specify eps figures from which .png and .pdf figures need to be built
 
 IMAGES_EPS = \
 	$(FIGURES)/lena-dual-stripe.eps \
@@ -91,7 +89,6 @@ IMAGES_EPS = \
 	$(FIGURES)/profiling-memory.eps \
 	$(FIGURES)/lte-strongest-cell-handover-algorithm.eps
 
-# rescale pdf figures as necessary
 $(FIGURES)/lte-interference-test-scenario.pdf_width = 3in
 $(FIGURES)/epc-ctrl-arch.pdf_width = 8cm
 $(FIGURES)/epc-topology.pdf_width = 4in
@@ -222,13 +219,11 @@ RESCALE = ../../../utils/rescale-pdf.sh
 	if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
 
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = build
 
-# Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCE)

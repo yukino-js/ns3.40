@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:
- *  Gary Pei <guangyu.pei@boeing.com>
- *  Tom Henderson <thomas.r.henderson@boeing.com>
- */
 #include "lr-wpan-helper.h"
 
 #include "ns3/names.h"
@@ -35,23 +15,12 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LrWpanHelper");
 
-/**
- * @brief Output an ascii line representing the Transmit event (with context)
- * @param stream the output stream
- * @param context the context
- * @param p the packet
- */
 static void AsciiLrWpanMacTransmitSinkWithContext(
     Ptr<OutputStreamWrapper> stream, std::string context, Ptr<const Packet> p) {
   *stream->GetStream() << "t " << Simulator::Now().As(Time::S) << " " << context
                        << " " << *p << std::endl;
 }
 
-/**
- * @brief Output an ascii line representing the Transmit event (without context)
- * @param stream the output stream
- * @param p the packet
- */
 static void
 AsciiLrWpanMacTransmitSinkWithoutContext(Ptr<OutputStreamWrapper> stream,
                                          Ptr<const Packet> p) {
@@ -165,9 +134,6 @@ NetDeviceContainer LrWpanHelper::Install(NodeContainer c) {
     netDevice->SetChannel(m_channel);
     node->AddDevice(netDevice);
     netDevice->SetNode(node);
-    // \todo add the capability to change short address, extended
-    // address and panId. Right now they are hardcoded in LrWpanMac::LrWpanMac
-    // ()
     devices.Add(netDevice);
   }
   return devices;
@@ -223,14 +189,10 @@ void LrWpanHelper::CreateAssociatedPan(NetDeviceContainer c, uint16_t panId) {
       address64.CopyFrom(idBuf2);
 
       if (address64 == Mac64Address("00:00:00:00:00:00:00:01")) {
-        // We use the first device in the container as coordinator
         coordShortAddr = address16;
         coordExtAddr = address64;
       }
 
-      // TODO: Change this to device->GetAddress() if GetAddress can guarantee a
-      //  an extended address (currently only gives 48 address or 16 bits
-      //  addresses)
       device->GetMac()->SetExtendedAddress(address64);
       device->SetPanAssociation(panId, coordExtAddr, coordShortAddr, address16);
 
@@ -259,8 +221,6 @@ void LrWpanHelper::SetExtendedAddresses(NetDeviceContainer c) {
 
       address64.CopyFrom(idBuf);
 
-      // TODO: Change this to device->SetAddress() if GetAddress can guarantee
-      //  to set only extended addresses
       device->GetMac()->SetExtendedAddress(address64);
 
       id++;
@@ -268,11 +228,6 @@ void LrWpanHelper::SetExtendedAddresses(NetDeviceContainer c) {
   }
 }
 
-/**
- * @brief Write a packet in a PCAP file
- * @param file the output file
- * @param packet the packet
- */
 static void PcapSniffLrWpan(Ptr<PcapFileWrapper> file,
                             Ptr<const Packet> packet) {
   file->Write(Simulator::Now(), packet);
@@ -281,16 +236,7 @@ static void PcapSniffLrWpan(Ptr<PcapFileWrapper> file,
 void LrWpanHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
                                       bool promiscuous, bool explicitFilename) {
   NS_LOG_FUNCTION(this << prefix << nd << promiscuous << explicitFilename);
-  //
-  // All of the Pcap enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.
-  //
 
-  // In the future, if we create different NetDevice types, we will
-  // have to switch on each type below and insert into the right
-  // NetDevice type
-  //
   Ptr<LrWpanNetDevice> device = nd->GetObject<LrWpanNetDevice>();
   if (!device) {
     NS_LOG_INFO("LrWpanHelper::EnablePcapInternal(): Device "
@@ -333,24 +279,9 @@ void LrWpanHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // Our default trace sinks are going to use packet printing, so we have to
-  // make sure that is turned on.
-  //
   Packet::EnablePrinting();
 
-  //
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and do a Hook*WithoutContext
-  // since there will be one file per context and therefore the context would
-  // be redundant.
-  //
   if (!stream) {
-    //
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues.  Let the helper decide the actual
-    // name of the file given the prefix.
-    //
     AsciiTraceHelper asciiTraceHelper;
 
     std::string filename;
@@ -362,10 +293,6 @@ void LrWpanHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
 
     Ptr<OutputStreamWrapper> theStream =
         asciiTraceHelper.CreateFileStream(filename);
-
-    // Ascii traces typically have "+", '-", "d", "r", and sometimes "t"
-    // The Mac and Phy objects have the trace sources for these
-    //
 
     asciiTraceHelper.HookDefaultReceiveSinkWithoutContext<LrWpanMac>(
         device->GetMac(), "MacRx", theStream);
@@ -383,19 +310,6 @@ void LrWpanHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
 
     return;
   }
-
-  //
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to provide a context.  We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with the context.
-  //
-  // Note that we are going to use the default trace sinks provided by the
-  // ascii trace helper.  There is actually no AsciiTraceHelper in sight here,
-  // but the default trace sinks are actually publicly available static
-  // functions that are always there waiting for just such a case.
-  //
 
   oss.str("");
   oss << "/NodeList/" << nodeid << "/DeviceList/" << deviceid

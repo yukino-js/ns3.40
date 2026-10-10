@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: John Abraham <john.abraham.in@gmail.com>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -43,17 +14,16 @@ using namespace ns3;
 
 AnimationInterface *pAnim = nullptr;
 
-/// RGB structure
 struct Rgb {
-  uint8_t r; ///< red
-  uint8_t g; ///< green
-  uint8_t b; ///< blue
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
 };
 
 Rgb colors[] = {
-    {255, 0, 0}, // Red
-    {0, 255, 0}, // Blue
-    {0, 0, 255}, // Green
+    {255, 0, 0},
+    {0, 255, 0},
+    {0, 0, 255},
 };
 
 uint32_t resourceId1;
@@ -77,7 +47,6 @@ void modify() {
   pAnim->UpdateLinkDescription(1, 10, oss.str());
   pAnim->UpdateLinkDescription(1, 11, oss.str());
 
-  // Every update change the node description for node 2
   std::ostringstream node0Oss;
   node0Oss << "-----Node:" << Simulator::Now().GetSeconds();
   pAnim->UpdateNodeDescription(2, node0Oss.str());
@@ -96,7 +65,6 @@ void modify() {
     currentResourceId = resourceId1;
   }
 
-  // Every update change the color for node 4
   static uint32_t index = 0;
   index++;
   if (index == 3) {
@@ -107,8 +75,6 @@ void modify() {
     pAnim->UpdateNodeColor(nodeId, color.r, color.g, color.b);
   }
 
-  // Update Node Counter for node 0 and node 5, use some random number between 0
-  // to 1000 for value
   Ptr<UniformRandomVariable> rv = CreateObject<UniformRandomVariable>();
   pAnim->UpdateNodeCounter(nodeCounterIdUint32, 0, rv->GetValue(0, 1000));
   pAnim->UpdateNodeCounter(nodeCounterIdDouble1, 0, rv->GetValue(100.0, 200.0));
@@ -117,9 +83,7 @@ void modify() {
   pAnim->UpdateNodeCounter(nodeCounterIdDouble1, 5, rv->GetValue(100.0, 200.0));
   pAnim->UpdateNodeCounter(nodeCounterIdDouble2, 5, rv->GetValue(300.0, 400.0));
 
-  if (Simulator::Now().GetSeconds() <
-      10) { // This is important or the simulation
-    // will run endlessly
+  if (Simulator::Now().GetSeconds() < 10) {
     Simulator::Schedule(Seconds(0.1), modify);
   }
 }
@@ -130,9 +94,8 @@ int main(int argc, char *argv[]) {
 
   uint32_t nLeftLeaf = 5;
   uint32_t nRightLeaf = 5;
-  uint32_t nLeaf = 0; // If non-zero, number of both left and right
-  std::string animFile =
-      "resources_demo.xml"; // Name of file for animation output
+  uint32_t nLeaf = 0;
+  std::string animFile = "resources_demo.xml";
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("nLeftLeaf", "Number of left side leaf nodes", nLeftLeaf);
@@ -146,7 +109,6 @@ int main(int argc, char *argv[]) {
     nRightLeaf = nLeaf;
   }
 
-  // Create the point-to-point link helpers
   PointToPointHelper pointToPointRouter;
   pointToPointRouter.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
   pointToPointRouter.SetChannelAttribute("Delay", StringValue("1ms"));
@@ -157,17 +119,14 @@ int main(int argc, char *argv[]) {
   PointToPointDumbbellHelper d(nLeftLeaf, pointToPointLeaf, nRightLeaf,
                                pointToPointLeaf, pointToPointRouter);
 
-  // Install Stack
   InternetStackHelper stack;
   d.InstallStack(stack);
 
-  // Assign IP Addresses
   d.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.2.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.3.1.0", "255.255.255.0"));
 
   d.BoundingBox(1, 1, 100, 100);
-  // Install on/off app on all right side nodes
   OnOffHelper clientHelper("ns3::UdpSocketFactory", Address());
   clientHelper.SetAttribute(
       "OnTime", StringValue("ns3::UniformRandomVariable[Min=0.|Max=1.]"));
@@ -176,7 +135,6 @@ int main(int argc, char *argv[]) {
   ApplicationContainer clientApps;
 
   for (uint32_t i = 0; i < d.RightCount(); ++i) {
-    // Create an on/off app sending packets to the same leaf right side
     AddressValue remoteAddress(
         InetSocketAddress(d.GetLeftIpv4Address(i), 1000));
     clientHelper.SetAttribute("Remote", remoteAddress);
@@ -186,11 +144,7 @@ int main(int argc, char *argv[]) {
   clientApps.Start(Seconds(0.0));
   clientApps.Stop(Seconds(5.0));
 
-  // Set the bounding box for animation
-
-  // Create the animation object and configure for specified output
   pAnim = new AnimationInterface(animFile);
-  // Provide the absolute path to the resource
   resourceId1 =
       pAnim->AddResource("/Users/john/ns3/netanim-3.105/ns-3-logo1.png");
   resourceId2 =
@@ -198,7 +152,6 @@ int main(int argc, char *argv[]) {
   pAnim->SetBackgroundImage("/Users/john/ns3/netanim-3.105/ns-3-background.png",
                             0, 0, 0.2, 0.2, 0.1);
 
-  // Add a node counter
   nodeCounterIdUint32 = pAnim->AddNodeCounter(
       "Uint32 Counter", AnimationInterface::UINT32_COUNTER);
   nodeCounterIdDouble1 = pAnim->AddNodeCounter(
@@ -208,7 +161,6 @@ int main(int argc, char *argv[]) {
 
   Simulator::Schedule(Seconds(0.1), modify);
 
-  // Set up the actual simulation
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
   Simulator::Run();

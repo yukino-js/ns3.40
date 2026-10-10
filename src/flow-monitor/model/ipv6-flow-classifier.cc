@@ -1,22 +1,3 @@
-//
-// Copyright (c) 2009 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt> <gjcarneiro@gmail.com>
-// Modifications: Tommaso Pecorella <tommaso.pecorella@unifi.it>
-//
 
 #include "ipv6-flow-classifier.h"
 
@@ -28,9 +9,8 @@
 
 namespace ns3 {
 
-/* see http://www.iana.org/assignments/protocol-numbers */
-const uint8_t TCP_PROT_NUMBER = 6;  //!< TCP Protocol number
-const uint8_t UDP_PROT_NUMBER = 17; //!< UDP Protocol number
+const uint8_t TCP_PROT_NUMBER = 6;
+const uint8_t UDP_PROT_NUMBER = 17;
 
 bool operator<(const Ipv6FlowClassifier::FiveTuple &t1,
                const Ipv6FlowClassifier::FiveTuple &t2) {
@@ -91,7 +71,6 @@ bool Ipv6FlowClassifier::Classify(const Ipv6Header &ipHeader,
                                   uint32_t *out_flowId,
                                   uint32_t *out_packetId) {
   if (ipHeader.GetDestination().IsMulticast()) {
-    // we are not prepared to handle multicast yet
     return false;
   }
 
@@ -106,14 +85,8 @@ bool Ipv6FlowClassifier::Classify(const Ipv6Header &ipHeader,
   }
 
   if (ipPayload->GetSize() < 4) {
-    // the packet doesn't carry enough bytes
     return false;
   }
-
-  // we rely on the fact that for both TCP and UDP the ports are
-  // carried in the first 4 octets.
-  // This allows to read the ports even on fragmented packets
-  // not carrying a full TCP or UDP header.
 
   uint8_t data[4];
   ipPayload->CopyData(data, 4);
@@ -136,11 +109,8 @@ bool Ipv6FlowClassifier::Classify(const Ipv6Header &ipHeader,
     ;
 #endif
 
-  // try to insert the tuple, but check if it already exists
   auto insert = m_flowMap.insert(std::pair<FiveTuple, FlowId>(tuple, 0));
 
-  // if the insertion succeeded, we need to assign this tuple a new flow
-  // identifier
   if (insert.second) {
     FlowId newFlowId = GetNewFlowId();
     insert.first->second = newFlowId;
@@ -150,12 +120,10 @@ bool Ipv6FlowClassifier::Classify(const Ipv6Header &ipHeader,
     m_flowPktIdMap[insert.first->second]++;
   }
 
-  // increment the counter of packets with the same DSCP value
   Ipv6Header::DscpType dscp = ipHeader.GetDscp();
   auto dscpInserter = m_flowDscpMap[insert.first->second].insert(
       std::pair<Ipv6Header::DscpType, uint32_t>(dscp, 1));
 
-  // if the insertion did not succeed, we need to increment the counter
   if (!dscpInserter.second) {
     m_flowDscpMap[insert.first->second][dscp]++;
   }

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011, 2012, 2013 Centre Tecnologic de Telecomunicacions de
- * Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Lluis Parcerisa <lparcerisa@cttc.cat> (TestUtils from
- * test-asn1-encoding.cc) Nicola Baldo <nbaldo@cttc.es> (actual test)
- */
 
 #include "ns3/log.h"
 #include "ns3/lte-rlc-am-header.h"
@@ -33,18 +13,8 @@ NS_LOG_COMPONENT_DEFINE("TestLteRlcHeader");
 
 namespace ns3 {
 
-/**
- * \ingroup lte-test
- *
- * \brief Test Utils
- */
 class TestUtils {
 public:
-  /**
-   * Function to convert packet contents in hex format
-   * \param pkt the packet
-   * \returns a text string
-   */
   static std::string sprintPacketContentsHex(Ptr<Packet> pkt) {
     uint32_t psize = pkt->GetSize();
     uint8_t buffer[psize];
@@ -57,11 +27,6 @@ public:
     return oss.str();
   }
 
-  /**
-   * Function to convert packet contents in binary format
-   * \param pkt the packet
-   * \returns a text string
-   */
   static std::string sprintPacketContentsBin(Ptr<Packet> pkt) {
     uint32_t psize = pkt->GetSize();
     uint8_t buffer[psize];
@@ -73,21 +38,12 @@ public:
     return std::string(oss.str() + "\n");
   }
 
-  /**
-   * Function to log packet contents
-   * \param pkt the packet
-   */
   static void LogPacketContents(Ptr<Packet> pkt) {
     NS_LOG_DEBUG("---- SERIALIZED PACKET CONTENTS (HEX): -------");
     NS_LOG_DEBUG("Hex: " << TestUtils::sprintPacketContentsHex(pkt));
     NS_LOG_DEBUG("Bin: " << TestUtils::sprintPacketContentsBin(pkt));
   }
 
-  /**
-   * Log packet info function
-   * \param source T
-   * \param s text string to log
-   */
   template <class T> static void LogPacketInfo(T source, std::string s) {
     NS_LOG_DEBUG("--------- " << s.data() << " INFO: -------");
     std::ostringstream oss(std::ostringstream::out);
@@ -96,20 +52,8 @@ public:
   }
 };
 
-/**
- * \ingroup lte-test
- *
- * \brief Rlc Am Status Pdu Test Case
- */
 class RlcAmStatusPduTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param ackSn the sequence number
-   * \param nackSnList list of nack sequence numbers
-   * \param hex string
-   */
   RlcAmStatusPduTestCase(SequenceNumber10 ackSn,
                          std::list<SequenceNumber10> nackSnList,
                          std::string hex);
@@ -117,9 +61,9 @@ public:
 protected:
   void DoRun() override;
 
-  SequenceNumber10 m_ackSn;                 ///< ack sequence number
-  std::list<SequenceNumber10> m_nackSnList; ///< list of nack sequence numbers
-  std::string m_hex;                        ///< hex string
+  SequenceNumber10 m_ackSn;
+  std::list<SequenceNumber10> m_nackSnList;
+  std::string m_hex;
 };
 
 RlcAmStatusPduTestCase::RlcAmStatusPduTestCase(
@@ -168,15 +112,10 @@ RlcAmStatusPduTestCase::DoRun()
                         "too many elements in deserialized NACK list");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Lte Rlc Header Test Suite
- */
 class LteRlcHeaderTestSuite : public TestSuite {
 public:
   LteRlcHeaderTestSuite();
-} staticLteRlcHeaderTestSuiteInstance; ///< the test suite
+} staticLteRlcHeaderTestSuiteInstance;
 
 LteRlcHeaderTestSuite::LteRlcHeaderTestSuite()
     : TestSuite("lte-rlc-header", UNIT) {

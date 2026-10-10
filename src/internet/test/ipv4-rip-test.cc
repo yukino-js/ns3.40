@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/enum.h"
@@ -44,35 +26,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 RIP Test
- */
 class Ipv4RipTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv4RipTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -101,7 +64,6 @@ void Ipv4RipTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv4RipTest::DoRun() {
-  // Create topology
 
   Ptr<Node> txNode = CreateObject<Node>();
   Ptr<Node> rxNode = CreateObject<Node>();
@@ -126,7 +88,6 @@ void Ipv4RipTest::DoRun() {
   NetDeviceContainer net3;
   NetDeviceContainer net4;
 
-  // Sender Node
   Ptr<SimpleNetDevice> txDev;
   {
     txDev = CreateObject<SimpleNetDevice>();
@@ -135,67 +96,62 @@ void Ipv4RipTest::DoRun() {
   }
   net1.Add(txDev);
 
-  // Router A
   Ptr<SimpleNetDevice> fwDev1routerA;
   Ptr<SimpleNetDevice> fwDev2routerA;
-  { // first interface
+  {
     fwDev1routerA = CreateObject<SimpleNetDevice>();
     fwDev1routerA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(fwDev1routerA);
   }
   net1.Add(fwDev1routerA);
 
-  { // second interface
+  {
     fwDev2routerA = CreateObject<SimpleNetDevice>();
     fwDev2routerA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDev2routerA);
   }
   net2.Add(fwDev2routerA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDev1routerB;
   Ptr<SimpleNetDevice> fwDev2routerB;
-  { // first interface
+  {
     fwDev1routerB = CreateObject<SimpleNetDevice>();
     fwDev1routerB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDev1routerB);
   }
   net2.Add(fwDev1routerB);
 
-  { // second interface
+  {
     fwDev2routerB = CreateObject<SimpleNetDevice>();
     fwDev2routerB->SetAddress(Mac48Address("00:00:00:00:00:05"));
     routerB->AddDevice(fwDev2routerB);
   }
   net3.Add(fwDev2routerB);
 
-  // Router C
   Ptr<SimpleNetDevice> fwDev1routerC;
   Ptr<SimpleNetDevice> fwDev2routerC;
-  { // first interface
+  {
     fwDev1routerC = CreateObject<SimpleNetDevice>();
     fwDev1routerC->SetAddress(Mac48Address("00:00:00:00:00:06"));
     routerC->AddDevice(fwDev1routerC);
   }
   net3.Add(fwDev1routerC);
 
-  { // second interface
+  {
     fwDev2routerC = CreateObject<SimpleNetDevice>();
     fwDev2routerC->SetAddress(Mac48Address("00:00:00:00:00:07"));
     routerC->AddDevice(fwDev2routerC);
   }
   net4.Add(fwDev2routerC);
 
-  // Rx node
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address("00:00:00:00:00:08"));
     rxNode->AddDevice(rxDev);
   }
   net4.Add(rxDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   txDev->SetChannel(channel1);
   fwDev1routerA->SetChannel(channel1);
@@ -212,7 +168,6 @@ void Ipv4RipTest::DoRun() {
   fwDev2routerC->SetChannel(channel4);
   rxDev->SetChannel(channel4);
 
-  // Setup IPv4 addresses and forwarding
   Ipv4AddressHelper ipv4;
 
   ipv4.SetBase(Ipv4Address("10.0.1.0"), Ipv4Mask("255.255.255.0"));
@@ -235,7 +190,6 @@ void Ipv4RipTest::DoRun() {
       rxNode->GetObject<Ipv4>()->GetRoutingProtocol());
   staticRouting->SetDefaultRoute("10.0.2.1", 1);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -247,9 +201,6 @@ void Ipv4RipTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "10.0.2.2");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 123,
                         "IPv4 RIP should work.");
@@ -259,35 +210,16 @@ void Ipv4RipTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 RIP count to infinity Test
- */
 class Ipv4RipCountToInfinityTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv4RipCountToInfinityTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -319,7 +251,6 @@ void Ipv4RipCountToInfinityTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv4RipCountToInfinityTest::DoRun() {
-  // Create topology
 
   Ptr<Node> txNode = CreateObject<Node>();
   Ptr<Node> rxNode = CreateObject<Node>();
@@ -332,8 +263,6 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   NodeContainer all(nodes, routers);
 
   RipHelper ripNgRouting;
-  // Change the router's interface metric to 10, must not send packets (count to
-  // infinity) note: Interface 0 is the loopback.
   ripNgRouting.SetInterfaceMetric(routerA, 2, 10);
   ripNgRouting.SetInterfaceMetric(routerB, 1, 10);
   ripNgRouting.SetInterfaceMetric(routerB, 2, 10);
@@ -351,7 +280,6 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   NetDeviceContainer net3;
   NetDeviceContainer net4;
 
-  // Sender Node
   Ptr<SimpleNetDevice> txDev;
   {
     txDev = CreateObject<SimpleNetDevice>();
@@ -360,67 +288,62 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   }
   net1.Add(txDev);
 
-  // Router A
   Ptr<SimpleNetDevice> fwDev1routerA;
   Ptr<SimpleNetDevice> fwDev2routerA;
-  { // first interface
+  {
     fwDev1routerA = CreateObject<SimpleNetDevice>();
     fwDev1routerA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(fwDev1routerA);
   }
   net1.Add(fwDev1routerA);
 
-  { // second interface
+  {
     fwDev2routerA = CreateObject<SimpleNetDevice>();
     fwDev2routerA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDev2routerA);
   }
   net2.Add(fwDev2routerA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDev1routerB;
   Ptr<SimpleNetDevice> fwDev2routerB;
-  { // first interface
+  {
     fwDev1routerB = CreateObject<SimpleNetDevice>();
     fwDev1routerB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDev1routerB);
   }
   net2.Add(fwDev1routerB);
 
-  { // second interface
+  {
     fwDev2routerB = CreateObject<SimpleNetDevice>();
     fwDev2routerB->SetAddress(Mac48Address("00:00:00:00:00:05"));
     routerB->AddDevice(fwDev2routerB);
   }
   net3.Add(fwDev2routerB);
 
-  // Router C
   Ptr<SimpleNetDevice> fwDev1routerC;
   Ptr<SimpleNetDevice> fwDev2routerC;
-  { // first interface
+  {
     fwDev1routerC = CreateObject<SimpleNetDevice>();
     fwDev1routerC->SetAddress(Mac48Address("00:00:00:00:00:06"));
     routerC->AddDevice(fwDev1routerC);
   }
   net3.Add(fwDev1routerC);
 
-  { // second interface
+  {
     fwDev2routerC = CreateObject<SimpleNetDevice>();
     fwDev2routerC->SetAddress(Mac48Address("00:00:00:00:00:07"));
     routerC->AddDevice(fwDev2routerC);
   }
   net4.Add(fwDev2routerC);
 
-  // Rx node
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address("00:00:00:00:00:08"));
     rxNode->AddDevice(rxDev);
   }
   net4.Add(rxDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   txDev->SetChannel(channel1);
   fwDev1routerA->SetChannel(channel1);
@@ -437,7 +360,6 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   fwDev2routerC->SetChannel(channel4);
   rxDev->SetChannel(channel4);
 
-  // Setup IPv4 addresses and forwarding
   Ipv4AddressHelper ipv4;
 
   ipv4.SetBase(Ipv4Address("10.0.1.0"), Ipv4Mask("255.255.255.0"));
@@ -460,7 +382,6 @@ void Ipv4RipCountToInfinityTest::DoRun() {
       rxNode->GetObject<Ipv4>()->GetRoutingProtocol());
   staticRouting->SetDefaultRoute("10.0.2.1", 1);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -473,8 +394,6 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
   SendData(txSocket, "10.0.2.2");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 0,
                         "RIP counting to infinity.");
@@ -482,28 +401,15 @@ void Ipv4RipCountToInfinityTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 RIP SplitHorizon strategy Test
- */
 class Ipv4RipSplitHorizonStrategyTest : public TestCase {
-  Rip::SplitHorizonType_e m_setStrategy;      //!< Strategy set.
-  Rip::SplitHorizonType_e m_detectedStrategy; //!< Strategy detected.
+  Rip::SplitHorizonType_e m_setStrategy;
+  Rip::SplitHorizonType_e m_detectedStrategy;
 
 public:
   void DoRun() override;
 
-  /**
-   * \brief Constructor.
-   * \param strategy The SplitHorizon strategy.
-   */
   Ipv4RipSplitHorizonStrategyTest(Rip::SplitHorizonType_e strategy);
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePktProbe(Ptr<Socket> socket);
 };
 
@@ -529,7 +435,6 @@ void Ipv4RipSplitHorizonStrategyTest::ReceivePktProbe(Ptr<Socket> socket) {
 
     std::list<RipRte> rtes = hdr.GetRteList();
 
-    // validate the RTEs before processing
     for (auto iter = rtes.begin(); iter != rtes.end(); iter++) {
       if (iter->GetPrefix() == "10.0.1.0") {
         bool correct = false;
@@ -549,7 +454,6 @@ void Ipv4RipSplitHorizonStrategyTest::ReceivePktProbe(Ptr<Socket> socket) {
 }
 
 void Ipv4RipSplitHorizonStrategyTest::DoRun() {
-  // Create topology
 
   Ptr<Node> fakeNode = CreateObject<Node>();
   Ptr<Node> listener = CreateObject<Node>();
@@ -574,7 +478,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   NetDeviceContainer net0;
   NetDeviceContainer net1;
 
-  // Fake Node
   Ptr<SimpleNetDevice> silentDev;
   {
     silentDev = CreateObject<SimpleNetDevice>();
@@ -583,33 +486,30 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   }
   net0.Add(silentDev);
 
-  // Router A
   Ptr<SimpleNetDevice> silentDevRouterA;
   Ptr<SimpleNetDevice> fwDevRouterA;
-  { // silent interface
+  {
     silentDevRouterA = CreateObject<SimpleNetDevice>();
     silentDevRouterA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(silentDevRouterA);
   }
   net0.Add(silentDevRouterA);
 
-  { // first interface
+  {
     fwDevRouterA = CreateObject<SimpleNetDevice>();
     fwDevRouterA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDevRouterA);
   }
   net1.Add(fwDevRouterA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDevRouterB;
-  { // first interface
+  {
     fwDevRouterB = CreateObject<SimpleNetDevice>();
     fwDevRouterB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDevRouterB);
   }
   net1.Add(fwDevRouterB);
 
-  // listener A
   Ptr<SimpleNetDevice> listenerDev;
   {
     listenerDev = CreateObject<SimpleNetDevice>();
@@ -618,7 +518,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   }
   net1.Add(listenerDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel0 = CreateObject<SimpleChannel>();
   silentDev->SetChannel(channel0);
   silentDevRouterA->SetChannel(channel0);
@@ -628,7 +527,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   fwDevRouterB->SetChannel(channel1);
   listenerDev->SetChannel(channel1);
 
-  // Setup IPv6 addresses and forwarding
   Ipv4AddressHelper ipv4;
 
   ipv4.SetBase(Ipv4Address("10.0.1.0"), Ipv4Mask("255.255.255.0"));
@@ -637,7 +535,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   ipv4.SetBase(Ipv4Address("192.168.0.0"), Ipv4Mask("255.255.255.0"));
   Ipv4InterfaceContainer iic1 = ipv4.Assign(net1);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = listener->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   rxSocket->BindToNetDevice(listenerDev);
@@ -647,9 +544,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   rxSocket->SetRecvCallback(
       MakeCallback(&Ipv4RipSplitHorizonStrategyTest::ReceivePktProbe, this));
 
-  // ------ Now the tests ------------
-
-  // If the strategy is Split Horizon, then no packet will be received.
   m_detectedStrategy = Rip::SPLIT_HORIZON;
 
   Simulator::Stop(Seconds(66));
@@ -660,11 +554,6 @@ void Ipv4RipSplitHorizonStrategyTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 RIP TestSuite
- */
 class Ipv4RipTestSuite : public TestSuite {
 public:
   Ipv4RipTestSuite() : TestSuite("ipv4-rip", UNIT) {
@@ -679,5 +568,4 @@ public:
   }
 };
 
-static Ipv4RipTestSuite
-    g_ipv4ripTestSuite; //!< Static variable for test initialization
+static Ipv4RipTestSuite g_ipv4ripTestSuite;

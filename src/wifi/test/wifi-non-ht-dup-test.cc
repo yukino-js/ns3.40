@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/ap-wifi-mac.h"
 #include "ns3/boolean.h"
@@ -49,31 +31,17 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiNonHtDuplicateTest");
 
-constexpr uint32_t DEFAULT_FREQUENCY = 5180; // MHz
+constexpr uint32_t DEFAULT_FREQUENCY = 5180;
 
-/**
- * HE PHY used for testing MU-RTS/CTS.
- */
 class MuRtsCtsHePhy : public HePhy {
 public:
   MuRtsCtsHePhy();
   ~MuRtsCtsHePhy() override;
 
-  /**
-   * Set the previous TX PPDU UID counter.
-   *
-   * \param uid the value to which the previous TX PPDU UID counter should be
-   * set
-   */
   void SetPreviousTxPpduUid(uint64_t uid);
 
-  /**
-   * Set the TXVECTOR of the previously transmitted MU-RTS.
-   *
-   * \param muRtsTxVector the TXVECTOR used to transmit MU-RTS trigger frame
-   */
   void SetMuRtsTxVector(const WifiTxVector &muRtsTxVector);
-}; // class MuRtsCtsHePhy
+};
 
 MuRtsCtsHePhy::MuRtsCtsHePhy() : HePhy() { NS_LOG_FUNCTION(this); }
 
@@ -89,15 +57,8 @@ void MuRtsCtsHePhy::SetMuRtsTxVector(const WifiTxVector &muRtsTxVector) {
   m_currentTxVector = muRtsTxVector;
 }
 
-/**
- * Spectrum PHY used for testing MU-RTS/CTS.
- */
 class MuRtsCtsSpectrumWifiPhy : public SpectrumWifiPhy {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
   MuRtsCtsSpectrumWifiPhy();
@@ -106,24 +67,13 @@ public:
   void DoInitialize() override;
   void DoDispose() override;
 
-  /**
-   * Set the global PPDU UID counter.
-   *
-   * \param uid the value to which the global PPDU UID counter should be set
-   */
   void SetPpduUid(uint64_t uid);
 
-  /**
-   * Set the TXVECTOR of the previously transmitted MU-RTS.
-   *
-   * \param muRtsTxVector the TXVECTOR used to transmit MU-RTS trigger frame
-   */
   void SetMuRtsTxVector(const WifiTxVector &muRtsTxVector);
 
 private:
-  Ptr<MuRtsCtsHePhy> m_muRtsCtsHePhy; ///< Pointer to HE PHY instance used for
-                                      ///< MU-RTS/CTS PHY test
-}; // class MuRtsCtsSpectrumWifiPhy
+  Ptr<MuRtsCtsHePhy> m_muRtsCtsHePhy;
+};
 
 TypeId MuRtsCtsSpectrumWifiPhy::GetTypeId() {
   static TypeId tid = TypeId("ns3::MuRtsCtsSpectrumWifiPhy")
@@ -141,7 +91,6 @@ MuRtsCtsSpectrumWifiPhy::MuRtsCtsSpectrumWifiPhy() : SpectrumWifiPhy() {
 MuRtsCtsSpectrumWifiPhy::~MuRtsCtsSpectrumWifiPhy() { NS_LOG_FUNCTION(this); }
 
 void MuRtsCtsSpectrumWifiPhy::DoInitialize() {
-  // Replace HE PHY instance with test instance
   m_phyEntities[WIFI_MOD_CLASS_HE] = m_muRtsCtsHePhy;
   SpectrumWifiPhy::DoInitialize();
 }
@@ -163,33 +112,10 @@ void MuRtsCtsSpectrumWifiPhy::SetMuRtsTxVector(
   m_muRtsCtsHePhy->SetMuRtsTxVector(muRtsTxVector);
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief non-HT duplicate PHY reception test
- * The test consists in an AP sending a single non-HT duplicate PPDU
- * of a given channel width (multiple of 20 MHz) over a spectrum
- * channel and it checks whether the STAs attached to the channel
- * receive the PPDU. If an interference is injected on a given 20 MHz
- * subchannel, the payload reception should fail, otherwise it should succeed.
- */
 class TestNonHtDuplicatePhyReception : public TestCase {
 public:
-  /// A vector containing parameters per STA: the standard, the center frequency
-  /// and the P20 index
   using StasParams = std::vector<std::tuple<WifiStandard, uint16_t, uint8_t>>;
 
-  /**
-   * Constructor
-   * \param apStandard the standard to use for the AP
-   * \param apFrequency the center frequency of the AP (in MHz)
-   * \param apP20Index the index of the primary 20 MHz channel of the AP
-   * \param stasParams the parameters of the STAs (\see StasParams)
-   * \param per20MhzInterference flags per 20 MHz subchannel whether an
-   * interference should be generated on that subchannel. An empty vector means
-   * that the test will not generate any interference.
-   */
   TestNonHtDuplicatePhyReception(WifiStandard apStandard, uint16_t apFrequency,
                                  uint8_t apP20Index, StasParams stasParams,
                                  std::vector<bool> per20MhzInterference = {});
@@ -199,78 +125,36 @@ private:
   void DoTeardown() override;
   void DoRun() override;
 
-  /**
-   * Receive success function
-   * \param index index of the RX STA
-   * \param psdu the PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector the transmit vector
-   * \param statusPerMpdu reception status per MPDU
-   */
   void RxSuccess(std::size_t index, Ptr<const WifiPsdu> psdu,
                  RxSignalInfo rxSignalInfo, WifiTxVector txVector,
                  std::vector<bool> statusPerMpdu);
 
-  /**
-   * Receive failure function
-   * \param index index of the RX STA
-   * \param psdu the PSDU
-   */
   void RxFailure(std::size_t index, Ptr<const WifiPsdu> psdu);
 
-  /**
-   * Check the results
-   * \param index index of the RX STA
-   * \param expectedRxSuccess the expected number of RX success
-   * \param expectedRxFailure the expected number of RX failures
-   */
   void CheckResults(std::size_t index, uint32_t expectedRxSuccess,
                     uint32_t expectedRxFailure);
 
-  /**
-   * Reset the results
-   */
   void ResetResults();
 
-  /**
-   * Send non-HT duplicate PPDU function
-   * \param channelWidth the channel width to use to transmit the non-HT PPDU
-   * (in MHz)
-   */
   void SendNonHtDuplicatePpdu(uint16_t channelWidth);
 
-  /**
-   * Generate interference function
-   * \param interferer the PHY of the interferer to use to generate the signal
-   * \param interferencePsd the PSD of the interference to be generated
-   * \param duration the duration of the interference
-   */
   void GenerateInterference(Ptr<WaveformGenerator> interferer,
                             Ptr<SpectrumValue> interferencePsd, Time duration);
-  /**
-   * Stop interference function
-   * \param interferer the PHY of the interferer that was used to generate the
-   * signal
-   */
   void StopInterference(Ptr<WaveformGenerator> interferer);
 
-  WifiStandard m_apStandard; ///< the standard to use for the AP
-  uint16_t m_apFrequency;    ///< the center frequency of the AP (in MHz)
-  uint8_t m_apP20Index; ///< the index of the primary 20 MHz channel of the AP
-  StasParams m_stasParams;                  ///< the parameters of the STAs
-  std::vector<bool> m_per20MhzInterference; ///< flags per 20 MHz subchannel
-                                            ///< whether an interference should
-                                            ///< be generated on that subchannel
+  WifiStandard m_apStandard;
+  uint16_t m_apFrequency;
+  uint8_t m_apP20Index;
+  StasParams m_stasParams;
+  std::vector<bool> m_per20MhzInterference;
 
-  std::vector<uint32_t> m_countRxSuccessStas; ///< count RX success for STAs
-  std::vector<uint32_t> m_countRxFailureStas; ///< count RX failure for STAs
+  std::vector<uint32_t> m_countRxSuccessStas;
+  std::vector<uint32_t> m_countRxFailureStas;
 
-  Ptr<SpectrumWifiPhy> m_phyAp;                ///< PHY of AP
-  std::vector<Ptr<SpectrumWifiPhy>> m_phyStas; ///< PHYs of STAs
+  Ptr<SpectrumWifiPhy> m_phyAp;
+  std::vector<Ptr<SpectrumWifiPhy>> m_phyStas;
 
-  std::vector<Ptr<WaveformGenerator>>
-      m_phyInterferers; ///< PHYs of interferers (1 interferer per 20 MHz
-                        ///< subchannel)
+  std::vector<Ptr<WaveformGenerator>> m_phyInterferers;
 };
 
 TestNonHtDuplicatePhyReception::TestNonHtDuplicatePhyReception(
@@ -328,9 +212,11 @@ void TestNonHtDuplicatePhyReception::StopInterference(
   interferer->Stop();
 }
 
-void TestNonHtDuplicatePhyReception::RxSuccess(
-    std::size_t index, Ptr<const WifiPsdu> psdu, RxSignalInfo rxSignalInfo,
-    WifiTxVector txVector, std::vector<bool> /*statusPerMpdu*/) {
+void TestNonHtDuplicatePhyReception::RxSuccess(std::size_t index,
+                                               Ptr<const WifiPsdu> psdu,
+                                               RxSignalInfo rxSignalInfo,
+                                               WifiTxVector txVector,
+                                               std::vector<bool>) {
   NS_LOG_FUNCTION(this << index << *psdu << rxSignalInfo << txVector);
   const auto expectedWidth = std::min(m_phyAp->GetChannelWidth(),
                                       m_phyStas.at(index)->GetChannelWidth());
@@ -484,9 +370,7 @@ void TestNonHtDuplicatePhyReception::DoRun() {
         bands.push_back(bandInfo);
         auto spectrumInterference = Create<SpectrumModel>(bands);
         auto interferencePsd = Create<SpectrumValue>(spectrumInterference);
-        auto interferencePower =
-            0.005; // in watts (designed to make PHY headers reception
-                   // successful but payload reception fail)
+        auto interferencePower = 0.005;
         *interferencePsd = interferencePower / 10e6;
         Simulator::Schedule(
             Seconds(index),
@@ -529,32 +413,13 @@ void TestNonHtDuplicatePhyReception::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief test PHY reception of multiple CTS frames as a response to a MU-RTS
- * frame. The test is checking whether the reception of multiple identical CTS
- * frames as a response to a MU-RTS frame is successfully received by the AP PHY
- * and that only a single CTS frame is forwarded up to the MAC. Since the test
- * is focusing on the PHY reception of multiple CTS response, the transmission
- * of the MU-RTS frame is faked. The test also checks the correct channel width
- * is passed to the MAC layer through the TXVECTOR. The test also consider the
- * case some STAs do not respond to verify the largest channel width of the
- * successfully CTS responses is reported to the MAC.
- */
 class TestMultipleCtsResponsesFromMuRts : public TestCase {
 public:
-  /// Information about CTS responses to expect in the test
   struct CtsTxInfos {
-    uint16_t bw{20};     ///< the width in MHz of the CTS response
-    bool discard{false}; ///< flag whether the CTS response shall be discarded
+    uint16_t bw{20};
+    bool discard{false};
   };
 
-  /**
-   * Constructor
-   * \param ctsTxInfosPerSta the information about CTS responses to generate
-   */
   TestMultipleCtsResponsesFromMuRts(
       const std::vector<CtsTxInfos> &ctsTxInfosPerSta);
 
@@ -563,61 +428,29 @@ private:
   void DoTeardown() override;
   void DoRun() override;
 
-  /**
-   * Function called to fake the transmission of a MU-RTS.
-   */
   void FakePreviousMuRts();
 
-  /**
-   * Function called to trigger a CTS frame sent by a STA using non-HT
-   * duplicate.
-   *
-   * \param phyIndex the index of the TX PHY
-   */
   void TxNonHtDuplicateCts(std::size_t phyIndex);
 
-  /**
-   * CTS RX success function
-   * \param phyIndex the index of the PHY (0 for AP)
-   * \param psdu the PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector the transmit vector
-   * \param statusPerMpdu reception status per MPDU
-   */
   void RxCtsSuccess(std::size_t phyIndex, Ptr<const WifiPsdu> psdu,
                     RxSignalInfo rxSignalInfo, WifiTxVector txVector,
                     std::vector<bool> statusPerMpdu);
 
-  /**
-   * CTS RX failure function
-   * \param phyIndex the index of the PHY (0 for AP)
-   * \param psdu the PSDU
-   */
   void RxCtsFailure(std::size_t phyIndex, Ptr<const WifiPsdu> psdu);
 
-  /**
-   * Check the results
-   */
   void CheckResults();
 
-  Ptr<MuRtsCtsSpectrumWifiPhy> m_phyAp;                ///< AP PHY
-  std::vector<Ptr<MuRtsCtsSpectrumWifiPhy>> m_phyStas; ///< STAs PHYs
+  Ptr<MuRtsCtsSpectrumWifiPhy> m_phyAp;
+  std::vector<Ptr<MuRtsCtsSpectrumWifiPhy>> m_phyStas;
 
-  std::vector<CtsTxInfos>
-      m_ctsTxInfosPerSta; ///< information about CTS responses
+  std::vector<CtsTxInfos> m_ctsTxInfosPerSta;
 
-  std::size_t m_countApRxCtsSuccess; ///< count the number of successfully
-                                     ///< received CTS frames by the AP
-  std::size_t m_countApRxCtsFailure; ///< count the number of unsuccessfully
-                                     ///< received CTS frames by the AP
-  std::size_t
-      m_countStaRxCtsSuccess; ///< count the number of successfully received CTS
-                              ///< frames by the non-participating STA
-  std::size_t
-      m_countStaRxCtsFailure; ///< count the number of unsuccessfully received
-                              ///< CTS frames by the non-participating STA
+  std::size_t m_countApRxCtsSuccess;
+  std::size_t m_countApRxCtsFailure;
+  std::size_t m_countStaRxCtsSuccess;
+  std::size_t m_countStaRxCtsFailure;
 
-  double m_stasTxPowerDbm; ///< TX power in dBm configured for the STAs
+  double m_stasTxPowerDbm;
 };
 
 TestMultipleCtsResponsesFromMuRts::TestMultipleCtsResponsesFromMuRts(
@@ -637,14 +470,11 @@ void TestMultipleCtsResponsesFromMuRts::FakePreviousMuRts() {
           [](const auto &lhs, const auto &rhs) { return lhs.bw < rhs.bw; })
           ->bw;
   WifiTxVector txVector;
-  txVector.SetChannelWidth(bw); // only the channel width matters for this test
+  txVector.SetChannelWidth(bw);
 
-  // set the TXVECTOR and the UID of the previously transmitted MU-RTS in the AP
-  // PHY
   m_phyAp->SetMuRtsTxVector(txVector);
   m_phyAp->SetPpduUid(0);
 
-  // set the UID of the previously received MU-RTS in the STAs PHYs
   for (auto &phySta : m_phyStas) {
     phySta->SetPpduUid(0);
   }
@@ -661,9 +491,8 @@ void TestMultipleCtsResponsesFromMuRts::TxNonHtDuplicateCts(
   }
 
   WifiTxVector txVector =
-      WifiTxVector(OfdmPhy::GetOfdmRate54Mbps(), // use less robust modulation
-                                                 // for test purpose
-                   0, WIFI_PREAMBLE_LONG, 800, 1, 1, 0, bw, false, false);
+      WifiTxVector(OfdmPhy::GetOfdmRate54Mbps(), 0, WIFI_PREAMBLE_LONG, 800, 1,
+                   1, 0, bw, false, false);
   txVector.SetTriggerResponding(true);
 
   WifiMacHeader hdr;
@@ -680,9 +509,11 @@ void TestMultipleCtsResponsesFromMuRts::TxNonHtDuplicateCts(
   m_phyStas.at(phyIndex)->Send(psdu, txVector);
 }
 
-void TestMultipleCtsResponsesFromMuRts::RxCtsSuccess(
-    std::size_t phyIndex, Ptr<const WifiPsdu> psdu, RxSignalInfo rxSignalInfo,
-    WifiTxVector txVector, std::vector<bool> /*statusPerMpdu*/) {
+void TestMultipleCtsResponsesFromMuRts::RxCtsSuccess(std::size_t phyIndex,
+                                                     Ptr<const WifiPsdu> psdu,
+                                                     RxSignalInfo rxSignalInfo,
+                                                     WifiTxVector txVector,
+                                                     std::vector<bool>) {
   NS_LOG_FUNCTION(this << phyIndex << *psdu << rxSignalInfo << txVector);
   std::vector<CtsTxInfos> successfulCtsInfos{};
   std::copy_if(m_ctsTxInfosPerSta.cbegin(), m_ctsTxInfosPerSta.cend(),
@@ -826,7 +657,6 @@ void TestMultipleCtsResponsesFromMuRts::DoSetup() {
     staNode->AddDevice(staDev);
     m_phyStas.push_back(phySta);
 
-    // non-participating HE STA
     auto nonParticipatingHeStaNode = CreateObject<Node>();
     auto nonParticipatingHeStaDev = CreateObject<WifiNetDevice>();
     auto nonParticipatingHePhySta = CreateObject<SpectrumWifiPhy>();
@@ -863,7 +693,6 @@ void TestMultipleCtsResponsesFromMuRts::DoSetup() {
             .Bind(i + 1));
   }
 
-  // non-HE STA
   auto nonHeStaNode = CreateObject<Node>();
   auto nonHeStaDev = CreateObject<WifiNetDevice>();
   auto nonHePhySta = CreateObject<SpectrumWifiPhy>();
@@ -896,22 +725,17 @@ void TestMultipleCtsResponsesFromMuRts::DoTeardown() {
 }
 
 void TestMultipleCtsResponsesFromMuRts::DoRun() {
-  // Fake transmission of a MU-RTS frame preceding the CTS responses
   Simulator::Schedule(Seconds(0.0),
                       &TestMultipleCtsResponsesFromMuRts::FakePreviousMuRts,
                       this);
 
   for (std::size_t index = 0; index < m_phyStas.size(); ++index) {
-    // Transmit CTS responses over their operating bandwidth with 1 nanosecond
-    // delay between each other
     const auto delay = (index + 1) * NanoSeconds(1.0);
     Simulator::Schedule(delay,
                         &TestMultipleCtsResponsesFromMuRts::TxNonHtDuplicateCts,
                         this, index);
   }
 
-  // Verify successful reception of the CTS frames: since multiple copies are
-  // sent simultaneously, a single CTS frame should be forwarded up to the MAC.
   Simulator::Schedule(Seconds(1.0),
                       &TestMultipleCtsResponsesFromMuRts::CheckResults, this);
 
@@ -919,12 +743,6 @@ void TestMultipleCtsResponsesFromMuRts::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief wifi non-HT duplicate Test Suite
- */
 class WifiNonHtDuplicateTestSuite : public TestSuite {
 public:
   WifiNonHtDuplicateTestSuite();
@@ -932,48 +750,12 @@ public:
 
 WifiNonHtDuplicateTestSuite::WifiNonHtDuplicateTestSuite()
     : TestSuite("wifi-non-ht-dup", UNIT) {
-  /**
-   * Channel map:
-   *
-   *                | 20MHz  | 20MHz  | 20MHz  | 20MHz  |
-   *
-   *                ┌────────┬────────┬────────┬────────┐
-   *  AP 802.11ax   │CH 36(P)│ CH 40  │ CH 44  │ CH 48  │
-   *                └────────┴────────┴────────┴────────┘
-   *
-   *                ┌────────┐
-   *  STA1 802.11a  │ CH 36  │
-   *                └────────┘
-   *
-   *                         ┌────────┐
-   *  STA2 802.11n           │ CH 40  │
-   *                         └────────┘
-   *
-   *                                  ┌────────┬────────┐
-   *  STA3 802.11ac                   │CH 44(P)│ CH 48  │
-   *                                  └────────┴────────┘
-   *
-   * Test scenario:
-   *                ┌────────┐       ┌──────────────────────┐
-   *                │        │       │RX non-HT PPDU @ STA 1│
-   *                │ 80 MHz │       └──────────────────────┘
-   *                │ non-HT │       ┌──────────────────────┐
-   *                │  PPDU  │       │RX non-HT PPDU @ STA 2│
-   *                │  sent  │       └──────────────────────┘
-   *                │  from  │       ┌──────────────────────┐
-   *                │   AP   │       │                      │
-   *                │        │       │RX non-HT PPDU @ STA 3│
-   *                │        │       │                      │
-   *                └────────┘       └──────────────────────┘
-   */
   AddTestCase(
       new TestNonHtDuplicatePhyReception(WIFI_STANDARD_80211ax, 5210, 0,
                                          {{WIFI_STANDARD_80211a, 5180, 0},
                                           {WIFI_STANDARD_80211n, 5200, 0},
                                           {WIFI_STANDARD_80211ac, 5230, 0}}),
       TestCase::QUICK);
-  /* same channel map and test scenario as previously but inject interference on
-   * channel 40 */
   AddTestCase(
       new TestNonHtDuplicatePhyReception(WIFI_STANDARD_80211ax, 5210, 0,
                                          {{WIFI_STANDARD_80211a, 5180, 0},
@@ -981,45 +763,27 @@ WifiNonHtDuplicateTestSuite::WifiNonHtDuplicateTestSuite()
                                           {WIFI_STANDARD_80211ac, 5230, 0}},
                                          {false, true, false, false}),
       TestCase::QUICK);
-  /* test PHY reception of multiple CTS responses following a MU-RTS */
-  /* 4 STAs operating on 20 MHz */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{20}, {20}, {20}, {20}}),
               TestCase::QUICK);
-  /* 4 STAs operating on 40 MHz */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{40}, {40}, {40}, {40}}),
               TestCase::QUICK);
-  /* 4 STAs operating on 80 MHz */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{80}, {80}, {80}, {80}}),
               TestCase::QUICK);
-  /* 4 STAs operating on 160 MHz */
   AddTestCase(
       new TestMultipleCtsResponsesFromMuRts({{160}, {160}, {160}, {160}}),
       TestCase::QUICK);
-  /* 4 STAs operating on different bandwidths with PPDUs sent with decreasing
-   * BW: 160, 80, 40 and 20 MHz */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{160}, {80}, {40}, {20}}),
               TestCase::QUICK);
-  /* 4 STAs operating on different bandwidths with PPDUs sent with increasing
-   * BW: 20, 40, 80 and 160 MHz */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{20}, {40}, {80}, {160}}),
               TestCase::QUICK);
-  /* 2 STAs operating on different bandwidths with PPDUs sent with decreasing BW
-   * but the first STA does not respond */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{80, true}, {40, false}}),
               TestCase::QUICK);
-  /* 2 STAs operating on different bandwidths with PPDUs sent with decreasing BW
-   * but the second STA does not respond */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{80, false}, {40, true}}),
               TestCase::QUICK);
-  /* 2 STAs operating on different bandwidths with PPDUs sent with increasing BW
-   * but the first STA does not respond */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{40, true}, {80, false}}),
               TestCase::QUICK);
-  /* 2 STAs operating on different bandwidths with PPDUs sent with increasing BW
-   * but the second STA does not respond */
   AddTestCase(new TestMultipleCtsResponsesFromMuRts({{40, false}, {80, true}}),
               TestCase::QUICK);
 }
 
-static WifiNonHtDuplicateTestSuite
-    wifiNonHtDuplicateTestSuite; ///< the test suite
+static WifiNonHtDuplicateTestSuite wifiNonHtDuplicateTestSuite;

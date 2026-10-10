@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "cosine-antenna-model.h"
 
@@ -74,11 +56,6 @@ TypeId CosineAntennaModel::GetTypeId() {
 double CosineAntennaModel::GetExponentFromBeamwidth(double beamwidthDegrees) {
   NS_LOG_FUNCTION(beamwidthDegrees);
 
-  // The formula in obtained by inverting the power pattern P(alpha) in a single
-  // direction, while imposing that P(alpha0/2) = 0.5 = -3 dB, with respect to
-  // the exponent See CosineAntennaModel::GetGainDb for more information.
-  //
-  // The undetermined case of alpha0=360 is treated separately.
   double exponent;
   if (beamwidthDegrees == 360.0) {
     exponent = 0.0;
@@ -94,9 +71,6 @@ double CosineAntennaModel::GetExponentFromBeamwidth(double beamwidthDegrees) {
 double CosineAntennaModel::GetBeamwidthFromExponent(double exponent) {
   NS_LOG_FUNCTION(exponent);
 
-  // The formula in obtained by inverting the power pattern P(alpha) in a single
-  // direction, while imposing that P(alpha0/2) = 0.5 = -3 dB, with respect to
-  // the beamwidth. See CosineAntennaModel::GetGainDb for more information.
   double beamwidthRadians = 4 * std::acos(std::pow(0.5, 1 / (2 * exponent)));
   return RadiansToDegrees(beamwidthRadians);
 }
@@ -132,15 +106,10 @@ double CosineAntennaModel::GetOrientation() const {
 double CosineAntennaModel::GetGainDb(Angles a) {
   NS_LOG_FUNCTION(this << a);
 
-  // make sure phi is in (-pi, pi]
   a.SetAzimuth(a.GetAzimuth() - m_orientationRadians);
 
   NS_LOG_LOGIC(a);
 
-  // The element power gain is computed as a product of cosine functions on the
-  // two axis The power pattern of the element is equal to: P(az,el) =
-  // cos(az/2)^2m * cos(pi/2 - incl/2)^2n, where az is the azimuth angle, and
-  // incl is the inclination angle.
   double gain =
       (std::pow(std::cos(a.GetAzimuth() / 2), 2 * m_horizontalExponent)) *
       (std::pow(std::cos((M_PI / 2 - a.GetInclination()) / 2),

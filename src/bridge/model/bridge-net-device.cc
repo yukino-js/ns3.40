@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo Carneiro  <gjc@inescporto.pt>
- */
 #include "bridge-net-device.h"
 
 #include "ns3/boolean.h"
@@ -37,12 +8,6 @@
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
-
-/**
- * \file
- * \ingroup bridge
- * ns3::BridgeNetDevice implementation.
- */
 
 namespace ns3 {
 
@@ -333,7 +298,6 @@ bool BridgeNetDevice::SendFrom(Ptr<Packet> packet, const Address &src,
   NS_LOG_FUNCTION_NOARGS();
   Mac48Address dst = Mac48Address::ConvertFrom(dest);
 
-  // try to use the learned state if data is unicast
   if (!dst.IsGroup()) {
     Ptr<NetDevice> outPort = GetLearnedState(dst);
     if (outPort) {
@@ -342,8 +306,6 @@ bool BridgeNetDevice::SendFrom(Ptr<Packet> packet, const Address &src,
     }
   }
 
-  // data was not unicast or no state has been learned for that mac
-  // address => flood through all ports.
   Ptr<Packet> pktCopy;
   for (auto iter = m_ports.begin(); iter != m_ports.end(); iter++) {
     pktCopy = packet->Copy();

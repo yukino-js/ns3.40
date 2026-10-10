@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2009 INRIA, UDCAST
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Amine Ismail <amine.ismail@sophia.inria.fr>
- *                      <amine.ismail@udcast.com>
- */
 
 #include "packet-loss-counter.h"
 
@@ -78,18 +59,6 @@ void PacketLossCounter::SetBit(uint32_t seqNum, bool val) {
         ~(0x80 >> (seqNum % 8));
   }
 }
-
-/*
- * This algo works as follows:
- * When a packet is received:
- * 1) From the last received packet to the current one:
- *    1.1) check the corresponding bit in the bitMAP.
- *    This bit indicates if the packet with (SeqNum-bitMapSizeInBit) is
- *    received (1) or not (0)
- *    1.2) Mark the packet as lost (0) in the bitMap
- * 2) Mark the current packet as received (1) in the bitMap
- * 3) Update the value of the last received packet
- */
 
 void PacketLossCounter::NotifyReceived(uint32_t seqNum) {
   NS_LOG_FUNCTION(this << seqNum);

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 Timo Bingmann
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Timo Bingmann <timo.bingmann@student.kit.edu>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -33,14 +15,6 @@
 
 using namespace ns3;
 
-/**
- * Round a double number to the given precision. e.g. dround(0.234, 0.1) = 0.2
- * and dround(0.257, 0.1) = 0.3
- *
- * \param number The number to round.
- * \param precision The precision.
- * \return the rounded number
- */
 static double dround(double number, double precision) {
   number /= precision;
   if (number >= 0) {
@@ -52,14 +26,6 @@ static double dround(double number, double precision) {
   return number;
 }
 
-/**
- * Test the model by sampling over a distance.
- *
- * \param model The model to test.
- * \param targetDistance The target distance.
- * \param step The step.
- * \return a Gnuplot object to be plotted.
- */
 static Gnuplot TestDeterministic(Ptr<PropagationLossModel> model,
                                  double targetDistance, double step) {
   Ptr<ConstantPositionMobilityModel> a =
@@ -73,7 +39,7 @@ static Gnuplot TestDeterministic(Ptr<PropagationLossModel> model,
   plot.AppendExtra("set ylabel 'rxPower (dBm)'");
   plot.AppendExtra("set key top right");
 
-  double txPowerDbm = +20; // dBm
+  double txPowerDbm = +20;
 
   Gnuplot2dDataset dataset;
 
@@ -85,7 +51,6 @@ static Gnuplot TestDeterministic(Ptr<PropagationLossModel> model,
     for (double distance = 0.0; distance < targetDistance; distance += step) {
       b->SetPosition(Vector(distance, 0.0, 0.0));
 
-      // CalcRxPower() returns dBm.
       double rxPowerDbm = model->CalcRxPower(txPowerDbm, a, b);
 
       dataset.Add(distance, rxPowerDbm);
@@ -106,15 +71,6 @@ static Gnuplot TestDeterministic(Ptr<PropagationLossModel> model,
   return plot;
 }
 
-/**
- * Test the model by sampling over a distance.
- *
- * \param model The model to test.
- * \param targetDistance The target distance.
- * \param step The step.
- * \param samples Number of samples.
- * \return a Gnuplot object to be plotted.
- */
 static Gnuplot TestProbabilistic(Ptr<PropagationLossModel> model,
                                  double targetDistance, double step,
                                  unsigned int samples) {
@@ -136,7 +92,7 @@ static Gnuplot TestProbabilistic(Ptr<PropagationLossModel> model,
   plot.AppendExtra("set ytics offset 0,-0.5");
   plot.AppendExtra("set xrange [100:]");
 
-  double txPowerDbm = +20; // dBm
+  double txPowerDbm = +20;
 
   Gnuplot3dDataset dataset;
 
@@ -145,8 +101,6 @@ static Gnuplot TestProbabilistic(Ptr<PropagationLossModel> model,
 
   typedef std::map<double, unsigned int> rxPowerMapType;
 
-  // Take given number of samples from CalcRxPower() and show probability
-  // density for discrete distances.
   {
     a->SetPosition(Vector(0.0, 0.0, 0.0));
 
@@ -156,7 +110,6 @@ static Gnuplot TestProbabilistic(Ptr<PropagationLossModel> model,
       rxPowerMapType rxPowerMap;
 
       for (unsigned int samp = 0; samp < samples; ++samp) {
-        // CalcRxPower() returns dBm.
         double rxPowerDbm = model->CalcRxPower(txPowerDbm, a, b);
         rxPowerDbm = dround(rxPowerDbm, 1.0);
 
@@ -182,15 +135,6 @@ static Gnuplot TestProbabilistic(Ptr<PropagationLossModel> model,
   return plot;
 }
 
-/**
- * Test the model by sampling over time.
- *
- * \param model The model to test.
- * \param timeStep The time step.
- * \param timeTotal The total time.
- * \param distance The distance.
- * \return a Gnuplot object to be plotted.
- */
 static Gnuplot TestDeterministicByTime(Ptr<PropagationLossModel> model,
                                        Time timeStep, Time timeTotal,
                                        double distance) {
@@ -205,7 +149,7 @@ static Gnuplot TestDeterministicByTime(Ptr<PropagationLossModel> model,
   plot.AppendExtra("set ylabel 'rxPower (dBm)'");
   plot.AppendExtra("set key center right");
 
-  double txPowerDbm = +20; // dBm
+  double txPowerDbm = +20;
 
   Gnuplot2dDataset dataset;
 
@@ -217,7 +161,6 @@ static Gnuplot TestDeterministicByTime(Ptr<PropagationLossModel> model,
 
     Time start = Simulator::Now();
     while (Simulator::Now() < start + timeTotal) {
-      // CalcRxPower() returns dBm.
       double rxPowerDbm = model->CalcRxPower(txPowerDbm, a, b);
 
       Time elapsed = Simulator::Now() - start;
@@ -298,7 +241,6 @@ int main(int argc, char *argv[]) {
     Ptr<JakesPropagationLossModel> jakes =
         CreateObject<JakesPropagationLossModel>();
 
-    // doppler frequency shift for 5.15 GHz at 100 km/h
     Config::SetDefault("ns3::JakesProcess::DopplerFrequencyHz",
                        DoubleValue(477.9));
 
@@ -307,9 +249,6 @@ int main(int argc, char *argv[]) {
     plot.SetTitle("ns3::JakesPropagationLossModel (with 477.9 Hz shift and 1 "
                   "millisec resolution)");
     gnuplots.AddPlot(plot);
-    // Usually objects are aggregated either to a Node or a Channel, and this
-    // aggregation ensures a proper call to Dispose. Here we must call it
-    // manually, since the PropagationLossModel is not aggregated to anything.
     jakes->Dispose();
   }
 
@@ -317,7 +256,6 @@ int main(int argc, char *argv[]) {
     Ptr<JakesPropagationLossModel> jakes =
         CreateObject<JakesPropagationLossModel>();
 
-    // doppler frequency shift for 5.15 GHz at 100 km/h
     Config::SetDefault("ns3::JakesProcess::DopplerFrequencyHz",
                        DoubleValue(477.9));
 
@@ -326,9 +264,6 @@ int main(int argc, char *argv[]) {
     plot.SetTitle("ns3::JakesPropagationLossModel (with 477.9 Hz shift and 0.1 "
                   "millisec resolution)");
     gnuplots.AddPlot(plot);
-    // Usually objects are aggregated either to a Node or a Channel, and this
-    // aggregation ensures a proper call to Dispose. Here we must call it
-    // manually, since the PropagationLossModel is not aggregated to anything.
     jakes->Dispose();
   }
 
@@ -344,7 +279,6 @@ int main(int argc, char *argv[]) {
   {
     Ptr<ThreeLogDistancePropagationLossModel> log3 =
         CreateObject<ThreeLogDistancePropagationLossModel>();
-    // more prominent example values:
     log3->SetAttribute("Exponent0", DoubleValue(1.0));
     log3->SetAttribute("Exponent1", DoubleValue(3.0));
     log3->SetAttribute("Exponent2", DoubleValue(10.0));
@@ -382,7 +316,6 @@ int main(int argc, char *argv[]) {
 
   gnuplots.GenerateOutput(std::cout);
 
-  // produce clean valgrind
   Simulator::Destroy();
   return 0;
 }

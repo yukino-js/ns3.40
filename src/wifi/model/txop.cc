@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "txop.h"
 
@@ -55,9 +37,7 @@ TypeId Txop::GetTypeId() {
                         "The minimum value of the contention window (just for "
                         "the first link, "
                         "in case of 11be multi-link devices).",
-                        TypeId::ATTR_GET |
-                            TypeId::ATTR_SET, // do not set at construction time
-                        UintegerValue(15),
+                        TypeId::ATTR_GET | TypeId::ATTR_SET, UintegerValue(15),
                         MakeUintegerAccessor(
                             (void (Txop::*)(uint32_t))&Txop::SetMinCw,
                             (uint32_t (Txop::*)() const) & Txop::GetMinCw),
@@ -65,8 +45,7 @@ TypeId Txop::GetTypeId() {
           .AddAttribute(
               "MinCws",
               "The minimum values of the contention window for all the links",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_SET, // do not set at construction time
+              TypeId::ATTR_GET | TypeId::ATTR_SET,
               AttributeContainerValue<UintegerValue>(),
               MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMinCws,
                                                             &Txop::GetMinCws),
@@ -76,8 +55,7 @@ TypeId Txop::GetTypeId() {
                         "The maximum value of the contention window (just for "
                         "the first link, "
                         "in case of 11be multi-link devices).",
-                        TypeId::ATTR_GET |
-                            TypeId::ATTR_SET, // do not set at construction time
+                        TypeId::ATTR_GET | TypeId::ATTR_SET,
                         UintegerValue(1023),
                         MakeUintegerAccessor(
                             (void (Txop::*)(uint32_t))&Txop::SetMaxCw,
@@ -86,8 +64,7 @@ TypeId Txop::GetTypeId() {
           .AddAttribute(
               "MaxCws",
               "The maximum values of the contention window for all the links",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_SET, // do not set at construction time
+              TypeId::ATTR_GET | TypeId::ATTR_SET,
               AttributeContainerValue<UintegerValue>(),
               MakeAttributeContainerAccessor<UintegerValue>(&Txop::SetMaxCws,
                                                             &Txop::GetMaxCws),
@@ -98,16 +75,13 @@ TypeId Txop::GetTypeId() {
               "The AIFSN: the default value conforms to non-QOS (just for the "
               "first link, "
               "in case of 11be multi-link devices).",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_SET, // do not set at construction time
-              UintegerValue(2),
+              TypeId::ATTR_GET | TypeId::ATTR_SET, UintegerValue(2),
               MakeUintegerAccessor((void (Txop::*)(uint8_t))&Txop::SetAifsn,
                                    (uint8_t (Txop::*)() const) &
                                        Txop::GetAifsn),
               MakeUintegerChecker<uint8_t>())
           .AddAttribute("Aifsns", "The values of AIFSN for all the links",
-                        TypeId::ATTR_GET |
-                            TypeId::ATTR_SET, // do not set at construction time
+                        TypeId::ATTR_GET | TypeId::ATTR_SET,
                         AttributeContainerValue<UintegerValue>(),
                         MakeAttributeContainerAccessor<UintegerValue>(
                             &Txop::SetAifsns, &Txop::GetAifsns),
@@ -117,16 +91,13 @@ TypeId Txop::GetTypeId() {
               "TxopLimit",
               "The TXOP limit: the default value conforms to non-QoS "
               "(just for the first link, in case of 11be multi-link devices).",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_SET, // do not set at construction time
-              TimeValue(MilliSeconds(0)),
+              TypeId::ATTR_GET | TypeId::ATTR_SET, TimeValue(MilliSeconds(0)),
               MakeTimeAccessor((void (Txop::*)(Time))&Txop::SetTxopLimit,
                                (Time (Txop::*)() const) & Txop::GetTxopLimit),
               MakeTimeChecker())
           .AddAttribute(
               "TxopLimits", "The values of TXOP limit for all the links",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_SET, // do not set at construction time
+              TypeId::ATTR_GET | TypeId::ATTR_SET,
               AttributeContainerValue<TimeValue>(),
               MakeAttributeContainerAccessor<TimeValue>(&Txop::SetTxopLimits,
                                                         &Txop::GetTxopLimits),
@@ -169,7 +140,7 @@ std::unique_ptr<Txop::LinkEntity> Txop::CreateLinkEntity() const {
 Txop::LinkEntity &Txop::GetLink(uint8_t linkId) const {
   auto it = m_links.find(linkId);
   NS_ASSERT(it != m_links.cend());
-  NS_ASSERT(it->second); // check that the pointer owns an object
+  NS_ASSERT(it->second);
   return *it->second;
 }
 
@@ -182,13 +153,12 @@ void Txop::SwapLinks(std::map<uint8_t, uint8_t> links) {
   NS_LOG_FUNCTION(this);
 
   decltype(m_links) tmp;
-  tmp.swap(m_links); // move all links to temporary map
+  tmp.swap(m_links);
   for (const auto &[from, to] : links) {
     auto nh = tmp.extract(from);
     nh.key() = to;
     m_links.insert(std::move(nh));
   }
-  // move links remaining in tmp to m_links
   m_links.merge(tmp);
 }
 
@@ -272,9 +242,7 @@ void Txop::ResetCw(uint8_t linkId) {
 void Txop::UpdateFailedCw(uint8_t linkId) {
   NS_LOG_FUNCTION(this);
   auto &link = GetLink(linkId);
-  // see 802.11-2012, section 9.19.2.5
   link.cw = std::min(2 * (link.cw + 1) - 1, GetMaxCw(linkId));
-  // if the MU EDCA timer is running, CW cannot be less than MU CW min
   link.cw = std::max(link.cw, GetMinCw(linkId));
   m_cwTrace(link.cw, linkId);
 }
@@ -412,7 +380,6 @@ bool Txop::HasFramesToTransmit(uint8_t linkId) {
 
 void Txop::Queue(Ptr<Packet> packet, const WifiMacHeader &hdr) {
   NS_LOG_FUNCTION(this << packet << &hdr);
-  // remove the priority tag attached, if any
   SocketPriorityTag priorityTag;
   packet->RemovePacketTag(priorityTag);
   Queue(Create<WifiMpdu>(packet, hdr));

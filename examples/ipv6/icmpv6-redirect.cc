@@ -1,43 +1,4 @@
-/*
- * Copyright (c) 2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- */
 
-// Network topology
-//
-//             STA2
-//              |
-//              |
-//   R1         R2
-//   |          |
-//   |          |
-//   ------------
-//           |
-//           |
-//          STA 1
-//
-// - Initial configuration :
-//         - STA1 default route : R1
-//         - R1 static route to STA2 : R2
-//         - STA2 default route : R2
-// - STA1 send Echo Request to STA2 using its default route to R1
-// - R1 receive Echo Request from STA1, and forward it to R2
-// - R1 send an ICMPv6 Redirection to STA1 with Target STA2 and Destination R2
-// - Next Echo Request from STA1 to STA2 are directly sent to R2
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -104,7 +65,6 @@ int main(int argc, char **argv) {
 
   Ipv6StaticRoutingHelper routingHelper;
 
-  // manually inject a static route to the second router.
   Ptr<Ipv6StaticRouting> routing =
       routingHelper.GetStaticRouting(r1->GetObject<Ipv6>());
   routing->AddHostRouteTo(iic2.GetAddress(1, 1), iic1.GetAddress(2, 0),
@@ -130,7 +90,6 @@ int main(int argc, char **argv) {
   csma.EnableAsciiAll(ascii.CreateFileStream("icmpv6-redirect.tr"));
   csma.EnablePcapAll("icmpv6-redirect", true);
 
-  /* Now, do the actual simulation. */
   NS_LOG_INFO("Run Simulation.");
   Simulator::Run();
   Simulator::Destroy();

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-static-routing.h"
 
@@ -66,12 +48,10 @@ void Ipv6StaticRouting::SetIpv6(Ptr<Ipv6> ipv6) {
   }
 }
 
-// Formatted like output of "route -n" command
 void Ipv6StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
                                           Time::Unit unit) const {
   NS_LOG_FUNCTION(this << stream);
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -106,10 +86,8 @@ void Ipv6StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
       }
       *os << std::setw(5) << flags.str();
       *os << std::setw(4) << GetMetric(j);
-      // Ref ct not implemented
       *os << "-"
           << "   ";
-      // Use not implemented
       *os << "-"
           << "   ";
       if (!Names::FindName(m_ipv6->GetNetDevice(route.GetInterface()))
@@ -122,7 +100,6 @@ void Ipv6StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
     }
   }
   *os << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 
@@ -214,7 +191,7 @@ void Ipv6StaticRouting::AddMulticastRoute(
 void Ipv6StaticRouting::SetDefaultMulticastRoute(uint32_t outputInterface) {
   NS_LOG_FUNCTION(this << outputInterface);
   auto route = new Ipv6RoutingTableEntry();
-  Ipv6Address network = Ipv6Address("ff00::"); /* RFC 3513 */
+  Ipv6Address network = Ipv6Address("ff00::");
   Ipv6Prefix networkMask = Ipv6Prefix(8);
   *route = Ipv6RoutingTableEntry::CreateNetworkRouteTo(network, networkMask,
                                                        outputInterface);
@@ -279,7 +256,6 @@ bool Ipv6StaticRouting::HasNetworkDest(Ipv6Address network,
                                        uint32_t interfaceIndex) {
   NS_LOG_FUNCTION(this << network << interfaceIndex);
 
-  /* in the network table */
   for (auto j = m_networkRoutes.begin(); j != m_networkRoutes.end(); j++) {
     Ipv6RoutingTableEntry *rtentry = j->first;
     Ipv6Prefix prefix = rtentry->GetDestNetworkPrefix();
@@ -291,7 +267,6 @@ bool Ipv6StaticRouting::HasNetworkDest(Ipv6Address network,
     }
   }
 
-  /* beuh!!! not route at all */
   return false;
 }
 
@@ -319,8 +294,6 @@ Ptr<Ipv6Route> Ipv6StaticRouting::LookupStatic(Ipv6Address dst,
   uint16_t longestMask = 0;
   uint32_t shortestMetric = 0xffffffff;
 
-  /* when sending on link-local multicast, there have to be interface specified
-   */
   if (dst.IsLinkLocalMulticast()) {
     NS_ASSERT_MSG(interface, "Try to send on link-local multicast address, and "
                              "no interface index is given!");
@@ -348,7 +321,6 @@ Ptr<Ipv6Route> Ipv6StaticRouting::LookupStatic(Ipv6Address dst,
                                                  << maskLen << ", metric "
                                                  << metric);
 
-      /* if interface is given, check the route will output on this interface */
       if (!interface || interface == m_ipv6->GetNetDevice(j->GetInterface())) {
         if (maskLen < longestMask) {
           NS_LOG_LOGIC("Previous match longer, skipping");
@@ -374,8 +346,7 @@ Ptr<Ipv6Route> Ipv6StaticRouting::LookupStatic(Ipv6Address dst,
         if (route->GetGateway().IsAny()) {
           rtentry->SetSource(
               m_ipv6->SourceAddressSelection(interfaceIdx, route->GetDest()));
-        } else if (route->GetDest().IsAny()) /* default route */
-        {
+        } else if (route->GetDest().IsAny()) {
           rtentry->SetSource(m_ipv6->SourceAddressSelection(
               interfaceIdx,
               route->GetPrefixToUse().IsAny() ? dst : route->GetPrefixToUse()));
@@ -430,18 +401,7 @@ Ptr<Ipv6MulticastRoute> Ipv6StaticRouting::LookupStatic(Ipv6Address origin,
   for (auto i = m_multicastRoutes.begin(); i != m_multicastRoutes.end(); i++) {
     Ipv6MulticastRoutingTableEntry *route = *i;
 
-    /*
-       We've been passed an origin address, a multicast group address and an
-       interface index.  We have to decide if the current route in the list is
-       a match.
-
-       The first case is the restrictive case where the origin, group and index
-       matches.  This picks up exact routes during forwarded and exact routes
-       from the local node (in which case the ifIndex is a wildcard).
-       */
-
     if (origin == route->GetOrigin() && group == route->GetGroup()) {
-      /* skipping SSM case */
       NS_LOG_LOGIC("Find source specific multicast route" << *i);
     }
 
@@ -514,7 +474,6 @@ Ipv6RoutingTableEntry Ipv6StaticRouting::GetRoute(uint32_t index) const {
     tmp++;
   }
   NS_ASSERT(false);
-  // quiet compiler.
   return nullptr;
 }
 
@@ -529,7 +488,6 @@ uint32_t Ipv6StaticRouting::GetMetric(uint32_t index) const {
     tmp++;
   }
   NS_ASSERT(false);
-  // quiet compiler.
   return 0;
 }
 
@@ -572,12 +530,6 @@ Ptr<Ipv6Route> Ipv6StaticRouting::RouteOutput(Ptr<Packet> p,
   Ptr<Ipv6Route> rtentry = nullptr;
 
   if (destination.IsMulticast()) {
-    // Note:  Multicast routes for outbound packets are stored in the
-    // normal unicast table.  An implication of this is that it is not
-    // possible to source multicast datagrams on multiple interfaces.
-    // This is a well-known property of sockets implementation on
-    // many Unix variants.
-    // So, we just log it and fall through to LookupStatic ()
     NS_LOG_LOGIC("RouteOutput ()::Multicast destination");
   }
 
@@ -597,30 +549,26 @@ bool Ipv6StaticRouting::RouteInput(
   NS_LOG_FUNCTION(this << p << header << header.GetSource()
                        << header.GetDestination() << idev);
   NS_ASSERT(m_ipv6);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv6->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv6->GetInterfaceForDevice(idev);
   Ipv6Address dst = header.GetDestination();
 
-  // Multicast recognition; handle local delivery here
   if (dst.IsMulticast()) {
     NS_LOG_LOGIC("Multicast destination");
     Ptr<Ipv6MulticastRoute> mrtentry =
         LookupStatic(header.GetSource(), header.GetDestination(),
                      m_ipv6->GetInterfaceForDevice(idev));
 
-    // \todo check if we want to forward up the packet
     if (mrtentry) {
       NS_LOG_LOGIC("Multicast route found");
-      mcb(idev, mrtentry, p, header); // multicast forwarding callback
+      mcb(idev, mrtentry, p, header);
       return true;
     } else {
       NS_LOG_LOGIC("Multicast route not found");
-      return false; // Let other routing protocols try to handle this
+      return false;
     }
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv6->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     if (!ecb.IsNull()) {
@@ -628,17 +576,16 @@ bool Ipv6StaticRouting::RouteInput(
     }
     return true;
   }
-  // Next, try to find a route
   NS_LOG_LOGIC("Unicast destination");
   Ptr<Ipv6Route> rtentry = LookupStatic(header.GetDestination());
 
   if (rtentry) {
     NS_LOG_LOGIC("Found unicast destination- calling unicast callback");
-    ucb(idev, rtentry, p, header); // unicast forwarding callback
+    ucb(idev, rtentry, p, header);
     return true;
   } else {
     NS_LOG_LOGIC("Did not find unicast destination- returning false");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 }
 
@@ -649,7 +596,6 @@ void Ipv6StaticRouting::NotifyInterfaceUp(uint32_t i) {
     if (addr.GetAddress() != Ipv6Address() &&
         addr.GetPrefix() != Ipv6Prefix()) {
       if (addr.GetPrefix() == Ipv6Prefix(128)) {
-        /* host route */
         AddHostRouteTo(addr.GetAddress(), i);
       } else {
         if (addr.GetOnLink()) {
@@ -664,7 +610,6 @@ void Ipv6StaticRouting::NotifyInterfaceUp(uint32_t i) {
 void Ipv6StaticRouting::NotifyInterfaceDown(uint32_t i) {
   NS_LOG_FUNCTION(this << i);
 
-  /* remove all static routes that are going through this interface */
   for (auto it = m_networkRoutes.begin(); it != m_networkRoutes.end();) {
     if (it->first->GetInterface() == i) {
       delete it->first;
@@ -692,8 +637,6 @@ void Ipv6StaticRouting::NotifyRemoveAddress(uint32_t interface,
       address.GetAddress().CombinePrefix(address.GetPrefix());
   Ipv6Prefix networkMask = address.GetPrefix();
 
-  // Remove all static routes that are going through this interface
-  // which reference this network
   for (auto it = m_networkRoutes.begin(); it != m_networkRoutes.end();) {
     if (it->first->GetInterface() == interface && it->first->IsNetwork() &&
         it->first->GetDestNetwork() == networkAddress &&
@@ -714,17 +657,8 @@ void Ipv6StaticRouting::NotifyAddRoute(Ipv6Address dst, Ipv6Prefix mask,
     AddNetworkRouteTo(dst, mask, interface);
   } else if (dst != Ipv6Address::GetZero()) {
     AddNetworkRouteTo(dst, mask, nextHop, interface);
-  } else /* default route */
-  {
-    /* this case is mainly used by configuring default route following RA
-     * processing, in case of multiple prefix in RA, the first will configured
-     * default route
-     */
+  } else {
 
-    /* for the moment, all default route has the same metric
-     * so according to the longest prefix algorithm,
-     * the default route chosen will be the last added
-     */
     SetDefaultRoute(nextHop, interface, prefixToUse);
   }
 }
@@ -749,9 +683,8 @@ void Ipv6StaticRouting::NotifyRemoveRoute(Ipv6Address dst, Ipv6Prefix mask,
       }
     }
   } else {
-    /* default route case */
     RemoveRoute(dst, mask, interface, prefixToUse);
   }
 }
 
-} /* namespace ns3 */
+} // namespace ns3

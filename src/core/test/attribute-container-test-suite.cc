@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2018 Caliola Engineering, LLC.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jared Dulmage <jared.dulmage@caliola.com>
- */
 
 #include <ns3/attribute-container.h>
 #include <ns3/double.h>
@@ -39,65 +21,26 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("AttributeContainerTestSuite");
 
-/**
- * \file
- * \ingroup attribute-tests
- * Attribute container test suite
- */
-
-/**
- * \ingroup attribute-tests
- * Attribute container object.
- */
 class AttributeContainerObject : public Object {
 public:
   AttributeContainerObject();
   ~AttributeContainerObject() override;
 
-  /**
-   * Reverses the list of doubles.
-   */
   void ReverseDoubleList();
 
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
 
-  /**
-   * Set the list of doubles to the given list
-   *
-   * \param doubleList the given list
-   */
   void SetDoubleList(const std::list<double> &doubleList);
-  /**
-   * Get the list of doubles
-   *
-   * \return the list of doubles
-   */
   std::list<double> GetDoubleList() const;
 
-  /**
-   * Set the vector of ints to the given vector
-   *
-   * \param vec the given vector
-   */
   void SetIntVec(std::vector<int> vec);
-  /**
-   * Get the vector of ints
-   *
-   * \return the vector of ints
-   */
   std::vector<int> GetIntVec() const;
 
 private:
-  std::list<double> m_doublelist; //!< List of doubles.
-  std::vector<int> m_intvec;      //!< Vector of ints.
-  // TODO(jared): need PairValue attributevalue to handle std::pair elements
-  std::map<std::string, int> m_map; //!< Map of <std::string, int>.
-  std::map<int64_t, std::list<int64_t>>
-      m_intVecIntMapping; //!< Mapping integers to vectors
+  std::list<double> m_doublelist;
+  std::vector<int> m_intvec;
+  std::map<std::string, int> m_map;
+  std::map<int64_t, std::list<int64_t>> m_intVecIntMapping;
 };
 
 AttributeContainerObject::AttributeContainerObject() {}
@@ -121,10 +64,7 @@ TypeId AttributeContainerObject::GetTypeId() {
                             MakeDoubleChecker<double>()))
           .AddAttribute(
               "IntegerVector", "Vector of integers",
-              // the container value container differs from the underlying
-              // object
               AttributeContainerValue<IntegerValue>(),
-              // the type of the underlying container cannot be deduced
               MakeAttributeContainerAccessor<IntegerValue, ';', std::list>(
                   &AttributeContainerObject::SetIntVec,
                   &AttributeContainerObject::GetIntVec),
@@ -132,8 +72,6 @@ TypeId AttributeContainerObject::GetTypeId() {
                   MakeIntegerChecker<int>()))
           .AddAttribute(
               "MapStringInt", "Map of strings to ints",
-              // the container value container differs from the underlying
-              // object
               AttributeContainerValue<PairValue<StringValue, IntegerValue>>(),
               MakeAttributeContainerAccessor<
                   PairValue<StringValue, IntegerValue>>(
@@ -188,25 +126,11 @@ std::vector<int> AttributeContainerObject::GetIntVec() const {
   return m_intvec;
 }
 
-/**
- * \ingroup attribute-tests
- *
- * This function handles mixed constness and compatible, yet
- * distinct numerical classes (like int and long)
- * \param x The left operand.
- * \param y The right operand.
- * \return true if the pairs have the same numerical values.
- */
 template <class A, class B, class C, class D>
 bool operator==(const std::pair<A, B> &x, const std::pair<C, D> &y) {
   return x.first == y.first && x.second == y.second;
 }
 
-/**
- * \ingroup attribute-tests
- *
- * Test AttributeContainer instantiation, initialization, access
- */
 class AttributeContainerTestCase : public TestCase {
 public:
   AttributeContainerTestCase();
@@ -288,7 +212,6 @@ void AttributeContainerTestCase::DoRun() {
   }
 
   {
-    // use int64_t which is default for IntegerValue
     std::map<std::string, int64_t> ref = {{"one", 1}, {"two", 2}, {"three", 3}};
     AttributeContainerValue<PairValue<StringValue, IntegerValue>> ac(ref);
 
@@ -305,11 +228,6 @@ void AttributeContainerTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup attribute-tests
- *
- * Attribute serialization and deserialization TestCase.
- */
 class AttributeContainerSerializationTestCase : public TestCase {
 public:
   AttributeContainerSerializationTestCase();
@@ -326,7 +244,6 @@ AttributeContainerSerializationTestCase::
 
 void AttributeContainerSerializationTestCase::DoRun() {
   {
-    // notice embedded spaces
     std::string doubles = "1.0001, 20.53, -102.3";
 
     AttributeContainerValue<DoubleValue> attr;
@@ -345,7 +262,6 @@ void AttributeContainerSerializationTestCase::DoRun() {
   }
 
   {
-    // notice embedded spaces
     std::string ints = "1, 2, -3, -4";
 
     AttributeContainerValue<IntegerValue> attr;
@@ -394,11 +310,6 @@ void AttributeContainerSerializationTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup attribute-tests
- *
- * Attribute set and get TestCase.
- */
 class AttributeContainerSetGetTestCase : public TestCase {
 public:
   AttributeContainerSetGetTestCase();
@@ -437,7 +348,6 @@ void AttributeContainerSetGetTestCase::DoRun() {
         std::equal(doubles.rbegin(), doubles.rend(), doubleList.begin()), true,
         "DoubleList incorrectly reversed");
 
-    // NOTE: changing the return container here too!
     AttributeContainerValue<DoubleValue> value;
     obj->GetAttribute("DoubleList", value);
     NS_TEST_ASSERT_MSG_EQ(doubles.size(), value.GetN(),
@@ -452,13 +362,10 @@ void AttributeContainerSetGetTestCase::DoRun() {
   }
 
   const std::vector<int> ints = {-1, 0, 1, 2, 3};
-  // NOTE: here the underlying attribute container type differs from the actual
-  // container
   obj->SetAttribute("IntegerVector",
                     AttributeContainerValue<IntegerValue, ';'>(ints));
 
   {
-    // NOTE: changing the container here too!
     AttributeContainerValue<IntegerValue, ';'> value;
     obj->GetAttribute("IntegerVector", value);
     NS_TEST_ASSERT_MSG_EQ(ints.size(), value.GetN(),
@@ -472,19 +379,16 @@ void AttributeContainerSetGetTestCase::DoRun() {
   }
 
   std::string intVecPairString("0 1,2,3; 1 0; 2 0,1");
-  // NOTE: here the underlying attribute container type differs from the actual
-  // container
   obj->SetAttribute("IntVecPairVec", StringValue(intVecPairString));
 
   {
     using IntVecMapValue =
         PairValue<IntegerValue, AttributeContainerValue<IntegerValue>>;
 
-    // NOTE: changing the container here too!
     AttributeContainerValue<IntVecMapValue, ';'> value;
     obj->GetAttribute("IntVecPairVec", value);
     NS_TEST_ASSERT_MSG_EQ(3, value.GetN(),
-                          "AttributeContainerValue wrong size"); // 3 pairs
+                          "AttributeContainerValue wrong size");
 
     AttributeContainerValue<IntVecMapValue>::result_type reslist = value.Get();
     NS_TEST_ASSERT_MSG_EQ(3, reslist.size(), "IntVecMapValue wrong size");
@@ -516,8 +420,6 @@ void AttributeContainerSetGetTestCase::DoRun() {
     NS_TEST_ASSERT_MSG_EQ(map.size(), value.GetN(),
                           "AttributeContainerValue wrong size");
 
-    // could possibly make custom assignment operator to make assignment
-    // statement work
     std::map<std::string, int> mapstrint;
     auto lst = value.Get();
     for (const auto &l : lst) {
@@ -533,11 +435,6 @@ void AttributeContainerSetGetTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup attribute-tests
- *
- * Attribute attribute container TestCase.
- */
 class AttributeContainerTestSuite : public TestSuite {
 public:
   AttributeContainerTestSuite();
@@ -550,5 +447,4 @@ AttributeContainerTestSuite::AttributeContainerTestSuite()
   AddTestCase(new AttributeContainerSetGetTestCase(), TestCase::QUICK);
 }
 
-static AttributeContainerTestSuite
-    g_attributeContainerTestSuite; //!< Static variable for test initialization
+static AttributeContainerTestSuite g_attributeContainerTestSuite;

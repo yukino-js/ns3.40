@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2005,2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "wifi-mode.h"
 
@@ -123,7 +104,6 @@ uint16_t WifiMode::GetConstellationSize() const {
 }
 
 std::string WifiMode::GetUniqueName() const {
-  // needed for ostream printing of the invalid mode
   WifiModeFactory::WifiModeItem *item =
       WifiModeFactory::GetFactory()->Get(m_uid);
   return item->uniqueUid;
@@ -141,7 +121,6 @@ uint8_t WifiMode::GetMcsValue() const {
   if (item->modClass >= WIFI_MOD_CLASS_HT) {
     return item->mcsValue;
   } else {
-    // We should not go here!
     NS_ASSERT(false);
     return 0;
   }
@@ -170,39 +149,20 @@ bool WifiMode::IsHigherCodeRate(WifiMode mode) const {
 }
 
 bool WifiMode::IsHigherDataRate(WifiMode mode) const {
-  // If current modulation class is DSSS and other is not, the other is always
-  // higher
   if (GetModulationClass() == WIFI_MOD_CLASS_DSSS &&
       mode.GetModulationClass() != WIFI_MOD_CLASS_DSSS) {
     return false;
-  }
-  // If other modulation class is DSSS and current is not, the current is always
-  // higher
-  else if (GetModulationClass() != WIFI_MOD_CLASS_DSSS &&
-           mode.GetModulationClass() == WIFI_MOD_CLASS_DSSS) {
+  } else if (GetModulationClass() != WIFI_MOD_CLASS_DSSS &&
+             mode.GetModulationClass() == WIFI_MOD_CLASS_DSSS) {
     return true;
-  }
-  // If current is not HR/DSSS while other is not, check constellation size of
-  // other against current
-  else if (GetModulationClass() != WIFI_MOD_CLASS_HR_DSSS &&
-           mode.GetModulationClass() == WIFI_MOD_CLASS_HR_DSSS) {
+  } else if (GetModulationClass() != WIFI_MOD_CLASS_HR_DSSS &&
+             mode.GetModulationClass() == WIFI_MOD_CLASS_HR_DSSS) {
     return (mode.GetConstellationSize() > GetConstellationSize());
-  }
-  // This block is for current and other mode > HR/DSSS, if constellation size
-  // is the same, check the code rate (DSSS and HR/DSSS does not define code
-  // rate)
-  else if (GetConstellationSize() == mode.GetConstellationSize() &&
-           GetCodeRate() != WIFI_CODE_RATE_UNDEFINED &&
-           mode.GetCodeRate() != WIFI_CODE_RATE_UNDEFINED) {
+  } else if (GetConstellationSize() == mode.GetConstellationSize() &&
+             GetCodeRate() != WIFI_CODE_RATE_UNDEFINED &&
+             mode.GetCodeRate() != WIFI_CODE_RATE_UNDEFINED) {
     return IsHigherCodeRate(mode);
-  }
-  // Otherwise, check constellation size of current against other,
-  // the code go here if:
-  //   - both current and other mode is DSSS
-  //   - current mode is HR/DSSS and other mode is not HR/DSSS
-  //   - current and other mode > HR/DSSS and both constellation size is not
-  //   equal
-  else {
+  } else {
     return (GetConstellationSize() > mode.GetConstellationSize());
   }
 }
@@ -230,15 +190,8 @@ WifiMode WifiModeFactory::CreateWifiMode(
   WifiModeItem *item = factory->Get(uid);
   item->uniqueUid = uniqueName;
   item->modClass = modClass;
-  // The modulation class for this WifiMode must be valid.
   NS_ASSERT(modClass != WIFI_MOD_CLASS_UNKNOWN);
 
-  // Check for compatibility between modulation class and coding
-  // rate. If modulation class is DSSS then coding rate must be
-  // undefined, and vice versa. I could have done this with an
-  // assertion, but it seems better to always give the error (i.e.,
-  // not only in non-optimised builds) and the cycles that extra test
-  // here costs are only suffered at simulation setup.
   if ((codeRateCallback() == WIFI_CODE_RATE_UNDEFINED) &&
       modClass != WIFI_MOD_CLASS_DSSS && modClass != WIFI_MOD_CLASS_HR_DSSS) {
     NS_FATAL_ERROR(
@@ -257,7 +210,6 @@ WifiMode WifiModeFactory::CreateWifiMode(
   item->IsAllowedCallback = isAllowedCallback;
 
   NS_ASSERT(modClass < WIFI_MOD_CLASS_HT);
-  // fill unused MCS item with a dummy value
   item->mcsValue = 0;
 
   return WifiMode(uid);
@@ -299,23 +251,13 @@ WifiMode WifiModeFactory::Search(std::string name) const {
     j++;
   }
 
-  // If we get here then a matching WifiMode was not found above. This
-  // is a fatal problem, but we try to be helpful by displaying the
-  // list of WifiModes that are supported.
   NS_LOG_UNCOND("Could not find match for WifiMode named \""
                 << name << "\". Valid options are:");
   for (auto i = m_itemList.begin(); i != m_itemList.end(); i++) {
     NS_LOG_UNCOND("  " << i->uniqueUid);
   }
-  // Empty fatal error to die. We've already unconditionally logged
-  // the helpful information.
   NS_FATAL_ERROR("");
 
-  // This next line is unreachable because of the fatal error
-  // immediately above, and that is fortunate, because we have no idea
-  // what is in WifiMode (0), but we do know it is not what our caller
-  // has requested by name. It's here only because it's the safest
-  // thing that'll give valid code.
   return WifiMode(0);
 }
 

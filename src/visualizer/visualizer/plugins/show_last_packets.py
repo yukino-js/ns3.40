@@ -1,17 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from gi.repository import GObject
 from gi.repository import Gtk
 
@@ -25,39 +11,12 @@ except ModuleNotFoundError:
 from kiwi.ui.objectlist import ObjectList, Column
 
 
-## ShowLastPackets class
 class ShowLastPackets(InformationWindow):
-    ## @var win
-    #  window
-    ## @var visualizer
-    #  visualizer
-    ## @var viz_node
-    #  visualizer node
-    ## @var node
-    #  the node
-    ## @var tx_list
-    #  packet transmit list
-    ## @var rx_list
-    #  packet receive list
-    ## @var drop_list
-    #  packet drop list
-    ## @var packet_capture_options
-    #  packet capture options
-    ## @var packet_filter_widget
-    #  packet filter widget
-    ## @var packet_filter_list
-    #  list of TypeIdConfig instances
-    ## @var op_AND_button
-    #  AND button
-    ## @var op_OR_button
-    #  OR button
     class PacketList(Gtk.ScrolledWindow):
         """
         PacketList class
         """
 
-        ## @var table_model
-        #  table model
         (
             COLUMN_TIME,
             COLUMN_INTERFACE,
@@ -186,9 +145,6 @@ class ShowLastPackets(InformationWindow):
         main_vbox.pack_start(group, expand=False, fill=False)
         group.connect_after("activate", smart_expand, main_vbox)
 
-        # Packet Filter
-
-        # - options
         self.packet_capture_options = ns.visualizer.PyViz.PacketCaptureOptions()
         self.packet_capture_options.numLastPackets = 100
 
@@ -217,13 +173,12 @@ class ShowLastPackets(InformationWindow):
         class TypeIdConfig(object):
             __slots__ = ["name", "selected", "typeid"]
 
-        self.packet_filter_list = []  # list of TypeIdConfig instances
+        self.packet_filter_list = []
 
         Header = ns.core.TypeId.LookupByName("ns3::Header")
         Trailer = ns.core.TypeId.LookupByName("ns3::Trailer")
         for typeid_i in range(ns.core.TypeId.GetRegisteredN()):
             typeid = ns.core.TypeId.GetRegistered(typeid_i)
-            # check if this is a header or trailer subtype
             typeid_tmp = typeid
             type_is_good = False
             while 1:

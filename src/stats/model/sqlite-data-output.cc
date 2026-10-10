@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 Drexel University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Joe Kopena (tjkopena@cs.drexel.edu)
- */
 
 #include "sqlite-data-output.h"
 
@@ -40,7 +22,6 @@ SqliteDataOutput::SqliteDataOutput() : DataOutputInterface() {
 
 SqliteDataOutput::~SqliteDataOutput() { NS_LOG_FUNCTION(this); }
 
-/* static */
 TypeId SqliteDataOutput::GetTypeId() {
   static TypeId tid = TypeId("ns3::SqliteDataOutput")
                           .SetParent<DataOutputInterface>()
@@ -49,7 +30,6 @@ TypeId SqliteDataOutput::GetTypeId() {
   return tid;
 }
 
-//----------------------------------------------
 void SqliteDataOutput::Output(DataCollector &dc) {
   NS_LOG_FUNCTION(this << &dc);
 
@@ -71,12 +51,6 @@ void SqliteDataOutput::Output(DataCollector &dc) {
              "values (?, ?, ?, ?, ?)");
   NS_ASSERT(res);
 
-  // Create temporary strings to hold their value
-  // throughout the lifetime of the Bind and Step
-  // procedures
-  //
-  // DataCollector could return const std::string&,
-  // but that could break the python bindings
   res = m_sqliteOut->Bind(stmt, 1, run);
   NS_ASSERT(res);
   std::string experimentLabel = dc.GetExperimentLabel();
@@ -123,7 +97,6 @@ void SqliteDataOutput::Output(DataCollector &dc) {
     (*i)->Output(callback);
   }
   m_sqliteOut->SpinExec("COMMIT");
-  // end SqliteDataOutput::Output
   m_sqliteOut->Unref();
 }
 

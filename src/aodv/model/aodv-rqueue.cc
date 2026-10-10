@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Based on
- *      NS-2 AODV model developed by the CMU/MONARCH group and optimized and
- *      tuned by Samir Das and Mahesh Marina, University of Cincinnati;
- *
- *      AODV-UU implementation by Erik Nordström of Uppsala University
- *      https://web.archive.org/web/20100527072022/http://core.it.uu.se/core/index.php/AODV-UU
- *
- * Authors: Elena Buchatskaia <borovkovaes@iitp.ru>
- *          Pavel Boyko <boyko@iitp.ru>
- */
 #include "aodv-rqueue.h"
 
 #include "ns3/ipv4-route.h"
@@ -54,8 +28,7 @@ bool RequestQueue::Enqueue(QueueEntry &entry) {
   }
   entry.SetExpireTime(m_queueTimeout);
   if (m_queue.size() == m_maxLen) {
-    Drop(m_queue.front(),
-         "Drop the most aged packet"); // Drop the most aged packet
+    Drop(m_queue.front(), "Drop the most aged packet");
     m_queue.erase(m_queue.begin());
   }
   m_queue.push_back(entry);
@@ -98,19 +71,8 @@ bool RequestQueue::Find(Ipv4Address dst) {
   return false;
 }
 
-/**
- * \brief IsExpired structure
- */
 struct IsExpired {
-  bool
-    /**
-     * Check if the entry is expired
-     *
-     * \param e QueueEntry entry
-     * \return true if expired, false otherwise
-     */
-    operator()(const QueueEntry& e) const
-    {
+  bool operator()(const QueueEntry &e) const {
     return (e.GetExpireTime() < Seconds(0));
   }
 };

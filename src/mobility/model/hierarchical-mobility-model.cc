@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "hierarchical-mobility-model.h"
 
 #include "ns3/log.h"
@@ -68,8 +50,6 @@ void HierarchicalMobilityModel::SetChild(Ptr<MobilityModel> model) {
       "CourseChange",
       MakeCallback(&HierarchicalMobilityModel::ChildChanged, this));
 
-  // if we had a child before, then we had a valid position before;
-  // try to preserve the old absolute position.
   if (oldChild) {
     NS_LOG_DEBUG("Restoring previous position " << pos);
     SetPosition(pos);
@@ -94,7 +74,6 @@ void HierarchicalMobilityModel::SetParent(Ptr<MobilityModel> model) {
         "CourseChange",
         MakeCallback(&HierarchicalMobilityModel::ParentChanged, this));
   }
-  // try to preserve the old position across parent changes
   if (m_child) {
     NS_LOG_DEBUG("Restoring previous position " << pos);
     SetPosition(pos);
@@ -125,8 +104,6 @@ void HierarchicalMobilityModel::DoSetPosition(const Vector &position) {
   if (!m_child) {
     return;
   }
-  // This implementation of DoSetPosition is really an arbitrary choice.
-  // anything else would have been ok.
   if (m_parent) {
     Vector parentPosition = m_parent->GetPosition();
     Vector childPosition(position.x - parentPosition.x,

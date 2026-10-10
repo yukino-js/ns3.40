@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Shravya K.S. <shravya.ks0@gmail.com>
- *
- */
 
 #include "tcp-dctcp.h"
 
@@ -94,9 +75,6 @@ void TcpDctcp::Init(Ptr<TcpSocketState> tcb) {
   m_initialized = true;
 }
 
-// Step 9, Section 3.3 of RFC 8257.  GetSsThresh() is called upon
-// entering the CWR state, and then later, when CWR is exited,
-// cwnd is set to ssthresh (this value).  bytesInFlight is ignored.
 uint32_t TcpDctcp::GetSsThresh(Ptr<const TcpSocketState> tcb,
                                uint32_t bytesInFlight) {
   NS_LOG_FUNCTION(this << tcb << bytesInFlight);
@@ -115,7 +93,7 @@ void TcpDctcp::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
     m_nextSeqFlag = true;
   }
   if (tcb->m_lastAckedSeq >= m_nextSeq) {
-    double bytesEcn = 0.0; // Corresponds to variable M in RFC 8257
+    double bytesEcn = 0.0;
     if (m_ackedBytesTotal > 0) {
       bytesEcn = static_cast<double>(m_ackedBytesEcn * 1.0 / m_ackedBytesTotal);
     }
@@ -143,14 +121,11 @@ void TcpDctcp::CeState0to1(Ptr<TcpSocketState> tcb) {
   NS_LOG_FUNCTION(this << tcb);
   if (!m_ceState && m_delayedAckReserved && m_priorRcvNxtFlag) {
     SequenceNumber32 tmpRcvNxt;
-    /* Save current NextRxSequence. */
     tmpRcvNxt = tcb->m_rxBuffer->NextRxSequence();
 
-    /* Generate previous ACK without ECE */
     tcb->m_rxBuffer->SetNextRxSequence(m_priorRcvNxt);
     tcb->m_sendEmptyPacketCallback(TcpHeader::ACK);
 
-    /* Recover current RcvNxt. */
     tcb->m_rxBuffer->SetNextRxSequence(tmpRcvNxt);
   }
 
@@ -166,14 +141,11 @@ void TcpDctcp::CeState1to0(Ptr<TcpSocketState> tcb) {
   NS_LOG_FUNCTION(this << tcb);
   if (m_ceState && m_delayedAckReserved && m_priorRcvNxtFlag) {
     SequenceNumber32 tmpRcvNxt;
-    /* Save current NextRxSequence. */
     tmpRcvNxt = tcb->m_rxBuffer->NextRxSequence();
 
-    /* Generate previous ACK with ECE */
     tcb->m_rxBuffer->SetNextRxSequence(m_priorRcvNxt);
     tcb->m_sendEmptyPacketCallback(TcpHeader::ACK | TcpHeader::ECE);
 
-    /* Recover current RcvNxt. */
     tcb->m_rxBuffer->SetNextRxSequence(tmpRcvNxt);
   }
 
@@ -204,7 +176,6 @@ void TcpDctcp::UpdateAckReserved(Ptr<TcpSocketState> tcb,
     }
     break;
   default:
-    /* Don't care for the rest. */
     break;
   }
 }
@@ -224,7 +195,6 @@ void TcpDctcp::CwndEvent(Ptr<TcpSocketState> tcb,
     UpdateAckReserved(tcb, event);
     break;
   default:
-    /* Don't care for the rest. */
     break;
   }
 }

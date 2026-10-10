@@ -1,41 +1,4 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Apoorva Bhargava <apoorvabhargava13@gmail.com>
- */
 
-// Network topology
-//
-//       n0 ---------- n1 ---------- n2 ---------- n3
-//            10 Mbps       1 Mbps        10 Mbps
-//             1 ms         10 ms          1 ms
-//
-// - TCP flow from n0 to n3 using BulkSendApplication.
-// - The following simulation output is stored in results/ in ns-3 top-level
-// directory:
-//   - cwnd traces are stored in cwndTraces folder
-//   - queue length statistics are stored in queue-size.dat file
-//   - pcaps are stored in pcap folder
-//   - queueTraces folder contain the drop statistics at queue
-//   - queueStats.txt file contains the queue stats and config.txt file contains
-//     the simulation configuration.
-// - The cwnd and queue length traces obtained from this example were tested
-// against
-//   the respective traces obtained from Linux Reno by using ns-3 Direct Code
-//   Execution. See internet/doc/tcp.rst for more details.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -54,11 +17,9 @@ std::string dir = "results/";
 Time stopTime = Seconds(60);
 uint32_t segmentSize = 524;
 
-// Function to check queue length of Router 1
 void CheckQueueSize(Ptr<QueueDisc> queue) {
   uint32_t qSize = queue->GetCurrentSize().GetValue();
 
-  // Check queue size every 1/100 of a second
   Simulator::Schedule(Seconds(0.001), &CheckQueueSize, queue);
   std::ofstream fPlotQueue(std::stringstream(dir + "queue-size.dat").str(),
                            std::ios::out | std::ios::app);
@@ -66,7 +27,6 @@ void CheckQueueSize(Ptr<QueueDisc> queue) {
   fPlotQueue.close();
 }
 
-// Function to trace change in cwnd at n0
 static void CwndChange(uint32_t oldCwnd, uint32_t newCwnd) {
   std::ofstream fPlotQueue(dir + "cwndTraces/n0.dat",
                            std::ios::out | std::ios::app);
@@ -75,13 +35,11 @@ static void CwndChange(uint32_t oldCwnd, uint32_t newCwnd) {
   fPlotQueue.close();
 }
 
-// Function to calculate drops in a particular Queue
 static void DropAtQueue(Ptr<OutputStreamWrapper> stream,
                         Ptr<const QueueDiscItem> item) {
   *stream->GetStream() << Simulator::Now().GetSeconds() << " 1" << std::endl;
 }
 
-// Trace Function for cwnd
 void TraceCwnd(uint32_t node, uint32_t cwndWindow,
                Callback<void, uint32_t, uint32_t> CwndTrace) {
   Config::ConnectWithoutContext(
@@ -90,7 +48,6 @@ void TraceCwnd(uint32_t node, uint32_t cwndWindow,
       CwndTrace);
 }
 
-// Function to install BulkSend application
 void InstallBulkSend(Ptr<Node> node, Ipv4Address address, uint16_t port,
                      std::string socketFactory, uint32_t nodeId,
                      uint32_t cwndWindow,
@@ -104,7 +61,6 @@ void InstallBulkSend(Ptr<Node> node, Ipv4Address address, uint16_t port,
   sourceApps.Stop(stopTime);
 }
 
-// Function to install sink application
 void InstallPacketSink(Ptr<Node> node, uint16_t port,
                        std::string socketFactory) {
   PacketSinkHelper sink(socketFactory,
@@ -146,7 +102,6 @@ int main(int argc, char *argv[]) {
   NS_ABORT_MSG_UNLESS(TypeId::LookupByNameFailSafe(qdiscTypeId, &qdTid),
                       "TypeId " << qdiscTypeId << " not found");
 
-  // Set recovery algorithm and TCP variant
   Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                      TypeIdValue(TypeId::LookupByName(recovery)));
   TypeId tcpTid;
@@ -155,7 +110,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      TypeIdValue(TypeId::LookupByName(tcpTypeId)));
 
-  // Create nodes
   NodeContainer leftNodes;
   NodeContainer rightNodes;
   NodeContainer routers;
@@ -166,14 +120,12 @@ int main(int argc, char *argv[]) {
   std::vector<NetDeviceContainer> leftToRouter;
   std::vector<NetDeviceContainer> routerToRight;
 
-  // Create the point-to-point link helpers and connect two router nodes
   PointToPointHelper pointToPointRouter;
   pointToPointRouter.SetDeviceAttribute("DataRate", StringValue("1Mbps"));
   pointToPointRouter.SetChannelAttribute("Delay", StringValue("10ms"));
   NetDeviceContainer r1r2ND =
       pointToPointRouter.Install(routers.Get(0), routers.Get(1));
 
-  // Create the point-to-point link helpers and connect leaf nodes to router
   PointToPointHelper pointToPointLeaf;
   pointToPointLeaf.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
   pointToPointLeaf.SetChannelAttribute("Delay", StringValue("1ms"));
@@ -188,7 +140,6 @@ int main(int argc, char *argv[]) {
   internetStack.Install(rightNodes);
   internetStack.Install(routers);
 
-  // Assign IP addresses to all the network devices
   Ipv4AddressHelper ipAddresses("10.0.0.0", "255.255.255.0");
 
   Ipv4InterfaceContainer r1r2IPAddress = ipAddresses.Assign(r1r2ND);
@@ -203,23 +154,17 @@ int main(int argc, char *argv[]) {
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Set default sender and receiver buffer size as 1MB
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 20));
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 20));
 
-  // Set default initial congestion window as 10 segments
   Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(10));
 
-  // Set default delayed ack count to a specified value
   Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(delAckCount));
 
-  // Set default segment size of TCP packet to a specified value
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(segmentSize));
 
-  // Enable/Disable SACK in TCP
   Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(isSack));
 
-  // Create directories to store dat files
   struct stat buffer;
   int retVal [[maybe_unused]];
   if ((stat(dir.c_str(), &buffer)) == 0) {
@@ -237,47 +182,38 @@ int main(int argc, char *argv[]) {
   retVal = system((dirToSave + "/cwndTraces/").c_str());
   NS_ASSERT_MSG(retVal == 0, "Error in return value");
 
-  // Set default parameters for queue discipline
   Config::SetDefault(qdiscTypeId + "::MaxSize",
                      QueueSizeValue(QueueSize("100p")));
 
-  // Install queue discipline on router
   TrafficControlHelper tch;
   tch.SetRootQueueDisc(qdiscTypeId);
   QueueDiscContainer qd;
   tch.Uninstall(routers.Get(0)->GetDevice(0));
   qd.Add(tch.Install(routers.Get(0)->GetDevice(0)).Get(0));
 
-  // Enable BQL
   tch.SetQueueLimits("ns3::DynamicQueueLimits");
 
-  // Calls function to check queue size
   Simulator::ScheduleNow(&CheckQueueSize, qd.Get(0));
 
   AsciiTraceHelper asciiTraceHelper;
   Ptr<OutputStreamWrapper> streamWrapper;
 
-  // Create dat to store packets dropped and marked at the router
   streamWrapper =
       asciiTraceHelper.CreateFileStream(dir + "/queueTraces/drop-0.dat");
   qd.Get(0)->TraceConnectWithoutContext(
       "Drop", MakeBoundCallback(&DropAtQueue, streamWrapper));
 
-  // Install packet sink at receiver side
   uint16_t port = 50000;
   InstallPacketSink(rightNodes.Get(0), port, "ns3::TcpSocketFactory");
 
-  // Install BulkSend application
   InstallBulkSend(leftNodes.Get(0), routerToRightIPAddress[0].GetAddress(1),
                   port, socketFactory, 2, 0, MakeCallback(&CwndChange));
 
-  // Enable PCAP on all the point to point interfaces
   pointToPointLeaf.EnablePcapAll(dir + "pcap/ns-3", true);
 
   Simulator::Stop(stopTime);
   Simulator::Run();
 
-  // Store queue stats in a file
   std::ofstream myfile;
   myfile.open(dir + "queueStats.txt",
               std::fstream::in | std::fstream::out | std::fstream::app);
@@ -286,7 +222,6 @@ int main(int argc, char *argv[]) {
   myfile << qd.Get(0)->GetStats();
   myfile.close();
 
-  // Store configuration of the simulation in a file
   myfile.open(dir + "config.txt",
               std::fstream::in | std::fstream::out | std::fstream::app);
   myfile << "qdiscTypeId " << qdiscTypeId << "\n";

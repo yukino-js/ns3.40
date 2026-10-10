@@ -1,48 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
-
-// This script exercises global routing code in a mixed point-to-point
-// and csma/cd environment
-//
-// Network topology
-//
-//  n0
-//     \ p-p
-//      \          (shared csma/cd)
-//       n2 -------------------------n3
-//      /            |        |
-//     / p-p        n4        n5 ---------- n6
-//   n1                             p-p
-//
-// - CBR/UDP flows from n0 to n6
-// - Tracing of queues and packet receptions to file "mixed-global-routing.tr"
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -64,8 +20,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(210));
   Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("448kb/s"));
 
-  // Allow the user to override any of the defaults and the above
-  // Bind ()s at run-time, via command-line arguments
   CommandLine cmd(__FILE__);
   cmd.Parse(argc, argv);
 
@@ -80,7 +34,6 @@ int main(int argc, char *argv[]) {
   InternetStackHelper internet;
   internet.Install(c);
 
-  // We create the channels first without any IP addressing information
   NS_LOG_INFO("Create channels.");
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
@@ -93,13 +46,11 @@ int main(int argc, char *argv[]) {
   p2p.SetChannelAttribute("Delay", StringValue("10ms"));
   NetDeviceContainer d5d6 = p2p.Install(n5n6);
 
-  // We create the channels first without any IP addressing information
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", StringValue("5Mbps"));
   csma.SetChannelAttribute("Delay", StringValue("2ms"));
   NetDeviceContainer d2345 = csma.Install(n2345);
 
-  // Later, we add IP addresses.
   NS_LOG_INFO("Assign IP Addresses.");
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
@@ -114,14 +65,10 @@ int main(int argc, char *argv[]) {
   ipv4.SetBase("10.250.1.0", "255.255.255.0");
   ipv4.Assign(d2345);
 
-  // Create router nodes, initialize routing database and set up the routing
-  // tables in the nodes.
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Create the OnOff application to send UDP datagrams of size
-  // 210 bytes at a rate of 448 Kb/s
   NS_LOG_INFO("Create Applications.");
-  uint16_t port = 9; // Discard port (RFC 863)
+  uint16_t port = 9;
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     InetSocketAddress(i5i6.GetAddress(1), port));
   onoff.SetConstantRate(DataRate("300bps"));

@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' degli Studi di Napoli Federico II
- * Copyright (c) 2020 NITK Surathkal (adapted for COBALT)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pasquale Imputato <p.imputato@gmail.com>
- *          Stefano Avallone <stefano.avallone@unina.it>
- * Modified by: Bhaskar Kataria <bhaskar.k7920@gmail.com> (for COBALT)
- *          Tom Henderson <tomhend@u.washington.edu>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *          Vivek Jain <jain.vivek.anand@gmail.com>
- *          Ankit Deepak <adadeepak8@gmail.com>
- */
 
 #include "fq-cobalt-queue-disc.h"
 
@@ -208,14 +183,11 @@ uint32_t FqCobaltQueueDisc::SetAssociativeHash(uint32_t flowHash) {
         (m_tags.find(i) != m_tags.end() && m_tags[i] == flowHash) ||
         StaticCast<FqCobaltFlow>(GetQueueDiscClass(it->second))->GetStatus() ==
             FqCobaltFlow::INACTIVE) {
-      // this queue has not been created yet or is associated with this flow
-      // or is inactive, hence we can use it
       m_tags[i] = flowHash;
       return i;
     }
   }
 
-  // all the queues of the set are used. Use the first queue of the set
   m_tags[outerHash] = flowHash;
   return outerHash;
 }
@@ -251,7 +223,6 @@ bool FqCobaltQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
     NS_LOG_DEBUG("Creating a new flow queue with index " << h);
     flow = m_flowFactory.Create<FqCobaltFlow>();
     Ptr<QueueDisc> qd = m_queueDiscFactory.Create<QueueDisc>();
-    // If Cobalt, Set values of CobaltQueueDisc to match this QueueDisc
     Ptr<CobaltQueueDisc> cobalt = qd->GetObject<CobaltQueueDisc>();
     if (cobalt) {
       cobalt->SetAttribute("UseEcn", BooleanValue(m_useEcn));
@@ -368,13 +339,9 @@ bool FqCobaltQueueDisc::CheckConfig() {
     NS_LOG_ERROR("FqCobaltQueueDisc cannot have internal queues");
     return false;
   }
-  // we are at initialization time. If the user has not set a quantum value,
-  // set the quantum to the MTU of the device (if any)
   if (!m_quantum) {
     Ptr<NetDeviceQueueInterface> ndqi = GetNetDeviceQueueInterface();
     Ptr<NetDevice> dev;
-    // if the NetDeviceQueueInterface object is aggregated to a
-    // NetDevice, get the MTU of such NetDevice
     if (ndqi && (dev = ndqi->GetObject<NetDevice>())) {
       m_quantum = dev->GetMtu();
       NS_LOG_DEBUG(
@@ -393,7 +360,6 @@ bool FqCobaltQueueDisc::CheckConfig() {
     return false;
   }
 
-  // If UseL4S attribute is enabled then CE threshold must be set.
   if (m_useL4s) {
     NS_ABORT_MSG_IF(m_ceThreshold == Time::Max(), "CE threshold not set");
     if (!m_useEcn) {
@@ -424,7 +390,6 @@ uint32_t FqCobaltQueueDisc::FqCobaltDrop() {
   uint32_t index = 0;
   Ptr<QueueDisc> qd;
 
-  /* Queue is full! Find the fat flow and drop packet(s) from it */
   for (uint32_t i = 0; i < GetNQueueDiscClasses(); i++) {
     qd = GetQueueDiscClass(i)->GetQueueDisc();
     uint32_t bytes = qd->GetNBytes();
@@ -434,7 +399,6 @@ uint32_t FqCobaltQueueDisc::FqCobaltDrop() {
     }
   }
 
-  /* Our goal is to drop half of this fat flow backlog */
   uint32_t len = 0;
   uint32_t count = 0;
   uint32_t threshold = maxBacklog >> 1;

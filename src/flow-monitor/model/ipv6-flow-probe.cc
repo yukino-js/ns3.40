@@ -1,22 +1,3 @@
-//
-// Copyright (c) 2009 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt> <gjcarneiro@gmail.com>
-// Modifications: Tommaso Pecorella <tommaso.pecorella@unifi.it>
-//
 
 #include "ipv6-flow-probe.h"
 
@@ -34,25 +15,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Ipv6FlowProbe");
 
-//////////////////////////////////////
-// Ipv6FlowProbeTag class implementation //
-//////////////////////////////////////
-
-/**
- * \ingroup flow-monitor
- *
- * \brief Tag used to allow a fast identification of the packet
- *
- * This tag is added by FlowMonitor when a packet is seen for
- * the first time, and it is then used to classify the packet in
- * the following hops.
- */
 class Ipv6FlowProbeTag : public Tag {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   uint32_t GetSerializedSize() const override;
@@ -60,48 +24,18 @@ public:
   void Deserialize(TagBuffer buf) override;
   void Print(std::ostream &os) const override;
   Ipv6FlowProbeTag();
-  /**
-   * \brief Constructor
-   * \param flowId the flow identifier
-   * \param packetId the packet identifier
-   * \param packetSize the packet size
-   */
   Ipv6FlowProbeTag(uint32_t flowId, uint32_t packetId, uint32_t packetSize);
-  /**
-   * \brief Set the flow identifier
-   * \param flowId the flow identifier
-   */
   void SetFlowId(uint32_t flowId);
-  /**
-   * \brief Set the packet identifier
-   * \param packetId the packet identifier
-   */
   void SetPacketId(uint32_t packetId);
-  /**
-   * \brief Set the packet size
-   * \param packetSize the packet size
-   */
   void SetPacketSize(uint32_t packetSize);
-  /**
-   * \brief Set the flow identifier
-   * \returns the flow identifier
-   */
   uint32_t GetFlowId() const;
-  /**
-   * \brief Set the packet identifier
-   * \returns the packet identifier
-   */
   uint32_t GetPacketId() const;
-  /**
-   * \brief Get the packet size
-   * \returns the packet size
-   */
   uint32_t GetPacketSize() const;
 
 private:
-  uint32_t m_flowId;     //!< flow identifier
-  uint32_t m_packetId;   //!< packet identifier
-  uint32_t m_packetSize; //!< packet size
+  uint32_t m_flowId;
+  uint32_t m_packetId;
+  uint32_t m_packetSize;
 };
 
 TypeId Ipv6FlowProbeTag::GetTypeId() {
@@ -152,10 +86,6 @@ uint32_t Ipv6FlowProbeTag::GetPacketId() const { return m_packetId; }
 
 uint32_t Ipv6FlowProbeTag::GetPacketSize() const { return m_packetSize; }
 
-////////////////////////////////////////
-// Ipv6FlowProbe class implementation //
-////////////////////////////////////////
-
 Ipv6FlowProbe::Ipv6FlowProbe(Ptr<FlowMonitor> monitor,
                              Ptr<Ipv6FlowClassifier> classifier, Ptr<Node> node)
     : FlowProbe(monitor), m_classifier(classifier) {
@@ -192,7 +122,6 @@ Ipv6FlowProbe::Ipv6FlowProbe(Ptr<FlowMonitor> monitor,
       qd.str(), MakeCallback(&Ipv6FlowProbe::QueueDiscDropLogger,
                              Ptr<Ipv6FlowProbe>(this)));
 
-  // code copied from point-to-point-helper.cc
   std::ostringstream oss;
   oss << "/NodeList/" << node->GetId() << "/DeviceList/*/TxQueue/Drop";
   Config::ConnectWithoutContextFailSafe(
@@ -202,13 +131,10 @@ Ipv6FlowProbe::Ipv6FlowProbe(Ptr<FlowMonitor> monitor,
 
 NS_OBJECT_ENSURE_REGISTERED(Ipv6FlowProbeTag);
 
-/* static */
 TypeId Ipv6FlowProbe::GetTypeId() {
   static TypeId tid = TypeId("ns3::Ipv6FlowProbe")
                           .SetParent<FlowProbe>()
-                          .SetGroupName("FlowMonitor")
-      // No AddConstructor because this class has no default constructor.
-      ;
+                          .SetGroupName("FlowMonitor");
 
   return tid;
 }
@@ -230,9 +156,6 @@ void Ipv6FlowProbe::SendOutgoingLogger(const Ipv6Header &ipHeader,
                                    << *ipPayload);
     m_flowMonitor->ReportFirstTx(this, flowId, packetId, size);
 
-    // tag the packet with the flow id and packet id, so that the packet can be
-    // identified even when Ipv6Header is not accessible at some non-IPv6
-    // protocol layer
     Ipv6FlowProbeTag fTag(flowId, packetId, size);
     ipPayload->AddByteTag(fTag);
   }
@@ -287,7 +210,7 @@ void Ipv6FlowProbe::DropLogger(const Ipv6Header &ipHeader,
       Ipv6Address addri = m_ipv6->GetAddress (ifIndex);
       Ipv6Mask maski = m_ipv6->GetNetworkMask (ifIndex);
       Ipv6Address bcast = addri.GetSubnetDirectedBroadcast (maski);
-      if (ipHeader.GetDestination () == bcast) // we don't want broadcast packets
+      if (ipHeader.GetDestination () == bcast)
         {
           return;
         }

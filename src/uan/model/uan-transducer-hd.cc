@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- */
 
 #include "uan-transducer-hd.h"
 
@@ -108,7 +90,6 @@ double UanTransducerHd::ApplyRxGainDb(double rxPowerDb, UanTxMode mode) {
 void UanTransducerHd::Receive(Ptr<Packet> packet, double rxPowerDb,
                               UanTxMode txMode, UanPdp pdp) {
   NS_LOG_FUNCTION(this << packet << rxPowerDb << txMode << pdp);
-  // Apply receiver gain in dB
   rxPowerDb = ApplyRxGainDb(rxPowerDb, txMode);
 
   UanPacketArrival arrival(packet, rxPowerDb, txMode, pdp, Simulator::Now());
@@ -131,10 +112,10 @@ void UanTransducerHd::Transmit(Ptr<UanPhy> src, Ptr<Packet> packet,
                                double txPowerDb, UanTxMode txMode) {
   if (m_state == TX) {
     m_endTxEvent.Cancel();
-    src->NotifyTxDrop(packet); // traced source netanim
+    src->NotifyTxDrop(packet);
   } else {
     m_state = TX;
-    src->NotifyTxBegin(packet); // traced source netanim
+    src->NotifyTxBegin(packet);
   }
 
   Time delay = Seconds(packet->GetSize() * 8.0 / txMode.GetDataRateBps());
@@ -153,8 +134,7 @@ void UanTransducerHd::Transmit(Ptr<UanPhy> src, Ptr<Packet> packet,
 
   m_endTxEvent = Simulator::Schedule(delay, &UanTransducerHd::EndTx, this);
   m_endTxTime = Simulator::Now() + delay;
-  Simulator::Schedule(delay, &UanPhy::NotifyTxEnd, src,
-                      packet); // traced source netanim
+  Simulator::Schedule(delay, &UanPhy::NotifyTxEnd, src, packet);
 }
 
 void UanTransducerHd::EndTx() {
@@ -177,7 +157,6 @@ const UanTransducer::UanPhyList &UanTransducerHd::GetPhyList() const {
 }
 
 void UanTransducerHd::RemoveArrival(UanPacketArrival arrival) {
-  // Remove entry from arrival list
   auto it = m_arrivalList.begin();
   for (; it != m_arrivalList.end(); it++) {
     if (it->GetPacket() == arrival.GetPacket()) {

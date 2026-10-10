@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 Drexel University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Joe Kopena (tjkopena@cs.drexel.edu)
- */
 
 #include "omnet-data-output.h"
 
@@ -32,8 +14,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("OmnetDataOutput");
 
-//--------------------------------------------------------------
-//----------------------------------------------
 OmnetDataOutput::OmnetDataOutput() {
   NS_LOG_FUNCTION(this);
 
@@ -42,7 +22,6 @@ OmnetDataOutput::OmnetDataOutput() {
 
 OmnetDataOutput::~OmnetDataOutput() { NS_LOG_FUNCTION(this); }
 
-/* static */
 TypeId OmnetDataOutput::GetTypeId() {
   static TypeId tid = TypeId("ns3::OmnetDataOutput")
                           .SetParent<DataOutputInterface>()
@@ -55,10 +34,7 @@ void OmnetDataOutput::DoDispose() {
   NS_LOG_FUNCTION(this);
 
   DataOutputInterface::DoDispose();
-  // end OmnetDataOutput::DoDispose
 }
-
-//----------------------------------------------
 
 inline bool isNumeric(const std::string &s) {
   bool decimalPtSeen = false;
@@ -91,7 +67,6 @@ void OmnetDataOutput::Output(DataCollector &dc) {
   std::string fn = m_filePrefix + "-" + dc.GetRunLabel() + ".sca";
   scalarFile.open(fn, std::ios_base::out);
 
-  /// \todo add timestamp to the runlevel
   scalarFile << "run " << dc.GetRunLabel() << std::endl;
   scalarFile << "attr experiment \"" << dc.GetExperimentLabel() << "\""
              << std::endl;
@@ -128,8 +103,6 @@ void OmnetDataOutput::Output(DataCollector &dc) {
 
   scalarFile << std::endl << std::endl;
   scalarFile.close();
-
-  // end OmnetDataOutput::Output
 }
 
 OmnetDataOutput::OmnetOutputCallback::OmnetOutputCallback(std::ostream *scalar)
@@ -183,7 +156,6 @@ void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
     name = "\"\"";
   }
   (*m_scalar) << "scalar " << context << " " << name << " " << val << std::endl;
-  // end OmnetDataOutput::OmnetOutputCallback::OutputSingleton
 }
 
 void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
@@ -198,7 +170,6 @@ void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
     name = "\"\"";
   }
   (*m_scalar) << "scalar " << context << " " << name << " " << val << std::endl;
-  // end OmnetDataOutput::OmnetOutputCallback::OutputSingleton
 }
 
 void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
@@ -213,7 +184,6 @@ void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
     name = "\"\"";
   }
   (*m_scalar) << "scalar " << context << " " << name << " " << val << std::endl;
-  // end OmnetDataOutput::OmnetOutputCallback::OutputSingleton
 }
 
 void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
@@ -228,7 +198,6 @@ void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
     name = "\"\"";
   }
   (*m_scalar) << "scalar " << context << " " << name << " " << val << std::endl;
-  // end OmnetDataOutput::OmnetOutputCallback::OutputSingleton
 }
 
 void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
@@ -244,5 +213,4 @@ void OmnetDataOutput::OmnetOutputCallback::OutputSingleton(std::string context,
   }
   (*m_scalar) << "scalar " << context << " " << name << " " << val.GetTimeStep()
               << std::endl;
-  // end OmnetDataOutput::OmnetOutputCallback::OutputSingleton
 }

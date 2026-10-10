@@ -1,20 +1,3 @@
-/*
- *   Copyright (c) 2020 University of Padova, Dep. of Information Engineering,
- * SIGNET lab.
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2 as
- *   published by the Free Software Foundation;
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "phased-array-model.h"
 
@@ -38,13 +21,11 @@ std::ostream &operator<<(std::ostream &os,
                          const PhasedArrayModel::ComplexVector &cv) {
   size_t N = cv.GetSize();
 
-  // empty
   if (N == 0) {
     os << "[]";
     return os;
   }
 
-  // non-empty
   os << "[";
   for (std::size_t i = 0; i < N - 1; ++i) {
     os << cv[i] << ", ";
@@ -130,4 +111,4 @@ Ptr<const AntennaModel> PhasedArrayModel::GetAntennaElement() const {
 
 uint32_t PhasedArrayModel::GetId() const { return m_id; }
 
-} /* namespace ns3 */
+} // namespace ns3

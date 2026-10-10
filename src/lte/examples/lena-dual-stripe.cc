@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/applications-module.h>
 #include <ns3/buildings-module.h>
@@ -33,64 +15,31 @@
 #include <string>
 #include <vector>
 
-// The topology of this simulation program is inspired from
-// 3GPP R4-092042, Section 4.2.1 Dual Stripe Model
-// note that the term "apartments" used in that document matches with
-// the term "room" used in the BuildingsMobilityModel
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LenaDualStripe");
 
-/**
- * Check if two boxes are overlapping.
- *
- * \param a First box.
- * \param b Second box.
- * \return true if the boxes are overlapping, false otherwise.
- */
 bool AreOverlapping(Box a, Box b) {
   return !((a.xMin > b.xMax) || (b.xMin > a.xMax) || (a.yMin > b.yMax) ||
            (b.yMin > a.yMax));
 }
 
-/**
- * Class that takes care of installing blocks of the
- * buildings in a given area. Buildings are installed in pairs
- * as in dual stripe scenario.
- */
 class FemtocellBlockAllocator {
 public:
-  /**
-   * Constructor
-   * \param area the total area
-   * \param nApartmentsX the number of apartments in the X direction
-   * \param nFloors the number of floors
-   */
   FemtocellBlockAllocator(Box area, uint32_t nApartmentsX, uint32_t nFloors);
-  /**
-   * Function that creates building blocks.
-   * \param n the number of blocks to create
-   */
   void Create(uint32_t n);
-  /// Create function
   void Create();
 
 private:
-  /**
-   * Function that checks if the box area is overlapping with some of previously
-   * created building blocks. \param box the area to check \returns true if
-   * there is an overlap
-   */
   bool OverlapsWithAnyPrevious(Box box);
-  Box m_area;                           ///< Area
-  uint32_t m_nApartmentsX;              ///< X apartments
-  uint32_t m_nFloors;                   ///< number of floors
-  std::list<Box> m_previousBlocks;      ///< previous bocks
-  double m_xSize;                       ///< X size
-  double m_ySize;                       ///< Y size
-  Ptr<UniformRandomVariable> m_xMinVar; ///< X minimum variance
-  Ptr<UniformRandomVariable> m_yMinVar; ///< Y minimum variance
+  Box m_area;
+  uint32_t m_nApartmentsX;
+  uint32_t m_nFloors;
+  std::list<Box> m_previousBlocks;
+  double m_xSize;
+  double m_ySize;
+  Ptr<UniformRandomVariable> m_xMinVar;
+  Ptr<UniformRandomVariable> m_yMinVar;
 };
 
 FemtocellBlockAllocator::FemtocellBlockAllocator(Box area,
@@ -156,11 +105,6 @@ bool FemtocellBlockAllocator::OverlapsWithAnyPrevious(Box box) {
   return false;
 }
 
-/**
- * Print a list of buildings that can be plotted using Gnuplot.
- *
- * \param filename the output file name.
- */
 void PrintGnuplottableBuildingListToFile(std::string filename) {
   std::ofstream outFile;
   outFile.open(filename, std::ios_base::out | std::ios_base::trunc);
@@ -178,11 +122,6 @@ void PrintGnuplottableBuildingListToFile(std::string filename) {
   }
 }
 
-/**
- * Print a list of UEs that can be plotted using Gnuplot.
- *
- * \param filename the output file name.
- */
 void PrintGnuplottableUeListToFile(std::string filename) {
   std::ofstream outFile;
   outFile.open(filename, std::ios_base::out | std::ios_base::trunc);
@@ -209,11 +148,6 @@ void PrintGnuplottableUeListToFile(std::string filename) {
   }
 }
 
-/**
- * Print a list of ENBs that can be plotted using Gnuplot.
- *
- * \param filename the output file name.
- */
 void PrintGnuplottableEnbListToFile(std::string filename) {
   std::ofstream outFile;
   outFile.open(filename, std::ios_base::out | std::ios_base::trunc);
@@ -240,117 +174,96 @@ void PrintGnuplottableEnbListToFile(std::string filename) {
   }
 }
 
-/// Number of femtocell blocks
 static ns3::GlobalValue g_nBlocks("nBlocks", "Number of femtocell blocks",
                                   ns3::UintegerValue(1),
                                   ns3::MakeUintegerChecker<uint32_t>());
 
-/// Number of apartments along the X axis in a femtocell block
 static ns3::GlobalValue
     g_nApartmentsX("nApartmentsX",
                    "Number of apartments along the X axis in a femtocell block",
                    ns3::UintegerValue(10),
                    ns3::MakeUintegerChecker<uint32_t>());
 
-/// Number of floors
 static ns3::GlobalValue g_nFloors("nFloors", "Number of floors",
                                   ns3::UintegerValue(1),
                                   ns3::MakeUintegerChecker<uint32_t>());
 
-/// How many macro sites there are
 static ns3::GlobalValue g_nMacroEnbSites("nMacroEnbSites",
                                          "How many macro sites there are",
                                          ns3::UintegerValue(3),
                                          ns3::MakeUintegerChecker<uint32_t>());
 
-/// (minimum) number of sites along the X-axis of the hex grid
 static ns3::GlobalValue g_nMacroEnbSitesX(
     "nMacroEnbSitesX",
     "(minimum) number of sites along the X-axis of the hex grid",
     ns3::UintegerValue(1), ns3::MakeUintegerChecker<uint32_t>());
 
-/// min distance between two nearby macro cell sites
 static ns3::GlobalValue g_interSiteDistance(
     "interSiteDistance", "min distance between two nearby macro cell sites",
     ns3::DoubleValue(500), ns3::MakeDoubleChecker<double>());
 
-/// how much the UE area extends outside the macrocell grid, expressed as
-/// fraction of the interSiteDistance
 static ns3::GlobalValue g_areaMarginFactor(
     "areaMarginFactor",
     "how much the UE area extends outside the macrocell grid, "
     "expressed as fraction of the interSiteDistance",
     ns3::DoubleValue(0.5), ns3::MakeDoubleChecker<double>());
 
-/// How many macrocell UEs there are per square meter
 static ns3::GlobalValue g_macroUeDensity(
     "macroUeDensity", "How many macrocell UEs there are per square meter",
     ns3::DoubleValue(0.00002), ns3::MakeDoubleChecker<double>());
 
-/// The HeNB deployment ratio as per 3GPP R4-092042
 static ns3::GlobalValue g_homeEnbDeploymentRatio(
     "homeEnbDeploymentRatio", "The HeNB deployment ratio as per 3GPP R4-092042",
     ns3::DoubleValue(0.2), ns3::MakeDoubleChecker<double>());
 
-/// The HeNB activation ratio as per 3GPP R4-092042
 static ns3::GlobalValue g_homeEnbActivationRatio(
     "homeEnbActivationRatio", "The HeNB activation ratio as per 3GPP R4-092042",
     ns3::DoubleValue(0.5), ns3::MakeDoubleChecker<double>());
 
-/// How many (on average) home UEs per HeNB there are in the simulation
 static ns3::GlobalValue g_homeUesHomeEnbRatio(
     "homeUesHomeEnbRatio",
     "How many (on average) home UEs per HeNB there are in the simulation",
     ns3::DoubleValue(1.0), ns3::MakeDoubleChecker<double>());
 
-/// TX power [dBm] used by macro eNBs
 static ns3::GlobalValue g_macroEnbTxPowerDbm(
     "macroEnbTxPowerDbm", "TX power [dBm] used by macro eNBs",
     ns3::DoubleValue(46.0), ns3::MakeDoubleChecker<double>());
 
-/// TX power [dBm] used by HeNBs
 static ns3::GlobalValue g_homeEnbTxPowerDbm("homeEnbTxPowerDbm",
                                             "TX power [dBm] used by HeNBs",
                                             ns3::DoubleValue(20.0),
                                             ns3::MakeDoubleChecker<double>());
 
-/// DL EARFCN used by macro eNBs
 static ns3::GlobalValue
     g_macroEnbDlEarfcn("macroEnbDlEarfcn", "DL EARFCN used by macro eNBs",
                        ns3::UintegerValue(100),
                        ns3::MakeUintegerChecker<uint16_t>());
 
-/// DL EARFCN used by HeNBs
 static ns3::GlobalValue g_homeEnbDlEarfcn("homeEnbDlEarfcn",
                                           "DL EARFCN used by HeNBs",
                                           ns3::UintegerValue(100),
                                           ns3::MakeUintegerChecker<uint16_t>());
 
-/// Bandwidth [num RBs] used by macro eNBs
 static ns3::GlobalValue g_macroEnbBandwidth(
     "macroEnbBandwidth", "bandwidth [num RBs] used by macro eNBs",
     ns3::UintegerValue(25), ns3::MakeUintegerChecker<uint16_t>());
 
-/// Bandwidth [num RBs] used by HeNBs
 static ns3::GlobalValue
     g_homeEnbBandwidth("homeEnbBandwidth", "bandwidth [num RBs] used by HeNBs",
                        ns3::UintegerValue(25),
                        ns3::MakeUintegerChecker<uint16_t>());
 
-/// Total duration of the simulation [s]
 static ns3::GlobalValue g_simTime("simTime",
                                   "Total duration of the simulation [s]",
                                   ns3::DoubleValue(0.25),
                                   ns3::MakeDoubleChecker<double>());
 
-/// If true, will generate a REM and then abort the simulation
 static ns3::GlobalValue g_generateRem(
     "generateRem",
     "if true, will generate a REM and then abort the simulation;"
     "if false, will run the simulation normally (without generating any REM)",
     ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 
-/// Resource Block Id of Data Channel, for which REM will be generated.
 static ns3::GlobalValue g_remRbId(
     "remRbId",
     "Resource Block Id of Data Channel, for which REM will be generated;"
@@ -358,7 +271,6 @@ static ns3::GlobalValue g_remRbId(
     "Control Channel",
     ns3::IntegerValue(-1), MakeIntegerChecker<int32_t>());
 
-/// If true, will setup the EPC to simulate an end-to-end topology.
 static ns3::GlobalValue g_epc(
     "epc",
     "If true, will setup the EPC to simulate an end-to-end topology, "
@@ -367,7 +279,6 @@ static ns3::GlobalValue g_epc(
     "If false, only the LTE radio access will be simulated with RLC SM.",
     ns3::BooleanValue(false), ns3::MakeBooleanChecker());
 
-/// if true, will activate data flows in the downlink when EPC is being used.
 static ns3::GlobalValue g_epcDl(
     "epcDl",
     "if true, will activate data flows in the downlink when EPC is being used. "
@@ -375,7 +286,6 @@ static ns3::GlobalValue g_epcDl(
     "If EPC is not used, this parameter will be ignored.",
     ns3::BooleanValue(true), ns3::MakeBooleanChecker());
 
-/// if true, will activate data flows in the uplink when EPC is being used.
 static ns3::GlobalValue g_epcUl(
     "epcUl",
     "if true, will activate data flows in the uplink when EPC is being used. "
@@ -383,7 +293,6 @@ static ns3::GlobalValue g_epcUl(
     "If EPC is not used, this parameter will be ignored.",
     ns3::BooleanValue(true), ns3::MakeBooleanChecker());
 
-/// if true, the UdpClient application will be used.
 static ns3::GlobalValue g_useUdp(
     "useUdp",
     "if true, the UdpClient application will be used. "
@@ -391,20 +300,16 @@ static ns3::GlobalValue g_useUdp(
     "If EPC is not used, this parameter will be ignored.",
     ns3::BooleanValue(true), ns3::MakeBooleanChecker());
 
-/// The path of the fading trace (by default no fading trace is loaded, i.e.,
-/// fading is not considered)
 static ns3::GlobalValue
     g_fadingTrace("fadingTrace",
                   "The path of the fading trace (by default no fading trace "
                   "is loaded, i.e., fading is not considered)",
                   ns3::StringValue(""), ns3::MakeStringChecker());
 
-/// How many bearers per UE there are in the simulation
 static ns3::GlobalValue g_numBearersPerUe(
     "numBearersPerUe", "How many bearers per UE there are in the simulation",
     ns3::UintegerValue(1), ns3::MakeUintegerChecker<uint16_t>());
 
-/// SRS Periodicity (has to be at least greater than the number of UEs per eNB)
 static ns3::GlobalValue
     g_srsPeriodicity("srsPeriodicity",
                      "SRS Periodicity (has to be at least "
@@ -412,22 +317,17 @@ static ns3::GlobalValue
                      ns3::UintegerValue(80),
                      ns3::MakeUintegerChecker<uint16_t>());
 
-/// Minimum speed value of macro UE with random waypoint model [m/s].
 static ns3::GlobalValue g_outdoorUeMinSpeed(
     "outdoorUeMinSpeed",
     "Minimum speed value of macro UE with random waypoint model [m/s].",
     ns3::DoubleValue(0.0), ns3::MakeDoubleChecker<double>());
 
-/// Maximum speed value of macro UE with random waypoint model [m/s].
 static ns3::GlobalValue g_outdoorUeMaxSpeed(
     "outdoorUeMaxSpeed",
     "Maximum speed value of macro UE with random waypoint model [m/s].",
     ns3::DoubleValue(0.0), ns3::MakeDoubleChecker<double>());
 
 int main(int argc, char *argv[]) {
-  // change some default attributes so that they are reasonable for
-  // this scenario, but do this before processing command line
-  // arguments, so that the user is allowed to override these settings
   Config::SetDefault("ns3::UdpClient::Interval", TimeValue(MilliSeconds(1)));
   Config::SetDefault("ns3::UdpClient::MaxPackets", UintegerValue(1000000));
   Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize",
@@ -437,11 +337,8 @@ int main(int argc, char *argv[]) {
   cmd.Parse(argc, argv);
   ConfigStore inputConfig;
   inputConfig.ConfigureDefaults();
-  // parse again so you can override input file default values via command line
   cmd.Parse(argc, argv);
 
-  // the scenario parameters get their values from the global attributes defined
-  // above
   UintegerValue uintegerValue;
   IntegerValue integerValue;
   DoubleValue doubleValue;
@@ -531,7 +428,6 @@ int main(int argc, char *argv[]) {
                          areaMarginFactor * interSiteDistance,
                      ueZ, ueZ);
   } else {
-    // still need the box to place femtocell blocks
     macroUeBox = Box(0, 150, 0, 150, ueZ, ueZ);
   }
 
@@ -567,12 +463,8 @@ int main(int argc, char *argv[]) {
   lteHelper->SetPathlossModelAttribute("ShadowSigmaExtWalls", DoubleValue(0));
   lteHelper->SetPathlossModelAttribute("ShadowSigmaOutdoor", DoubleValue(1));
   lteHelper->SetPathlossModelAttribute("ShadowSigmaIndoor", DoubleValue(1.5));
-  // use always LOS model
   lteHelper->SetPathlossModelAttribute("Los2NlosThr", DoubleValue(1e6));
   lteHelper->SetSpectrumChannelType("ns3::MultiModelSpectrumChannel");
-
-  //   lteHelper->EnableLogComponents ();
-  //   LogComponentEnable ("PfFfMacScheduler", LOG_LEVEL_ALL);
 
   if (!fadingTrace.empty()) {
     lteHelper->SetAttribute("FadingModel",
@@ -587,8 +479,6 @@ int main(int argc, char *argv[]) {
     epcHelper = CreateObject<PointToPointEpcHelper>();
     lteHelper->SetEpcHelper(epcHelper);
   }
-
-  // Macro eNBs in 3-sector hex grid
 
   mobility.Install(macroEnbs);
   BuildingsHelper::Install(macroEnbs);
@@ -617,11 +507,8 @@ int main(int argc, char *argv[]) {
       lteHexGridEnbTopologyHelper->SetPositionAndInstallEnbDevice(macroEnbs);
 
   if (epc) {
-    // this enables handover for macro eNBs
     lteHelper->AddX2Interface(macroEnbs);
   }
-
-  // HomeEnbs randomly indoor
 
   Ptr<PositionAllocator> positionAlloc =
       CreateObject<RandomRoomPositionAllocator>();
@@ -641,16 +528,13 @@ int main(int argc, char *argv[]) {
   lteHelper->SetEnbDeviceAttribute("CsgIndication", BooleanValue(true));
   NetDeviceContainer homeEnbDevs = lteHelper->InstallEnbDevice(homeEnbs);
 
-  // home UEs located in the same apartment in which there are the Home eNBs
   positionAlloc = CreateObject<SameRoomPositionAllocator>(homeEnbs);
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(homeUes);
   BuildingsHelper::Install(homeUes);
-  // set the home UE as a CSG member of the home eNodeBs
   lteHelper->SetUeDeviceAttribute("CsgId", UintegerValue(1));
   NetDeviceContainer homeUeDevs = lteHelper->InstallUeDevice(homeUes);
 
-  // macro Ues
   NS_LOG_LOGIC("randomly allocating macro UEs in "
                << macroUeBox << " speedMin " << outdoorUeMinSpeed
                << " speedMax " << outdoorUeMaxSpeed);
@@ -672,17 +556,10 @@ int main(int argc, char *argv[]) {
     Config::SetDefault("ns3::SteadyStateRandomWaypointMobilityModel::MinSpeed",
                        DoubleValue(outdoorUeMinSpeed));
 
-    // this is not used since SteadyStateRandomWaypointMobilityModel
-    // takes care of initializing the positions;  however we need to
-    // reset it since the previously used PositionAllocator
-    // (SameRoom) will cause an error when used with homeDeploymentRatio=0
     positionAlloc = CreateObject<RandomBoxPositionAllocator>();
     mobility.SetPositionAllocator(positionAlloc);
     mobility.Install(macroUes);
 
-    // forcing initialization so we don't have to wait for Nodes to
-    // start before positions are assigned (which is needed to
-    // output node positions to file and to make AttachToClosestEnb work)
     for (auto it = macroUes.Begin(); it != macroUes.End(); ++it) {
       (*it)->Initialize();
     }
@@ -717,14 +594,12 @@ int main(int argc, char *argv[]) {
   if (epc) {
     NS_LOG_LOGIC("setting up internet and remote host");
 
-    // Create a single RemoteHost
     NodeContainer remoteHostContainer;
     remoteHostContainer.Create(1);
     remoteHost = remoteHostContainer.Get(0);
     InternetStackHelper internet;
     internet.Install(remoteHostContainer);
 
-    // Create the Internet
     PointToPointHelper p2ph;
     p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
     p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -734,7 +609,6 @@ int main(int argc, char *argv[]) {
     Ipv4AddressHelper ipv4h;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
     Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-    // in this container, interface 0 is the pgw, 1 is the remoteHost
     remoteHostAddr = internetIpIfaces.GetAddress(1);
 
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
@@ -743,31 +617,23 @@ int main(int argc, char *argv[]) {
     remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                                Ipv4Mask("255.0.0.0"), 1);
 
-    // for internetworking purposes, consider together home UEs and macro UEs
     ues.Add(homeUes);
     ues.Add(macroUes);
     ueDevs.Add(homeUeDevs);
     ueDevs.Add(macroUeDevs);
 
-    // Install the IP stack on the UEs
     internet.Install(ues);
     ueIpIfaces = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueDevs));
 
-    // attachment (needs to be done after IP stack configuration)
-    // using initial cell selection
     lteHelper->Attach(macroUeDevs);
     lteHelper->Attach(homeUeDevs);
   } else {
-    // macro UEs attached to the closest macro eNB
     lteHelper->AttachToClosestEnb(macroUeDevs, macroEnbDevs);
 
-    // each home UE is attached explicitly to its home eNB
     NetDeviceContainer::Iterator ueDevIt;
     NetDeviceContainer::Iterator enbDevIt;
     for (ueDevIt = homeUeDevs.Begin(), enbDevIt = homeEnbDevs.Begin();
          ueDevIt != homeUeDevs.End(); ++ueDevIt, ++enbDevIt) {
-      // this because of the order in which SameRoomPositionAllocator
-      // will place the UEs
       if (enbDevIt == homeEnbDevs.End()) {
         enbDevIt = homeEnbDevs.Begin();
       }
@@ -778,28 +644,21 @@ int main(int argc, char *argv[]) {
   if (epc) {
     NS_LOG_LOGIC("setting up applications");
 
-    // Install and start applications on UEs and remote host
     uint16_t dlPort = 10000;
     uint16_t ulPort = 20000;
 
-    // randomize a bit start times to avoid simulation artifacts
-    // (e.g., buffer overflows due to packet transmissions happening
-    // exactly at the same time)
     Ptr<UniformRandomVariable> startTimeSeconds =
         CreateObject<UniformRandomVariable>();
     if (useUdp) {
       startTimeSeconds->SetAttribute("Min", DoubleValue(0));
       startTimeSeconds->SetAttribute("Max", DoubleValue(0.010));
     } else {
-      // TCP needs to be started late enough so that all UEs are connected
-      // otherwise TCP SYN packets will get lost
       startTimeSeconds->SetAttribute("Min", DoubleValue(0.100));
       startTimeSeconds->SetAttribute("Max", DoubleValue(0.110));
     }
 
     for (uint32_t u = 0; u < ues.GetN(); ++u) {
       Ptr<Node> ue = ues.Get(u);
-      // Set the default gateway for the UE
       Ptr<Ipv4StaticRouting> ueStaticRouting =
           ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
       ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -831,8 +690,7 @@ int main(int argc, char *argv[]) {
                 InetSocketAddress(Ipv4Address::GetAny(), ulPort));
             serverApps.Add(ulPacketSinkHelper.Install(remoteHost));
           }
-        } else // use TCP
-        {
+        } else {
           if (epcDl) {
             NS_LOG_LOGIC("installing TCP DL app for UE " << u);
             BulkSendHelper dlClientHelper(
@@ -857,7 +715,7 @@ int main(int argc, char *argv[]) {
                 InetSocketAddress(Ipv4Address::GetAny(), ulPort));
             serverApps.Add(ulPacketSinkHelper.Install(remoteHost));
           }
-        } // end if (useUdp)
+        }
 
         Ptr<EpcTft> tft = Create<EpcTft>();
         if (epcDl) {
@@ -880,13 +738,9 @@ int main(int argc, char *argv[]) {
         Time startTime = Seconds(startTimeSeconds->GetValue());
         serverApps.Start(startTime);
         clientApps.Start(startTime);
-
-      } // end for b
+      }
     }
-  } else // (epc == false)
-  {
-    // for radio bearer activation purposes, consider together home UEs and
-    // macro UEs
+  } else {
     NetDeviceContainer ueDevs;
     ueDevs.Add(homeUeDevs);
     ueDevs.Add(macroUeDevs);
@@ -922,7 +776,6 @@ int main(int argc, char *argv[]) {
     }
 
     remHelper->Install();
-    // simulation will stop right after the REM has been generated
   } else {
     Simulator::Stop(Seconds(simTime));
   }
@@ -934,9 +787,6 @@ int main(int argc, char *argv[]) {
   }
 
   Simulator::Run();
-
-  // GtkConfigStore config;
-  // config.ConfigureAttributes ();
 
   lteHelper = nullptr;
   Simulator::Destroy();

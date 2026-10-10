@@ -1,20 +1,4 @@
-/*
- * Copyright 2026 hangtiancheng
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 #ifndef NS3_HYBRID_SIMULATOR_IMPL_H
 #define NS3_HYBRID_SIMULATOR_IMPL_H
 
@@ -34,12 +18,9 @@ class HybridSimulatorImpl : public SimulatorImpl {
 public:
   static TypeId GetTypeId(void);
 
-  /** Default constructor. */
   HybridSimulatorImpl();
-  /** Destructor. */
   ~HybridSimulatorImpl();
 
-  // virtual from SimulatorImpl
   virtual void Destroy();
   virtual bool IsFinished(void) const;
   virtual void Stop(void);
@@ -62,18 +43,16 @@ public:
   virtual uint64_t GetEventCount(void) const;
 
 private:
-  // Inherited from Object
   virtual void DoDispose(void);
 
   bool IsLocalFinished(void) const;
 
-  /** Are all parallel instances completed. */
   bool m_globalFinished;
 
   LbtsMessage *m_pLBTS;
-  uint32_t m_myId;        /**< MPI rank. */
-  uint32_t m_systemCount; /**< MPI communicator size. */
-  Time m_smallestTime;    /**< End of current window. */
+  uint32_t m_myId;
+  uint32_t m_systemCount;
+  Time m_smallestTime;
 
   void Partition();
 
@@ -85,4 +64,4 @@ private:
 
 } // namespace ns3
 
-#endif /* NS3_HYBRID_SIMULATOR_IMPL_H */
+#endif

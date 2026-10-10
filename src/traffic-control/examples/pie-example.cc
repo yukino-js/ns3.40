@@ -1,35 +1,4 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Shravya Ks <shravya.ks0@gmail.com>
- *          Smriti Murali <m.smriti.95@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
-/** Network topology
- *
- *    10Mb/s, 2ms                            10Mb/s, 4ms
- * n0--------------|                    |---------------n4
- *                 |    1.5Mbps, 20ms   |
- *                 n2------------------n3
- *    10Mb/s, 3ms  |  QueueLimit = 100  |    10Mb/s, 5ms
- * n1--------------|                    |---------------n5
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -46,7 +15,6 @@ NS_LOG_COMPONENT_DEFINE("PieExample");
 uint32_t checkTimes;
 double avgQueueDiscSize;
 
-// The times
 double global_start_time;
 double global_stop_time;
 double sink_start_time;
@@ -75,7 +43,6 @@ void CheckQueueDiscSize(Ptr<QueueDisc> queue) {
   avgQueueDiscSize += qSize;
   checkTimes++;
 
-  // check queue disc size every 1/100 of a second
   Simulator::Schedule(Seconds(0.01), &CheckQueueDiscSize, queue);
 
   std::ofstream fPlotQueueDisc(filePlotQueueDisc.str(),
@@ -91,7 +58,6 @@ void CheckQueueDiscSize(Ptr<QueueDisc> queue) {
 }
 
 void BuildAppsTest() {
-  // SINK is in the right side
   uint16_t port = 50000;
   Address sinkLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
   PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
@@ -99,12 +65,6 @@ void BuildAppsTest() {
   sinkApp.Start(Seconds(sink_start_time));
   sinkApp.Stop(Seconds(sink_stop_time));
 
-  // Connection one
-  // Clients are in left side
-  /*
-   * Create the OnOff applications to send TCP to the server
-   * onoffhelper is a client that send data to TCP destination
-   */
   OnOffHelper clientHelper1("ns3::TcpSocketFactory", Address());
   clientHelper1.SetAttribute(
       "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -113,7 +73,6 @@ void BuildAppsTest() {
   clientHelper1.SetAttribute("PacketSize", UintegerValue(1000));
   clientHelper1.SetAttribute("DataRate", DataRateValue(DataRate("10Mb/s")));
 
-  // Connection two
   OnOffHelper clientHelper2("ns3::TcpSocketFactory", Address());
   clientHelper2.SetAttribute(
       "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -156,9 +115,7 @@ int main(int argc, char *argv[]) {
   sink_stop_time = global_stop_time + 3.0;
   client_stop_time = global_stop_time - 2.0;
 
-  // Configuration and command line parameter parsing
-  // Will only save in the directory if enable opts below
-  pathOut = "."; // Current directory
+  pathOut = ".";
   CommandLine cmd(__FILE__);
   cmd.AddValue(
       "pathOut",
@@ -190,14 +147,12 @@ int main(int argc, char *argv[]) {
 
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      StringValue("ns3::TcpNewReno"));
-  // 42 = headers size
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1000 - 42));
   Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1));
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(false));
 
   uint32_t meanPktSize = 1000;
 
-  // PIE params
   NS_LOG_INFO("Set PIE params");
   Config::SetDefault("ns3::PieQueueDisc::MaxSize", StringValue("100p"));
   Config::SetDefault("ns3::PieQueueDisc::MeanPktSize",
@@ -248,7 +203,6 @@ int main(int argc, char *argv[]) {
   p2p.SetDeviceAttribute("DataRate", StringValue(pieLinkDataRate));
   p2p.SetChannelAttribute("Delay", StringValue(pieLinkDelay));
   devn2n3 = p2p.Install(n2n3);
-  // only backbone link has PIE queue disc
   queueDiscs = tchPie.Install(devn2n3);
 
   p2p.SetQueue("ns3::DropTailQueue");
@@ -281,7 +235,6 @@ int main(int argc, char *argv[]) {
   ipv4.SetBase("10.1.5.0", "255.255.255.0");
   i3i5 = ipv4.Assign(devn3n5);
 
-  // Set up the routing
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
   BuildAppsTest();

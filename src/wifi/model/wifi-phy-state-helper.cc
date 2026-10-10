@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "wifi-phy-state-helper.h"
 
@@ -283,9 +265,6 @@ void WifiPhyStateHelper::SwitchToTx(Time txDuration, WifiConstPsduMap psdus,
   Time now = Simulator::Now();
   switch (GetState()) {
   case WifiPhyState::RX:
-    /* The packet which is being received as well
-     * as its endRx event are cancelled by the caller.
-     */
     m_stateLogger(m_startRx, now - m_startRx, WifiPhyState::RX);
     m_endRx = now;
     break;
@@ -331,9 +310,6 @@ void WifiPhyStateHelper::SwitchToChannelSwitching(Time switchingDuration) {
   Time now = Simulator::Now();
   switch (GetState()) {
   case WifiPhyState::RX:
-    /* The packet which is being received as well
-     * as its endRx event are cancelled by the caller.
-     */
     m_stateLogger(m_startRx, now - m_startRx, WifiPhyState::RX);
     m_endRx = now;
     break;
@@ -369,12 +345,10 @@ void WifiPhyStateHelper::NotifyRxPsduSucceeded(
     Ptr<const WifiPsdu> psdu, RxSignalInfo rxSignalInfo,
     const WifiTxVector &txVector, uint16_t staId,
     const std::vector<bool> &statusPerMpdu) {
-  NS_LOG_FUNCTION(this << *psdu << rxSignalInfo << txVector << staId
-                       << statusPerMpdu.size()
-                       << std::all_of(statusPerMpdu.begin(),
-                                      statusPerMpdu.end(), [](bool v) {
-                                        return v;
-                                      })); // returns true if all true
+  NS_LOG_FUNCTION(
+      this << *psdu << rxSignalInfo << txVector << staId << statusPerMpdu.size()
+           << std::all_of(statusPerMpdu.begin(), statusPerMpdu.end(),
+                          [](bool v) { return v; }));
   NS_ASSERT(!statusPerMpdu.empty());
   if (!m_rxOkTrace.IsEmpty()) {
     m_rxOkTrace(psdu->GetPacket(), rxSignalInfo.snr, txVector.GetMode(staId),
@@ -428,8 +402,6 @@ void WifiPhyStateHelper::SwitchMaybeToCcaBusy(
   }
   NotifyCcaBusyStart(duration, channelType, per20MhzDurations);
   if (channelType != WIFI_CHANLIST_PRIMARY) {
-    // WifiPhyStateHelper only updates CCA start and end durations for the
-    // primary channel
     return;
   }
   Time now = Simulator::Now();
@@ -474,8 +446,7 @@ void WifiPhyStateHelper::SwitchFromSleep() {
 
 void WifiPhyStateHelper::SwitchFromRxAbort(uint16_t operatingWidth) {
   NS_LOG_FUNCTION(this << operatingWidth);
-  NS_ASSERT(IsStateCcaBusy()); // abort is called (with OBSS_PD_CCA_RESET
-                               // reason) before RX is set by payload start
+  NS_ASSERT(IsStateCcaBusy());
   NotifyRxEndOk();
   DoSwitchFromRx();
   m_endCcaBusy = Simulator::Now();
@@ -493,16 +464,10 @@ void WifiPhyStateHelper::SwitchToOff() {
   Time now = Simulator::Now();
   switch (GetState()) {
   case WifiPhyState::RX:
-    /* The packet which is being received as well
-     * as its endRx event are cancelled by the caller.
-     */
     m_stateLogger(m_startRx, now - m_startRx, WifiPhyState::RX);
     m_endRx = now;
     break;
   case WifiPhyState::TX:
-    /* The packet which is being transmitted as well
-     * as its endTx event are cancelled by the caller.
-     */
     m_stateLogger(m_startTx, now - m_startTx, WifiPhyState::TX);
     m_endTx = now;
     break;

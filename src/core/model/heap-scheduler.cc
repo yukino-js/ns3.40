@@ -1,35 +1,9 @@
-/*
- * Copyright (c) 2006 INRIA
- * Copyright (c) 2005 Mathieu Lacage
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *
- */
 
 #include "heap-scheduler.h"
 
 #include "assert.h"
 #include "event-impl.h"
 #include "log.h"
-
-/**
- * \file
- * \ingroup scheduler
- * Implementation of ns3::HeapScheduler class.
- */
 
 namespace ns3 {
 
@@ -47,9 +21,6 @@ TypeId HeapScheduler::GetTypeId() {
 
 HeapScheduler::HeapScheduler() {
   NS_LOG_FUNCTION(this);
-  // we purposely waste an item at the start of
-  // the array to make sure the indexes in the
-  // array start at one.
   Scheduler::Event empty = {nullptr, {0, 0}};
   m_heap.push_back(empty);
 }

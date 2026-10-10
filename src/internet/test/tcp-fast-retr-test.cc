@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
 
@@ -27,24 +10,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpFastRetrTest");
 
-/**
- * \ingroup internet-test
- *
- * \brief Test the fast retransmission
- *
- * Checking what is happening is not so easy, so there are a lot of variables
- * which helps to keep track on what is happening.
- * The idea is following sequence and ack numbers which are exchanged,
- * testing if they are the same as the implementation transmits.
- */
 class TcpFastRetrTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor
-   * \param congControl Type of congestion control.
-   * \param seqToKill Sequence number of the packet to drop.
-   * \param msg Test message.
-   */
   TcpFastRetrTest(TypeId congControl, uint32_t seqToKill,
                   const std::string &msg);
 
@@ -70,12 +37,6 @@ protected:
   void AfterRTOExpired(const Ptr<const TcpSocketState> tcb,
                        SocketWho who) override;
 
-  /**
-   * \brief Check if the packet being dropped is the right one.
-   * \param ipH IPv4 header.
-   * \param tcpH TCP header.
-   * \param p The packet.
-   */
   void PktDropped(const Ipv4Header &ipH, const TcpHeader &tcpH,
                   Ptr<const Packet> p);
   void FinalChecks() override;
@@ -83,20 +44,20 @@ protected:
   void ConfigureProperties() override;
   void ConfigureEnvironment() override;
 
-  bool m_pktDropped;    //!< The packet has been dropped.
-  bool m_pktWasDropped; //!< The packet was dropped (according to the receiver).
-  uint32_t m_seqToKill; //!< Sequence number to drop.
-  uint32_t m_dupAckReceived; //!< DipACk received.
+  bool m_pktDropped;
+  bool m_pktWasDropped;
+  uint32_t m_seqToKill;
+  uint32_t m_dupAckReceived;
 
-  SequenceNumber32 m_previousAck;   //!< Previous ACK received.
-  SequenceNumber32 m_sndNextExpSeq; //!< Sender next expected sequence number.
-  SequenceNumber32 m_rcvNextExpAck; //!< Receiver next expected sequence number.
+  SequenceNumber32 m_previousAck;
+  SequenceNumber32 m_sndNextExpSeq;
+  SequenceNumber32 m_rcvNextExpAck;
 
-  uint32_t m_countRetr; //!< Retry counter.
+  uint32_t m_countRetr;
 
-  uint32_t m_bytesRcvButNotAcked; //!< Number of bytes received but not acked.
+  uint32_t m_bytesRcvButNotAcked;
 
-  Ptr<TcpSeqErrorModel> m_errorModel; //!< Error model.
+  Ptr<TcpSeqErrorModel> m_errorModel;
 };
 
 TcpFastRetrTest::TcpFastRetrTest(TypeId typeId, uint32_t seqToKill,
@@ -138,12 +99,10 @@ Ptr<TcpSocketMsgBase> TcpFastRetrTest::CreateSenderSocket(Ptr<Node> node) {
 void TcpFastRetrTest::Rx(const Ptr<const Packet> p, const TcpHeader &h,
                          SocketWho who) {
   if (who == SENDER) {
-    // Nothing to check
     NS_LOG_INFO("\tSENDER Rx " << h);
   } else if (who == RECEIVER) {
     NS_LOG_INFO("\tRECEIVER Rx " << h);
 
-    // Receiver has received the missing segment
     if (h.GetSequenceNumber().GetValue() == m_seqToKill) {
       m_pktDropped = false;
       if (m_bytesRcvButNotAcked > 0) {
@@ -152,7 +111,6 @@ void TcpFastRetrTest::Rx(const Ptr<const Packet> p, const TcpHeader &h,
       }
     }
 
-    // Count all the received bytes not acked
     if (m_pktDropped) {
       m_bytesRcvButNotAcked += GetSegSize(SENDER);
     }
@@ -165,12 +123,10 @@ void TcpFastRetrTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
     NS_LOG_INFO("\tSENDER Tx " << h << " size=" << p->GetSize());
 
     if (h.GetSequenceNumber().GetValue() == m_seqToKill && m_pktDropped) {
-      // Spotted the retransmission!
       m_countRetr++;
       NS_TEST_ASSERT_MSG_EQ(m_countRetr, 1,
                             "Segment retransmitted too many times");
     } else {
-      // No delayed ACK involved here.
       while (h.GetSequenceNumber() < m_sndNextExpSeq) {
         m_sndNextExpSeq -= GetSegSize(SENDER);
       }
@@ -182,13 +138,10 @@ void TcpFastRetrTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
     }
 
     if (m_sndNextExpSeq.GetValue() == 0) {
-      // SYN
       m_sndNextExpSeq = SequenceNumber32(1);
     } else if (m_sndNextExpSeq.GetValue() == 1 && p->GetSize() == 32) {
-      // Pure ACK in three-way handshake, then we expect data
       m_sndNextExpSeq = SequenceNumber32(1);
     } else {
-      // Data segments
       m_sndNextExpSeq += GetSegSize(SENDER);
     }
   } else if (who == RECEIVER) {
@@ -206,7 +159,6 @@ void TcpFastRetrTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
                             "Check this test");
     }
 
-    // Accounted for delayed ACK, but not received.
     while (h.GetAckNumber() < m_rcvNextExpAck) {
       m_rcvNextExpAck -= GetSegSize(SENDER);
     }
@@ -349,11 +301,6 @@ void TcpFastRetrTest::FinalChecks() {
                         "Not all data have been transmitted");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testsuite for the fast retransmission
- */
 class TcpFastRetrTestSuite : public TestSuite {
 public:
   TcpFastRetrTestSuite() : TestSuite("tcp-fast-retr-test", UNIT) {
@@ -368,5 +315,4 @@ public:
   }
 };
 
-static TcpFastRetrTestSuite
-    g_TcpFastRetrTestSuite; //!< Static variable for test initialization
+static TcpFastRetrTestSuite g_TcpFastRetrTestSuite;

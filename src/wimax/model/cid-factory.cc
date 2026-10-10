@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "cid-factory.h"
 
@@ -28,9 +8,7 @@
 namespace ns3 {
 
 CidFactory::CidFactory()
-    : m_m(0x5500),
-      // this is an arbitrary default
-      m_basicIdentifier(1), m_primaryIdentifier(m_m + 1),
+    : m_m(0x5500), m_basicIdentifier(1), m_primaryIdentifier(m_m + 1),
       m_transportOrSecondaryIdentifier(2 * m_m + 1),
       m_multicastPollingIdentifier(0xff00) {}
 
@@ -76,7 +54,7 @@ Cid CidFactory::Allocate(Cid::Type type) {
     return Cid::Padding();
   default:
     NS_FATAL_ERROR("Cannot be reached");
-    return 0; // quiet compiler
+    return 0;
   }
 }
 
@@ -96,7 +74,6 @@ bool CidFactory::IsBasic(Cid cid) const {
 }
 
 void CidFactory::FreeCid(Cid cid) {
-  /// \todo We need to update the cid bitmap properly here.
   NS_FATAL_ERROR("TODO: Update the cid bitmap properly here-- please implement "
                  "and contribute a patch");
 }

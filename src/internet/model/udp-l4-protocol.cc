@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "udp-l4-protocol.h"
 
@@ -46,7 +28,6 @@ NS_LOG_COMPONENT_DEFINE("UdpL4Protocol");
 
 NS_OBJECT_ENSURE_REGISTERED(UdpL4Protocol);
 
-/* see http://www.iana.org/assignments/protocol-numbers */
 const uint8_t UdpL4Protocol::PROT_NUMBER = 17;
 
 TypeId UdpL4Protocol::GetTypeId() {
@@ -76,11 +57,6 @@ UdpL4Protocol::~UdpL4Protocol() { NS_LOG_FUNCTION(this); }
 
 void UdpL4Protocol::SetNode(Ptr<Node> node) { m_node = node; }
 
-/*
- * This method is called by AggregateObject and completes the aggregation
- * by setting the node in the udp stack and link it to the ipv4 object
- * present in the node along with the socket factory
- */
 void UdpL4Protocol::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
   Ptr<Node> node = this->GetObject<Node>();
@@ -96,11 +72,6 @@ void UdpL4Protocol::NotifyNewAggregate() {
       node->AggregateObject(udpFactory);
     }
   }
-
-  // We set at least one of our 2 down targets to the IPv4/IPv6 send
-  // functions.  Since these functions have different prototypes, we
-  // need to keep track of whether we are connected to an IPv4 or
-  // IPv6 lower layer and call the appropriate one.
 
   if (ipv4 && m_downTarget.IsNull()) {
     ipv4->Insert(this);
@@ -133,10 +104,6 @@ void UdpL4Protocol::DoDispose() {
   m_node = nullptr;
   m_downTarget.Nullify();
   m_downTarget6.Nullify();
-  /*
-   = MakeNullCallback<void,Ptr<Packet>, Ipv4Address, Ipv4Address, uint8_t,
-   Ptr<Ipv4Route> > ();
-  */
   IpL4Protocol::DoDispose();
 }
 
@@ -286,12 +253,6 @@ IpL4Protocol::RxStatus UdpL4Protocol::Receive(Ptr<Packet> packet,
 
   udpHeader.InitializeChecksum(header.GetSource(), header.GetDestination(),
                                PROT_NUMBER);
-
-  // We only peek at the header for now (instead of removing it) so that it will
-  // be intact if we have to pass it to a IPv6 endpoint via:
-  //
-  //   UdpL4Protocol::Receive (Ptr<Packet> packet, Ipv6Address &src, Ipv6Address
-  //   &dst, ...)
 
   packet->PeekHeader(udpHeader);
 

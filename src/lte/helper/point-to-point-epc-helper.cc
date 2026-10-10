@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011-2019 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- *         Manuel Requena <manuel.requena@cttc.es>
- *         (most of the code refactored to no-backhaul-epc-helper.cc)
- */
 
 #include "point-to-point-epc-helper.h"
 
@@ -36,12 +14,8 @@ NS_OBJECT_ENSURE_REGISTERED(PointToPointEpcHelper);
 
 PointToPointEpcHelper::PointToPointEpcHelper() : NoBackhaulEpcHelper() {
   NS_LOG_FUNCTION(this);
-  // To access the attribute value within the constructor
   ObjectBase::ConstructSelf(AttributeConstructionList());
 
-  // since we use point-to-point links for the backhaul links,
-  // we use a /30 subnet which can hold exactly two addresses
-  // (remember that net broadcast and null address are not valid)
   m_s1uIpv4AddressHelper.SetBase("10.0.0.0", "255.255.255.252");
   m_s1apIpv4AddressHelper.SetBase("11.0.0.0", "255.255.255.252");
 }
@@ -104,8 +78,6 @@ void PointToPointEpcHelper::AddEnb(Ptr<Node> enb,
 
   NoBackhaulEpcHelper::AddEnb(enb, lteEnbNetDevice, cellIds);
 
-  // create a point to point link between the eNB and the SGW with
-  // the corresponding new NetDevices on each side
   Ptr<Node> sgw = GetSgwNode();
 
   PointToPointHelper p2ph;

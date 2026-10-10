@@ -1,74 +1,9 @@
 # -*-  Mode: Python; -*-
-# /*
-#  * Copyright (c) 2005,2006,2007 INRIA
-#  * Copyright (c) 2009 INESC Porto
-#  *
-#  * This program is free software; you can redistribute it and/or modify
-#  * it under the terms of the GNU General Public License version 2 as
-#  * published by the Free Software Foundation;
-#  *
-#  * This program is distributed in the hope that it will be useful,
-#  * but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  * GNU General Public License for more details.
-#  *
-#  * You should have received a copy of the GNU General Public License
-#  * along with this program; if not, write to the Free Software
-#  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#  *
-#  * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
-#  *          Gustavo Carneiro <gjc@inescporto.pt>
-#  */
 
 import sys
 
 from ns import ns
 
-# void
-# DevTxTrace (std::string context, Ptr<const Packet> p, Mac48Address address)
-# {
-#   std::cout << " TX to=" << address << " p: " << *p << std::endl;
-# }
-# void
-# DevRxTrace(std::string context, Ptr<const Packet> p, Mac48Address address)
-# {
-#   std::cout << " RX from=" << address << " p: " << *p << std::endl;
-# }
-# void
-# PhyRxOkTrace(std::string context, Ptr<const Packet> packet, double snr, WifiMode mode, enum WifiPreamble preamble)
-# {
-#   std::cout << "PHYRXOK mode=" << mode << " snr=" << snr << " " << *packet << std::endl;
-# }
-# void
-# PhyRxErrorTrace(std::string context, Ptr<const Packet> packet, double snr)
-# {
-#   std::cout << "PHYRXERROR snr=" << snr << " " << *packet << std::endl;
-# }
-# void
-# PhyTxTrace(std::string context, Ptr<const Packet> packet, WifiMode mode, WifiPreamble preamble, uint8_t txPower)
-# {
-#   std::cout << "PHYTX mode=" << mode << " " << *packet << std::endl;
-# }
-# void
-# PhyStateTrace(std::string context, Time start, Time duration, enum WifiPhy::State state)
-# {
-#   std::cout << " state=";
-#   switch(state) {
-#   case WifiPhy::TX:
-#     std::cout << "tx      ";
-#     break;
-#   case WifiPhy::SYNC:
-#     std::cout << "sync    ";
-#     break;
-#   case WifiPhy::CCA_BUSY:
-#     std::cout << "cca-busy";
-#     break;
-#   case WifiPhy::IDLE:
-#     std::cout << "idle    ";
-#     break;
-#   }
-#   std::cout << " start="<<start<<" duration="<<duration<<std::endl;
-# }
 
 ns.cppyy.cppdef("""
     using namespace ns3;
@@ -92,13 +27,11 @@ def main(argv):
     mobility = ns.mobility.MobilityHelper()
     stas = ns.network.NodeContainer()
     ap = ns.network.NodeContainer()
-    # NetDeviceContainer staDevs;
     packetSocket = ns.network.PacketSocketHelper()
 
     stas.Create(2)
     ap.Create(1)
 
-    # give packet socket powers to nodes.
     packetSocket.Install(stas)
     packetSocket.Install(ap)
 
@@ -109,7 +42,6 @@ def main(argv):
     ssid = ns.wifi.Ssid("wifi-default")
     wifiMac = ns.wifi.WifiMacHelper()
 
-    # setup stas.
     wifiMac.SetType(
         "ns3::StaWifiMac",
         "ActiveProbing",
@@ -118,11 +50,9 @@ def main(argv):
         ns.wifi.SsidValue(ssid),
     )
     staDevs = wifi.Install(wifiPhy, wifiMac, stas)
-    # setup ap.
     wifiMac.SetType("ns3::ApWifiMac", "Ssid", ns.wifi.SsidValue(ssid))
     wifi.Install(wifiPhy, wifiMac, ap)
 
-    # mobility.
     mobility.Install(stas)
     mobility.Install(ap)
 
@@ -143,13 +73,6 @@ def main(argv):
     apps.Stop(ns.core.Seconds(43.0))
 
     ns.core.Simulator.Stop(ns.core.Seconds(44.0))
-
-    #   Config::Connect("/NodeList/*/DeviceList/*/Tx", MakeCallback(&DevTxTrace));
-    #   Config::Connect("/NodeList/*/DeviceList/*/Rx", MakeCallback(&DevRxTrace));
-    #   Config::Connect("/NodeList/*/DeviceList/*/Phy/RxOk", MakeCallback(&PhyRxOkTrace));
-    #   Config::Connect("/NodeList/*/DeviceList/*/Phy/RxError", MakeCallback(&PhyRxErrorTrace));
-    #   Config::Connect("/NodeList/*/DeviceList/*/Phy/Tx", MakeCallback(&PhyTxTrace));
-    #   Config::Connect("/NodeList/*/DeviceList/*/Phy/State", MakeCallback(&PhyStateTrace));
 
     ns.core.Simulator.Run()
     ns.core.Simulator.Destroy()

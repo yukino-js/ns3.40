@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- */
 
 #include "burst-profile-manager.h"
 
@@ -49,12 +31,7 @@ BurstProfileManager::~BurstProfileManager() { m_device = nullptr; }
 
 void BurstProfileManager::DoDispose() { m_device = nullptr; }
 
-uint16_t BurstProfileManager::GetNrBurstProfilesToDefine() {
-  /*
-   * 7 modulation types
-   */
-  return 7;
-}
+uint16_t BurstProfileManager::GetNrBurstProfilesToDefine() { return 7; }
 
 WimaxPhy::ModulationType BurstProfileManager::GetModulationType(
     uint8_t iuc, WimaxNetDevice::Direction direction) const {
@@ -78,8 +55,6 @@ WimaxPhy::ModulationType BurstProfileManager::GetModulationType(
     }
   }
 
-  // burst profile got to be there in DCD/UCD, assuming always all profiles are
-  // defined in DCD/UCD
   NS_FATAL_ERROR("burst profile got to be there in DCD/UCD");
 
   return (WimaxPhy::ModulationType)-1;
@@ -108,8 +83,6 @@ uint8_t BurstProfileManager::GetBurstProfile(
     }
   }
 
-  // burst profile got to be there in DCD/UCD, assuming always all profiles are
-  // defined in DCD/UCD
   NS_FATAL_ERROR("burst profile got to be there in DCD/UCD");
 
   return ~0;
@@ -118,10 +91,6 @@ uint8_t BurstProfileManager::GetBurstProfile(
 uint8_t BurstProfileManager::GetBurstProfileForSS(
     const SSRecord *ssRecord, const RngReq *rngreq,
     WimaxPhy::ModulationType &modulationType) const {
-  /*during initial ranging or periodic ranging (or when RNG-REQ is used instead
-   of DBPC) calculates the least robust burst profile for SS, e.g., based on
-   distance, power, signal etc, temporarily choosing same burst profile SS
-   requested in RNG-REQ*/
 
   modulationType = GetModulationTypeForSS(ssRecord, rngreq);
   return GetBurstProfile(modulationType, WimaxNetDevice::DIRECTION_DOWNLINK);
@@ -135,8 +104,6 @@ BurstProfileManager::GetModulationTypeForSS(const SSRecord *ssRecord,
 }
 
 uint8_t BurstProfileManager::GetBurstProfileToRequest() {
-  /*modulation type is currently set by user in simulation script, shall
-   actually be determined based on SS's distance, power, signal etc*/
 
   return GetBurstProfile(
       m_device->GetObject<SubscriberStationNetDevice>()->GetModulationType(),

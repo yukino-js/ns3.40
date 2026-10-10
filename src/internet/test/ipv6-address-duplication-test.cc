@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/icmpv6-l4-protocol.h"
@@ -42,11 +24,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 Duplicate Address Detection Test
- */
 class Ipv6DadTest : public TestCase {
 public:
   void DoRun() override;
@@ -56,7 +33,6 @@ public:
 Ipv6DadTest::Ipv6DadTest() : TestCase("IPv6 Duplicate Address Detection") {}
 
 void Ipv6DadTest::DoRun() {
-  // Create topology
 
   Ptr<Node> Node1 = CreateObject<Node>();
   Ptr<Node> Node2 = CreateObject<Node>();
@@ -107,11 +83,6 @@ void Ipv6DadTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 Duplicate Address Detection TestSuite
- */
 class Ipv6DadTestSuite : public TestSuite {
 public:
   Ipv6DadTestSuite() : TestSuite("ipv6-duplicate-address-detection", UNIT) {
@@ -119,5 +90,4 @@ public:
   }
 };
 
-static Ipv6DadTestSuite
-    g_ipv6dadTestSuite; //!< Static variable for test initialization
+static Ipv6DadTestSuite g_ipv6dadTestSuite;

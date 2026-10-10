@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 Phillip Sitbon
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Phillip Sitbon <phillip@sitbon.net>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/config.h"
@@ -25,18 +7,8 @@
 
 using namespace ns3;
 
-/**
- * \ingroup mobility-test
- *
- * \brief Waypoint Mobility Model Notify Test
- */
 class WaypointMobilityModelNotifyTest : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param lazy lazy?
-   */
   WaypointMobilityModelNotifyTest(bool lazy)
       : TestCase(
             lazy ? "Check Waypoint Mobility Model LAZY notification accuracy"
@@ -47,20 +19,16 @@ public:
   ~WaypointMobilityModelNotifyTest() override {}
 
 private:
-  std::vector<Ptr<MobilityModel>> mobilityStack; ///< mobilty model
-  uint32_t mobilityCount;                        ///< mobility count
-  uint32_t waypointCount;                        ///< waypoint count
-  std::deque<Waypoint> waypoints;                ///< waypoints
-  bool lazyNotify;                               ///< lazy notify?
+  std::vector<Ptr<MobilityModel>> mobilityStack;
+  uint32_t mobilityCount;
+  uint32_t waypointCount;
+  std::deque<Waypoint> waypoints;
+  bool lazyNotify;
+
 private:
   void DoRun() override;
   void DoTeardown() override;
-  /// Force updates
   void ForceUpdates();
-  /**
-   * Course change callback
-   * \param model the mobility model
-   */
   void CourseChangeCallback(Ptr<const MobilityModel> model);
 };
 
@@ -77,26 +45,21 @@ void WaypointMobilityModelNotifyTest::DoRun() {
   mobilityFactory.SetTypeId("ns3::WaypointMobilityModel");
   mobilityFactory.Set("LazyNotify", BooleanValue(lazyNotify));
 
-  // Populate the vector of mobility models.
   for (uint32_t i = 0; i < mobilityCount; i++) {
-    // Create a new mobility model.
     Ptr<MobilityModel> model =
         mobilityFactory.Create()->GetObject<MobilityModel>();
 
-    // Add this mobility model to the stack.
     mobilityStack.push_back(model);
     Simulator::Schedule(Seconds(0.0), &Object::Initialize, model);
   }
 
   Waypoint wpt(Seconds(0.0), Vector(0.0, 0.0, 0.0));
 
-  // Create waypoints
   for (uint32_t iw = 0; iw < waypointCount; ++iw) {
     wpt.time += Seconds(1.0);
     waypoints.push_back(wpt);
   }
 
-  // Add the same waypoints to each node
   for (auto i = mobilityStack.begin(); i != mobilityStack.end(); ++i) {
     Ptr<WaypointMobilityModel> mob = (*i)->GetObject<WaypointMobilityModel>();
     mob->TraceConnectWithoutContext(
@@ -109,8 +72,6 @@ void WaypointMobilityModelNotifyTest::DoRun() {
     }
   }
 
-  // Schedule updates at non-waypoint times to make sure lazy notifications
-  // don't happen
   for (double updateTime = 0.5; updateTime <= ((double)waypointCount + 1.5);
        updateTime += 1.0) {
     Simulator::Schedule(Seconds(updateTime),
@@ -140,23 +101,16 @@ void WaypointMobilityModelNotifyTest::CourseChangeCallback(
                         "Waypoint time not properly updated");
 
   if (!lazyNotify) {
-    // All waypoints are on second boundaries only
     NS_TEST_EXPECT_MSG_EQ(sec - ((double)((int)sec)) + sec, sec,
                           "Course didn't change on one second time boundary "
                           "with NON-LAZY notifications");
   } else {
-    // Updates should happen at the times they are forced, in between waypoints.
     NS_TEST_EXPECT_MSG_EQ(
         sec - ((double)((int)sec)), 0.5,
         "Course didn't change between waypoints with LAZY notifications");
   }
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Waypoint Mobility Model Add Waypoint Test
- */
 class WaypointMobilityModelAddWaypointTest : public TestCase {
 public:
   WaypointMobilityModelAddWaypointTest()
@@ -165,17 +119,14 @@ public:
   ~WaypointMobilityModelAddWaypointTest() override {}
 
 private:
-  Ptr<MobilityModel> m_mobilityModel; ///< mobility model
-  uint32_t m_waypointCount;           ///< waypoint count
-  uint32_t m_waypointCounter;         ///< waypoint counter
-  Waypoint m_nextWaypoint;            ///< next waypoint
+  Ptr<MobilityModel> m_mobilityModel;
+  uint32_t m_waypointCount;
+  uint32_t m_waypointCounter;
+  Waypoint m_nextWaypoint;
+
 private:
   void DoRun() override;
   void DoTeardown() override;
-  /**
-   * Course change callback
-   * \param model the mobility model
-   */
   void CourseChangeCallback(Ptr<const MobilityModel> model);
 };
 
@@ -191,14 +142,12 @@ void WaypointMobilityModelAddWaypointTest::DoRun() {
   mobilityFactory.SetTypeId("ns3::WaypointMobilityModel");
   mobilityFactory.Set("LazyNotify", BooleanValue(false));
 
-  // Create a new mobility model.
   m_mobilityModel = mobilityFactory.Create()->GetObject<MobilityModel>();
   m_mobilityModel->TraceConnectWithoutContext(
       "CourseChange",
       MakeCallback(&WaypointMobilityModelAddWaypointTest::CourseChangeCallback,
                    this));
 
-  // Add this mobility model to the stack.
   Simulator::Schedule(Seconds(0.0), &Object::Initialize, m_mobilityModel);
 
   Ptr<WaypointMobilityModel> mob =
@@ -230,11 +179,6 @@ void WaypointMobilityModelAddWaypointTest::CourseChangeCallback(
   }
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Waypoint Mobility Model Test Suite
- */
 static struct WaypointMobilityModelTestSuite : public TestSuite {
   WaypointMobilityModelTestSuite()
       : TestSuite("waypoint-mobility-model", UNIT) {
@@ -242,4 +186,4 @@ static struct WaypointMobilityModelTestSuite : public TestSuite {
     AddTestCase(new WaypointMobilityModelNotifyTest(false), TestCase::QUICK);
     AddTestCase(new WaypointMobilityModelAddWaypointTest(), TestCase::QUICK);
   }
-} g_waypointMobilityModelTestSuite; ///< the test suite
+} g_waypointMobilityModelTestSuite;

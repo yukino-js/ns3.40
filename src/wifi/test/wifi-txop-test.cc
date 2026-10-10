@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "ns3/ap-wifi-mac.h"
 #include "ns3/boolean.h"
@@ -40,65 +22,35 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test TXOP rules
- *
- *
- */
 class WifiTxopTest : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param pifsRecovery whether PIFS recovery is used after failure of a
-   * non-initial frame
-   */
   WifiTxopTest(bool pifsRecovery);
   ~WifiTxopTest() override;
 
-  /**
-   * Function to trace packets received by the server application
-   * \param context the context
-   * \param p the packet
-   * \param addr the address
-   */
   void L7Receive(std::string context, Ptr<const Packet> p, const Address &addr);
-  /**
-   * Callback invoked when PHY receives a PSDU to transmit
-   * \param context the context
-   * \param psduMap the PSDU map
-   * \param txVector the TX vector
-   * \param txPowerW the tx power in Watts
-   */
   void Transmit(std::string context, WifiConstPsduMap psduMap,
                 WifiTxVector txVector, double txPowerW);
-  /**
-   * Check correctness of transmitted frames
-   */
   void CheckResults();
 
 private:
   void DoRun() override;
 
-  /// Information about transmitted frames
   struct FrameInfo {
-    Time txStart;          ///< Frame start TX time
-    Time txDuration;       ///< Frame TX duration
-    WifiMacHeader header;  ///< Frame MAC header
-    WifiTxVector txVector; ///< TX vector used to transmit the frame
+    Time txStart;
+    Time txDuration;
+    WifiMacHeader header;
+    WifiTxVector txVector;
   };
 
-  uint16_t m_nStations;             ///< number of stations
-  NetDeviceContainer m_staDevices;  ///< container for stations' NetDevices
-  NetDeviceContainer m_apDevices;   ///< container for AP's NetDevice
-  std::vector<FrameInfo> m_txPsdus; ///< transmitted PSDUs
-  Time m_txopLimit;                 ///< TXOP limit
-  uint8_t m_aifsn;                  ///< AIFSN for BE
-  uint32_t m_cwMin;                 ///< CWmin for BE
-  uint16_t m_received; ///< number of packets received by the stations
-  bool m_pifsRecovery; ///< whether to use PIFS recovery
+  uint16_t m_nStations;
+  NetDeviceContainer m_staDevices;
+  NetDeviceContainer m_apDevices;
+  std::vector<FrameInfo> m_txPsdus;
+  Time m_txopLimit;
+  uint8_t m_aifsn;
+  uint32_t m_cwMin;
+  uint16_t m_received;
+  bool m_pifsRecovery;
 };
 
 WifiTxopTest::WifiTxopTest(bool pifsRecovery)
@@ -117,8 +69,6 @@ void WifiTxopTest::L7Receive(std::string context, Ptr<const Packet> p,
 
 void WifiTxopTest::Transmit(std::string context, WifiConstPsduMap psduMap,
                             WifiTxVector txVector, double txPowerW) {
-  // Log all transmitted frames that are not beacon frames and have been
-  // transmitted after 400ms (so as to skip association requests/responses)
   if (!psduMap.begin()->second->GetHeader(0).IsBeacon() &&
       Simulator::Now() > MilliSeconds(400)) {
     m_txPsdus.push_back(
@@ -127,8 +77,6 @@ void WifiTxopTest::Transmit(std::string context, WifiConstPsduMap psduMap,
          psduMap[SU_STA_ID]->GetHeader(0), txVector});
   }
 
-  // Print all the transmitted frames if the test is executed through
-  // test-runner
   std::cout << Simulator::Now() << " "
             << psduMap.begin()->second->GetHeader(0).GetTypeString() << " seq "
             << psduMap.begin()->second->GetHeader(0).GetSequenceNumber()
@@ -186,9 +134,6 @@ void WifiTxopTest::DoRun() {
 
   m_apDevices = wifi.Install(phy, mac, wifiApNode);
 
-  // schedule association requests at different times. One station's SSID is
-  // set to the correct value before initialization, so that such a station
-  // starts the scanning procedure by looking for the correct SSID
   Ptr<WifiNetDevice> dev = DynamicCast<WifiNetDevice>(m_staDevices.Get(0));
   dev->GetMac()->SetSsid(Ssid("wifi-txop-ssid"));
 
@@ -198,7 +143,6 @@ void WifiTxopTest::DoRun() {
                         dev->GetMac(), Ssid("wifi-txop-ssid"));
   }
 
-  // Assign fixed streams to random variables in use
   wifi.AssignStreams(m_apDevices, streamNumber);
 
   MobilityHelper mobility;
@@ -215,7 +159,6 @@ void WifiTxopTest::DoRun() {
   mobility.Install(wifiApNode);
   mobility.Install(wifiStaNodes);
 
-  // set the TXOP limit on BE AC
   dev = DynamicCast<WifiNetDevice>(m_apDevices.Get(0));
   PointerValue ptr;
   dev->GetMac()->GetAttribute("BE_Txop", ptr);
@@ -227,14 +170,12 @@ void WifiTxopTest::DoRun() {
   packetSocket.Install(wifiApNode);
   packetSocket.Install(wifiStaNodes);
 
-  // DL frames
   for (uint16_t i = 0; i < m_nStations; i++) {
     PacketSocketAddress socket;
     socket.SetSingleDevice(m_apDevices.Get(0)->GetIfIndex());
     socket.SetPhysicalAddress(m_staDevices.Get(i)->GetAddress());
     socket.SetProtocol(1);
 
-    // Send one QoS data frame (not protected by RTS/CTS) to each station
     Ptr<PacketSocketClient> client1 = CreateObject<PacketSocketClient>();
     client1->SetAttribute("PacketSize", UintegerValue(500));
     client1->SetAttribute("MaxPackets", UintegerValue(1));
@@ -244,7 +185,6 @@ void WifiTxopTest::DoRun() {
     client1->SetStartTime(MilliSeconds(410));
     client1->SetStopTime(Seconds(1.0));
 
-    // Send one QoS data frame (protected by RTS/CTS) to each station
     Ptr<PacketSocketClient> client2 = CreateObject<PacketSocketClient>();
     client2->SetAttribute("PacketSize", UintegerValue(2000));
     client2->SetAttribute("MaxPackets", UintegerValue(1));
@@ -261,21 +201,16 @@ void WifiTxopTest::DoRun() {
     server->SetStopTime(Seconds(1.0));
   }
 
-  // The AP does not correctly receive the Ack sent in response to the QoS
-  // data frame sent to the first station
   Ptr<ReceiveListErrorModel> apPem = CreateObject<ReceiveListErrorModel>();
   apPem->SetList({9});
   dev = DynamicCast<WifiNetDevice>(m_apDevices.Get(0));
   dev->GetMac()->GetWifiPhy()->SetPostReceptionErrorModel(apPem);
 
-  // The second station does not correctly receive the first QoS
-  // data frame sent by the AP
   Ptr<ReceiveListErrorModel> sta2Pem = CreateObject<ReceiveListErrorModel>();
   sta2Pem->SetList({24});
   dev = DynamicCast<WifiNetDevice>(m_staDevices.Get(1));
   dev->GetMac()->GetWifiPhy()->SetPostReceptionErrorModel(sta2Pem);
 
-  // UL Traffic (the first station sends one frame to the AP)
   {
     PacketSocketAddress socket;
     socket.SetSingleDevice(m_staDevices.Get(0)->GetIfIndex());
@@ -300,7 +235,6 @@ void WifiTxopTest::DoRun() {
 
   Config::Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSocketServer/Rx",
                   MakeCallback(&WifiTxopTest::L7Receive, this));
-  // Trace PSDUs passed to the PHY on all devices
   Config::Connect(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxPsduBegin",
       MakeCallback(&WifiTxopTest::Transmit, this));
@@ -314,52 +248,22 @@ void WifiTxopTest::DoRun() {
 }
 
 void WifiTxopTest::CheckResults() {
-  Time tEnd;                        // TX end for a frame
-  Time tStart;                      // TX start for the next frame
-  Time txopStart;                   // TXOP start time
-  Time tolerance = NanoSeconds(50); // due to propagation delay
+  Time tEnd;
+  Time tStart;
+  Time txopStart;
+  Time tolerance = NanoSeconds(50);
   Time sifs =
       DynamicCast<WifiNetDevice>(m_apDevices.Get(0))->GetPhy()->GetSifs();
   Time slot =
       DynamicCast<WifiNetDevice>(m_apDevices.Get(0))->GetPhy()->GetSlot();
   Time navEnd;
 
-  // lambda to round Duration/ID (in microseconds) up to the next higher integer
   auto RoundDurationId = [](Time t) {
     return MicroSeconds(ceil(static_cast<double>(t.GetNanoSeconds()) / 1000));
   };
 
-  /*
-   * Verify the different behavior followed when an initial/non-initial frame of
-   * a TXOP fails. Also, verify that a CF-end frame is sent if enough time
-   * remains in the TXOP. The destination of failed frames is put in square
-   * brackets below.
-   *
-   *          |---NAV-----till end TXOP--------->|
-   *          |      |----NAV--till end TXOP---->|
-   *          |      |
-   * |---------------------------NAV---------------------------------->| | | |
-   * |--------------------------NAV---------------------------->| |      | | |
-   * |------------------------NAV----------------------->| |      | |      | |
-   * |-------------NAV--------------->| Start|      |         Start|      | | |
-   * |----------NAV----------->| TXOP |      |         TXOP |      |      | Ack
-   * | |
-   * |-------NAV------->| |   |      |          |   |      |      | Timeout | |
-   * |
-   * |---NAV---->|
-   *      |---|  |---|-backoff->|---|  |---|  |---|   |-PIFS or->|---|  |---|
-   * |---|  |---|
-   * |-----| |QoS|  |Ack|          |QoS|  |Ack|  |QoS|   |-backoff->|QoS|  |Ack|
-   * |QoS|  |Ack| |CFend|
-   * ----------------------------------------------------------------------------------------------------
-   * From:  AP    STA1            AP    STA1    AP                 AP    STA2 AP
-   * STA3    AP To: STA1   [AP]           STA1    AP   [STA2]              STA2
-   * AP    STA3    AP     all
-   */
-
   NS_TEST_ASSERT_MSG_EQ(m_txPsdus.size(), 25, "Expected 25 transmitted frames");
 
-  // the first frame sent after 400ms is a QoS data frame sent by the AP to STA1
   txopStart = m_txPsdus[0].txStart;
 
   NS_TEST_ASSERT_MSG_EQ(m_txPsdus[0].header.IsQosData(), true,
@@ -373,7 +277,6 @@ void WifiTxopTest::CheckResults() {
       RoundDurationId(m_txopLimit - m_txPsdus[0].txDuration),
       "Duration/ID of the first frame must cover the whole TXOP");
 
-  // a Normal Ack is sent by STA1
   tEnd = m_txPsdus[0].txStart + m_txPsdus[0].txDuration;
   tStart = m_txPsdus[1].txStart;
 
@@ -393,9 +296,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[1].txDuration),
       "Duration/ID of the Ack must be derived from that of the first frame");
 
-  // the AP receives a corrupted Ack in response to the frame it sent, which is
-  // the initial frame of a TXOP. Hence, the TXOP is terminated and the AP
-  // retransmits the frame after invoking the backoff
   txopStart = m_txPsdus[2].txStart;
 
   tEnd = m_txPsdus[1].txStart + m_txPsdus[1].txDuration;
@@ -418,7 +318,6 @@ void WifiTxopTest::CheckResults() {
       RoundDurationId(m_txopLimit - m_txPsdus[2].txDuration),
       "Duration/ID of the retransmitted frame must cover the whole TXOP");
 
-  // a Normal Ack is then sent by STA1
   tEnd = m_txPsdus[2].txStart + m_txPsdus[2].txDuration;
   tStart = m_txPsdus[3].txStart;
 
@@ -438,7 +337,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[3].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // the AP sends a frame to STA2
   tEnd = m_txPsdus[3].txStart + m_txPsdus[3].txDuration;
   tStart = m_txPsdus[4].txStart;
 
@@ -457,13 +355,8 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[4].txDuration),
       "Duration/ID of the second frame does not cover the remaining TXOP");
 
-  // STA2 receives a corrupted frame and hence it does not send the Ack. When
-  // the AckTimeout expires, the AP performs PIFS recovery or invoke backoff,
-  // without terminating the TXOP, because a non-initial frame of the TXOP
-  // failed
   tEnd = m_txPsdus[4].txStart + m_txPsdus[4].txDuration + sifs + slot +
-         WifiPhy::CalculatePhyPreambleAndHeaderDuration(
-             m_txPsdus[4].txVector); // AckTimeout
+         WifiPhy::CalculatePhyPreambleAndHeaderDuration(m_txPsdus[4].txVector);
   tStart = m_txPsdus[5].txStart;
 
   if (m_pifsRecovery) {
@@ -489,7 +382,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[5].txDuration),
       "Duration/ID of the second frame does not cover the remaining TXOP");
 
-  // a Normal Ack is then sent by STA2
   tEnd = m_txPsdus[5].txStart + m_txPsdus[5].txDuration;
   tStart = m_txPsdus[6].txStart;
 
@@ -509,7 +401,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[6].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // the AP sends a frame to STA3
   tEnd = m_txPsdus[6].txStart + m_txPsdus[6].txDuration;
   tStart = m_txPsdus[7].txStart;
 
@@ -528,7 +419,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[7].txDuration),
       "Duration/ID of the third frame does not cover the remaining TXOP");
 
-  // a Normal Ack is then sent by STA3
   tEnd = m_txPsdus[7].txStart + m_txPsdus[7].txDuration;
   tStart = m_txPsdus[8].txStart;
 
@@ -548,7 +438,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[8].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // the TXOP limit is such that enough time for sending a CF-End frame remains
   tEnd = m_txPsdus[8].txStart + m_txPsdus[8].txDuration;
   tStart = m_txPsdus[9].txStart;
 
@@ -560,7 +449,6 @@ void WifiTxopTest::CheckResults() {
   NS_TEST_ASSERT_MSG_EQ(m_txPsdus[9].header.GetDuration(), Seconds(0),
                         "Duration/ID must be set to 0 for CF-End frames");
 
-  // the CF-End frame resets the NAV on STA1, which can now transmit
   tEnd = m_txPsdus[9].txStart + m_txPsdus[9].txDuration;
   tStart = m_txPsdus[10].txStart;
 
@@ -580,7 +468,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the frame sent by the first station "
                         "does not cover the remaining TXOP");
 
-  // a Normal Ack is then sent by the AP
   tEnd = m_txPsdus[10].txStart + m_txPsdus[10].txDuration;
   tStart = m_txPsdus[11].txStart;
 
@@ -598,7 +485,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[11].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // the TXOP limit is such that enough time for sending a CF-End frame remains
   tEnd = m_txPsdus[11].txStart + m_txPsdus[11].txDuration;
   tStart = m_txPsdus[12].txStart;
 
@@ -610,43 +496,6 @@ void WifiTxopTest::CheckResults() {
   NS_TEST_ASSERT_MSG_EQ(m_txPsdus[12].header.GetDuration(), Seconds(0),
                         "Duration/ID must be set to 0 for CF-End frames");
 
-  /*
-   * Verify that the Duration/ID of RTS/CTS frames is set correctly, that the
-   * TXOP holder is kept and allows stations to ignore NAV properly and that the
-   * CF-End Frame is not sent if not enough time remains
-   *
-   *          |---------------------------------------------NAV---------------------------------->|
-   *          |
-   * |-----------------------------------------NAV------------------------------->|
-   * | | |-------------------------------------NAV---------------------------->|
-   * |      | |
-   * |---------------------------------NAV------------------------->| |      |
-   * |      |
-   * |-----------------------------NAV---------------------->| |      |      |
-   * |      |
-   * |-------------------------NAV------------------->| |      |      |      |
-   * |      |
-   * |---------------------NAV---------------->| |      |      |      |      |
-   * |      |
-   * |-----------------NAV------------->| |      |      |      |      |      |
-   * |      |
-   * |-------------NAV---------->| |      |      |      |      |      |      |
-   * |      |
-   * |---------NAV------->| |      |      |      |      |      |      |      |
-   * |      |
-   * |-----NAV---->| |      |      |      |      |      |      |      |      |
-   * |      |
-   * |-NAV->|
-   *      |---|  |---|  |---|  |---|  |---|  |---|  |---|  |---|  |---|  |---|
-   * |---|  |---| |RTS|  |CTS|  |QoS|  |Ack|  |RTS|  |CTS|  |QoS|  |Ack|  |RTS|
-   * |CTS|  |QoS|  |Ack|
-   * ----------------------------------------------------------------------------------------------------
-   * From:  AP    STA1    AP    STA1    AP    STA2    AP    STA2    AP    STA3
-   * AP    STA3 To: STA1    AP    STA1    AP    STA2    AP    STA2    AP    STA3
-   * AP    STA3    AP
-   */
-
-  // the first frame is an RTS frame sent by the AP to STA1
   txopStart = m_txPsdus[13].txStart;
 
   NS_TEST_ASSERT_MSG_EQ(m_txPsdus[13].header.IsRts(), true,
@@ -660,7 +509,6 @@ void WifiTxopTest::CheckResults() {
       RoundDurationId(m_txopLimit - m_txPsdus[13].txDuration),
       "Duration/ID of the first RTS frame must cover the whole TXOP");
 
-  // a CTS is sent by STA1
   tEnd = m_txPsdus[13].txStart + m_txPsdus[13].txDuration;
   tStart = m_txPsdus[14].txStart;
 
@@ -680,7 +528,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the CTS frame must be derived from "
                         "that of the RTS frame");
 
-  // the AP sends a frame to STA1
   tEnd = m_txPsdus[14].txStart + m_txPsdus[14].txDuration;
   tStart = m_txPsdus[15].txStart;
 
@@ -701,7 +548,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the first QoS data frame does not "
                         "cover the remaining TXOP");
 
-  // a Normal Ack is then sent by STA1
   tEnd = m_txPsdus[15].txStart + m_txPsdus[15].txDuration;
   tStart = m_txPsdus[16].txStart;
 
@@ -723,7 +569,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[16].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // An RTS frame is sent by the AP to STA2
   tEnd = m_txPsdus[16].txStart + m_txPsdus[16].txDuration;
   tStart = m_txPsdus[17].txStart;
 
@@ -742,7 +587,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[17].txDuration),
       "Duration/ID of the second RTS frame must cover the whole TXOP");
 
-  // a CTS is sent by STA2 (which ignores the NAV)
   tEnd = m_txPsdus[17].txStart + m_txPsdus[17].txDuration;
   tStart = m_txPsdus[18].txStart;
 
@@ -763,7 +607,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the CTS frame must be derived from "
                         "that of the RTS frame");
 
-  // the AP sends a frame to STA2
   tEnd = m_txPsdus[18].txStart + m_txPsdus[18].txDuration;
   tStart = m_txPsdus[19].txStart;
 
@@ -784,7 +627,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the second QoS data frame does not "
                         "cover the remaining TXOP");
 
-  // a Normal Ack is then sent by STA2
   tEnd = m_txPsdus[19].txStart + m_txPsdus[19].txDuration;
   tStart = m_txPsdus[20].txStart;
 
@@ -806,7 +648,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[20].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // An RTS frame is sent by the AP to STA3
   tEnd = m_txPsdus[20].txStart + m_txPsdus[20].txDuration;
   tStart = m_txPsdus[21].txStart;
 
@@ -825,7 +666,6 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[21].txDuration),
       "Duration/ID of the third RTS frame must cover the whole TXOP");
 
-  // a CTS is sent by STA3 (which ignores the NAV)
   tEnd = m_txPsdus[21].txStart + m_txPsdus[21].txDuration;
   tStart = m_txPsdus[22].txStart;
 
@@ -845,7 +685,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the CTS frame must be derived from "
                         "that of the RTS frame");
 
-  // the AP sends a frame to STA3
   tEnd = m_txPsdus[22].txStart + m_txPsdus[22].txDuration;
   tStart = m_txPsdus[23].txStart;
 
@@ -866,7 +705,6 @@ void WifiTxopTest::CheckResults() {
                         "Duration/ID of the third QoS data frame does not "
                         "cover the remaining TXOP");
 
-  // a Normal Ack is then sent by STA3
   tEnd = m_txPsdus[23].txStart + m_txPsdus[23].txDuration;
   tStart = m_txPsdus[24].txStart;
 
@@ -888,20 +726,9 @@ void WifiTxopTest::CheckResults() {
                       m_txPsdus[24].txDuration),
       "Duration/ID of the Ack must be derived from that of the previous frame");
 
-  // there is no time remaining for sending a CF-End frame. This is verified by
-  // checking that 25 frames are transmitted (done at the beginning of this
-  // method)
-
-  // 3 DL packets (without RTS/CTS), 1 UL packet and 3 DL packets (with RTS/CTS)
   NS_TEST_ASSERT_MSG_EQ(m_received, 7, "Unexpected number of packets received");
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief wifi TXOP Test Suite
- */
 class WifiTxopTestSuite : public TestSuite {
 public:
   WifiTxopTestSuite();
@@ -912,4 +739,4 @@ WifiTxopTestSuite::WifiTxopTestSuite() : TestSuite("wifi-txop", UNIT) {
   AddTestCase(new WifiTxopTest(false), TestCase::QUICK);
 }
 
-static WifiTxopTestSuite g_wifiTxopTestSuite; ///< the test suite
+static WifiTxopTestSuite g_wifiTxopTestSuite;

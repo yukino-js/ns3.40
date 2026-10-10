@@ -1,19 +1,3 @@
-/*
- * Copyright 2007 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "udp-echo-server.h"
 
@@ -83,7 +67,6 @@ void UdpEchoServer::StartApplication() {
     if (addressUtils::IsMulticast(m_local)) {
       Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket>(m_socket);
       if (udpSocket) {
-        // equivalent to setsockopt (MCAST_JOIN_GROUP)
         udpSocket->MulticastJoinGroup(0, m_local);
       } else {
         NS_FATAL_ERROR("Error: Failed to join multicast group");
@@ -102,7 +85,6 @@ void UdpEchoServer::StartApplication() {
     if (addressUtils::IsMulticast(local6)) {
       Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket>(m_socket6);
       if (udpSocket) {
-        // equivalent to setsockopt (MCAST_JOIN_GROUP)
         udpSocket->MulticastJoinGroup(0, local6);
       } else {
         NS_FATAL_ERROR("Error: Failed to join multicast group");
@@ -173,4 +155,4 @@ void UdpEchoServer::HandleRead(Ptr<Socket> socket) {
   }
 }
 
-} // Namespace ns3
+} // namespace ns3

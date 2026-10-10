@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Ported to ns-3 by: Vignesh Kannan <vignesh2496@gmail.com>
- *                    Harsh Lara <harshapplefan@gmail.com>
- *                    Jendaipou Palmei <jendaipoupalmei@gmail.com>
- *                    Shefali Gupta <shefaligups11@gmail.com>
- *                    Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
 #include "ns3/cobalt-queue-disc.h"
 #include "ns3/double.h"
@@ -32,25 +10,11 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Cobalt Queue Disc Test Item
- */
 class CobaltQueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p packet
-   * \param addr address
-   * \param ecnCapable ECN capable
-   */
   CobaltQueueDiscTestItem(Ptr<Packet> p, const Address &addr, bool ecnCapable);
   ~CobaltQueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   CobaltQueueDiscTestItem() = delete;
   CobaltQueueDiscTestItem(const CobaltQueueDiscTestItem &) = delete;
   CobaltQueueDiscTestItem &operator=(const CobaltQueueDiscTestItem &) = delete;
@@ -59,7 +23,7 @@ public:
   bool Mark() override;
 
 private:
-  bool m_ecnCapablePacket; ///< ECN capable packet?
+  bool m_ecnCapablePacket;
 };
 
 CobaltQueueDiscTestItem::CobaltQueueDiscTestItem(Ptr<Packet> p,
@@ -73,31 +37,13 @@ void CobaltQueueDiscTestItem::AddHeader() {}
 
 bool CobaltQueueDiscTestItem::Mark() { return m_ecnCapablePacket; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 1: simple enqueue/dequeue with no drops
- */
 class CobaltQueueDiscBasicEnqueueDequeue : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CobaltQueueDiscBasicEnqueueDequeue(QueueSizeUnit mode);
   void DoRun() override;
 
-  /**
-   * Queue test size function
-   * \param queue the queue disc
-   * \param size the size
-   * \param error the error string
-   *
-   */
-
 private:
-  QueueSizeUnit m_mode; ///< mode
+  QueueSizeUnit m_mode;
 };
 
 CobaltQueueDiscBasicEnqueueDequeue::CobaltQueueDiscBasicEnqueueDequeue(
@@ -227,35 +173,12 @@ void CobaltQueueDiscBasicEnqueueDequeue::DoRun() {
       0, "There should be no packet drops according to Cobalt algorithm");
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 2: Cobalt Queue Disc Drop Test Item
- */
 class CobaltQueueDiscDropTest : public TestCase {
 public:
   CobaltQueueDiscDropTest();
   void DoRun() override;
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<CobaltQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /**
-   * Run Cobalt test function
-   * \param mode the mode
-   */
   void RunDropTest(QueueSizeUnit mode);
-  /**
-   * Enqueue the given number of packets, each of the given size,
-   * at different times.
-   *
-   * \param queue the queue disc
-   * \param size the packet size in bytes
-   * \param nPkt the number of packets
-   */
   void EnqueueWithDelay(Ptr<CobaltQueueDisc> queue, uint32_t size,
                         uint32_t nPkt);
 };
@@ -297,7 +220,6 @@ void CobaltQueueDiscDropTest::RunDropTest(QueueSizeUnit mode)
 
   QueueDisc::Stats st = queue->GetStats();
 
-  // The Pdrop value should increase, from it's default value of zero
   NS_TEST_ASSERT_MSG_NE(queue->GetPdrop(), 0, "Pdrop should be non-zero");
   NS_TEST_ASSERT_MSG_NE(st.GetNDroppedPackets(CobaltQueueDisc::OVERLIMIT_DROP),
                         0, "Drops due to queue overflow should be non-zero");
@@ -306,7 +228,7 @@ void CobaltQueueDiscDropTest::RunDropTest(QueueSizeUnit mode)
 void CobaltQueueDiscDropTest::EnqueueWithDelay(Ptr<CobaltQueueDisc> queue,
                                                uint32_t size, uint32_t nPkt) {
   Address dest;
-  double delay = 0.01; // enqueue packets with delay
+  double delay = 0.01;
   for (uint32_t i = 0; i < nPkt; i++) {
     Simulator::Schedule(Time(Seconds((i + 1) * delay)),
                         &CobaltQueueDiscDropTest::Enqueue, this, queue, size,
@@ -329,52 +251,21 @@ void CobaltQueueDiscDropTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 3: Cobalt Queue Disc ECN marking Test Item
- */
 class CobaltQueueDiscMarkTest : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CobaltQueueDiscMarkTest(QueueSizeUnit mode);
   void DoRun() override;
 
 private:
-  /**
-   * \brief Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   * \param ecnCapable ECN capable traffic
-   */
   void Enqueue(Ptr<CobaltQueueDisc> queue, uint32_t size, uint32_t nPkt,
                bool ecnCapable);
-  /**
-   * \brief Dequeue function
-   * \param queue the queue disc
-   * \param modeSize the mode size
-   * \param testCase the test case number
-   */
   void Dequeue(Ptr<CobaltQueueDisc> queue, uint32_t modeSize,
                uint32_t testCase);
-  /**
-   * \brief Drop next tracer function
-   * \param oldVal the old value of m_dropNext
-   * \param newVal the new value of m_dropNext
-   */
   void DropNextTracer(int64_t oldVal, int64_t newVal);
-  QueueSizeUnit m_mode; ///< mode
-  uint32_t
-      m_dropNextCount; ///< count the number of times m_dropNext is recalculated
-  uint32_t nPacketsBeforeFirstDrop; ///< Number of packets in the queue before
-                                    ///< first drop
-  uint32_t nPacketsBeforeFirstMark; ///< Number of packets in the queue before
-                                    ///< first mark
+  QueueSizeUnit m_mode;
+  uint32_t m_dropNextCount;
+  uint32_t nPacketsBeforeFirstDrop;
+  uint32_t nPacketsBeforeFirstMark;
 };
 
 CobaltQueueDiscMarkTest::CobaltQueueDiscMarkTest(QueueSizeUnit mode)
@@ -383,18 +274,12 @@ CobaltQueueDiscMarkTest::CobaltQueueDiscMarkTest(QueueSizeUnit mode)
   m_dropNextCount = 0;
 }
 
-void CobaltQueueDiscMarkTest::DropNextTracer(int64_t /* oldVal */,
-                                             int64_t /* newVal */) {
+void CobaltQueueDiscMarkTest::DropNextTracer(int64_t, int64_t) {
   m_dropNextCount++;
 }
 
 void CobaltQueueDiscMarkTest::DoRun() {
-  // Test is divided into 3 sub test cases:
-  // 1) Packets are not ECN capable.
-  // 2) Packets are ECN capable.
-  // 3) Some packets are ECN capable.
 
-  // Test case 1
   Ptr<CobaltQueueDisc> queue = CreateObject<CobaltQueueDisc>();
   uint32_t pktSize = 1000;
   uint32_t modeSize = 0;
@@ -419,18 +304,14 @@ void CobaltQueueDiscMarkTest::DoRun() {
       true, "Disable Blue enhancement");
   queue->Initialize();
 
-  // Not-ECT traffic to induce packet drop
   Enqueue(queue, pktSize, 20, false);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any dropped packets in this interval
   Time waitUntilFirstDequeue = 2 * queue->GetTarget();
   Simulator::Schedule(waitUntilFirstDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 1);
 
-  // This dequeue should cause a packet to be dropped
   Time waitUntilSecondDequeue =
       waitUntilFirstDequeue + 2 * queue->GetInterval();
   Simulator::Schedule(waitUntilSecondDequeue, &CobaltQueueDiscMarkTest::Dequeue,
@@ -439,8 +320,6 @@ void CobaltQueueDiscMarkTest::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Test case 2, queue with ECN capable traffic for marking of packets instead
-  // of dropping
   queue = CreateObject<CobaltQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe(
@@ -454,27 +333,19 @@ void CobaltQueueDiscMarkTest::DoRun() {
       true, "Disable Blue enhancement");
   queue->Initialize();
 
-  // ECN capable traffic
   Enqueue(queue, pktSize, 20, true);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any marked packets in this interval
   Simulator::Schedule(waitUntilFirstDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 2);
 
-  // This dequeue should cause a packet to be marked
   Simulator::Schedule(waitUntilSecondDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 2);
 
-  // This dequeue should cause a packet to be marked as dropnext is equal to
-  // current time
   Simulator::Schedule(waitUntilSecondDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 2);
 
-  // In dropping phase and it's time for next packet to be marked
-  // the dequeue should cause additional packet to be marked
   Simulator::Schedule(waitUntilSecondDequeue * 2,
                       &CobaltQueueDiscMarkTest::Dequeue, this, queue, modeSize,
                       2);
@@ -482,7 +353,6 @@ void CobaltQueueDiscMarkTest::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Test case 3, some packets are ECN capable
   queue = CreateObject<CobaltQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe(
@@ -496,29 +366,20 @@ void CobaltQueueDiscMarkTest::DoRun() {
       true, "Disable Blue enhancement");
   queue->Initialize();
 
-  // First 3 packets in the queue are ecnCapable
   Enqueue(queue, pktSize, 3, true);
-  // Rest of the packet are not ecnCapable
   Enqueue(queue, pktSize, 17, false);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any marked packets in this interval
   Simulator::Schedule(waitUntilFirstDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 3);
 
-  // This dequeue should cause a packet to be marked
   Simulator::Schedule(waitUntilSecondDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 3);
 
-  // This dequeue should cause a packet to be marked as dropnext is equal to
-  // current time
   Simulator::Schedule(waitUntilSecondDequeue, &CobaltQueueDiscMarkTest::Dequeue,
                       this, queue, modeSize, 3);
 
-  // In dropping phase and it's time for next packet to be dropped as packets
-  // are not ECN capable the dequeue should cause packet to be dropped
   Simulator::Schedule(waitUntilSecondDequeue * 2,
                       &CobaltQueueDiscMarkTest::Dequeue, this, queue, modeSize,
                       3);
@@ -705,55 +566,20 @@ void CobaltQueueDiscMarkTest::Dequeue(Ptr<CobaltQueueDisc> queue,
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 4: Cobalt Queue Disc CE Threshold marking Test Item
- */
 class CobaltQueueDiscCeThresholdTest : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the queue size unit mode
-   */
   CobaltQueueDiscCeThresholdTest(QueueSizeUnit mode);
   ~CobaltQueueDiscCeThresholdTest() override;
 
 private:
   void DoRun() override;
-  /**
-   * \brief Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<CobaltQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /**
-   * \brief Enqueue with delay function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   * \param delay the delay between the enqueueing of the packets
-   */
   void EnqueueWithDelay(Ptr<CobaltQueueDisc> queue, uint32_t size,
                         uint32_t nPkt, Time delay);
-  /**
-   * \brief Dequeue function
-   * \param queue the queue disc
-   * \param modeSize the mode size
-   */
   void Dequeue(Ptr<CobaltQueueDisc> queue, uint32_t modeSize);
-  /**
-   * \brief Dequeue with delay function
-   * \param queue the queue disc
-   * \param modeSize the mode size
-   * \param nPkt the number of packets
-   * \param delay the delay between the enqueueing of the packets
-   */
   void DequeueWithDelay(Ptr<CobaltQueueDisc> queue, uint32_t modeSize,
                         uint32_t nPkt, Time delay);
-  QueueSizeUnit m_mode; ///< mode
+  QueueSizeUnit m_mode;
 };
 
 CobaltQueueDiscCeThresholdTest::CobaltQueueDiscCeThresholdTest(
@@ -845,37 +671,25 @@ void CobaltQueueDiscCeThresholdTest::DoRun() {
       true, "Disable Blue enhancement");
   queue->Initialize();
 
-  // Enqueue 11 packets every 1ms
   EnqueueWithDelay(queue, pktSize, 11, MilliSeconds(1));
 
-  // With every dequeue, queue delay increases by 0.1ms as packet enqueues every
-  // 1ms while dequeues at 1.1ms so at 11th dequeue, the dequeued packet should
-  // be marked.
   Time dequeueInterval = MicroSeconds(1100);
   DequeueWithDelay(queue, modeSize, 11, dequeueInterval);
 
-  // First mark occurred for the packet enqueued at 11ms, ideally TCP would
-  // decrease sending rate which can be simulated by increasing interval between
-  // subsequent enqueues, so packets are now enqueued with a delay 1.2ms.
   Time waitUntilFirstMark = MilliSeconds(11);
   Simulator::Schedule(waitUntilFirstMark,
                       &CobaltQueueDiscCeThresholdTest::EnqueueWithDelay, this,
                       queue, pktSize, 9, MicroSeconds(1200));
 
-  // Keep dequeueing with the same delay
   Simulator::Schedule(waitUntilFirstMark,
                       &CobaltQueueDiscCeThresholdTest::DequeueWithDelay, this,
                       queue, modeSize, 9, dequeueInterval);
 
-  // Queue delay becomes 0.2ms for the packet enqueued at 20.6ms, time to
-  // decrease interval between subsequent enqueues, as ideally TCP would again
-  // start increasing sending rate
   Time waitUntilDecreasingEnqueueDelay = waitUntilFirstMark + MilliSeconds(9);
   Simulator::Schedule(waitUntilDecreasingEnqueueDelay,
                       &CobaltQueueDiscCeThresholdTest::EnqueueWithDelay, this,
                       queue, pktSize, 10, MilliSeconds(1));
 
-  // Keep dequeueing with the same delay
   Simulator::Schedule(waitUntilFirstMark,
                       &CobaltQueueDiscCeThresholdTest::DequeueWithDelay, this,
                       queue, modeSize, 10, dequeueInterval);
@@ -884,51 +698,17 @@ void CobaltQueueDiscCeThresholdTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 5: Cobalt Queue Disc Enhanced Blue Test Item
- * This test checks that the Blue Enhancement is working correctly. This test
- * checks that Pdrop should increase as expected with a certain number of
- * dropped packets which is fixed by assigning a stream to the uniform random
- * variable. This test case is divided into 2 sub test cases 1) With Blue
- * Enhancement enabled, the test checks that Pdrop should increase as expected
- * with a certain number of dropped packets which is fixed by assigning a stream
- * to the uniform random variable. 2) Without Blue Enhancement, Pdrop should
- * remain zero and there should not be any dropped packets as ECN is enabled.
- */
 class CobaltQueueDiscEnhancedBlueTest : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the queue size unit mode
-   */
   CobaltQueueDiscEnhancedBlueTest(QueueSizeUnit mode);
   ~CobaltQueueDiscEnhancedBlueTest() override;
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<CobaltQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /**
-   * \brief Dequeue function
-   * \param queue the queue disc
-   */
   void Dequeue(Ptr<CobaltQueueDisc> queue);
-  /**
-   * \brief Dequeue with delay function
-   * \param queue the queue disc
-   * \param nPkt the number of packets
-   * \param delay the delay between the enqueueing of the packets
-   */
   void DequeueWithDelay(Ptr<CobaltQueueDisc> queue, uint32_t nPkt, Time delay);
-  QueueSizeUnit m_mode; ///< mode
+  QueueSizeUnit m_mode;
 };
 
 CobaltQueueDiscEnhancedBlueTest::CobaltQueueDiscEnhancedBlueTest(
@@ -962,7 +742,6 @@ void CobaltQueueDiscEnhancedBlueTest::DoRun()
 
   QueueDisc::Stats st = queue->GetStats();
 
-  // The Pdrop value should increase, from it's default value of zero
   NS_TEST_ASSERT_MSG_EQ(
       queue->GetPdrop(), 0.234375,
       "Pdrop should be increased by 1/256 for every packet whose sojourn time "
@@ -1020,27 +799,18 @@ void CobaltQueueDiscEnhancedBlueTest::DequeueWithDelay(
   }
 }
 
-/**
- * \ingroup traffic-control-test
- * The COBALT queue disc test suite.
- */
 static class CobaltQueueDiscTestSuite : public TestSuite {
 public:
   CobaltQueueDiscTestSuite() : TestSuite("cobalt-queue-disc", UNIT) {
-    // Test 1: simple enqueue/dequeue with no drops
     AddTestCase(new CobaltQueueDiscBasicEnqueueDequeue(PACKETS),
                 TestCase::QUICK);
     AddTestCase(new CobaltQueueDiscBasicEnqueueDequeue(BYTES), TestCase::QUICK);
-    // Test 2: Drop test
     AddTestCase(new CobaltQueueDiscDropTest(), TestCase::QUICK);
-    // Test 3: Mark test
     AddTestCase(new CobaltQueueDiscMarkTest(PACKETS), TestCase::QUICK);
     AddTestCase(new CobaltQueueDiscMarkTest(BYTES), TestCase::QUICK);
-    // Test 4: CE threshold marking test
     AddTestCase(new CobaltQueueDiscCeThresholdTest(PACKETS), TestCase::QUICK);
     AddTestCase(new CobaltQueueDiscCeThresholdTest(BYTES), TestCase::QUICK);
-    // Test 4: Blue enhancement test
     AddTestCase(new CobaltQueueDiscEnhancedBlueTest(PACKETS), TestCase::QUICK);
     AddTestCase(new CobaltQueueDiscEnhancedBlueTest(BYTES), TestCase::QUICK);
   }
-} g_cobaltQueueTestSuite; ///< the test suite
+} g_cobaltQueueTestSuite;

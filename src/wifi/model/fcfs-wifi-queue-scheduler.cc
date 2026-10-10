@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "fcfs-wifi-queue-scheduler.h"
 
@@ -33,22 +15,18 @@ bool operator==(const FcfsPrio &lhs, const FcfsPrio &rhs) {
 }
 
 bool operator<(const FcfsPrio &lhs, const FcfsPrio &rhs) {
-  // Control queues have the highest priority
   if (lhs.type == WIFI_CTL_QUEUE && rhs.type != WIFI_CTL_QUEUE) {
     return true;
   }
   if (lhs.type != WIFI_CTL_QUEUE && rhs.type == WIFI_CTL_QUEUE) {
     return false;
   }
-  // Management queues have the second highest priority
   if (lhs.type == WIFI_MGT_QUEUE && rhs.type != WIFI_MGT_QUEUE) {
     return true;
   }
   if (lhs.type != WIFI_MGT_QUEUE && rhs.type == WIFI_MGT_QUEUE) {
     return false;
   }
-  // we get here if both priority values refer to container queues of the same
-  // type, hence we can compare the time values.
   return lhs.priority < rhs.priority;
 }
 
@@ -80,11 +58,9 @@ FcfsWifiQueueScheduler::HasToDropBeforeEnqueuePriv(AcIndex ac,
                                                    Ptr<WifiMpdu> mpdu) {
   auto queue = GetWifiMacQueue(ac);
   if (queue->QueueBase::GetNPackets() < queue->GetMaxSize().GetValue()) {
-    // the queue is not full, do not drop anything
     return nullptr;
   }
 
-  // Control and management frames should be prioritized
   if (m_dropPolicy == DROP_OLDEST || mpdu->GetHeader().IsCtl() ||
       mpdu->GetHeader().IsMgt()) {
     for (const auto &[priority, queueInfo] : GetSortedQueues(ac)) {
@@ -92,11 +68,9 @@ FcfsWifiQueueScheduler::HasToDropBeforeEnqueuePriv(AcIndex ac,
               WIFI_MGT_QUEUE ||
           std::get<WifiContainerQueueType>(queueInfo.get().first) ==
               WIFI_CTL_QUEUE) {
-        // do not drop control or management frames
         continue;
       }
 
-      // do not drop frames that are inflight or to be retransmitted
       Ptr<WifiMpdu> item;
       while ((item = queue->PeekByQueueId(queueInfo.get().first, item))) {
         if (!item->IsInFlight() && !item->GetHeader().IsRetry()) {
@@ -115,7 +89,6 @@ void FcfsWifiQueueScheduler::DoNotifyEnqueue(AcIndex ac, Ptr<WifiMpdu> mpdu) {
 
   const auto queueId = WifiMacQueueContainer::GetQueueId(mpdu);
 
-  // priority is determined by the head of the queue
   auto item = GetWifiMacQueue(ac)->PeekByQueueId(queueId);
   NS_ASSERT(item);
 

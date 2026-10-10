@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 Georgia Tech Research Corporation
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Raj Bhattacharjea <raj.b@gatech.edu>
- */
 
 #include "tcp-l4-protocol.h"
 
@@ -57,15 +39,12 @@ NS_LOG_COMPONENT_DEFINE("TcpL4Protocol");
 
 NS_OBJECT_ENSURE_REGISTERED(TcpL4Protocol);
 
-// TcpL4Protocol stuff----------------------------------------------------------
-
 #undef NS_LOG_APPEND_CONTEXT
 #define NS_LOG_APPEND_CONTEXT                                                  \
   if (m_node) {                                                                \
     std::clog << " [node " << m_node->GetId() << "] ";                         \
   }
 
-/* see http://www.iana.org/assignments/protocol-numbers */
 const uint8_t TcpL4Protocol::PROT_NUMBER = 6;
 
 TypeId TcpL4Protocol::GetTypeId() {
@@ -125,11 +104,6 @@ void TcpL4Protocol::NotifyNewAggregate() {
       node->AggregateObject(tcpFactory);
     }
   }
-
-  // We set at least one of our 2 down targets to the IPv4/IPv6 send
-  // functions.  Since these functions have different prototypes, we
-  // need to keep track of whether we are connected to an IPv4 or
-  // IPv6 lower layer and call the appropriate one.
 
   if (ipv4 && m_downTarget.IsNull()) {
     ipv4->Insert(this);
@@ -361,12 +335,10 @@ void TcpL4Protocol::NoEndPointsFound(const TcpHeader &incomingHeader,
   NS_LOG_FUNCTION(this << incomingHeader << incomingSAddr << incomingDAddr);
 
   if (!(incomingHeader.GetFlags() & TcpHeader::RST)) {
-    // build a RST packet and send
     Ptr<Packet> rstPacket = Create<Packet>();
     TcpHeader outgoingTcpHeader;
 
     if (incomingHeader.GetFlags() & TcpHeader::ACK) {
-      // ACK bit was set
       outgoingTcpHeader.SetFlags(TcpHeader::RST);
       outgoingTcpHeader.SetSequenceNumber(incomingHeader.GetAckNumber());
     } else {
@@ -375,9 +347,6 @@ void TcpL4Protocol::NoEndPointsFound(const TcpHeader &incomingHeader,
       outgoingTcpHeader.SetAckNumber(incomingHeader.GetSequenceNumber() +
                                      SequenceNumber32(1));
     }
-
-    // Remember that parameters refer to the incoming packet; in reply,
-    // we need to swap src/dst
 
     outgoingTcpHeader.SetSourcePort(incomingHeader.GetDestinationPort());
     outgoingTcpHeader.SetDestinationPort(incomingHeader.GetSourcePort());
@@ -462,11 +431,6 @@ TcpL4Protocol::Receive(Ptr<Packet> packet, const Ipv6Header &incomingIpHeader,
   TcpHeader incomingTcpHeader;
   IpL4Protocol::RxStatus checksumControl;
 
-  // If we are receiving a v4-mapped packet, we will re-calculate the TCP
-  // checksum Is it worth checking every received "v6" packet to see if it is
-  // v4-mapped in order to avoid re-calculating TCP checksums for v4-mapped
-  // packets?
-
   checksumControl =
       PacketReceived(packet, incomingTcpHeader, incomingIpHeader.GetSource(),
                      incomingIpHeader.GetDestination());
@@ -518,11 +482,8 @@ void TcpL4Protocol::SendPacketV4(Ptr<Packet> packet, const TcpHeader &outgoing,
                << " ack " << outgoing.GetAckNumber() << " flags "
                << TcpHeader::FlagsToString(outgoing.GetFlags()) << " data size "
                << packet->GetSize());
-  // XXX outgoingHeader cannot be logged
 
   TcpHeader outgoingHeader = outgoing;
-  /** \todo UrgentPointer */
-  /* outgoingHeader.SetUrgentPointer (0); */
   if (Node::ChecksumEnabled()) {
     outgoingHeader.EnableChecksums();
   }
@@ -561,15 +522,12 @@ void TcpL4Protocol::SendPacketV6(Ptr<Packet> packet, const TcpHeader &outgoing,
                << " ack " << outgoing.GetAckNumber() << " flags "
                << TcpHeader::FlagsToString(outgoing.GetFlags()) << " data size "
                << packet->GetSize());
-  // XXX outgoingHeader cannot be logged
 
   if (daddr.IsIpv4MappedAddress()) {
     return (SendPacket(packet, outgoing, saddr.GetIpv4MappedAddress(),
                        daddr.GetIpv4MappedAddress(), oif));
   }
   TcpHeader outgoingHeader = outgoing;
-  /** \todo UrgentPointer */
-  /* outgoingHeader.SetUrgentPointer (0); */
   if (Node::ChecksumEnabled()) {
     outgoingHeader.EnableChecksums();
   }

@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- * Copyright (c) 2017 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Nicola Baldo <nbaldo@cttc.es>
- *          Giuseppe Piro <g.piro@poliba.it>
- */
 
 #include "ism-spectrum-value-helper.h"
 
@@ -29,12 +8,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("IsmSpectrumValueHelper");
 
-static Ptr<SpectrumModel>
-    g_WifiSpectrumModel5Mhz; ///< static initializer for the class
+static Ptr<SpectrumModel> g_WifiSpectrumModel5Mhz;
 
-/**
- * Static class to initialize the values for the 2.4 GHz Wi-Fi spectrum model
- */
 static class WifiSpectrumModel5MhzInitializer {
 public:
   WifiSpectrumModel5MhzInitializer() {
@@ -48,8 +23,7 @@ public:
     }
     g_WifiSpectrumModel5Mhz = Create<SpectrumModel>(bands);
   }
-} g_WifiSpectrumModel5MhzInitializerInstance; //!< initialization instance for
-                                              //!< WifiSpectrumModel5Mhz
+} g_WifiSpectrumModel5MhzInitializerInstance;
 
 Ptr<SpectrumValue> SpectrumValue5MhzFactory::CreateConstant(double v) {
   Ptr<SpectrumValue> c = Create<SpectrumValue>(g_WifiSpectrumModel5Mhz);
@@ -62,30 +36,23 @@ SpectrumValue5MhzFactory::CreateTxPowerSpectralDensity(double txPower,
                                                        uint8_t channel) {
   Ptr<SpectrumValue> txPsd = Create<SpectrumValue>(g_WifiSpectrumModel5Mhz);
 
-  // since the spectrum model has a resolution of 5 MHz, we model
-  // the transmitted signal with a constant density over a 20MHz
-  // bandwidth centered on the center frequency of the channel. The
-  // transmission power outside the transmission power density is
-  // calculated considering the transmit spectrum mask, see IEEE
-  // Std. 802.11-2007, Annex I
-
   double txPowerDensity = txPower / 20e6;
 
   NS_ASSERT(channel >= 1);
   NS_ASSERT(channel <= 13);
 
-  (*txPsd)[channel - 1] = txPowerDensity * 1e-4;      // -40dB
-  (*txPsd)[channel] = txPowerDensity * 1e-4;          // -40dB
-  (*txPsd)[channel + 1] = txPowerDensity * 0.0015849; // -28dB
-  (*txPsd)[channel + 2] = txPowerDensity * 0.0015849; // -28dB
+  (*txPsd)[channel - 1] = txPowerDensity * 1e-4;
+  (*txPsd)[channel] = txPowerDensity * 1e-4;
+  (*txPsd)[channel + 1] = txPowerDensity * 0.0015849;
+  (*txPsd)[channel + 2] = txPowerDensity * 0.0015849;
   (*txPsd)[channel + 3] = txPowerDensity;
   (*txPsd)[channel + 4] = txPowerDensity;
   (*txPsd)[channel + 5] = txPowerDensity;
   (*txPsd)[channel + 6] = txPowerDensity;
-  (*txPsd)[channel + 7] = txPowerDensity * 0.0015849; // -28dB
-  (*txPsd)[channel + 8] = txPowerDensity * 0.0015849; // -28dB
-  (*txPsd)[channel + 9] = txPowerDensity * 1e-4;      // -40dB
-  (*txPsd)[channel + 10] = txPowerDensity * 1e-4;     // -40dB
+  (*txPsd)[channel + 7] = txPowerDensity * 0.0015849;
+  (*txPsd)[channel + 8] = txPowerDensity * 0.0015849;
+  (*txPsd)[channel + 9] = txPowerDensity * 1e-4;
+  (*txPsd)[channel + 10] = txPowerDensity * 1e-4;
 
   return txPsd;
 }

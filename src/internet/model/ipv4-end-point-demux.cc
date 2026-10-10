@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ipv4-end-point-demux.h"
 
@@ -149,9 +131,6 @@ void Ipv4EndPointDemux::DeAllocate(Ipv4EndPoint *endPoint) {
   }
 }
 
-/*
- * return list of all available Endpoints
- */
 Ipv4EndPointDemux::EndPoints Ipv4EndPointDemux::GetAllEndPoints() {
   NS_LOG_FUNCTION(this);
   EndPoints ret;
@@ -163,11 +142,6 @@ Ipv4EndPointDemux::EndPoints Ipv4EndPointDemux::GetAllEndPoints() {
   return ret;
 }
 
-/*
- * If we have an exact match, we return it.
- * Otherwise, if we find a generic match, we return it.
- * Otherwise, we return 0.
- */
 Ipv4EndPointDemux::EndPoints
 Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
                           uint16_t sport,
@@ -175,10 +149,10 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
   NS_LOG_FUNCTION(this << daddr << dport << saddr << sport
                        << incomingInterface);
 
-  EndPoints retval1; // Matches exact on local port, wildcards on others
-  EndPoints retval2; // Matches exact on local port/adder, wildcards on others
-  EndPoints retval3; // Matches all but local address
-  EndPoints retval4; // Exact match on all 4
+  EndPoints retval1;
+  EndPoints retval2;
+  EndPoints retval3;
+  EndPoints retval4;
 
   NS_LOG_DEBUG("Looking up endpoint for destination address " << daddr << ":"
                                                               << dport);
@@ -218,20 +192,11 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
     bool localAddressIsAny = false;
     bool localAddressIsSubnetAny = false;
 
-    // We have 3 cases:
-    // 1) Exact local / destination address match
-    // 2) Local endpoint bound to Any -> matches anything
-    // 3) Local endpoint bound to x.y.z.0 -> matches Subnet-directed broadcast
-    // packet (e.g., x.y.z.255 in a /24 net) and direct destination match.
-
     if (endP->GetLocalAddress() == daddr) {
-      // Case 1:
       localAddressMatchesExact = true;
     } else if (endP->GetLocalAddress() == Ipv4Address::GetAny()) {
-      // Case 2:
       localAddressIsAny = true;
     } else {
-      // Case 3:
       for (uint32_t i = 0; i < incomingInterface->GetNAddresses(); i++) {
         Ipv4InterfaceAddress addr = incomingInterface->GetAddress(i);
 
@@ -248,7 +213,6 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
         }
       }
 
-      // if no match here, keep looking
       if (!localAddressIsSubnetAny) {
         continue;
       }
@@ -260,8 +224,6 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
     bool remoteAddressMatchesWildCard =
         endP->GetPeerAddress() == Ipv4Address::GetAny();
 
-    // If remote does not match either with exact or wildcard,
-    // skip this one
     if (!(remotePortMatchesExact || remotePortMatchesWildCard)) {
       continue;
     }
@@ -273,37 +235,31 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
         localAddressIsAny || localAddressIsSubnetAny;
 
     if (localAddressMatchesExact && remoteAddressMatchesExact &&
-        remotePortMatchesExact) { // All 4 match - this is the case of an open
-                                  // TCP connection, for example.
+        remotePortMatchesExact) {
       NS_LOG_LOGIC("Found an endpoint for case 4, adding "
                    << endP->GetLocalAddress() << ":" << endP->GetLocalPort());
       retval4.push_back(endP);
     }
     if (localAddressMatchesWildCard && remoteAddressMatchesExact &&
-        remotePortMatchesExact) { // All but local address - no idea what this
-                                  // case could be.
+        remotePortMatchesExact) {
       NS_LOG_LOGIC("Found an endpoint for case 3, adding "
                    << endP->GetLocalAddress() << ":" << endP->GetLocalPort());
       retval3.push_back(endP);
     }
     if (localAddressMatchesExact && remoteAddressMatchesWildCard &&
-        remotePortMatchesWildCard) { // Only local port and local address
-                                     // matches exactly - Not yet opened
-                                     // connection
+        remotePortMatchesWildCard) {
       NS_LOG_LOGIC("Found an endpoint for case 2, adding "
                    << endP->GetLocalAddress() << ":" << endP->GetLocalPort());
       retval2.push_back(endP);
     }
     if (localAddressMatchesWildCard && remoteAddressMatchesWildCard &&
-        remotePortMatchesWildCard) { // Only local port matches exactly -
-                                     // Endpoint open to "any" connection
+        remotePortMatchesWildCard) {
       NS_LOG_LOGIC("Found an endpoint for case 1, adding "
                    << endP->GetLocalAddress() << ":" << endP->GetLocalPort());
       retval1.push_back(endP);
     }
   }
 
-  // Here we find the most exact match
   EndPoints retval;
   if (!retval4.empty()) {
     retval = retval4;
@@ -318,7 +274,7 @@ Ipv4EndPointDemux::Lookup(Ipv4Address daddr, uint16_t dport, Ipv4Address saddr,
   NS_ABORT_MSG_IF(retval.size() > 1, "Too many endpoints - perhaps you created "
                                      "too many sockets without binding "
                                      "them to different NetDevices.");
-  return retval; // might be empty if no matches
+  return retval;
 }
 
 Ipv4EndPoint *Ipv4EndPointDemux::SimpleLookup(Ipv4Address daddr, uint16_t dport,
@@ -326,8 +282,6 @@ Ipv4EndPoint *Ipv4EndPointDemux::SimpleLookup(Ipv4Address daddr, uint16_t dport,
                                               uint16_t sport) {
   NS_LOG_FUNCTION(this << daddr << dport << saddr << sport);
 
-  // this code is a copy/paste version of an old BSD ip stack lookup
-  // function.
   uint32_t genericity = 3;
   Ipv4EndPoint *generic = nullptr;
   for (auto i = m_endPoints.begin(); i != m_endPoints.end(); i++) {
@@ -336,7 +290,6 @@ Ipv4EndPoint *Ipv4EndPointDemux::SimpleLookup(Ipv4Address daddr, uint16_t dport,
     }
     if ((*i)->GetLocalAddress() == daddr && (*i)->GetPeerPort() == sport &&
         (*i)->GetPeerAddress() == saddr) {
-      /* this is an exact match. */
       return *i;
     }
     uint32_t tmp = 0;
@@ -355,7 +308,6 @@ Ipv4EndPoint *Ipv4EndPointDemux::SimpleLookup(Ipv4Address daddr, uint16_t dport,
 }
 
 uint16_t Ipv4EndPointDemux::AllocateEphemeralPort() {
-  // Similar to counting up logic in netinet/in_pcb.c
   NS_LOG_FUNCTION(this);
   uint16_t port = m_ephemeral;
   int count = m_portLast - m_portFirst;

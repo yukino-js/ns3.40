@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-acknowledgment.h"
 
@@ -25,13 +7,8 @@
 
 namespace ns3 {
 
-/*
- * WifiAcknowledgment
- */
-
 WifiAcknowledgment::WifiAcknowledgment(Method m)
-    : method(m), acknowledgmentTime(Time::Min()) // uninitialized
-{}
+    : method(m), acknowledgmentTime(Time::Min()) {}
 
 WifiAcknowledgment::~WifiAcknowledgment() {}
 
@@ -49,10 +26,6 @@ void WifiAcknowledgment::SetQosAckPolicy(
   m_ackPolicy[{receiver, tid}] = ackPolicy;
 }
 
-/*
- * WifiNoAck
- */
-
 WifiNoAck::WifiNoAck() : WifiAcknowledgment(NONE) {
   acknowledgmentTime = Seconds(0);
 }
@@ -69,10 +42,6 @@ bool WifiNoAck::CheckQosAckPolicy(Mac48Address receiver, uint8_t tid,
 
 void WifiNoAck::Print(std::ostream &os) const { os << "NONE"; }
 
-/*
- * WifiNormalAck
- */
-
 WifiNormalAck::WifiNormalAck() : WifiAcknowledgment(NORMAL_ACK) {}
 
 std::unique_ptr<WifiAcknowledgment> WifiNormalAck::Copy() const {
@@ -86,10 +55,6 @@ bool WifiNormalAck::CheckQosAckPolicy(
 }
 
 void WifiNormalAck::Print(std::ostream &os) const { os << "NORMAL_ACK"; }
-
-/*
- * WifiBlockAck
- */
 
 WifiBlockAck::WifiBlockAck() : WifiAcknowledgment(BLOCK_ACK) {}
 
@@ -105,10 +70,6 @@ bool WifiBlockAck::CheckQosAckPolicy(
 
 void WifiBlockAck::Print(std::ostream &os) const { os << "BLOCK_ACK"; }
 
-/*
- * WifiBarBlockAck
- */
-
 WifiBarBlockAck::WifiBarBlockAck() : WifiAcknowledgment(BAR_BLOCK_ACK) {}
 
 std::unique_ptr<WifiAcknowledgment> WifiBarBlockAck::Copy() const {
@@ -123,10 +84,6 @@ bool WifiBarBlockAck::CheckQosAckPolicy(
 
 void WifiBarBlockAck::Print(std::ostream &os) const { os << "BAR_BLOCK_ACK"; }
 
-/*
- * WifiDlMuBarBaSequence
- */
-
 WifiDlMuBarBaSequence::WifiDlMuBarBaSequence()
     : WifiAcknowledgment(DL_MU_BAR_BA_SEQUENCE) {}
 
@@ -138,7 +95,6 @@ bool WifiDlMuBarBaSequence::CheckQosAckPolicy(
     Mac48Address receiver, uint8_t tid,
     WifiMacHeader::QosAckPolicy ackPolicy) const {
   if (ackPolicy == WifiMacHeader::NORMAL_ACK) {
-    // The given receiver must be the only one to send an immediate reply
     if (stationsReplyingWithNormalAck.size() == 1 &&
         stationsReplyingWithNormalAck.begin()->first == receiver) {
       return true;
@@ -169,10 +125,6 @@ void WifiDlMuBarBaSequence::Print(std::ostream &os) const {
   os << "]";
 }
 
-/*
- * WifiDlMuTfMuBar
- */
-
 WifiDlMuTfMuBar::WifiDlMuTfMuBar()
     : WifiAcknowledgment(DL_MU_TF_MU_BAR), ulLength(0) {}
 
@@ -183,8 +135,6 @@ std::unique_ptr<WifiAcknowledgment> WifiDlMuTfMuBar::Copy() const {
 bool WifiDlMuTfMuBar::CheckQosAckPolicy(
     Mac48Address receiver, uint8_t tid,
     WifiMacHeader::QosAckPolicy ackPolicy) const {
-  // the only admitted ack policy is Block Ack because stations need to wait for
-  // a MU-BAR
   return ackPolicy == WifiMacHeader::BLOCK_ACK;
 }
 
@@ -196,10 +146,6 @@ void WifiDlMuTfMuBar::Print(std::ostream &os) const {
   os << "]";
 }
 
-/*
- * WifiDlMuAggregateTf
- */
-
 WifiDlMuAggregateTf::WifiDlMuAggregateTf()
     : WifiAcknowledgment(DL_MU_AGGREGATE_TF), ulLength(0) {}
 
@@ -210,8 +156,6 @@ std::unique_ptr<WifiAcknowledgment> WifiDlMuAggregateTf::Copy() const {
 bool WifiDlMuAggregateTf::CheckQosAckPolicy(
     Mac48Address receiver, uint8_t tid,
     WifiMacHeader::QosAckPolicy ackPolicy) const {
-  // the only admitted ack policy is No explicit acknowledgment or TB PPDU Ack
-  // policy
   return ackPolicy == WifiMacHeader::NO_EXPLICIT_ACK;
 }
 
@@ -223,10 +167,6 @@ void WifiDlMuAggregateTf::Print(std::ostream &os) const {
   os << "]";
 }
 
-/*
- * WifiUlMuMultiStaBa
- */
-
 WifiUlMuMultiStaBa::WifiUlMuMultiStaBa()
     : WifiAcknowledgment(UL_MU_MULTI_STA_BA), baType(BlockAckType::MULTI_STA) {}
 
@@ -237,7 +177,6 @@ std::unique_ptr<WifiAcknowledgment> WifiUlMuMultiStaBa::Copy() const {
 bool WifiUlMuMultiStaBa::CheckQosAckPolicy(
     Mac48Address receiver, uint8_t tid,
     WifiMacHeader::QosAckPolicy ackPolicy) const {
-  // a Basic Trigger Frame has no QoS ack policy
   return true;
 }
 
@@ -248,10 +187,6 @@ void WifiUlMuMultiStaBa::Print(std::ostream &os) const {
   }
   os << "]";
 }
-
-/*
- * WifiAckAfterTbPpdu
- */
 
 WifiAckAfterTbPpdu::WifiAckAfterTbPpdu()
     : WifiAcknowledgment(ACK_AFTER_TB_PPDU) {}

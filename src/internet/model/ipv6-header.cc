@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2008 Louis Pasteur University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-header.h"
 
@@ -90,7 +72,7 @@ uint32_t Ipv6Header::GetSerializedSize() const { return 10 * 4; }
 
 void Ipv6Header::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
-  uint32_t vTcFl = 0; /* version, Traffic Class and Flow Label fields */
+  uint32_t vTcFl = 0;
 
   vTcFl = (6 << 28) | (m_trafficClass << 20) | (m_flowLabel);
 
@@ -127,19 +109,18 @@ uint32_t Ipv6Header::Deserialize(Buffer::Iterator start) {
 
 void Ipv6Header::SetDscp(DscpType dscp) {
   NS_LOG_FUNCTION(this << dscp);
-  m_trafficClass &= 0x3; // Clear out the DSCP part, retain 2 bits of ECN
+  m_trafficClass &= 0x3;
   m_trafficClass |= (dscp << 2);
 }
 
 void Ipv6Header::SetEcn(EcnType ecn) {
   NS_LOG_FUNCTION(this << ecn);
-  m_trafficClass &= 0xFC; // Clear out the ECN part, retain 6 bits of DSCP
+  m_trafficClass &= 0xFC;
   m_trafficClass |= ecn;
 }
 
 Ipv6Header::DscpType Ipv6Header::GetDscp() const {
   NS_LOG_FUNCTION(this);
-  // Extract only first 6 bits of TOS byte, i.e 0xFC
   return DscpType((m_trafficClass & 0xFC) >> 2);
 }
 
@@ -195,7 +176,6 @@ std::string Ipv6Header::DscpTypeToString(DscpType dscp) const {
 
 Ipv6Header::EcnType Ipv6Header::GetEcn() const {
   NS_LOG_FUNCTION(this);
-  // Extract only last 2 bits of Traffic Class byte, i.e 0x3
   return EcnType(m_trafficClass & 0x3);
 }
 
@@ -215,4 +195,4 @@ std::string Ipv6Header::EcnTypeToString(EcnType ecn) const {
   };
 }
 
-} /* namespace ns3 */
+} // namespace ns3

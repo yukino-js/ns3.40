@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -39,10 +26,8 @@ using namespace ns3;
     cout << content << endl;                                                   \
   }
 
-// random variable distribution
 class Distribution {
 public:
-  // load a distribution from a CDF file
   Distribution(string filename = "src/mtp/examples/web-search.txt") {
     ifstream fin;
     fin.open(filename);
@@ -56,7 +41,6 @@ public:
     m_rand = CreateObject<UniformRandomVariable>();
   }
 
-  // expectation value of the distribution
   double Expectation() {
     double ex = 0;
     for (uint32_t i = 1; i < m_cdf.size(); i++) {
@@ -66,7 +50,6 @@ public:
     return ex;
   }
 
-  // get a random value from the distribution
   double Sample() {
     double rand = m_rand->GetValue(0, 1);
     for (uint32_t i = 1; i < m_cdf.size(); i++) {
@@ -80,13 +63,10 @@ public:
   }
 
 private:
-  // the actual CDF function
   vector<pair<double, double>> m_cdf;
-  // random variable stream
   Ptr<UniformRandomVariable> m_rand;
 };
 
-// traffic generator
 class TrafficGenerator {
 public:
   TrafficGenerator(string cdfFile, uint32_t hostTotal, double dataRate,
@@ -105,7 +85,6 @@ public:
     m_expRand = CreateObject<ExponentialRandomVariable>();
   }
 
-  // get one flow with incremental time and random src, dst and size
   tuple<double, uint32_t, uint32_t, uint32_t> GetFlow() {
     uint32_t src, dst;
     if (m_uniformRand->GetValue(0, 1) < m_incastRatio) {
@@ -151,56 +130,46 @@ private:
 
 namespace conf {
 
-// fat-tree scale
 uint32_t k = 4;
 uint32_t cluster = 0;
 
-// link layer options
 uint32_t mtu = 1500;
 uint32_t delay = 3000;
 string bandwidth = "10Gbps";
 
-// traffic-control layer options
 string buffer = "4MB";
 bool ecn = true;
 
-// network layer options
 bool nix = false;
 bool rip = false;
 bool ecmp = true;
 bool flow = true;
 
-// transport layer options
 uint32_t port = 443;
 string socket = "ns3::TcpSocketFactory";
 string tcp = "ns3::TcpDctcp";
 
-// application layer options
 uint32_t size = 1448;
 string cdf = "src/mtp/examples/web-search.txt";
 double load = 0.3;
 double incast = 0;
 string victim = "0";
 
-// simulation options
 string seed = "";
 bool flowmon = false;
 double time = 1;
 double interval = 0.1;
 
-// mtp options
 uint32_t thread = 4;
 }; // namespace conf
 
 void Initialize(int argc, char *argv[]) {
   CommandLine cmd;
 
-  // parse scale
   cmd.AddValue("k", "Number of pods in a fat-tree", conf::k);
   cmd.AddValue("cluster", "Number of clusters in a variant fat-tree",
                conf::cluster);
 
-  // parse network options
   cmd.AddValue("mtu", "P2P link MTU", conf::mtu);
   cmd.AddValue("delay", "Link delay in nanoseconds", conf::delay);
   cmd.AddValue("bandwidth", "Link bandwidth", conf::bandwidth);
@@ -220,7 +189,6 @@ void Initialize(int argc, char *argv[]) {
   cmd.AddValue("incast", "Incast traffic ratio", conf::incast);
   cmd.AddValue("victim", "Incast traffic victim list", conf::victim);
 
-  // parse simulation options
   cmd.AddValue("seed", "The seed of the random number generator", conf::seed);
   cmd.AddValue("flowmon", "Use flow-monitor to record statistics",
                conf::flowmon);
@@ -228,11 +196,9 @@ void Initialize(int argc, char *argv[]) {
   cmd.AddValue("interval", "Simulation progreess print interval in seconds",
                conf::interval);
 
-  // parse mtp/mpi options
   cmd.AddValue("thread", "Maximum number of threads", conf::thread);
   cmd.Parse(argc, argv);
 
-  // link layer settings
   Config::SetDefault("ns3::PointToPointChannel::Delay",
                      TimeValue(NanoSeconds(conf::delay)));
   Config::SetDefault("ns3::PointToPointNetDevice::DataRate",
@@ -240,7 +206,6 @@ void Initialize(int argc, char *argv[]) {
   Config::SetDefault("ns3::PointToPointNetDevice::Mtu",
                      UintegerValue(conf::mtu));
 
-  // traffic control layer settings
   Config::SetDefault("ns3::RedQueueDisc::MeanPktSize",
                      UintegerValue(conf::mtu));
   Config::SetDefault("ns3::RedQueueDisc::UseEcn", BooleanValue(conf::ecn));
@@ -254,13 +219,11 @@ void Initialize(int argc, char *argv[]) {
   Config::SetDefault("ns3::RedQueueDisc::MinTh", DoubleValue(50));
   Config::SetDefault("ns3::RedQueueDisc::MaxTh", DoubleValue(150));
 
-  // network layer settings
   Config::SetDefault("ns3::Ipv4GlobalRouting::RandomEcmpRouting",
                      BooleanValue(conf::ecmp));
   Config::SetDefault("ns3::Ipv4GlobalRouting::FlowEcmpRouting",
                      BooleanValue(conf::flow));
 
-  // transport layer settings
   Config::SetDefault("ns3::TcpL4Protocol::SocketType", StringValue(conf::tcp));
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(conf::size));
   Config::SetDefault(
@@ -279,7 +242,6 @@ void Initialize(int argc, char *argv[]) {
       "ns3::RttEstimator::InitialEstimation",
       TimeValue(conf::tcp == "ns3::TcpDctcp" ? MicroSeconds(200) : Seconds(1)));
 
-  // application layer settings
   Config::SetDefault("ns3::BulkSendApplication::SendSize",
                      UintegerValue(UINT32_MAX));
   Config::SetDefault("ns3::OnOffApplication::DataRate",
@@ -291,11 +253,9 @@ void Initialize(int argc, char *argv[]) {
   Config::SetDefault("ns3::OnOffApplication::OffTime",
                      StringValue("ns3::ConstantRandomVariable[Constant=0]"));
 
-  // simulation settings
   Time::SetResolution(Time::PS);
   RngSeedManager::SetSeed(Hash32(conf::seed));
 
-  // initialize mtp
   MtpInterface::Enable(conf::thread);
 }
 
@@ -315,7 +275,6 @@ void SetupRouting() {
 
 void InstallTraffic(map<uint32_t, Ptr<Node>> &hosts,
                     map<Ptr<Node>, Ipv4Address> &addrs, double bisection) {
-  // output address for debugging
   LOG("\n- Calculating routes...");
   LOG("  Host  NodeId  System  Address");
   for (auto &p : hosts) {
@@ -326,14 +285,12 @@ void InstallTraffic(map<uint32_t, Ptr<Node>> &hosts,
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
   }
 
-  // server applications
   PacketSinkHelper server(conf::socket,
                           InetSocketAddress(Ipv4Address::GetAny(), conf::port));
   for (auto &p : hosts) {
     server.Install(p.second).Start(Seconds(0));
   }
 
-  // calculate traffic
   LOG("\n- Generating traffic...");
   double bandwidth = bisection * DataRate(conf::bandwidth).GetBitRate() * 2;
   string victim;
@@ -345,7 +302,6 @@ void InstallTraffic(map<uint32_t, Ptr<Node>> &hosts,
   TrafficGenerator traffic(conf::cdf, hosts.size(), bandwidth * conf::load,
                            conf::incast, victims);
 
-  // install traffic (client applications)
   auto flow = traffic.GetFlow();
   while (get<0>(flow) < conf::time) {
     Ptr<Node> clientNode = hosts[get<1>(flow)];
@@ -364,7 +320,6 @@ void InstallTraffic(map<uint32_t, Ptr<Node>> &hosts,
     flow = traffic.GetFlow();
   }
 
-  // traffic installation check
   LOG("  Expected data rate = " << bandwidth * conf::load / 1e9 << "Gbps");
   LOG("  Generated data rate = " << traffic.GetActualDataRate() / 1e9
                                  << "Gbps");
@@ -380,19 +335,16 @@ void PrintProgress() {
 }
 
 void StartSimulation() {
-  // install flow-monitor
   Ptr<FlowMonitor> flowMonitor;
   FlowMonitorHelper flowHelper;
   if (conf::flowmon) {
     flowMonitor = flowHelper.InstallAll();
   }
 
-  // print progress
   if (conf::interval) {
     Simulator::Schedule(Seconds(conf::interval), PrintProgress);
   }
 
-  // start the simulation
   Simulator::Stop(Seconds(conf::time));
   LOG("\n- Start simulation...");
   auto start = system_clock::now();
@@ -400,7 +352,6 @@ void StartSimulation() {
   auto end = system_clock::now();
   auto time = duration_cast<duration<double>>(end - start).count();
 
-  // output simulation statistics
   uint64_t eventCount = Simulator::GetEventCount();
   if (conf::flowmon) {
     uint64_t dropped = 0, totalTx = 0, totalRx = 0, totalTxBytes = 0,
@@ -462,16 +413,14 @@ int main(int argc, char *argv[]) {
   map<uint32_t, Ptr<Node>> hosts;
   map<Ptr<Node>, Ipv4Address> addrs;
 
-  // calculate topo scales
-  uint32_t nPod = conf::cluster ? conf::cluster : conf::k; // number of pods
-  uint32_t nGroup = conf::k / 2; // number of group of core switches
-  uint32_t nCore = conf::k / 2;  // number of core switch in a group
-  uint32_t nAgg = conf::k / 2;   // number of aggregation switch in a pod
-  uint32_t nEdge = conf::k / 2;  // number of edge switch in a pod
-  uint32_t nHost = conf::k / 2;  // number of hosts under a switch
+  uint32_t nPod = conf::cluster ? conf::cluster : conf::k;
+  uint32_t nGroup = conf::k / 2;
+  uint32_t nCore = conf::k / 2;
+  uint32_t nAgg = conf::k / 2;
+  uint32_t nEdge = conf::k / 2;
+  uint32_t nHost = conf::k / 2;
   NodeContainer core[nGroup], agg[nPod], edge[nPod], host[nPod][nEdge];
 
-  // create nodes
   for (uint32_t i = 0; i < nGroup; i++) {
     core[i].Create(nCore / 2);
     core[i].Create((nCore - 1) / 2 + 1);
@@ -497,7 +446,6 @@ int main(int argc, char *argv[]) {
   PointToPointHelper p2p;
   red.SetRootQueueDisc("ns3::RedQueueDisc");
 
-  // connect edge switches to hosts
   for (uint32_t i = 0; i < nPod; i++) {
     for (uint32_t j = 0; j < nEdge; j++) {
       string subnet = "10." + to_string(i) + "." + to_string(j) + ".0";
@@ -512,7 +460,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // connect aggregate switches to edge switches
   for (uint32_t i = 0; i < nPod; i++) {
     for (uint32_t j = 0; j < nAgg; j++) {
       string subnet = "10." + to_string(i) + "." + to_string(j + nEdge) + ".0";
@@ -525,7 +472,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // connect core switches to aggregate switches
   for (uint32_t i = 0; i < nGroup; i++) {
     for (uint32_t j = 0; j < nPod; j++) {
       string subnet = "10." + to_string(i + nPod) + "." + to_string(j) + ".0";

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "wifi-helper.h"
 
@@ -46,15 +26,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("WifiHelper");
 
-/**
- * ASCII trace PHY transmit sink with context
- * \param stream the output stream
- * \param context the context name
- * \param p the packet
- * \param mode the wifi mode
- * \param preamble the wifi preamble
- * \param txLevel the transmit power level
- */
 static void AsciiPhyTransmitSinkWithContext(Ptr<OutputStreamWrapper> stream,
                                             std::string context,
                                             Ptr<const Packet> p, WifiMode mode,
@@ -69,14 +40,6 @@ static void AsciiPhyTransmitSinkWithContext(Ptr<OutputStreamWrapper> stream,
                        << std::endl;
 }
 
-/**
- * ASCII trace PHY transmit sink without context
- * \param stream the output stream
- * \param p the packet
- * \param mode the wifi mode
- * \param preamble the wifi preamble
- * \param txLevel the transmit power level
- */
 static void AsciiPhyTransmitSinkWithoutContext(Ptr<OutputStreamWrapper> stream,
                                                Ptr<const Packet> p,
                                                WifiMode mode,
@@ -90,15 +53,6 @@ static void AsciiPhyTransmitSinkWithoutContext(Ptr<OutputStreamWrapper> stream,
                        << " " << *pCopy << " " << fcs << std::endl;
 }
 
-/**
- * ASCII trace PHY receive sink with context
- * \param stream the output stream
- * \param context the context name
- * \param p the packet
- * \param snr the SNR
- * \param mode the wifi mode
- * \param preamble the wifi preamble
- */
 static void AsciiPhyReceiveSinkWithContext(Ptr<OutputStreamWrapper> stream,
                                            std::string context,
                                            Ptr<const Packet> p, double snr,
@@ -113,14 +67,6 @@ static void AsciiPhyReceiveSinkWithContext(Ptr<OutputStreamWrapper> stream,
                        << std::endl;
 }
 
-/**
- * ASCII trace PHY receive sink without context
- * \param stream the output stream
- * \param p the packet
- * \param snr the SNR
- * \param mode the wifi mode
- * \param preamble the wifi preamble
- */
 static void AsciiPhyReceiveSinkWithoutContext(Ptr<OutputStreamWrapper> stream,
                                               Ptr<const Packet> p, double snr,
                                               WifiMode mode,
@@ -240,7 +186,6 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
   uint8_t frameFlags = RadiotapHeader::FRAME_FLAG_NONE;
   header.SetTsft(Simulator::Now().GetMicroSeconds());
 
-  // Our capture includes the FCS, so we set the flag to say so.
   frameFlags |= RadiotapHeader::FRAME_FLAG_FCS_INCLUDED;
 
   if (preamble == WIFI_PREAMBLE_SHORT) {
@@ -265,10 +210,10 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
 
   uint16_t channelFlags = 0;
   switch (rate) {
-  case 2:  // 1Mbps
-  case 4:  // 2Mbps
-  case 10: // 5Mbps
-  case 22: // 11Mbps
+  case 2:
+  case 4:
+  case 10:
+  case 22:
     channelFlags |= RadiotapHeader::CHANNEL_FLAG_CCK;
     break;
   default:
@@ -303,17 +248,14 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
     mcsKnown |= RadiotapHeader::MCS_KNOWN_HT_FORMAT;
 
     mcsKnown |= RadiotapHeader::MCS_KNOWN_NESS;
-    if (txVector.GetNess() & 0x01) // bit 1
-    {
+    if (txVector.GetNess() & 0x01) {
       mcsFlags |= RadiotapHeader::MCS_FLAGS_NESS_BIT_0;
     }
-    if (txVector.GetNess() & 0x02) // bit 2
-    {
+    if (txVector.GetNess() & 0x02) {
       mcsKnown |= RadiotapHeader::MCS_KNOWN_NESS_BIT_1;
     }
 
-    mcsKnown |=
-        RadiotapHeader::MCS_KNOWN_FEC_TYPE; // only BCC is currently supported
+    mcsKnown |= RadiotapHeader::MCS_KNOWN_FEC_TYPE;
 
     mcsKnown |= RadiotapHeader::MCS_KNOWN_STBC;
     if (txVector.IsStbc()) {
@@ -327,8 +269,6 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
   if (txVector.IsAggregation()) {
     uint16_t ampduStatusFlags = RadiotapHeader::A_MPDU_STATUS_NONE;
     ampduStatusFlags |= RadiotapHeader::A_MPDU_STATUS_LAST_KNOWN;
-    /* For PCAP file, MPDU Delimiter and Padding should be removed by the MAC
-     * Driver */
     AmpduSubframeHeader hdr;
     uint32_t extractedLength;
     packet->RemoveHeader(hdr);
@@ -338,7 +278,7 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
         (hdr.GetEof() && hdr.GetLength() > 0)) {
       ampduStatusFlags |= RadiotapHeader::A_MPDU_STATUS_LAST;
     }
-    header.SetAmpduStatus(aMpdu.mpduRefNumber, ampduStatusFlags, 1 /*CRC*/);
+    header.SetAmpduStatus(aMpdu.mpduRefNumber, ampduStatusFlags, 1);
   }
 
   if (txVector.GetMode(staId).GetModulationClass() == WIFI_MOD_CLASS_VHT) {
@@ -360,11 +300,9 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
       vhtFlags |= RadiotapHeader::VHT_FLAGS_GUARD_INTERVAL;
     }
 
-    vhtKnown |= RadiotapHeader::VHT_KNOWN_BEAMFORMED; // Beamforming is
-                                                      // currently not supported
+    vhtKnown |= RadiotapHeader::VHT_KNOWN_BEAMFORMED;
 
     vhtKnown |= RadiotapHeader::VHT_KNOWN_BANDWIDTH;
-    // not all bandwidth values are currently supported
     if (txVector.GetChannelWidth() == 40) {
       vhtBandwidth = 1;
     } else if (txVector.GetChannelWidth() == 80) {
@@ -373,7 +311,6 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
       vhtBandwidth = 11;
     }
 
-    // only SU PPDUs are currently supported
     vhtMcsNss[0] |= (txVector.GetNss(staId) & 0x0f);
     vhtMcsNss[0] |= ((txVector.GetMode(staId).GetMcsValue() << 4) & 0xf0);
 
@@ -397,7 +334,6 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
     uint16_t data2 = RadiotapHeader::HE_DATA2_GI_KNOWN;
     if (preamble == WIFI_PREAMBLE_HE_MU || preamble == WIFI_PREAMBLE_HE_TB) {
       data2 |= RadiotapHeader::HE_DATA2_RU_OFFSET_KNOWN;
-      // HeRu indices start at 1 whereas RadioTap starts at 0
       data2 |=
           (((txVector.GetHeMuUserInfo(staId).ru.GetIndex() - 1) << 8) & 0x3f00);
       data2 |=
@@ -459,7 +395,6 @@ void WifiPhyHelper::GetRadiotapHeader(RadiotapHeader &header,
   }
 
   if (preamble == WIFI_PREAMBLE_HE_MU) {
-    // TODO: fill in fields (everything is set to 0 so far)
     std::array<uint8_t, 4> ruChannel1;
     std::array<uint8_t, 4> ruChannel2;
     header.SetHeMuFields(0, 0, ruChannel1, ruChannel2);
@@ -492,9 +427,6 @@ void WifiPhyHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
                                        bool explicitFilename) {
   NS_LOG_FUNCTION(this << prefix << nd << promiscuous << explicitFilename);
 
-  // All of the Pcap enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system. We can only deal with devices of type WifiNetDevice.
   Ptr<WifiNetDevice> device = nd->GetObject<WifiNetDevice>();
   if (!device) {
     NS_LOG_INFO("WifiHelper::EnablePcapInternal(): Device "
@@ -516,15 +448,12 @@ void WifiPhyHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
   }
 
   uint8_t linkId = 0;
-  // find the last point in the filename
   auto pos = filename.find_last_of('.');
-  // if not found, set pos to filename size
   pos = (pos == std::string::npos) ? filename.size() : pos;
 
   for (auto &phy : device->GetPhys()) {
     std::string tmp = filename;
     if (device->GetNPhys() > 1) {
-      // insert LinkId only for multi-link devices
       tmp.insert(pos, "-" + std::to_string(linkId++));
     }
     auto file = pcapHelper.CreateFile(tmp, std::ios::out, m_pcapDlt);
@@ -540,9 +469,6 @@ void WifiPhyHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
 void WifiPhyHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
                                         std::string prefix, Ptr<NetDevice> nd,
                                         bool explicitFilename) {
-  // All of the ASCII enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system. We can only deal with devices of type WifiNetDevice.
   Ptr<WifiNetDevice> device = nd->GetObject<WifiNetDevice>();
   if (!device) {
     NS_LOG_INFO("WifiHelper::EnableAsciiInternal(): Device "
@@ -550,22 +476,13 @@ void WifiPhyHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  // Our trace sinks are going to use packet printing, so we have to make sure
-  // that is turned on.
   Packet::EnablePrinting();
 
   uint32_t nodeid = nd->GetNode()->GetId();
   uint32_t deviceid = nd->GetIfIndex();
   std::ostringstream oss;
 
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and write our traces
-  // without a context since there will be one file per context and therefore
-  // the context would be redundant.
   if (!stream) {
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues. Let the helper decide the actual
-    // name of the file given the prefix.
     AsciiTraceHelper asciiTraceHelper;
 
     std::string filename;
@@ -575,22 +492,15 @@ void WifiPhyHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
       filename = asciiTraceHelper.GetFilenameFromDevice(prefix, device);
     }
 
-    // find the last point in the filename
     auto pos = filename.find_last_of('.');
-    // if not found, set pos to filename size
     pos = (pos == std::string::npos) ? filename.size() : pos;
 
     for (uint8_t linkId = 0; linkId < device->GetNPhys(); linkId++) {
       std::string tmp = filename;
       if (device->GetNPhys() > 1) {
-        // insert LinkId only for multi-link devices
         tmp.insert(pos, "-" + std::to_string(linkId));
       }
       auto theStream = asciiTraceHelper.CreateFileStream(tmp);
-      // We could go poking through the PHY and the state looking for the
-      // correct trace source, but we can let Config deal with that with
-      // some search cost.  Since this is presumably happening at topology
-      // creation time, it doesn't seem much of a price to pay.
       oss.str("");
       oss << "/NodeList/" << nodeid << "/DeviceList/" << deviceid
           << "/$ns3::WifiNetDevice/Phys/" << +linkId << "/State/RxOk";
@@ -609,11 +519,6 @@ void WifiPhyHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to provide a context. We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with coming up with a context.
   oss.str("");
   oss << "/NodeList/" << nodeid << "/DeviceList/" << deviceid
       << "/$ns3::WifiNetDevice/Phy/State/RxOk";
@@ -666,11 +571,6 @@ NetDeviceContainer WifiHelper::Install(const WifiPhyHelper &phyHelper,
       device->SetHtConfiguration(htConfiguration);
     }
     if (m_standard >= WIFI_STANDARD_80211ac) {
-      // Create the VHT Configuration object even if the PHY band is 2.4GHz
-      // (WifiNetDevice::GetVhtConfiguration() checks the PHY band being used).
-      // This approach allows us not to worry about deleting this object when
-      // the PHY band is switched from 5GHz to 2.4GHz and creating this object
-      // when the PHY band is switched from 2.4GHz to 5GHz.
       auto vhtConfiguration = m_vhtConfig.Create<VhtConfiguration>();
       device->SetVhtConfiguration(vhtConfiguration);
     }
@@ -685,8 +585,6 @@ NetDeviceContainer WifiHelper::Install(const WifiPhyHelper &phyHelper,
     std::vector<Ptr<WifiRemoteStationManager>> managers;
     std::vector<Ptr<WifiPhy>> phys = phyHelper.Create(node, device);
     device->SetPhys(phys);
-    // if only one remote station manager model was provided, replicate it for
-    // all the links
     auto stationManagers = m_stationManager;
     if (stationManagers.size() == 1 && phys.size() > 1) {
       stationManagers.resize(phys.size(), stationManagers[0]);
@@ -861,7 +759,6 @@ void WifiHelper::EnableLogComponents() {
   LogComponentEnable("SpectrumWifiHelper", LOG_LEVEL_ALL);
   LogComponentEnable("YansWifiHelper", LOG_LEVEL_ALL);
 
-  // From Spectrum
   LogComponentEnable("WifiSpectrumValueHelper", LOG_LEVEL_ALL);
 }
 
@@ -872,14 +769,11 @@ int64_t WifiHelper::AssignStreams(NetDeviceContainer c, int64_t stream) {
     netDevice = (*i);
     Ptr<WifiNetDevice> wifi = DynamicCast<WifiNetDevice>(netDevice);
     if (wifi) {
-      // Handle any random numbers in the PHY objects.
       currentStream += wifi->GetPhy()->AssignStreams(currentStream);
 
-      // Handle any random numbers in the station managers.
       currentStream +=
           wifi->GetRemoteStationManager()->AssignStreams(currentStream);
 
-      // Handle any random numbers in the MAC objects.
       Ptr<WifiMac> mac = wifi->GetMac();
       PointerValue ptr;
       if (!mac->GetQosSupported()) {
@@ -904,11 +798,9 @@ int64_t WifiHelper::AssignStreams(NetDeviceContainer c, int64_t stream) {
         currentStream += bk_txop->AssignStreams(currentStream);
       }
 
-      // if an AP, handle any beacon jitter
       if (auto apMac = DynamicCast<ApWifiMac>(mac); apMac) {
         currentStream += apMac->AssignStreams(currentStream);
       }
-      // if a STA, handle any probe request jitter
       if (auto staMac = DynamicCast<StaWifiMac>(mac); staMac) {
         currentStream += staMac->AssignStreams(currentStream);
       }

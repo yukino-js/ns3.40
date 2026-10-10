@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 Universita' degli Studi di Napoli "Federico II"
- * Copyright (c) 2022 University of Washington (port logic to
- * WifiBandwidthFilter)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "wifi-bandwidth-filter.h"
 
@@ -81,9 +63,6 @@ bool WifiBandwidthFilter::DoFilter(Ptr<const SpectrumSignalParameters> params,
             (wifiPhy->GetOperatingChannel().GetWidth() ==
              interface->GetChannelWidth()));
 
-  // The signal power is spread over a frequency interval that includes a guard
-  // band on the left and a guard band on the right of the nominal TX band
-
   const auto rxCenterFreq = wifiRxParams->ppdu->GetTxCenterFreq();
   const auto rxWidth = wifiRxParams->ppdu->GetTxVector().GetChannelWidth();
   const auto guardBandwidth = wifiPhy->GetGuardBandwidth(rxWidth);
@@ -96,37 +75,6 @@ bool WifiBandwidthFilter::DoFilter(Ptr<const SpectrumSignalParameters> params,
   const auto channelMinFreq = operatingFrequency - operatingChannelWidth / 2;
   const auto channelMaxFreq = operatingFrequency + operatingChannelWidth / 2;
 
-  /**
-   * The PPDU can be ignored if the two bands do not overlap.
-   *
-   * First non-overlapping case:
-   *
-   *                                        ┌─────────┬─────────┬─────────┐
-   *                                PPDU    │  Guard  │ Nominal │  Guard  │
-   *                                        │  Band   │   Band  │  Band   │
-   *                                        └─────────┴─────────┴─────────┘
-   *                                    rxMinFreq                     rxMaxFreq
-   *
-   * channelMinFreq                channelMaxFreq
-   *         ┌──────────────────────────────┐
-   *         │         Operating            │
-   *         │           Channel            │
-   *         └──────────────────────────────┘
-   *
-   * Second non-overlapping case:
-   *
-   *         ┌─────────┬─────────┬─────────┐
-   * PPDU    │  Guard  │ Nominal │  Guard  │
-   *         │  Band   │   Band  │  Band   │
-   *         └─────────┴─────────┴─────────┘
-   *     rxMinFreq                     rxMaxFreq
-   *
-   *                               channelMinFreq                channelMaxFreq
-   *                                       ┌──────────────────────────────┐
-   *                                       │         Operating            │
-   *                                       │           Channel            │
-   *                                       └──────────────────────────────┘
-   */
   auto filter = (rxMinFreq >= channelMaxFreq || rxMaxFreq <= channelMinFreq);
   NS_LOG_DEBUG("Returning " << filter);
   return filter;

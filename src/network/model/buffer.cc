@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "buffer.h"
 
 #include "ns3/assert.h"
@@ -31,16 +13,12 @@
 
 namespace {
 
-/**
- * \ingroup packet
- * \brief Zero-filled buffer.
- */
 struct Zeroes {
   Zeroes() : size(1000) { memset(buffer, 0, size); }
 
-  char buffer[1000];   //!< buffer containing zero values
-  const uint32_t size; //!< buffer size
-} g_zeroes;            //!< Zero-filled buffer
+  char buffer[1000];
+  const uint32_t size;
+} g_zeroes;
 
 } // namespace
 
@@ -50,23 +28,6 @@ NS_LOG_COMPONENT_DEFINE("Buffer");
 
 uint32_t Buffer::g_recommendedStart = 0;
 #ifdef BUFFER_FREE_LIST
-/* The following macros are pretty evil but they are needed to allow us to
- * keep track of 3 possible states for the g_freeList variable:
- *  - uninitialized means that no one has created a buffer yet
- *    so no one has created the associated free list (it is created
- *    on-demand when the first buffer is created)
- *  - initialized means that the free list exists and is valid
- *  - destroyed means that the static destructors of this compilation unit
- *    have run so, the free list has been cleared from its content
- * The key is that in destroyed state, we are careful not re-create it
- * which is a typical weakness of lazy evaluation schemes which use
- * '0' as a special value to indicate both un-initialized and destroyed.
- * Note that it is important to use '0' as the marker for un-initialized state
- * because the variable holding this state information is initialized to zero
- * which the compiler assigns to zero-memory which is initialized to _zero_
- * before the constructors run so this ensures perfect handling of crazy
- * constructor orderings.
- */
 #define MAGIC_DESTROYED (~(long)0)
 #define IS_UNINITIALIZED(x) (x == (Buffer::FreeList *)0)
 #define IS_DESTROYED(x) (x == (Buffer::FreeList *)MAGIC_DESTROYED)
@@ -93,7 +54,6 @@ void Buffer::Recycle(Buffer::Data *data) {
   NS_ASSERT(data->m_count == 0);
   NS_ASSERT(!IS_UNINITIALIZED(g_freeList));
   g_maxSize = std::max(g_maxSize, data->m_size);
-  /* feed into free list */
   if (data->m_size < g_maxSize || IS_DESTROYED(g_freeList) ||
       g_freeList->size() > 1000) {
     Buffer::Deallocate(data);
@@ -105,7 +65,6 @@ void Buffer::Recycle(Buffer::Data *data) {
 
 Buffer::Data *Buffer::Create(uint32_t dataSize) {
   NS_LOG_FUNCTION(dataSize);
-  /* try to find a buffer correctly sized. */
   if (IS_UNINITIALIZED(g_freeList)) {
     g_freeList = new Buffer::FreeList();
   } else if (IS_INITIALIZED(g_freeList)) {
@@ -123,7 +82,7 @@ Buffer::Data *Buffer::Create(uint32_t dataSize) {
   NS_ASSERT(data->m_count == 1);
   return data;
 }
-#else /* BUFFER_FREE_LIST */
+#else
 void Buffer::Recycle(Buffer::Data *data) {
   NS_LOG_FUNCTION(data);
   NS_ASSERT(data->m_count == 0);
@@ -137,10 +96,9 @@ Buffer::Data *Buffer::Create(uint32_t size) {
   NS_LOG_FUNCTION(size);
   return Allocate(size);
 }
-#endif /* BUFFER_FREE_LIST */
+#endif
 
-constexpr uint32_t ALLOC_OVER_PROVISION =
-    100; //!< Additional bytes to over-provision.
+constexpr uint32_t ALLOC_OVER_PROVISION = 100;
 
 Buffer::Data *Buffer::Allocate(uint32_t reqSize) {
   NS_LOG_FUNCTION(reqSize);
@@ -184,10 +142,6 @@ Buffer::Buffer(uint32_t dataSize, bool initialize) {
 bool Buffer::CheckInternalState() const {
   NS_LOG_FUNCTION(this);
 #if 0
-  // If you want to modify any code in this file, enable this checking code.
-  // Otherwise, there is not much point is enabling it because the
-  // current implementation has been fairly seriously tested and the cost
-  // of this constant checking is pretty high, even for a debug build.
   bool offsetsOk =
     m_start <= m_zeroAreaStart &&
     m_zeroAreaStart <= m_zeroAreaEnd &&
@@ -229,7 +183,6 @@ void Buffer::Initialize(uint32_t zeroSize) {
 Buffer &Buffer::operator=(const Buffer &o) {
   NS_ASSERT(CheckInternalState());
   if (m_data != o.m_data) {
-    // not assignment to self.
     if (m_data->m_count-- == 1) {
       Recycle(m_data);
     }
@@ -270,14 +223,8 @@ void Buffer::AddAtStart(uint32_t start) {
   NS_ASSERT(CheckInternalState());
   bool isDirty = m_data->m_count > 1 && m_start > m_data->m_dirtyStart;
   if (m_start >= start && !isDirty) {
-    /* enough space in the buffer and not dirty.
-     * To add: |..|
-     * Before: |*****---------***|
-     * After:  |***..---------***|
-     */
     NS_ASSERT(m_data->m_count == 1 || m_start == m_data->m_dirtyStart);
     m_start -= start;
-    // update dirty area
     m_data->m_dirtyStart = m_start;
   } else {
     uint32_t newSize = GetInternalSize() + start;
@@ -296,7 +243,6 @@ void Buffer::AddAtStart(uint32_t start) {
     m_end += delta;
     m_start -= start;
 
-    // update dirty area
     m_data->m_dirtyStart = m_start;
     m_data->m_dirtyEnd = m_end;
   }
@@ -310,14 +256,8 @@ void Buffer::AddAtEnd(uint32_t end) {
   NS_ASSERT(CheckInternalState());
   bool isDirty = m_data->m_count > 1 && m_end < m_data->m_dirtyEnd;
   if (GetInternalEnd() + end <= m_data->m_size && !isDirty) {
-    /* enough space in buffer and not dirty
-     * Add:    |...|
-     * Before: |**----*****|
-     * After:  |**----...**|
-     */
     NS_ASSERT(m_data->m_count == 1 || m_end == m_data->m_dirtyEnd);
     m_end += end;
-    // update dirty area.
     m_data->m_dirtyEnd = m_end;
   } else {
     uint32_t newSize = GetInternalSize() + end;
@@ -335,7 +275,6 @@ void Buffer::AddAtEnd(uint32_t end) {
     m_start += delta;
     m_end += end;
 
-    // update dirty area
     m_data->m_dirtyStart = m_start;
     m_data->m_dirtyEnd = m_end;
   }
@@ -351,11 +290,6 @@ void Buffer::AddAtEnd(const Buffer &o) {
       (m_end == m_zeroAreaEnd || m_zeroAreaStart == m_zeroAreaEnd) &&
       m_end == m_data->m_dirtyEnd && o.m_start == o.m_zeroAreaStart &&
       o.m_zeroAreaEnd - o.m_zeroAreaStart > 0) {
-    /**
-     * This is an optimization which kicks in when
-     * we attempt to aggregate two buffers which contain
-     * adjacent zero areas.
-     */
     if (m_zeroAreaStart == m_zeroAreaEnd) {
       m_zeroAreaStart = m_end;
     }
@@ -387,20 +321,13 @@ void Buffer::RemoveAtStart(uint32_t start) {
   NS_ASSERT(CheckInternalState());
   uint32_t newStart = m_start + start;
   if (newStart <= m_zeroAreaStart) {
-    /* only remove start of buffer
-     */
     m_start = newStart;
   } else if (newStart <= m_zeroAreaEnd) {
-    /* remove start of buffer _and_ start of zero area
-     */
     uint32_t delta = newStart - m_zeroAreaStart;
     m_start = m_zeroAreaStart;
     m_zeroAreaEnd -= delta;
     m_end -= delta;
   } else if (newStart <= m_end) {
-    /* remove start of buffer, complete zero area, and part
-     * of end of buffer
-     */
     NS_ASSERT(m_end >= start);
     uint32_t zeroSize = m_zeroAreaEnd - m_zeroAreaStart;
     m_start = newStart - zeroSize;
@@ -408,7 +335,6 @@ void Buffer::RemoveAtStart(uint32_t start) {
     m_zeroAreaStart = m_start;
     m_zeroAreaEnd = m_start;
   } else {
-    /* remove all buffer */
     m_end -= m_zeroAreaEnd - m_zeroAreaStart;
     m_start = m_end;
     m_zeroAreaEnd = m_end;
@@ -424,19 +350,15 @@ void Buffer::RemoveAtEnd(uint32_t end) {
   NS_ASSERT(CheckInternalState());
   uint32_t newEnd = m_end - std::min(end, m_end - m_start);
   if (newEnd > m_zeroAreaEnd) {
-    /* remove part of end of buffer */
     m_end = newEnd;
   } else if (newEnd > m_zeroAreaStart) {
-    /* remove end of buffer, part of zero area */
     m_end = newEnd;
     m_zeroAreaEnd = newEnd;
   } else if (newEnd > m_start) {
-    /* remove end of buffer, zero area, part of start of buffer */
     m_end = newEnd;
     m_zeroAreaEnd = newEnd;
     m_zeroAreaStart = newEnd;
   } else {
-    /* remove all buffer */
     m_end = m_start;
     m_zeroAreaEnd = m_start;
     m_zeroAreaStart = m_start;
@@ -483,10 +405,6 @@ uint32_t Buffer::GetSerializedSize() const {
   uint32_t dataStart = (m_zeroAreaStart - m_start + 3) & (~0x3);
   uint32_t dataEnd = (m_end - m_zeroAreaEnd + 3) & (~0x3);
 
-  // total size 4-bytes for dataStart length
-  // + X number of bytes for dataStart
-  // + 4-bytes for dataEnd length
-  // + X number of bytes for dataEnd
   uint32_t sz = sizeof(uint32_t) + sizeof(uint32_t) + dataStart +
                 sizeof(uint32_t) + dataEnd;
 
@@ -498,7 +416,6 @@ uint32_t Buffer::Serialize(uint8_t *buffer, uint32_t maxSize) const {
   auto p = reinterpret_cast<uint32_t *>(buffer);
   uint32_t size = 0;
 
-  // Add the zero data length
   if (size + 4 <= maxSize) {
     size += 4;
     *p++ = m_zeroAreaEnd - m_zeroAreaStart;
@@ -506,7 +423,6 @@ uint32_t Buffer::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Add the length of actual start data
   uint32_t dataStartLength = m_zeroAreaStart - m_start;
   if (size + 4 <= maxSize) {
     size += 4;
@@ -515,17 +431,14 @@ uint32_t Buffer::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Add the actual data
   if (size + ((dataStartLength + 3) & (~3)) <= maxSize) {
     size += (dataStartLength + 3) & (~3);
     memcpy(p, m_data->m_data + m_start, dataStartLength);
-    p += (((dataStartLength + 3) & (~3)) /
-          4); // Advance p, insuring 4 byte boundary
+    p += (((dataStartLength + 3) & (~3)) / 4);
   } else {
     return 0;
   }
 
-  // Add the length of the actual end data
   uint32_t dataEndLength = m_end - m_zeroAreaEnd;
   if (size + 4 <= maxSize) {
     size += 4;
@@ -534,19 +447,12 @@ uint32_t Buffer::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Add the actual data
   if (size + ((dataEndLength + 3) & (~3)) <= maxSize) {
-    // The following line is unnecessary.
-    // size += (dataEndLength + 3) & (~3);
     memcpy(p, m_data->m_data + m_zeroAreaStart, dataEndLength);
-    // The following line is unnecessary.
-    // p += (((dataEndLength + 3) & (~3))/4); // Advance p, insuring 4 byte
-    // boundary
   } else {
     return 0;
   }
 
-  // Serialized everything successfully
   return 1;
 }
 
@@ -559,10 +465,8 @@ uint32_t Buffer::Deserialize(const uint8_t *buffer, uint32_t size) {
   uint32_t zeroDataLength = *p++;
   sizeCheck -= 4;
 
-  // Create zero bytes
   Initialize(zeroDataLength);
 
-  // Add start data
   NS_ASSERT(sizeCheck >= 4);
   uint32_t dataStartLength = *p++;
   sizeCheck -= 4;
@@ -571,11 +475,9 @@ uint32_t Buffer::Deserialize(const uint8_t *buffer, uint32_t size) {
   NS_ASSERT(sizeCheck >= dataStartLength);
   Begin().Write(reinterpret_cast<uint8_t *>(const_cast<uint32_t *>(p)),
                 dataStartLength);
-  p += (((dataStartLength + 3) & (~3)) /
-        4); // Advance p, insuring 4 byte boundary
+  p += (((dataStartLength + 3) & (~3)) / 4);
   sizeCheck -= ((dataStartLength + 3) & (~3));
 
-  // Add end data
   NS_ASSERT(sizeCheck >= 4);
   uint32_t dataEndLength = *p++;
   sizeCheck -= 4;
@@ -586,13 +488,9 @@ uint32_t Buffer::Deserialize(const uint8_t *buffer, uint32_t size) {
   tmp.Prev(dataEndLength);
   tmp.Write(reinterpret_cast<uint8_t *>(const_cast<uint32_t *>(p)),
             dataEndLength);
-  // The following line is unnecessary.
-  // p += (((dataEndLength+3)&(~3))/4); // Advance p, insuring 4 byte boundary
   sizeCheck -= ((dataEndLength + 3) & (~3));
 
   NS_ASSERT(sizeCheck == 0);
-  // return zero if buffer did not
-  // contain a complete message
   return (sizeCheck != 0) ? 0 : 1;
 }
 
@@ -663,10 +561,6 @@ uint32_t Buffer::CopyData(uint8_t *buffer, uint32_t size) const {
   }
   return originalSize - size;
 }
-
-/******************************************************
- *            The buffer iterator below.
- ******************************************************/
 
 uint32_t Buffer::Iterator::GetDistanceFrom(const Iterator &o) const {
   NS_LOG_FUNCTION(this << &o);
@@ -980,7 +874,6 @@ uint16_t Buffer::Iterator::CalculateIpChecksum(uint16_t size) {
 uint16_t Buffer::Iterator::CalculateIpChecksum(uint16_t size,
                                                uint32_t initialChecksum) {
   NS_LOG_FUNCTION(this << size << initialChecksum);
-  /* see RFC 1071 to understand this code. */
   uint32_t sum = initialChecksum;
 
   for (int j = 0; j < size / 2; j++) {

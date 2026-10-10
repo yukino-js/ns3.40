@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- */
 
 #include "lte-test-mimo.h"
 
@@ -60,16 +42,10 @@ NS_LOG_COMPONENT_DEFINE("LteTestMimo");
 LenaTestMimoSuite::LenaTestMimoSuite() : TestSuite("lte-mimo", SYSTEM) {
   NS_LOG_INFO("creating LenaMimoTestCase");
 
-  // RR DOWNLINK- DISTANCE 300
-  // interval 1 : [0.1, 0.2) sec TxMode 0: MCS 20 -> TB size 1191 bytes
-  // interval 2 : [0.3, 0.4) sec TxMode 1: MCS 26 -> TB size 1836 bytes
-  // interval 3 : [0.5, 0.6) sec TxMode 2: MCS 18 -> TB size  967 bytes (x2
-  // layers)
-  // -->
   std::vector<uint32_t> estThrDl;
-  estThrDl.push_back(119100); // interval 1 : estimated throughput for TxMode 1
-  estThrDl.push_back(183600); // interval 2 : estimated throughput for TxMode 2
-  estThrDl.push_back(193400); // interval 3 : estimated throughput for TxMode 3
+  estThrDl.push_back(119100);
+  estThrDl.push_back(183600);
+  estThrDl.push_back(193400);
   AddTestCase(
       new LenaMimoTestCase(300, estThrDl, "ns3::RrFfMacScheduler", true),
       TestCase::QUICK);
@@ -84,10 +60,6 @@ LenaTestMimoSuite::LenaTestMimoSuite() : TestSuite("lte-mimo", SYSTEM) {
       TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LenaTestMimoSuite lenaTestMimoSuite;
 
 std::string LenaMimoTestCase::BuildNameString(uint16_t dist,
@@ -129,19 +101,12 @@ void LenaMimoTestCase::DoRun() {
   Config::SetDefault("ns3::RadioBearerStatsCalculator::UlRlcOutputFilename",
                      StringValue(CreateTempDirFilename("UlRlcStats.txt")));
 
-  // Disable Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(false));
-
-  /**
-   * Initialize Simulation Scenario: 1 eNB and m_nUser UEs
-   */
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Config::SetDefault("ns3::RrFfMacScheduler::HarqEnabled", BooleanValue(false));
   Config::SetDefault("ns3::PfFfMacScheduler::HarqEnabled", BooleanValue(false));
-
-  //   lteHelper->SetSchedulerAttribute ("HarqEnabled", BooleanValue (false));
 
   lteHelper->SetAttribute(
       "PathlossModel", StringValue("ns3::HybridBuildingsPropagationLossModel"));
@@ -149,15 +114,11 @@ void LenaMimoTestCase::DoRun() {
   lteHelper->SetPathlossModelAttribute("ShadowSigmaIndoor", DoubleValue(0.0));
   lteHelper->SetPathlossModelAttribute("ShadowSigmaExtWalls", DoubleValue(0.0));
 
-  //   lteHelper->EnableLogComponents ();
-
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(enbNodes);
@@ -166,17 +127,14 @@ void LenaMimoTestCase::DoRun() {
   mobility.Install(ueNodes);
   BuildingsHelper::Install(ueNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType(m_schedulerType);
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate an EPS bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
@@ -188,7 +146,6 @@ void LenaMimoTestCase::DoRun() {
   Ptr<MobilityModel> mmenb = enbNodes.Get(0)->GetObject<MobilityModel>();
   mmenb->SetPosition(Vector(0.0, 0.0, 30.0));
 
-  // Set UE's position and power
   Ptr<MobilityModel> mmue = ueNodes.Get(0)->GetObject<MobilityModel>();
   mmue->SetPosition(Vector(m_dist, 0.0, 1.0));
   Ptr<LteUeNetDevice> lteUeDev = ueDevs.Get(0)->GetObject<LteUeNetDevice>();
@@ -196,7 +153,6 @@ void LenaMimoTestCase::DoRun() {
   uePhy->SetAttribute("TxPower", DoubleValue(23.0));
   uePhy->SetAttribute("NoiseFigure", DoubleValue(9.0));
 
-  // need to allow for RRC connection establishment + SRS before enabling traces
   lteHelper->EnableRlcTraces();
   lteHelper->EnableMacTraces();
   double simulationTime = 0.6;
@@ -240,11 +196,10 @@ void LenaMimoTestCase::DoRun() {
   rlcStats->SetAttribute("EpochDuration", TimeValue(Seconds(0.1)));
 
   NS_LOG_INFO(m_schedulerType << " MIMO test:");
-  double sampleTime = 0.199999; // at 0.2 RlcStats are reset
+  double sampleTime = 0.199999;
   for (std::size_t j = 0; j < m_estThrDl.size(); j++) {
     NS_LOG_INFO("\t test with user at distance " << m_dist << " time "
                                                  << sampleTime);
-    // get the imsi
     uint64_t imsi = ueDevs.Get(0)->GetObject<LteUeNetDevice>()->GetImsi();
     uint8_t lcId = 3;
     Time t = Seconds(sampleTime);

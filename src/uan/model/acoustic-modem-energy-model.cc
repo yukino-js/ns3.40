@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Andrea Sacco
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Andrea Sacco <andrea.sacco85@gmail.com>
- */
 
 #include "acoustic-modem-energy-model.h"
 
@@ -71,7 +53,7 @@ TypeId AcousticModemEnergyModel::GetTypeId() {
 
 AcousticModemEnergyModel::AcousticModemEnergyModel() {
   NS_LOG_FUNCTION(this);
-  m_currentState = UanPhy::IDLE; // initially IDLE
+  m_currentState = UanPhy::IDLE;
   m_lastUpdateTime = Seconds(0.0);
   m_energyDepletionCallback.Nullify();
   m_node = nullptr;
@@ -166,12 +148,10 @@ void AcousticModemEnergyModel::SetEnergyRechargeCallback(
 
 void AcousticModemEnergyModel::ChangeState(int newState) {
   NS_LOG_FUNCTION(this << newState);
-  // NS_ASSERT (IsStateTransitionValid ((MicroModemState) newState));
 
   Time duration = Simulator::Now() - m_lastUpdateTime;
-  NS_ASSERT(duration.GetNanoSeconds() >= 0); // check if duration is valid
+  NS_ASSERT(duration.GetNanoSeconds() >= 0);
 
-  // energy to decrease = current * voltage * time
   double energyToDecrease = 0.0;
 
   switch (m_currentState) {
@@ -194,21 +174,16 @@ void AcousticModemEnergyModel::ChangeState(int newState) {
     NS_FATAL_ERROR("AcousticModemEnergyModel:Undefined radio state!");
   }
 
-  // update total energy consumption
   m_totalEnergyConsumption += energyToDecrease;
 
-  // update last update time stamp
   m_lastUpdateTime = Simulator::Now();
 
-  // notify energy source
   m_source->UpdateEnergySource();
 
   if (m_currentState != UanPhy::DISABLED) {
-    // update current state & last update time stamp
     SetMicroModemState(newState);
   }
 
-  // some debug message
   NS_LOG_DEBUG("AcousticModemEnergyModel:Total energy consumption at node #"
                << m_node->GetId() << " is " << m_totalEnergyConsumption << "J");
 }
@@ -217,11 +192,9 @@ void AcousticModemEnergyModel::HandleEnergyDepletion() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("AcousticModemEnergyModel:Energy is depleted at node #"
                << m_node->GetId());
-  // invoke energy depletion callback, if set.
   if (!m_energyDepletionCallback.IsNull()) {
     m_energyDepletionCallback();
   }
-  // invoke the phy energy depletion handler
   Ptr<UanNetDevice> dev = m_node->GetDevice(0)->GetObject<UanNetDevice>();
   dev->GetPhy()->EnergyDepletionHandler();
   SetMicroModemState(UanPhy::DISABLED);
@@ -231,24 +204,15 @@ void AcousticModemEnergyModel::HandleEnergyRecharged() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("AcousticModemEnergyModel:Energy is recharged at node #"
                << m_node->GetId());
-  // invoke energy recharge callback, if set.
   if (!m_energyRechargeCallback.IsNull()) {
     m_energyRechargeCallback();
   }
-  // invoke the phy energy recharge handler
   Ptr<UanNetDevice> dev = m_node->GetDevice(0)->GetObject<UanNetDevice>();
   dev->GetPhy()->EnergyRechargeHandler();
   SetMicroModemState(UanPhy::IDLE);
 }
 
-void AcousticModemEnergyModel::HandleEnergyChanged() {
-  NS_LOG_FUNCTION(this);
-  // Not implemented
-}
-
-/*
- * Private functions start here.
- */
+void AcousticModemEnergyModel::HandleEnergyChanged() { NS_LOG_FUNCTION(this); }
 
 void AcousticModemEnergyModel::DoDispose() {
   NS_LOG_FUNCTION(this);

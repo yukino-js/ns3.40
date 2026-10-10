@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2003,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "onoe-wifi-manager.h"
 
@@ -29,22 +11,16 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("OnoeWifiManager");
 
-/**
- * \brief hold per-remote-station state for ONOE Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the ONOE Wifi manager
- */
 struct OnoeWifiRemoteStation : public WifiRemoteStation {
-  Time m_nextModeUpdate; ///< next mode update
-  bool m_rateBlocked;    ///< whether the rate cannot be changed
-  uint32_t m_shortRetry; ///< short retry
-  uint32_t m_longRetry;  ///< long retry
-  uint32_t m_tx_ok;      ///< transmit OK
-  uint32_t m_tx_err;     ///< transmit error
-  uint32_t m_tx_retr;    ///< transmit retry
-  uint32_t m_tx_upper;   ///< transmit upper
-  uint8_t m_txrate;      ///< transmit rate
+  Time m_nextModeUpdate;
+  bool m_rateBlocked;
+  uint32_t m_shortRetry;
+  uint32_t m_longRetry;
+  uint32_t m_tx_ok;
+  uint32_t m_tx_err;
+  uint32_t m_tx_retr;
+  uint32_t m_tx_upper;
+  uint8_t m_txrate;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(OnoeWifiManager);
@@ -125,21 +101,21 @@ void OnoeWifiManager::DoReportRtsFailed(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
   station->m_shortRetry++;
-  station->m_rateBlocked = true; // do not change rate for retransmission
+  station->m_rateBlocked = true;
 }
 
 void OnoeWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
   station->m_longRetry++;
-  station->m_rateBlocked = true; // do not change rate for retransmission
+  station->m_rateBlocked = true;
 }
 
 void OnoeWifiManager::DoReportRtsOk(WifiRemoteStation *st, double ctsSnr,
                                     WifiMode ctsMode, double rtsSnr) {
   NS_LOG_FUNCTION(this << st << ctsSnr << ctsMode << rtsSnr);
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
-  station->m_rateBlocked = true; // do not change rate
+  station->m_rateBlocked = true;
 }
 
 void OnoeWifiManager::DoReportDataOk(WifiRemoteStation *st, double ackSnr,
@@ -151,7 +127,7 @@ void OnoeWifiManager::DoReportDataOk(WifiRemoteStation *st, double ackSnr,
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
   UpdateRetry(station);
   station->m_tx_ok++;
-  station->m_rateBlocked = false; // we can change the rate for next packet
+  station->m_rateBlocked = false;
 }
 
 void OnoeWifiManager::DoReportFinalRtsFailed(WifiRemoteStation *st) {
@@ -159,7 +135,7 @@ void OnoeWifiManager::DoReportFinalRtsFailed(WifiRemoteStation *st) {
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
   UpdateRetry(station);
   station->m_tx_err++;
-  station->m_rateBlocked = false; // we can change the rate for next packet
+  station->m_rateBlocked = false;
 }
 
 void OnoeWifiManager::DoReportFinalDataFailed(WifiRemoteStation *st) {
@@ -167,7 +143,7 @@ void OnoeWifiManager::DoReportFinalDataFailed(WifiRemoteStation *st) {
   auto station = static_cast<OnoeWifiRemoteStation *>(st);
   UpdateRetry(station);
   station->m_tx_err++;
-  station->m_rateBlocked = false; // we can change the rate for next packet
+  station->m_rateBlocked = false;
 }
 
 void OnoeWifiManager::UpdateRetry(OnoeWifiRemoteStation *station) {
@@ -183,26 +159,19 @@ void OnoeWifiManager::UpdateMode(OnoeWifiRemoteStation *station) {
     return;
   }
   station->m_nextModeUpdate = Simulator::Now() + m_updatePeriod;
-  /**
-   * The following 20 lines of code were copied from the Onoe
-   * rate control kernel module used in the madwifi driver.
-   */
 
   int dir = 0;
   uint8_t nrate;
   bool enough = (station->m_tx_ok + station->m_tx_err >= 10);
 
-  /* no packet reached -> down */
   if (station->m_tx_err > 0 && station->m_tx_ok == 0) {
     dir = -1;
   }
 
-  /* all packets needs retry in average -> down */
   if (enough && station->m_tx_ok < station->m_tx_retr) {
     dir = -1;
   }
 
-  /* no error and less than rate_raise% of packets need retry -> up */
   if (enough && station->m_tx_err == 0 &&
       station->m_tx_retr < (station->m_tx_ok * m_addCreditThreshold) / 100) {
     dir = 1;
@@ -226,7 +195,6 @@ void OnoeWifiManager::UpdateMode(OnoeWifiRemoteStation *station) {
     station->m_tx_upper = 0;
     break;
   case 1:
-    /* raise rate if we hit rate_raise_threshold */
     if (++station->m_tx_upper < m_raiseThreshold) {
       break;
     }

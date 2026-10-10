@@ -1,25 +1,4 @@
-/*
- * Copyright (c) 2010 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hajime Tazaki (tazaki@sfc.wide.ad.jp)
- */
 
-//-----------------------------------------------------------------------------
-// Unit tests
-//-----------------------------------------------------------------------------
 
 #include "ns3/abort.h"
 #include "ns3/attribute.h"
@@ -32,23 +11,6 @@
 
 using namespace ns3;
 
-/**
- * \defgroup topology-test Topology module tests
- * \ingroup topology
- * \ingroup tests
- */
-
-/**
- * \file
- * \ingroup topology-test
- * ns3::RockefuelTopologyReader test suite.
- */
-
-/**
- * \ingroup topology-test
-
- * \brief Rocketfuel Topology Reader Weights Test
- */
 class RocketfuelTopologyReaderWeightsTest : public TestCase {
 public:
   RocketfuelTopologyReaderWeightsTest();
@@ -85,10 +47,6 @@ void RocketfuelTopologyReaderWeightsTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup topology-test
- * \brief Rocketfuel Topology Reader Maps Test
- */
 class RocketfuelTopologyReaderMapsTest : public TestCase {
 public:
   RocketfuelTopologyReaderMapsTest();
@@ -125,11 +83,6 @@ void RocketfuelTopologyReaderMapsTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup topology-test
- *
- * \brief Rocketfuel Topology Reader TestSuite
- */
 class RocketfuelTopologyReaderTestSuite : public TestSuite {
 public:
   RocketfuelTopologyReaderTestSuite();
@@ -143,8 +96,4 @@ RocketfuelTopologyReaderTestSuite::RocketfuelTopologyReaderTestSuite()
   AddTestCase(new RocketfuelTopologyReaderMapsTest(), TestCase::QUICK);
 }
 
-/**
- * \ingroup topology-test
- * Static variable for test initialization
- */
 static RocketfuelTopologyReaderTestSuite g_rocketfuelTopologyReaderTestSuite;

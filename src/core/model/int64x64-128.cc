@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2010 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "int64x64-128.h"
 
@@ -22,30 +5,10 @@
 #include "assert.h"
 #include "log.h"
 
-/**
- * \file
- * \ingroup highprec
- * Implementation of the ns3::int64x64_t type using a native int128_t type.
- */
-
 namespace ns3 {
 
-// Note:  Logging in this file is largely avoided due to the
-// number of calls that are made to these functions and the possibility
-// of causing recursions leading to stack overflow
 NS_LOG_COMPONENT_DEFINE("int64x64-128");
 
-/**
- * \ingroup highprec
- * Compute the sign of the result of multiplying or dividing
- * Q64.64 fixed precision operands.
- *
- * \param [in]  sa The signed value of the first operand.
- * \param [in]  sb The signed value of the second operand.
- * \param [out] ua The unsigned magnitude of the first operand.
- * \param [out] ub The unsigned magnitude of the second operand.
- * \returns \c true if the result will be negative.
- */
 static inline bool output_sign(const int128_t sa, const int128_t sb,
                                uint128_t &ua, uint128_t &ub) {
   bool negA = sa < 0;
@@ -76,21 +39,13 @@ uint128_t int64x64_t::Umul(const uint128_t a, const uint128_t b) {
   uint128_t res1;
   uint128_t res2;
 
-  // Multiplying (a.h 2^64 + a.l) x (b.h 2^64 + b.l) =
-  //             2^128 a.h b.h + 2^64*(a.h b.l+b.h a.l) + a.l b.l
-  // get the low part a.l b.l
-  // multiply the fractional part
   loPart = aL * bL;
-  // compute the middle part 2^64*(a.h b.l+b.h a.l)
   midPart = aL * bH + aH * bL;
-  // compute the high part 2^128 a.h b.h
   hiPart = aH * bH;
-  // if the high part is not zero, put a warning
   NS_ABORT_MSG_IF(
       (hiPart & HP_MASK_HI) != 0,
       "High precision 128 bits multiplication error: multiplication overflow.");
 
-  // Adding 64-bit terms to get 128-bit results, with carries
   res1 = loPart >> 64;
   res2 = midPart & HP_MASK_LO;
   result = res1 + res2;
@@ -120,49 +75,39 @@ uint128_t int64x64_t::Udiv(const uint128_t a, const uint128_t b) {
   rem = rem % den;
   uint128_t result = quo;
 
-  // Now, manage the remainder
-  const uint64_t DIGITS = 64; // Number of fraction digits (bits) we need
+  const uint64_t DIGITS = 64;
   const uint128_t ZERO = 0;
 
   NS_ASSERT_MSG(rem < den, "Remainder not less than divisor");
 
-  uint64_t digis = 0; // Number of digits we have already
-  uint64_t shift = 0; // Number we are going to get this round
+  uint64_t digis = 0;
+  uint64_t shift = 0;
 
-  // Skip trailing zeros in divisor
   while ((shift < DIGITS) && !(den & 0x1)) {
     ++shift;
     den >>= 1;
   }
 
   while ((digis < DIGITS) && (rem != ZERO)) {
-    // Skip leading zeros in remainder
     while ((digis + shift < DIGITS) && !(rem & HP128_MASK_HI_BIT)) {
       ++shift;
       rem <<= 1;
     }
 
-    // Cast off denominator bits if:
-    //   Need more digits and
-    //     LSB is zero or
-    //     rem < den
     while ((digis + shift < DIGITS) && (!(den & 0x1) || (rem < den))) {
       ++shift;
       den >>= 1;
     }
 
-    // Do the division
     quo = rem / den;
     rem = rem % den;
 
-    // Add in the quotient as shift bits of the fraction
     result <<= shift;
     result += quo;
 
     digis += shift;
     shift = 0;
   }
-  // Did we run out of remainder?
   if (digis < DIGITS) {
     shift = DIGITS - digis;
     result <<= shift;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Benjamin Cizdziel <ben.cizdziel@gmail.com>
- */
 
 #include "tv-spectrum-transmitter.h"
 
@@ -162,51 +144,23 @@ Ptr<SpectrumChannel> TvSpectrumTransmitter::GetChannel() const {
   return m_channel;
 }
 
-/// Used as key for map containing created spectrum models
 struct TvSpectrumModelId {
-  /**
-   * Constructor
-   * \param stFreq Start frequency [Hz]
-   * \param bwidth Bandwidth [Hz]
-   */
   TvSpectrumModelId(double stFreq, double bwidth);
-  double startFrequency; //!< Start frequency [Hz]
-  double bandwidth;      //!< Bandwidth [Hz]
+  double startFrequency;
+  double bandwidth;
 };
 
 TvSpectrumModelId::TvSpectrumModelId(double stFreq, double bwidth)
     : startFrequency(stFreq), bandwidth(bwidth) {}
 
-/**
- * Minus-than operator
- * \param a left operand
- * \param b right operand
- * \returns true if the left operand has a lower starting frequency
- *          or a smaller bandwidth (if both have the same starting freq.)
- */
 bool operator<(const TvSpectrumModelId &a, const TvSpectrumModelId &b) {
   return (
       (a.startFrequency < b.startFrequency) ||
       ((a.startFrequency == b.startFrequency) && (a.bandwidth < b.bandwidth)));
 }
 
-/// Stores created spectrum models
 static std::map<TvSpectrumModelId, Ptr<SpectrumModel>> g_tvSpectrumModelMap;
 
-/**
- * 8-VSB PSD approximated from Figure 3 of the following article:
- * Baron, Stanley. "First-Hand:Digital Television: The Digital Terrestrial
- * Television Broadcasting (DTTB) Standard." IEEE Global History Network.
- * <http://www.ieeeghn.org/wiki/index.php/First-Hand:Digital_Television:_The_Digital_Terrestrial_Television_Broadcasting_(DTTB)_Standard>.
- *
- * COFDM PSD approximated from Figure 12 (8k mode) of the following article:
- * Kopp, Carlo. "High Definition Television." High Definition Television. Air
- * Power Australia. <http://www.ausairpower.net/AC-1100.html>.
- *
- * Analog PSD approximated from Figure 4 of the following paper:
- * Stephen Shellhammer, Ahmed Sadek, and Wenyi Zhang. "Technical Challenges for
- * Cognitive Radio in the TV White Space Spectrum." Qualcomm Incorporated.
- */
 void TvSpectrumTransmitter::CreateTvPsd() {
   NS_LOG_FUNCTION(this);
   NS_ASSERT(m_channelBandwidth != 0);
@@ -214,10 +168,8 @@ void TvSpectrumTransmitter::CreateTvPsd() {
   TvSpectrumModelId key(m_startFrequency, m_channelBandwidth);
   auto iter = g_tvSpectrumModelMap.find(key);
   if (iter != g_tvSpectrumModelMap.end()) {
-    model = iter->second; // set SpectrumModel to previously created one
-  } else // no previously created SpectrumModel with same frequency and
-         // bandwidth
-  {
+    model = iter->second;
+  } else {
     Bands bands;
     double halfSubBand = 0.5 * (m_channelBandwidth / 100);
     for (double fl = m_startFrequency - halfSubBand;
@@ -234,8 +186,7 @@ void TvSpectrumTransmitter::CreateTvPsd() {
         std::pair<TvSpectrumModelId, Ptr<SpectrumModel>>(key, model));
   }
   Ptr<SpectrumValue> psd = Create<SpectrumValue>(model);
-  double basePsdWattsHz =
-      pow(10.0, (m_basePsd - 30) / 10.0); // convert dBm to W/Hz
+  double basePsdWattsHz = pow(10.0, (m_basePsd - 30) / 10.0);
   switch (m_tvType) {
   case TVTYPE_8VSB: {
     for (int i = 0; i <= 100; i++) {
@@ -261,8 +212,7 @@ void TvSpectrumTransmitter::CreateTvPsd() {
         (*psd)[i] = 0.309 * basePsdWattsHz;
         break;
       case 5:
-        (*psd)[i] =
-            (0.502 * basePsdWattsHz) + (21.577 * basePsdWattsHz); // pilot
+        (*psd)[i] = (0.502 * basePsdWattsHz) + (21.577 * basePsdWattsHz);
         break;
       case 6:
       case 94:

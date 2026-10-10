@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "bs-uplink-scheduler-mbqos.h"
 
@@ -86,10 +58,6 @@ void UplinkSchedulerMBQoS::GetChannelDescriptorsToUpdate(bool &updateDcd,
                                                          bool &updateUcd,
                                                          bool &sendDcd,
                                                          bool &sendUcd) {
-  /* DCD and UCD shall actually be updated when channel or burst profile
-   definitions change. burst profiles are updated based on number of SSs,
-   network conditions and etc. for now temporarily assuming DCD/UCD shall be
-   updated every time */
 
   uint32_t randNr = rand();
   if (randNr % 5 == 0 || GetBs()->GetNrDcdSent() == 0) {
@@ -101,8 +69,6 @@ void UplinkSchedulerMBQoS::GetChannelDescriptorsToUpdate(bool &updateDcd,
     sendUcd = true;
   }
 
-  // -------------------------------------
-  // additional, just to send more frequently
   if (!sendDcd) {
     randNr = rand();
     if (randNr % 4 == 0) {
@@ -116,7 +82,6 @@ void UplinkSchedulerMBQoS::GetChannelDescriptorsToUpdate(bool &updateDcd,
       sendUcd = true;
     }
   }
-  // -------------------------------------
 
   Time timeSinceLastDcd = Simulator::Now() - GetDcdTimeStamp();
   Time timeSinceLastUcd = Simulator::Now() - GetUcdTimeStamp();
@@ -161,13 +126,11 @@ void UplinkSchedulerMBQoS::UplinkSchedWindowTimer() {
 
   std::vector<SSRecord *> *ssRecords = GetBs()->GetSSManager()->GetSSRecords();
 
-  // For each SS
   for (auto iter = ssRecords->begin(); iter != ssRecords->end(); ++iter) {
     SSRecord *ssRecord = *iter;
     std::vector<ServiceFlow *> serviceFlows =
         ssRecord->GetServiceFlows(ServiceFlow::SF_TYPE_ALL);
 
-    // For each flow
     for (auto iter2 = serviceFlows.begin(); iter2 != serviceFlows.end();
          ++iter2) {
       ServiceFlow *serviceFlow = *iter2;
@@ -175,14 +138,10 @@ void UplinkSchedulerMBQoS::UplinkSchedWindowTimer() {
           (serviceFlow->GetSchedulingType() == ServiceFlow::SF_TYPE_NRTPS)) {
         min_bw = (int)ceil(serviceFlow->GetMinReservedTrafficRate());
 
-        // This way we can compensate flows which did not get min_bw in the
-        // previous window
         if ((serviceFlow->GetRecord()->GetBacklogged() > 0) &&
             (serviceFlow->GetRecord()->GetBwSinceLastExpiry() < min_bw)) {
           serviceFlow->GetRecord()->UpdateBwSinceLastExpiry(-min_bw);
 
-          // if backlogged < granted_bw then we don't need to provide granted_bw
-          // + min_bw in next window, but backlogged + min_bw
           if (serviceFlow->GetRecord()->GetBacklogged() <
               (serviceFlow->GetRecord()->GetBwSinceLastExpiry())) {
             serviceFlow->GetRecord()->SetBwSinceLastExpiry(
@@ -195,7 +154,6 @@ void UplinkSchedulerMBQoS::UplinkSchedWindowTimer() {
     }
   }
 
-  // Periodically reset window
   Simulator::Schedule(m_windowInterval,
                       &UplinkSchedulerMBQoS::UplinkSchedWindowTimer, this);
 }
@@ -207,7 +165,7 @@ void UplinkSchedulerMBQoS::Schedule() {
   bool allocationForDsa = false;
 
   uint32_t symbolsToAllocation = 0;
-  uint32_t allocationSize = 0; // size in symbols
+  uint32_t allocationSize = 0;
   uint32_t availableSymbols = GetBs()->GetNrUlSymbols();
 
   AllocateInitialRangingInterval(symbolsToAllocation, availableSymbols);
@@ -226,8 +184,6 @@ void UplinkSchedulerMBQoS::Schedule() {
     if (ssRecord->GetPollForRanging() &&
         ssRecord->GetRangingStatus() ==
             WimaxNetDevice::RANGING_STATUS_CONTINUE) {
-      // SS's ranging is not yet complete
-      // allocating invited initial ranging interval
       ulMapIe.SetUiuc(OfdmUlBurstProfile::UIUC_INITIAL_RANGING);
       allocationSize = GetBs()->GetRangReqOppSize();
       SetIsInvIrIntrvlAllocated(true);
@@ -241,17 +197,12 @@ void UplinkSchedulerMBQoS::Schedule() {
     } else {
       WimaxPhy::ModulationType modulationType = ssRecord->GetModulationType();
 
-      // need to update because modulation/FEC to UIUC mapping may vary over
-      // time
       ulMapIe.SetUiuc(GetBs()->GetBurstProfileManager()->GetBurstProfile(
           modulationType, WimaxNetDevice::DIRECTION_UPLINK));
 
-      // establish service flows for SS
       if (ssRecord->GetRangingStatus() ==
               WimaxNetDevice::RANGING_STATUS_SUCCESS &&
           !ssRecord->GetAreServiceFlowsAllocated()) {
-        // allocating grant (with arbitrary size) to allow SS to send DSA
-        // messages DSA-REQ and DSA-ACK only one DSA allocation per frame
         if (!allocationForDsa) {
           allocationSize =
               GetBs()->GetPhy()->GetNrSymbols(sizeof(DsaReq), modulationType);
@@ -265,26 +216,11 @@ void UplinkSchedulerMBQoS::Schedule() {
           }
         }
       } else {
-        // all service flows associated to SS are established now
 
-        /* Implementation of uplink scheduler
-         * [1] Freitag, J.; da Fonseca, N.L.S., "Uplink Scheduling with Quality
-         * of Service in IEEE 802.16 Networks," Global Telecommunications
-         * Conference, 2007. GLOBECOM '07. IEEE , vol., no., pp.2503-2508, 26-30
-         * Nov. 2007 URL:
-         * http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=4411386&isnumber=4410910
-         */
-
-        // Step 1
         if (availableSymbols) {
-          /*allocating grants for data transmission for UGS flows (Data Grant
-           Burst Type IEs, 6.3.7.4.3.3) (grant has been referred by different
-           names e.g. transmission opportunity, slot,         uplink allocation,
-           etc)*/
           if (ssRecord->GetHasServiceFlowUgs()) {
             NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S)
                                << " offering be unicast polling");
-            // Recover period interval information for UGS flow
             Time frame_duration = GetBs()->GetPhy()->GetFrameDuration();
             Time timestamp =
                 (*(ssRecord->GetServiceFlows(ServiceFlow::SF_TYPE_UGS).begin()))
@@ -299,17 +235,12 @@ void UplinkSchedulerMBQoS::Schedule() {
                 ((timestamp - Simulator::Now()) / frame_duration).GetHigh();
 
             if (frame <= 1) {
-              // UGS Grants
-              // It is not necessary to enqueue UGS grants once it is
-              // periodically served
               ServiceUnsolicitedGrants(ssRecord, ServiceFlow::SF_TYPE_UGS,
                                        ulMapIe, modulationType,
                                        symbolsToAllocation, availableSymbols);
             }
           }
 
-          // enqueue allocate unicast polls for rtPS flows if bandwidth is
-          // available
           if (ssRecord->GetHasServiceFlowRtps()) {
             NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S)
                                << " offering rtps unicast polling");
@@ -321,7 +252,6 @@ void UplinkSchedulerMBQoS::Schedule() {
           if (ssRecord->GetHasServiceFlowNrtps()) {
             NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S)
                                << " offering nrtps unicast polling");
-            // allocate unicast polls for nrtPS flows if bandwidth is available
             Ptr<UlJob> jobNRTPSPoll = CreateUlJob(
                 ssRecord, ServiceFlow::SF_TYPE_NRTPS, UNICAST_POLLING);
             EnqueueJob(UlJob::HIGH, jobNRTPSPoll);
@@ -330,8 +260,6 @@ void UplinkSchedulerMBQoS::Schedule() {
           if (ssRecord->GetHasServiceFlowBe()) {
             NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S)
                                << " offering be unicast polling");
-            // finally allocate unicast polls for BE flows if bandwidth is
-            // available
             Ptr<UlJob> jobBEPoll =
                 CreateUlJob(ssRecord, ServiceFlow::SF_TYPE_BE, UNICAST_POLLING);
             EnqueueJob(UlJob::HIGH, jobBEPoll);
@@ -349,13 +277,10 @@ void UplinkSchedulerMBQoS::Schedule() {
   symbolsUsed += CountSymbolsQueue(m_uplinkJobs_high);
   availableSymbolsAux -= symbolsUsed;
 
-  // Step 2 - Check Deadline - Migrate requests with deadline expiring
   CheckDeadline(availableSymbolsAux);
 
-  // Step 3 - Check Minimum Bandwidth
   CheckMinimumBandwidth(availableSymbolsAux);
 
-  // Scheduling high priority queue
   NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S) << " high queue has "
                      << m_uplinkJobs_high.size() << " jobs");
   while ((availableSymbols) && (!m_uplinkJobs_high.empty())) {
@@ -367,7 +292,6 @@ void UplinkSchedulerMBQoS::Schedule() {
     Cid cid = ssRecord->GetBasicCid();
     ulMapIe.SetCid(cid);
     WimaxPhy::ModulationType modulationType = ssRecord->GetModulationType();
-    // need to update because modulation/FEC to UIUC mapping may vary over time
     ulMapIe.SetUiuc(GetBs()->GetBurstProfileManager()->GetBurstProfile(
         modulationType, WimaxNetDevice::DIRECTION_UPLINK));
 
@@ -389,7 +313,6 @@ void UplinkSchedulerMBQoS::Schedule() {
 
   NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S) << " interqueue has "
                      << m_uplinkJobs_inter.size() << " jobs");
-  /* Scheduling intermediate priority queue */
   while ((availableSymbols) && (!m_uplinkJobs_inter.empty())) {
     NS_LOG_DEBUG("At " << Simulator::Now().As(Time::S)
                        << " Scheduling interqueue");
@@ -401,7 +324,6 @@ void UplinkSchedulerMBQoS::Schedule() {
     Cid cid = ssRecord->GetBasicCid();
     ulMapIe.SetCid(cid);
     WimaxPhy::ModulationType modulationType = ssRecord->GetModulationType();
-    // need to update because modulation/FEC to UIUC mapping may vary over time
     ulMapIe.SetUiuc(GetBs()->GetBurstProfileManager()->GetBurstProfile(
         modulationType, WimaxNetDevice::DIRECTION_UPLINK));
 
@@ -418,7 +340,6 @@ void UplinkSchedulerMBQoS::Schedule() {
     m_uplinkJobs_inter.pop_front();
   }
 
-  /* Scheduling low priority queue */
   while ((availableSymbols) && (!m_uplinkJobs_low.empty())) {
     Ptr<UlJob> job = m_uplinkJobs_low.front();
     OfdmUlMapIe ulMapIe;
@@ -428,7 +349,6 @@ void UplinkSchedulerMBQoS::Schedule() {
     Cid cid = ssRecord->GetBasicCid();
     ulMapIe.SetCid(cid);
     WimaxPhy::ModulationType modulationType = ssRecord->GetModulationType();
-    // need to update because modulation/FEC to UIUC mapping may vary over time
     ulMapIe.SetUiuc(GetBs()->GetBurstProfileManager()->GetBurstProfile(
         modulationType, WimaxNetDevice::DIRECTION_UPLINK));
 
@@ -451,7 +371,6 @@ void UplinkSchedulerMBQoS::Schedule() {
   ulMapIeEnd.SetDuration(0);
   m_uplinkAllocations.push_back(ulMapIeEnd);
 
-  // setting DL/UL subframe allocation for the next frame
   GetBs()->GetBandwidthManager()->SetSubframeRatio();
 }
 
@@ -505,7 +424,6 @@ uint32_t UplinkSchedulerMBQoS::CountSymbolsQueue(std::list<Ptr<UlJob>> jobs) {
   for (auto iter = jobs.begin(); iter != jobs.end(); ++iter) {
     Ptr<UlJob> job = *iter;
 
-    // count symbols
     symbols += CountSymbolsJobs(job);
   }
   return symbols;
@@ -529,7 +447,6 @@ uint32_t UplinkSchedulerMBQoS::CountSymbolsJobs(Ptr<UlJob> job) {
   uint32_t allocationSize = 0;
 
   if (job->GetType() == UNICAST_POLLING) {
-    // if polling
     Time currentTime = Simulator::Now();
     allocationSize = 0;
     if ((currentTime - serviceFlow->GetRecord()->GetGrantTimeStamp())
@@ -538,7 +455,6 @@ uint32_t UplinkSchedulerMBQoS::CountSymbolsJobs(Ptr<UlJob> job) {
       allocationSize = GetBs()->GetBwReqOppSize();
     }
   } else {
-    // if data
     uint16_t sduSize = serviceFlow->GetSduSize();
     ServiceFlowRecord *record = serviceFlow->GetRecord();
     uint32_t requiredBandwidth =
@@ -546,7 +462,6 @@ uint32_t UplinkSchedulerMBQoS::CountSymbolsJobs(Ptr<UlJob> job) {
     if (requiredBandwidth > 0) {
       WimaxPhy::ModulationType modulationType = ssRecord->GetModulationType();
       if (sduSize > 0) {
-        // if SDU size is mentioned, allocate grant of that size
         allocationSize =
             GetBs()->GetPhy()->GetNrSymbols(sduSize, modulationType);
       } else {
@@ -591,14 +506,12 @@ Ptr<UlJob> UplinkSchedulerMBQoS::DequeueJob(UlJob::JobPriority priority) {
 }
 
 void UplinkSchedulerMBQoS::CheckDeadline(uint32_t &availableSymbols) {
-  // for each request in the intermediate queue
   if (!m_uplinkJobs_inter.empty()) {
     auto iter = m_uplinkJobs_inter.begin();
 
     while (iter != m_uplinkJobs_inter.end() && availableSymbols) {
       Ptr<UlJob> job = *iter;
 
-      // guarantee delay bound for rtps connections
       if (job->GetSchedulingType() == ServiceFlow::SF_TYPE_RTPS) {
         Time deadline = job->GetDeadline();
         Time frame_duration = GetBs()->GetPhy()->GetFrameDuration();
@@ -613,7 +526,6 @@ void UplinkSchedulerMBQoS::CheckDeadline(uint32_t &availableSymbols) {
                   << " frame start: " << GetBs()->m_frameStartTime.As(Time::S)
                   << " frame duration: " << frame_duration);
 
-        // should be schedule in this frame to max latency
         if (frame >= 3) {
           if (availableSymbols) {
             uint32_t availableBytes = GetBs()->GetPhy()->GetNrBytes(
@@ -638,7 +550,6 @@ void UplinkSchedulerMBQoS::CheckDeadline(uint32_t &availableSymbols) {
             job->SetSize(job->GetSize() - allocationSize);
 
             Ptr<UlJob> newJob = CreateObject<UlJob>();
-            // Record data in job
             newJob->SetSsRecord(job->GetSsRecord());
             newJob->SetServiceFlow(job->GetServiceFlow());
             newJob->SetSize(allocationSize);
@@ -650,7 +561,6 @@ void UplinkSchedulerMBQoS::CheckDeadline(uint32_t &availableSymbols) {
 
             EnqueueJob(UlJob::HIGH, newJob);
 
-            // migrate request
             iter++;
             if ((job->GetSize() - allocationSize) == 0) {
               m_uplinkJobs_inter.remove(job);
@@ -669,7 +579,6 @@ void UplinkSchedulerMBQoS::CheckDeadline(uint32_t &availableSymbols) {
 void UplinkSchedulerMBQoS::CheckMinimumBandwidth(uint32_t &availableSymbols) {
   std::list<Ptr<PriorityUlJob>> priorityUlJobs;
 
-  // For each connection of type rtPS or nrtPS
   std::vector<SSRecord *> *ssRecords = GetBs()->GetSSManager()->GetSSRecords();
   for (auto iter = ssRecords->begin(); iter != ssRecords->end(); ++iter) {
     SSRecord *ssRecord = *iter;
@@ -688,11 +597,9 @@ void UplinkSchedulerMBQoS::CheckMinimumBandwidth(uint32_t &availableSymbols) {
     }
   }
 
-  // for each request in the imermediate queue
   for (auto iter = m_uplinkJobs_inter.begin(); iter != m_uplinkJobs_inter.end();
        ++iter) {
     Ptr<UlJob> job = *iter;
-    // SSRecord ssRecord = job->GetSsRecord();
     ServiceFlow *serviceFlow = job->GetServiceFlow();
     if ((job->GetSchedulingType() == ServiceFlow::SF_TYPE_RTPS ||
          job->GetSchedulingType() == ServiceFlow::SF_TYPE_NRTPS) &&
@@ -704,7 +611,6 @@ void UplinkSchedulerMBQoS::CheckMinimumBandwidth(uint32_t &availableSymbols) {
 
       Ptr<PriorityUlJob> priorityUlJob = CreateObject<PriorityUlJob>();
       priorityUlJob->SetUlJob(job);
-      // pri_array
       if (minReservedTrafficRate <= grantedBandwidth) {
         priorityUlJob->SetPriority(-10000);
       } else {
@@ -715,7 +621,6 @@ void UplinkSchedulerMBQoS::CheckMinimumBandwidth(uint32_t &availableSymbols) {
 
         if (allocationSize > 0) {
           if (sduSize > 0) {
-            // if SDU size is mentioned, grant of that size
             allocationSize = sduSize;
           }
         }
@@ -743,7 +648,6 @@ void UplinkSchedulerMBQoS::CheckMinimumBandwidth(uint32_t &availableSymbols) {
     Ptr<UlJob> job = job_priority;
     if (availableSymbols) {
       availableSymbols -= CountSymbolsJobs(job);
-      // migrate request
       m_uplinkJobs_inter.remove(job);
       EnqueueJob(UlJob::HIGH, job);
     }
@@ -754,19 +658,13 @@ void UplinkSchedulerMBQoS::ServiceUnsolicitedGrants(
     const SSRecord *ssRecord, ServiceFlow::SchedulingType schedulingType,
     OfdmUlMapIe &ulMapIe, const WimaxPhy::ModulationType modulationType,
     uint32_t &symbolsToAllocation, uint32_t &availableSymbols) {
-  uint32_t allocationSize = 0;      // size in symbols
-  uint8_t uiuc = ulMapIe.GetUiuc(); // SS's burst profile
+  uint32_t allocationSize = 0;
+  uint8_t uiuc = ulMapIe.GetUiuc();
   std::vector<ServiceFlow *> serviceFlows =
       ssRecord->GetServiceFlows(schedulingType);
 
   for (auto iter = serviceFlows.begin(); iter != serviceFlows.end(); ++iter) {
     ServiceFlow *serviceFlow = *iter;
-
-    /* in case of rtPS, nrtPS and BE, allocating unicast polls for bandwidth
-     requests (Request IEs, 6.3.7.4.3.1). in case of UGS, allocating grants for
-     data transmission (Data Grant Burst Type IEs, 6.3.7.4.3.3) (grant has been
-     referred in this code by different names e.g. transmission opportunity,
-     slot, allocation, etc) */
 
     allocationSize = GetBs()->GetBandwidthManager()->CalculateAllocationSize(
         ssRecord, serviceFlow);
@@ -778,8 +676,6 @@ void UplinkSchedulerMBQoS::ServiceUnsolicitedGrants(
     if (allocationSize > 0) {
       ulMapIe.SetStartTime(symbolsToAllocation);
       if (serviceFlow->GetSchedulingType() != ServiceFlow::SF_TYPE_UGS) {
-        // special burst profile with most robust modulation type is used for
-        // unicast polls (Request IEs)
         ulMapIe.SetUiuc(OfdmUlBurstProfile::UIUC_REQ_REGION_FULL);
       }
     } else {
@@ -837,7 +733,6 @@ bool UplinkSchedulerMBQoS::ServiceBandwidthRequests(
       record->GetRequestedBandwidth() - record->GetGrantedBandwidth();
   if (requiredBandwidth > 0) {
     if (sduSize > 0) {
-      // if SDU size is mentioned, allocate grant of that size
       allocSizeBytes = sduSize;
       allocSizeSymbols =
           GetBs()->GetPhy()->GetNrSymbols(sduSize, modulationType);
@@ -886,8 +781,6 @@ void UplinkSchedulerMBQoS::AllocateInitialRangingInterval(
       GetNrIrOppsAllocated() * GetBs()->GetRangReqOppSize();
   Time timeSinceLastIrInterval = Simulator::Now() - GetTimeStampIrInterval();
 
-  // adding one frame because may be the time has not elapsed now but will
-  // elapse before the next frame is sent
   if (timeSinceLastIrInterval + GetBs()->GetPhy()->GetFrameDuration() >
           GetBs()->GetInitialRangingInterval() &&
       availableSymbols >= allocationSize) {
@@ -901,7 +794,6 @@ void UplinkSchedulerMBQoS::AllocateInitialRangingInterval(
                  << allocationSize << " symbols"
                  << ", modulation: BPSK 1/2");
 
-    // marking start and end of each TO, only for debugging
     for (uint8_t i = 0; i < GetNrIrOppsAllocated(); i++) {
       GetBs()->MarkRangingOppStart(
           ssUlStartTime +
@@ -954,14 +846,10 @@ void UplinkSchedulerMBQoS::SetupServiceFlow(SSRecord *ssRecord,
     serviceFlow->SetUnsolicitedPollingInterval(20);
   } break;
   case ServiceFlow::SF_TYPE_NRTPS: {
-    // no real-time guarantees are given to NRTPS, serviced based on available
-    // bandwidth
     uint16_t interval = 1000;
     serviceFlow->SetUnsolicitedPollingInterval(interval);
   } break;
   case ServiceFlow::SF_TYPE_BE: {
-    // no real-time guarantees are given to BE, serviced based on available
-    // bandwidth
   } break;
   default:
     NS_FATAL_ERROR("Invalid scheduling type");
@@ -972,7 +860,6 @@ uint32_t UplinkSchedulerMBQoS::GetPendingSize(ServiceFlow *serviceFlow) {
   uint32_t size = 0;
   std::list<Ptr<PriorityUlJob>> priorityUlJobs;
 
-  // for each request in the imermediate queue
   for (auto iter = m_uplinkJobs_inter.begin(); iter != m_uplinkJobs_inter.end();
        ++iter) {
     Ptr<UlJob> job = *iter;
@@ -988,7 +875,6 @@ uint32_t UplinkSchedulerMBQoS::GetPendingSize(ServiceFlow *serviceFlow) {
 
 void UplinkSchedulerMBQoS::ProcessBandwidthRequest(
     const BandwidthRequestHeader &bwRequestHdr) {
-  // Enqueue requests for uplink scheduler.
   Ptr<UlJob> job = CreateObject<UlJob>();
   Ptr<WimaxConnection> connection =
       GetBs()->GetConnectionManager()->GetConnection(bwRequestHdr.GetCid());
@@ -1011,7 +897,7 @@ void UplinkSchedulerMBQoS::ProcessBandwidthRequest(
 
   Time deadline = DetermineDeadline(serviceFlow);
   Time currentTime = Simulator::Now();
-  const Time &period = deadline; // So that deadline is properly updated..
+  const Time &period = deadline;
 
   NS_LOG_DEBUG(
       "At " << Simulator::Now().As(Time::S)
@@ -1021,7 +907,6 @@ void UplinkSchedulerMBQoS::ProcessBandwidthRequest(
             << deadline.As(Time::S) << " and size " << size << " aggreg size "
             << bwRequestHdr.GetBr());
 
-  // Record data in job
   job->SetSsRecord(ssRecord);
   job->SetServiceFlow(serviceFlow);
   job->SetSize(size);
@@ -1031,7 +916,6 @@ void UplinkSchedulerMBQoS::ProcessBandwidthRequest(
   job->SetPeriod(period);
   job->SetType(DATA);
 
-  // Enqueue job in Uplink Scheduler
   switch (serviceFlow->GetSchedulingType()) {
   case ServiceFlow::SF_TYPE_RTPS:
     EnqueueJob(UlJob::INTERMEDIATE, job);
@@ -1048,9 +932,6 @@ void UplinkSchedulerMBQoS::ProcessBandwidthRequest(
   }
 }
 
-/*
- * Calculate Deadline of requests according to QoS parameter
- * */
 Time UplinkSchedulerMBQoS::DetermineDeadline(ServiceFlow *serviceFlow) {
   uint32_t latency = serviceFlow->GetMaximumLatency();
   Time lastGrantTime = serviceFlow->GetRecord()->GetLastGrantTime();
@@ -1058,9 +939,6 @@ Time UplinkSchedulerMBQoS::DetermineDeadline(ServiceFlow *serviceFlow) {
   return deadline;
 }
 
-void UplinkSchedulerMBQoS::OnSetRequestedBandwidth(ServiceFlowRecord *sfr) {
-  // virtual function on UplinkScheduler
-  // this is not necessary on this implementation
-}
+void UplinkSchedulerMBQoS::OnSetRequestedBandwidth(ServiceFlowRecord *sfr) {}
 
 } // namespace ns3

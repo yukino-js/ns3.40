@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- *         Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "mesh-point-device.h"
 
@@ -88,10 +69,6 @@ void MeshPointDevice::DoDispose() {
   NetDevice::DoDispose();
 }
 
-//-----------------------------------------------------------------------------
-// NetDevice interface implementation
-//-----------------------------------------------------------------------------
-
 void MeshPointDevice::ReceiveFromDevice(Ptr<NetDevice> incomingPort,
                                         Ptr<const Packet> packet,
                                         uint16_t protocol, const Address &src,
@@ -148,7 +125,6 @@ void MeshPointDevice::Forward(Ptr<NetDevice> inport, Ptr<const Packet> packet,
                               uint16_t protocol, const Mac48Address src,
                               const Mac48Address dst) {
   NS_LOG_FUNCTION(this << inport << packet << protocol << src << dst);
-  // pass through routing protocol
   NS_LOG_DEBUG("Forwarding from " << src << " to " << dst << " at "
                                   << m_address);
   bool result = m_routingProtocol->RequestRoute(
@@ -205,7 +181,6 @@ bool MeshPointDevice::IsLinkUp() const {
 
 void MeshPointDevice::AddLinkChangeCallback(Callback<void> callback) {
   NS_LOG_FUNCTION(this);
-  // do nothing
   NS_LOG_WARN("AddLinkChangeCallback does nothing");
 }
 
@@ -287,7 +262,7 @@ void MeshPointDevice::SetPromiscReceiveCallback(
 
 bool MeshPointDevice::SupportsSendFrom() const {
   NS_LOG_FUNCTION(this);
-  return false; // don't allow to bridge mesh network with something else.
+  return false;
 }
 
 Address MeshPointDevice::GetMulticast(Ipv6Address addr) const {
@@ -295,9 +270,6 @@ Address MeshPointDevice::GetMulticast(Ipv6Address addr) const {
   return Mac48Address::GetMulticast(addr);
 }
 
-//-----------------------------------------------------------------------------
-// Interfaces
-//-----------------------------------------------------------------------------
 uint32_t MeshPointDevice::GetNInterfaces() const {
   NS_LOG_FUNCTION(this);
   return m_ifaces.size();
@@ -331,7 +303,6 @@ void MeshPointDevice::AddInterface(Ptr<NetDevice> iface) {
                    "point interface.");
   }
 
-  // Mesh point has MAC address of it's first interface
   if (m_ifaces.empty()) {
     m_address = Mac48Address::ConvertFrom(iface->GetAddress());
   }
@@ -349,18 +320,11 @@ void MeshPointDevice::AddInterface(Ptr<NetDevice> iface) {
   }
   ifaceMac->SetMeshPointAddress(m_address);
 
-  // Receive frames from this interface
   m_node->RegisterProtocolHandler(
-      MakeCallback(&MeshPointDevice::ReceiveFromDevice, this), 0,
-      iface, /*promiscuous = */
-      true);
+      MakeCallback(&MeshPointDevice::ReceiveFromDevice, this), 0, iface, true);
   m_ifaces.push_back(iface);
   m_channel->AddChannel(iface->GetChannel());
 }
-
-//-----------------------------------------------------------------------------
-// Protocols
-//-----------------------------------------------------------------------------
 
 void MeshPointDevice::SetRoutingProtocol(Ptr<MeshL2RoutingProtocol> protocol) {
   NS_LOG_FUNCTION(this << protocol);
@@ -385,7 +349,6 @@ void MeshPointDevice::DoSend(bool success, Ptr<Packet> packet, Mac48Address src,
     return;
   }
 
-  // Count statistics
   Statistics *stats = ((src == m_address) ? &m_txStats : &m_fwdStats);
 
   if (dst.IsBroadcast()) {
@@ -396,7 +359,6 @@ void MeshPointDevice::DoSend(bool success, Ptr<Packet> packet, Mac48Address src,
     stats->unicastDataBytes += packet->GetSize();
   }
 
-  // Send
   if (outIface != 0xffffffff) {
     GetInterface(outIface)->SendFrom(packet, src, dst, protocol);
   } else {

@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/header.h"
 #include "ns3/packet.h"
@@ -21,30 +8,14 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network
- * A simple example of an Header implementation
- */
 class MyHeader : public Header {
 public:
   MyHeader();
   ~MyHeader() override;
 
-  /**
-   * Set the header data.
-   * \param data The data.
-   */
   void SetData(uint16_t data);
-  /**
-   * Get the header data.
-   * \return The data.
-   */
   uint16_t GetData() const;
 
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   void Print(std::ostream &os) const override;
@@ -53,13 +24,10 @@ public:
   uint32_t GetSerializedSize() const override;
 
 private:
-  uint16_t m_data; //!< Header data
+  uint16_t m_data;
 };
 
-MyHeader::MyHeader() {
-  // we must provide a public default constructor,
-  // implicit or explicit, but never private.
-}
+MyHeader::MyHeader() {}
 
 MyHeader::~MyHeader() {}
 
@@ -71,31 +39,17 @@ TypeId MyHeader::GetTypeId() {
 
 TypeId MyHeader::GetInstanceTypeId() const { return GetTypeId(); }
 
-void MyHeader::Print(std::ostream &os) const {
-  // This method is invoked by the packet printing
-  // routines to print the content of my header.
-  // os << "data=" << m_data << std::endl;
-  os << "data=" << m_data;
-}
+void MyHeader::Print(std::ostream &os) const { os << "data=" << m_data; }
 
-uint32_t MyHeader::GetSerializedSize() const {
-  // we reserve 2 bytes for our header.
-  return 2;
-}
+uint32_t MyHeader::GetSerializedSize() const { return 2; }
 
 void MyHeader::Serialize(Buffer::Iterator start) const {
-  // we can serialize two bytes at the start of the buffer.
-  // we write them in network byte order.
   start.WriteHtonU16(m_data);
 }
 
 uint32_t MyHeader::Deserialize(Buffer::Iterator start) {
-  // we can deserialize two bytes from the start of the buffer.
-  // we read them in network byte order and store them
-  // in host byte order.
   m_data = start.ReadNtohU16();
 
-  // we return the number of bytes effectively read.
   return 2;
 }
 
@@ -104,29 +58,21 @@ void MyHeader::SetData(uint16_t data) { m_data = data; }
 uint16_t MyHeader::GetData() const { return m_data; }
 
 int main(int argc, char *argv[]) {
-  // Enable the packet printing through Packet::Print command.
   Packet::EnablePrinting();
 
-  // instantiate a header.
   MyHeader sourceHeader;
   sourceHeader.SetData(2);
 
-  // instantiate a packet
   Ptr<Packet> p = Create<Packet>();
 
-  // and store my header into the packet.
   p->AddHeader(sourceHeader);
 
-  // print the content of my packet on the standard output.
   p->Print(std::cout);
   std::cout << std::endl;
 
-  // you can now remove the header from the packet:
   MyHeader destinationHeader;
   p->RemoveHeader(destinationHeader);
 
-  // and check that the destination and source
-  // headers contain the same values.
   NS_ASSERT(sourceHeader.GetData() == destinationHeader.GetData());
 
   return 0;

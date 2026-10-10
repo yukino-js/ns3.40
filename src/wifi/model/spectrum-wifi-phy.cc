@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Ghada Badawy <gbadawy@gmail.com>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- *
- * Ported from yans-wifi-phy.cc by several contributors starting
- * with Nicola Baldo and Dean Armstrong
- */
 
 #include "spectrum-wifi-phy.h"
 
@@ -239,16 +216,6 @@ void SpectrumWifiPhy::ResetSpectrumModel(
   NS_LOG_FUNCTION(this << spectrumPhyInterface << centerFrequency
                        << channelWidth);
 
-  // We have to reset the spectrum model because we changed RF channel.
-  // Consequently, we also have to add the spectrum interface to the spectrum
-  // channel again because MultiModelSpectrumChannel keeps spectrum interfaces
-  // in a map indexed by the RX spectrum model UID (which has changed after
-  // channel switching). Both SingleModelSpectrumChannel and
-  // MultiModelSpectrumChannel ensure not to keep duplicated spectrum interfaces
-  // (the latter removes the spectrum interface and adds it again in the entry
-  // associated with the new RX spectrum model UID)
-
-  // Replace existing spectrum model with new one
   spectrumPhyInterface->SetRxSpectrumModel(centerFrequency, channelWidth,
                                            GetSubcarrierSpacing(),
                                            GetGuardBandwidth(channelWidth));
@@ -299,13 +266,7 @@ void SpectrumWifiPhy::DoChannelSwitch() {
 
   auto reset = true;
   if (m_currentSpectrumPhyInterface->GetCenterFrequency() == frequencyAfter) {
-    // Center frequency has not changed for that interface, hence we do not need
-    // to reset the spectrum model nor update any band stored in the
-    // interference helper
     if (!m_trackSignalsInactiveInterfaces) {
-      // If we are not tracking signals from inactive interface,
-      // this means the spectrum interface has been disconnected
-      // from the spectrum channel and has to be connected back
       m_currentSpectrumPhyInterface->GetChannel()->AddRx(
           m_currentSpectrumPhyInterface);
     }
@@ -377,10 +338,6 @@ void SpectrumWifiPhy::StartRx(Ptr<SpectrumSignalParameters> rxParams,
                << senderNodeId << " with unfiltered power "
                << WToDbm(Integral(*receivedSignalPsd)) << " dBm");
 
-  // Integrate over our receive bandwidth (i.e., all that the receive
-  // spectral mask representing our filtering allows) to find the
-  // total energy apparent to the "demodulator".
-  // This is done per 20 MHz channel band.
   const auto channelWidth =
       interface ? interface->GetChannelWidth() : GetChannelWidth();
   const auto &bands = interface ? interface->GetBands()
@@ -439,7 +396,6 @@ void SpectrumWifiPhy::StartRx(Ptr<SpectrumSignalParameters> rxParams,
   Ptr<WifiSpectrumSignalParameters> wifiRxParams =
       DynamicCast<WifiSpectrumSignalParameters>(rxParams);
 
-  // Log the signal arrival to the trace source
   m_signalCb(bool(wifiRxParams), senderNodeId, WToDbm(totalRxPowerW),
              rxDuration);
 
@@ -465,9 +421,6 @@ void SpectrumWifiPhy::StartRx(Ptr<SpectrumSignalParameters> rxParams,
     return;
   }
 
-  // Do no further processing if signal is too weak
-  // Current implementation assumes constant RX power over the PPDU duration
-  // Compare received TX power per MHz to normalized RX sensitivity
   const auto ppdu = GetRxPpduFromTxPpdu(wifiRxParams->ppdu);
   if (totalRxPowerW <
       DbmToW(GetRxSensitivity()) * (ppdu->GetTxChannelWidth() / 20.0)) {
@@ -527,15 +480,8 @@ uint16_t
 SpectrumWifiPhy::GetGuardBandwidth(uint16_t currentChannelWidth) const {
   uint16_t guardBandwidth = 0;
   if (currentChannelWidth == 22) {
-    // handle case of DSSS transmission
     guardBandwidth = 10;
   } else {
-    // In order to properly model out of band transmissions for OFDM, the guard
-    // band has been configured so as to expand the modeled spectrum up to the
-    // outermost referenced point in "Transmit spectrum mask" sections' PSDs of
-    // each PHY specification of 802.11-2016 standard. It thus ultimately
-    // corresponds to the currently considered channel bandwidth (which can be
-    // different from supported channel width).
     guardBandwidth = currentChannelWidth;
   }
   return guardBandwidth;
@@ -543,7 +489,7 @@ SpectrumWifiPhy::GetGuardBandwidth(uint16_t currentChannelWidth) const {
 
 WifiSpectrumBandInfo SpectrumWifiPhy::GetBandForInterface(
     Ptr<WifiSpectrumPhyInterface> spectrumPhyInterface, uint16_t bandWidth,
-    uint8_t bandIndex /* = 0 */) {
+    uint8_t bandIndex) {
   const auto subcarrierSpacing = GetSubcarrierSpacing();
   const auto channelWidth = spectrumPhyInterface->GetChannelWidth();
   const auto numBandsInBand =
@@ -551,7 +497,7 @@ WifiSpectrumBandInfo SpectrumWifiPhy::GetBandForInterface(
   auto numBandsInChannel =
       static_cast<size_t>(channelWidth * 1e6 / subcarrierSpacing);
   if (numBandsInBand % 2 == 0) {
-    numBandsInChannel += 1; // symmetry around center frequency
+    numBandsInChannel += 1;
   }
   auto rxSpectrumModel = spectrumPhyInterface->GetRxSpectrumModel();
   size_t totalNumBands = rxSpectrumModel->GetNumBands();
@@ -570,14 +516,13 @@ WifiSpectrumBandInfo SpectrumWifiPhy::GetBandForInterface(
   NS_ASSERT(frequencies.second <= (freqRange.maxFrequency * 1e6));
   NS_ASSERT((frequencies.second - frequencies.first) == (bandWidth * 1e6));
   if (startIndex >= totalNumBands / 2) {
-    // step past DC
     startIndex += 1;
   }
   return {{startIndex, stopIndex}, frequencies};
 }
 
 WifiSpectrumBandInfo SpectrumWifiPhy::GetBand(uint16_t bandWidth,
-                                              uint8_t bandIndex /* = 0 */) {
+                                              uint8_t bandIndex) {
   NS_ABORT_IF(!m_currentSpectrumPhyInterface);
   return GetBandForInterface(m_currentSpectrumPhyInterface, bandWidth,
                              bandIndex);

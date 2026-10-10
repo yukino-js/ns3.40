@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "ns3/command-line.h"
 #include "ns3/config.h"
 #include "ns3/global-value.h"
@@ -29,48 +11,18 @@
 #include <cstdlib>
 #include <sstream>
 
-/**
- * \file
- * \ingroup core-tests
- * \ingroup commandline
- * \ingroup commandline-tests
- * CommandLine test suite.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup commandline-tests CommandLine test suite
- */
-
 namespace ns3 {
 
 namespace tests {
 
-/**
- * \ingroup commandline-tests
- * A test base class that drives Command Line parsing
- */
 class CommandLineTestCaseBase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param description purpose of this TestCase
-   */
   CommandLineTestCaseBase(std::string description);
 
-  /** Destructor */
   ~CommandLineTestCaseBase() override {}
 
-  /**
-   * Exercise the CommandLine with the provided arguments
-   *
-   * \param cmd the configured CommandLine
-   * \param n the number of arguments
-   */
   void Parse(CommandLine &cmd, int n, ...);
 
-  /** Test iteration counter to give each test a unique name. */
   static int m_count;
 };
 
@@ -84,8 +36,8 @@ void CommandLineTestCaseBase::Parse(CommandLine &cmd, int n, ...) {
   ss << GetParent()->GetName() << "-testcase-" << m_count << "-" << GetName();
   ++m_count;
 
-  int argc = n + 1; // test name will go in argv[0], other n to follow
-  char **argv = new char *[argc + 1]; // extra entry for final null
+  int argc = n + 1;
+  char **argv = new char *[argc + 1];
   argv[argc] = nullptr;
 
   argv[0] = new char[strlen(ss.str().c_str()) + 1];
@@ -102,27 +54,19 @@ void CommandLineTestCaseBase::Parse(CommandLine &cmd, int n, ...) {
 
   cmd.Parse(argc, argv);
 
-  // Clean up all the new's
   for (int i = 0; i < argc; ++i) {
     delete[] argv[i];
   }
   delete[] argv;
 }
 
-/**
- * \ingroup commandline-tests
- * Test boolean Command Line processing
- */
 class CommandLineBooleanTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineBooleanTestCase();
 
-  /** Destructor */
   ~CommandLineBooleanTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -170,20 +114,13 @@ void CommandLineBooleanTestCase::DoRun() {
                         "true, given \"true\" argument");
 }
 
-/**
- * \ingroup commandline-tests
- * Test \c uint8_t Command Line processing
- */
 class CommandLineUint8tTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineUint8tTestCase();
 
-  /** Destructor */
   ~CommandLineUint8tTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -202,20 +139,13 @@ void CommandLineUint8tTestCase::DoRun() {
       "CommandLine did not correctly set a uint8_t value to 1, given 1");
 }
 
-/**
- * \ingroup commandline-tests
- * Test int Command Line processing
- */
 class CommandLineIntTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineIntTestCase();
 
-  /** Destructor */
   ~CommandLineIntTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -245,20 +175,13 @@ void CommandLineIntTestCase::DoRun() {
       myInt32, +2, "CommandLine did not correctly set an integer value to +2");
 }
 
-/**
- * \ingroup commandline-tests
- * Test unsigned int Command Line processing
- */
 class CommandLineUnsignedIntTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineUnsignedIntTestCase();
 
-  /** Destructor */
   ~CommandLineUnsignedIntTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -283,20 +206,13 @@ void CommandLineUnsignedIntTestCase::DoRun() {
       "CommandLine did not correctly set an unsigned integer value to 9");
 }
 
-/**
- * \ingroup commandline-tests
- * Test string Command Line processing
- */
 class CommandLineStringTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineStringTestCase();
 
-  /** Destructor */
   ~CommandLineStringTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -321,20 +237,13 @@ void CommandLineStringTestCase::DoRun() {
       "CommandLine did not correctly set a string value to \"XX\"");
 }
 
-/**
- * \ingroup commandline-tests
- * Test order of argument parsing
- */
 class CommandLineOrderTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineOrderTestCase();
 
-  /** Destructor */
   ~CommandLineOrderTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -354,20 +263,13 @@ void CommandLineOrderTestCase::DoRun() {
       "CommandLine did not correctly set an unsigned integer value to 2");
 }
 
-/**
- * \ingroup commandline-tests
- * Test ignoring invalid arguments
- */
 class CommandLineInvalidTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineInvalidTestCase();
 
-  /** Destructor */
   ~CommandLineInvalidTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -387,20 +289,13 @@ void CommandLineInvalidTestCase::DoRun() {
       "CommandLine did not correctly set an unsigned integer value to 5");
 }
 
-/**
- * \ingroup commandline-tests
- * Test non-option arguments
- */
 class CommandLineNonOptionTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineNonOptionTestCase();
 
-  /** Destructor */
   ~CommandLineNonOptionTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -448,20 +343,13 @@ void CommandLineNonOptionTestCase::DoRun() {
       "CommandLine did not correctly get two extra non-option");
 }
 
-/**
- * \ingroup commandline-tests
- * Test \c char* buffer argument
- */
 class CommandLineCharStarTestCase : public CommandLineTestCaseBase {
 public:
-  /** Constructor */
   CommandLineCharStarTestCase();
 
-  /** Destructor */
   ~CommandLineCharStarTestCase() override {}
 
 private:
-  /** Run the test */
   void DoRun() override;
 };
 
@@ -469,7 +357,6 @@ CommandLineCharStarTestCase::CommandLineCharStarTestCase()
     : CommandLineTestCaseBase("charstar") {}
 
 void CommandLineCharStarTestCase::DoRun() {
-  // char* buffer option
   constexpr int CHARBUF_SIZE = 10;
   char charbuf[CHARBUF_SIZE] = "charstar";
 
@@ -483,13 +370,8 @@ void CommandLineCharStarTestCase::DoRun() {
                         "CommandLine did not correctly set a char* buffer");
 }
 
-/**
- * \ingroup commandline-tests
- * The Test Suite that glues all of the Test Cases together.
- */
 class CommandLineTestSuite : public TestSuite {
 public:
-  /** Constructor */
   CommandLineTestSuite();
 };
 
@@ -505,10 +387,6 @@ CommandLineTestSuite::CommandLineTestSuite() : TestSuite("command-line") {
   AddTestCase(new CommandLineCharStarTestCase);
 }
 
-/**
- * \ingroup commandline-tests
- * CommandLineTestSuite instance variable.
- */
 static CommandLineTestSuite g_commandLineTestSuite;
 
 } // namespace tests

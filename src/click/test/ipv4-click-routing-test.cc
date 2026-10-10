@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Lalith Suresh
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Lalith Suresh <suresh.lalith@gmail.com>
- */
 
 #include "ns3/click-internet-stack-helper.h"
 #include "ns3/ipv4-click-routing.h"
@@ -30,17 +12,6 @@
 
 using namespace ns3;
 
-/**
- * \file
- * \ingroup click-tests
- * Click test suite.
- */
-
-/**
- * Add Click Internet stack.
- *
- * \param node Node.
- */
 static void AddClickInternetStack(Ptr<Node> node) {
   ClickInternetStackHelper internet;
   internet.SetClickFile(
@@ -48,14 +19,6 @@ static void AddClickInternetStack(Ptr<Node> node) {
   internet.Install(node);
 }
 
-/**
- * Add network device.
- *
- * \param node Node.
- * \param macaddr MAC address.
- * \param ipv4addr IPv4 address.
- * \param ipv4mask IPv4 mask.
- */
 static void AddNetworkDevice(Ptr<Node> node, Mac48Address macaddr,
                              Ipv4Address ipv4addr, Ipv4Mask ipv4mask) {
   Ptr<SimpleNetDevice> rxDev1;
@@ -71,10 +34,6 @@ static void AddNetworkDevice(Ptr<Node> node, Mac48Address macaddr,
   ipv4->SetUp(netdev_idx);
 }
 
-/**
- * \ingroup click-tests
- * Click interface ID from name test.
- */
 class ClickIfidFromNameTest : public TestCase {
 public:
   ClickIfidFromNameTest();
@@ -115,10 +74,6 @@ void ClickIfidFromNameTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(ret, -1, "No eth1 on node");
 }
 
-/**
- * \ingroup click-tests
- * Click IP MAC address from name test.
- */
 class ClickIpMacAddressFromNameTest : public TestCase {
 public:
   ClickIpMacAddressFromNameTest();
@@ -160,11 +115,6 @@ void ClickIpMacAddressFromNameTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(std::string(buf), "00:00:00:00:00:02",
                         "eth0 has Mac Address 00:00:00:00:00:02");
 
-  // Not sure how to test the below case, because the Ipv4ClickRouting code is
-  // to ASSERT for such inputs simclick_sim_command (click->m_simNode,
-  // SIMCLICK_IPADDR_FROM_NAME, "eth2", buf, 255); NS_TEST_EXPECT_MSG_EQ (buf,
-  // nullptr, "No eth2");
-
   simclick_sim_command(click->m_simNode, SIMCLICK_IPADDR_FROM_NAME, "tap0", buf,
                        255);
   NS_TEST_EXPECT_MSG_EQ(std::string(buf), "127.0.0.1", "tun0 has IP 127.0.0.1");
@@ -177,10 +127,6 @@ void ClickIpMacAddressFromNameTest::DoRun() {
   delete[] buf;
 }
 
-/**
- * \ingroup click-tests
- * Click trivial test.
- */
 class ClickTrivialTest : public TestCase {
 public:
   ClickTrivialTest();
@@ -220,10 +166,6 @@ void ClickTrivialTest::DoRun() {
   delete[] buf;
 }
 
-/**
- * \ingroup click-tests
- * Click interface ID from name test.
- */
 class ClickIfidFromNameTestSuite : public TestSuite {
 public:
   ClickIfidFromNameTestSuite() : TestSuite("routing-click", UNIT) {
@@ -233,5 +175,4 @@ public:
   }
 };
 
-/// Static variable for test initialization
 static ClickIfidFromNameTestSuite g_ipv4ClickRoutingTestSuite;

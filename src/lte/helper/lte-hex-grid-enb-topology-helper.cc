@@ -1,21 +1,3 @@
-/*
- * Copyright 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-hex-grid-enb-topology-helper.h"
 
@@ -119,8 +101,7 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice(NodeContainer c) {
     double antennaOrientation;
     if ((rowIndex % 2) == 0) {
       x = m_xMin + m_d * colIndex;
-    } else // row is odd
-    {
+    } else {
       x = m_xMin - (0.5 * m_d) + m_d * colIndex;
     }
 
@@ -144,8 +125,6 @@ LteHexGridEnbTopologyHelper::SetPositionAndInstallEnbDevice(NodeContainer c) {
       y -= m_offset * xydfactor;
       m_lteHelper->SetFfrAlgorithmAttribute("FrCellTypeId", UintegerValue(3));
       break;
-
-      // no default, n%3 = 0, 1, 2
     }
     Ptr<Node> node = c.Get(n);
     Ptr<MobilityModel> mm = node->GetObject<MobilityModel>();

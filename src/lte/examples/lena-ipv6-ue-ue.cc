@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Jadavpur University, India
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manoj Kumar Rana <manoj24.rana@gmail.com>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/config-store.h"
@@ -32,12 +14,6 @@
 
 using namespace ns3;
 
-/**
- * Sample simulation script for LTE+EPC. It instantiates several eNodeB,
- * attaches one UE per eNodeB starts a flow for remote host to  and from the
- * first UE. It also starts yet another flow between other UE pair.
- */
-
 NS_LOG_COMPONENT_DEFINE("EpcSecondExampleForIpv6");
 
 int main(int argc, char *argv[]) {
@@ -50,14 +26,12 @@ int main(int argc, char *argv[]) {
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the Internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -69,7 +43,6 @@ int main(int argc, char *argv[]) {
   enbNodes.Create(2);
   ueNodes.Create(2);
 
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
   for (uint16_t i = 0; i < 2; i++) {
@@ -81,33 +54,27 @@ int main(int argc, char *argv[]) {
   mobility.Install(enbNodes);
   mobility.Install(ueNodes);
 
-  // Install the IP stack on the UEs
   internet.Install(ueNodes);
 
-  // Install LTE Devices to the nodes
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
 
   Ipv6InterfaceContainer ueIpIface;
 
-  // Assign IP address to UEs
   ueIpIface = epcHelper->AssignUeIpv6Address(NetDeviceContainer(ueLteDevs));
 
   Ipv6StaticRoutingHelper ipv6RoutingHelper;
 
   for (uint32_t u = 0; u < ueNodes.GetN(); ++u) {
     Ptr<Node> ueNode = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv6StaticRouting> ueStaticRouting =
         ipv6RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv6>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress6(),
                                      1);
   }
 
-  // Attach one UE per eNodeB
   for (uint16_t i = 0; i < 2; i++) {
     lteHelper->Attach(ueLteDevs.Get(i), enbLteDevs.Get(i));
-    // side effect: the default EPS bearer will be activated
   }
 
   Ipv6AddressHelper ipv6h;
@@ -121,8 +88,6 @@ int main(int argc, char *argv[]) {
       ipv6RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv6>());
   remoteHostStaticRouting->AddNetworkRouteTo(
       "7777:f00d::", Ipv6Prefix(64), internetIpIfaces.GetAddress(0, 1), 1, 0);
-
-  // Start applications on UEs and remote host
 
   UdpEchoServerHelper echoServer(9);
 

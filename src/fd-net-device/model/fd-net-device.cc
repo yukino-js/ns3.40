@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2012 INRIA, 2012 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alina Quereilhac <alina.quereilhac@inria.fr>
- *         Claudio Freire <klaussfreire@sourceforge.net>
- */
 
 #include "fd-net-device.h"
 
@@ -43,9 +24,7 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("FdNetDevice");
 
-FdNetDeviceFdReader::FdNetDeviceFdReader()
-    : m_bufferSize(65536) // Defaults to maximum TCP window size
-{}
+FdNetDeviceFdReader::FdNetDeviceFdReader() : m_bufferSize(65536) {}
 
 void FdNetDeviceFdReader::SetBufferSize(uint32_t bufferSize) {
   NS_LOG_FUNCTION(this << bufferSize);
@@ -106,15 +85,6 @@ TypeId FdNetDevice::GetTypeId() {
               UintegerValue(1000),
               MakeUintegerAccessor(&FdNetDevice::m_maxPendingReads),
               MakeUintegerChecker<uint32_t>())
-          //
-          // Trace sources at the "top" of the net device, where packets
-          // transition to/from higher layers.  These points do not really
-          // correspond to the MAC layer of the underlying operating system, but
-          // exist to provide a consistent tracing environment.  These trace
-          // hooks should really be interpreted as the points at which a packet
-          // leaves the ns-3 environment destined for the underlying operating
-          // system or vice-versa.
-          //
           .AddTraceSource("MacTx",
                           "Trace source indicating a packet has "
                           "arrived for transmission by this device",
@@ -143,10 +113,6 @@ TypeId FdNetDevice::GetTypeId() {
               MakeTraceSourceAccessor(&FdNetDevice::m_macRxTrace),
               "ns3::Packet::TracedCallback")
 
-          //
-          // Trace sources designed to simulate a packet sniffer facility
-          // (tcpdump).
-          //
           .AddTraceSource("Sniffer",
                           "Trace source simulating a non-promiscuous "
                           "packet sniffer attached to the device",
@@ -162,10 +128,8 @@ TypeId FdNetDevice::GetTypeId() {
 }
 
 FdNetDevice::FdNetDevice()
-    : m_node(nullptr), m_ifIndex(0),
-      // Defaults to Ethernet v2 MTU
-      m_mtu(1500), m_fd(-1), m_fdReader(nullptr), m_isBroadcast(true),
-      m_isMulticast(false), m_startEvent(), m_stopEvent() {
+    : m_node(nullptr), m_ifIndex(0), m_mtu(1500), m_fd(-1), m_fdReader(nullptr),
+      m_isBroadcast(true), m_isMulticast(false), m_startEvent(), m_stopEvent() {
   NS_LOG_FUNCTION(this);
 }
 
@@ -230,7 +194,6 @@ Ptr<FdReader> FdNetDevice::DoCreateFdReader() {
   NS_LOG_FUNCTION(this);
 
   Ptr<FdNetDeviceFdReader> fdReader = Create<FdNetDeviceFdReader>();
-  // 22 bytes covers 14 bytes Ethernet header with possible 8 bytes LLC/SNAP
   fdReader->SetBufferSize(m_mtu + 22);
   return fdReader;
 }
@@ -276,7 +239,7 @@ void FdNetDevice::ReceiveCallback(uint8_t *buf, ssize_t len) {
   }
 
   if (skip) {
-    struct timespec time = {0, 100000000L}; // 100 ms
+    struct timespec time = {0, 100000000L};
     nanosleep(&time, nullptr);
   } else {
     Simulator::ScheduleWithContext(m_nodeId, Time(0),
@@ -284,33 +247,17 @@ void FdNetDevice::ReceiveCallback(uint8_t *buf, ssize_t len) {
   }
 }
 
-/**
- * \ingroup fd-net-device
- * \brief Synthesize PI header for the kernel
- * \param buf the buffer to add the header to
- * \param len the buffer length
- *
- * \todo Consider having a instance member m_packetBuffer and using memmove
- * instead of memcpy to add the PI header. It might be faster in this case
- * to use memmove and avoid the extra mallocs.
- */
 static void AddPIHeader(uint8_t *&buf, size_t &len) {
-  // Synthesize PI header for our friend the kernel
   auto buf2 = (uint8_t *)malloc(len + 4);
   memcpy(buf2 + 4, buf, len);
   len += 4;
 
-  // PI = 16 bits flags (0) + 16 bits proto
-  // NOTE: be careful to interpret buffer data explicitly as
-  //  little-endian to be insensible to native byte ordering.
   uint16_t flags = 0;
-  uint16_t proto = 0x0008; // default to IPv4
+  uint16_t proto = 0x0008;
   if (len > 14) {
     if (buf[12] == 0x81 && buf[13] == 0x00 && len > 18) {
-      // tagged ethernet packet
       proto = buf[16] | (buf[17] << 8);
     } else {
-      // untagged ethernet packet
       proto = buf[12] | (buf[13] << 8);
     }
   }
@@ -319,19 +266,11 @@ static void AddPIHeader(uint8_t *&buf, size_t &len) {
   buf2[2] = (uint8_t)proto;
   buf2[3] = (uint8_t)(proto >> 8);
 
-  // swap buffer
   free(buf);
   buf = buf2;
 }
 
-/**
- * \ingroup fd-net-device
- * \brief Removes PI header
- * \param buf the buffer to add the header to
- * \param len the buffer length
- */
 static void RemovePIHeader(uint8_t *&buf, ssize_t &len) {
-  // strip PI header if present, shrink buffer
   if (len >= 4) {
     len -= 4;
     memmove(buf, buf + 4, len);
@@ -367,23 +306,15 @@ void FdNetDevice::ForwardUp() {
 
   NS_LOG_LOGIC("buffer: " << static_cast<void *>(buf) << " length: " << len);
 
-  // We need to remove the PI header and ignore it
   if (m_encapMode == DIXPI) {
     RemovePIHeader(buf, len);
   }
 
-  //
-  // Create a packet out of the buffer we received and free that buffer.
-  //
   Ptr<Packet> packet =
       Create<Packet>(reinterpret_cast<const uint8_t *>(buf), len);
   FreeBuffer(buf);
   buf = nullptr;
 
-  //
-  // Trace sinks will expect complete packets, not packets without some of the
-  // headers
-  //
   Ptr<Packet> originalPacket = packet->Copy();
 
   Mac48Address destination;
@@ -394,12 +325,6 @@ void FdNetDevice::ForwardUp() {
 
   EthernetHeader header(false);
 
-  //
-  // This device could be running in an environment where completely unexpected
-  // kinds of packets are flying around, so we need to harden things a bit and
-  // filter out packets we think are completely bogus, so we always check to see
-  // that the packet is long enough to contain the header we want to remove.
-  //
   if (packet->GetSize() < header.GetSerializedSize()) {
     m_phyRxDropTrace(originalPacket);
     return;
@@ -412,18 +337,8 @@ void FdNetDevice::ForwardUp() {
   isMulticast = header.GetDestination().IsGroup();
   protocol = header.GetLengthType();
 
-  //
-  // If the length/type is less than 1500, it corresponds to a length
-  // interpretation packet.  In this case, it is an 802.3 packet and
-  // will also have an 802.2 LLC header.  If greater than 1500, we
-  // find the protocol number (Ethernet type) directly.
-  //
   if (m_encapMode == LLC and header.GetLengthType() <= 1500) {
     LlcSnapHeader llc;
-    //
-    // Check to see that the packet is long enough to possibly contain the
-    // header we want to remove before just naively calling.
-    //
     if (packet->GetSize() < llc.GetSerializedSize()) {
       m_phyRxDropTrace(originalPacket);
       return;
@@ -448,11 +363,6 @@ void FdNetDevice::ForwardUp() {
     packetType = NS3_PACKET_OTHERHOST;
   }
 
-  //
-  // For all kinds of packetType we receive, we hit the promiscuous sniffer
-  // hook and pass a copy up to the promiscuous callback.  Pass a copy to
-  // make sure that nobody messes with our packet.
-  //
   m_promiscSnifferTrace(originalPacket);
 
   if (!m_promiscRxCallback.IsNull()) {
@@ -461,11 +371,6 @@ void FdNetDevice::ForwardUp() {
                         packetType);
   }
 
-  //
-  // If this packet is not destined for some other host, it must be for us
-  // as either a broadcast, multicast or unicast.  We need to hit the mac
-  // packet received trace hook and forward the packet up the stack.
-  //
   if (packetType != NS3_PACKET_OTHERHOST) {
     m_snifferTrace(originalPacket);
     m_macRxTrace(originalPacket);
@@ -516,11 +421,6 @@ bool FdNetDevice::SendFrom(Ptr<Packet> packet, const Address &src,
 
   packet->AddHeader(header);
 
-  //
-  // there's not much meaning associated with the different layers in this
-  // device, so don't be surprised when they're all stacked together in
-  // essentially one place.  We do this for trace consistency across devices.
-  //
   m_macTxTrace(packet);
 
   m_promiscSnifferTrace(packet);
@@ -537,7 +437,6 @@ bool FdNetDevice::SendFrom(Ptr<Packet> packet, const Address &src,
 
   packet->CopyData(buffer, len);
 
-  // We need to add the PI header
   if (m_encapMode == DIXPI) {
     AddPIHeader(buffer, len);
   }
@@ -586,12 +485,6 @@ uint32_t FdNetDevice::GetIfIndex() const { return m_ifIndex; }
 Ptr<Channel> FdNetDevice::GetChannel() const { return nullptr; }
 
 bool FdNetDevice::SetMtu(const uint16_t mtu) {
-  // The MTU depends on the technology associated to
-  // the file descriptor. The user is responsible of
-  // setting the correct value of the MTU.
-  // If the file descriptor is created using a helper,
-  // then is the responsibility of the helper to set
-  // the correct MTU value.
   m_mtu = mtu;
   return true;
 }
@@ -633,9 +526,6 @@ Ptr<Node> FdNetDevice::GetNode() const { return m_node; }
 void FdNetDevice::SetNode(Ptr<Node> node) {
   m_node = node;
 
-  // Save the node ID for use in the read thread, to avoid having
-  // to make a call to GetNode ()->GetId () that increments
-  // Ptr<Node>'s reference count.
   m_nodeId = node->GetId();
 }
 

@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2006 Georgia Tech Research Corporation
- * Copyright (c) 2011 Mathieu Lacage
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Rajib Bhattacharjea<raj.b@gatech.edu>
- *          Hadi Arbabi<marbabi@cs.odu.edu>
- *          Mathieu Lacage <mathieu.lacage@gmail.com>
- *
- * Modified by Mitch Watrous <watrous@u.washington.edu>
- *
- */
 #include "random-variable-stream.h"
 
 #include "assert.h"
@@ -34,15 +10,9 @@
 #include "rng-stream.h"
 #include "string.h"
 
-#include <algorithm> // upper_bound
+#include <algorithm>
 #include <cmath>
 #include <iostream>
-
-/**
- * \file
- * \ingroup randomvariable
- * ns3::RandomVariableStream and related implementations
- */
 
 namespace ns3 {
 
@@ -100,19 +70,14 @@ uint32_t RandomVariableStream::GetInteger() {
 
 void RandomVariableStream::SetStream(int64_t stream) {
   NS_LOG_FUNCTION(this << stream);
-  // negative values are not legal.
   NS_ASSERT(stream >= -1);
   delete m_rng;
   if (stream == -1) {
-    // The first 2^63 streams are reserved for automatic stream
-    // number assignment.
     uint64_t nextStream = RngSeedManager::GetNextStreamIndex();
     NS_ASSERT(nextStream <= ((1ULL) << 63));
     m_rng = new RngStream(RngSeedManager::GetSeed(), nextStream,
                           RngSeedManager::GetRun());
   } else {
-    // The last 2^63 streams are reserved for deterministic stream
-    // number assignment.
     uint64_t base = ((1ULL) << 63);
     uint64_t target = base + stream;
     m_rng = new RngStream(RngSeedManager::GetSeed(), target,
@@ -153,10 +118,7 @@ TypeId UniformRandomVariable::GetTypeId() {
   return tid;
 }
 
-UniformRandomVariable::UniformRandomVariable() {
-  // m_min and m_max are initialized after constructor by attributes
-  NS_LOG_FUNCTION(this);
-}
+UniformRandomVariable::UniformRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double UniformRandomVariable::GetMin() const {
   NS_LOG_FUNCTION(this);
@@ -209,10 +171,7 @@ TypeId ConstantRandomVariable::GetTypeId() {
   return tid;
 }
 
-ConstantRandomVariable::ConstantRandomVariable() {
-  // m_constant is initialized after constructor by attributes
-  NS_LOG_FUNCTION(this);
-}
+ConstantRandomVariable::ConstantRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double ConstantRandomVariable::GetConstant() const {
   NS_LOG_FUNCTION(this);
@@ -266,8 +225,6 @@ TypeId SequentialRandomVariable::GetTypeId() {
 
 SequentialRandomVariable::SequentialRandomVariable()
     : m_current(0), m_currentConsecutive(0), m_isCurrentSet(false) {
-  // m_min, m_max, m_increment, and m_consecutive are initialized
-  // after constructor by attributes.
   NS_LOG_FUNCTION(this);
 }
 
@@ -292,17 +249,14 @@ uint32_t SequentialRandomVariable::GetConsecutive() const {
 }
 
 double SequentialRandomVariable::GetValue() {
-  // Set the current sequence value if it hasn't been set.
   NS_LOG_FUNCTION(this);
   if (!m_isCurrentSet) {
-    // Start the sequence at its minimum value.
     m_current = m_min;
     m_isCurrentSet = true;
   }
 
-  // Return a sequential series of values
   double r = m_current;
-  if (++m_currentConsecutive == m_consecutive) { // Time to advance to next
+  if (++m_currentConsecutive == m_consecutive) {
     m_currentConsecutive = 0;
     m_current += m_increment->GetValue();
     if (m_current >= m_max) {
@@ -335,7 +289,6 @@ TypeId ExponentialRandomVariable::GetTypeId() {
 }
 
 ExponentialRandomVariable::ExponentialRandomVariable() {
-  // m_mean and m_bound are initialized after constructor by attributes
   NS_LOG_FUNCTION(this);
 }
 
@@ -352,16 +305,13 @@ double ExponentialRandomVariable::GetBound() const {
 double ExponentialRandomVariable::GetValue(double mean, double bound) {
   NS_LOG_FUNCTION(this << mean << bound);
   while (true) {
-    // Get a uniform random variable in [0,1].
     double v = Peek()->RandU01();
     if (IsAntithetic()) {
       v = (1 - v);
     }
 
-    // Calculate the exponential random variable.
     double r = -mean * std::log(v);
 
-    // Use this value if it's acceptable.
     if (bound == 0 || r <= bound) {
       return r;
     }
@@ -407,11 +357,7 @@ TypeId ParetoRandomVariable::GetTypeId() {
   return tid;
 }
 
-ParetoRandomVariable::ParetoRandomVariable() {
-  // m_shape, m_shape, and m_bound are initialized after constructor
-  // by attributes
-  NS_LOG_FUNCTION(this);
-}
+ParetoRandomVariable::ParetoRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double ParetoRandomVariable::GetScale() const {
   NS_LOG_FUNCTION(this);
@@ -430,20 +376,16 @@ double ParetoRandomVariable::GetBound() const {
 
 double ParetoRandomVariable::GetValue(double scale, double shape,
                                       double bound) {
-  // Calculate the scale parameter.
   NS_LOG_FUNCTION(this << scale << shape << bound);
 
   while (true) {
-    // Get a uniform random variable in [0,1].
     double v = Peek()->RandU01();
     if (IsAntithetic()) {
       v = (1 - v);
     }
 
-    // Calculate the Pareto random variable.
     double r = (scale * (1.0 / std::pow(v, 1.0 / shape)));
 
-    // Use this value if it's acceptable.
     if (bound == 0 || r <= bound) {
       return r;
     }
@@ -490,11 +432,7 @@ TypeId WeibullRandomVariable::GetTypeId() {
   return tid;
 }
 
-WeibullRandomVariable::WeibullRandomVariable() {
-  // m_scale, m_shape, and m_bound are initialized after constructor
-  // by attributes
-  NS_LOG_FUNCTION(this);
-}
+WeibullRandomVariable::WeibullRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double WeibullRandomVariable::GetScale() const {
   NS_LOG_FUNCTION(this);
@@ -516,16 +454,13 @@ double WeibullRandomVariable::GetValue(double scale, double shape,
   NS_LOG_FUNCTION(this << scale << shape << bound);
   double exponent = 1.0 / shape;
   while (true) {
-    // Get a uniform random variable in [0,1].
     double v = Peek()->RandU01();
     if (IsAntithetic()) {
       v = (1 - v);
     }
 
-    // Calculate the Weibull random variable.
     double r = scale * std::pow(-std::log(v), exponent);
 
-    // Use this value if it's acceptable.
     if (bound == 0 || r <= bound) {
       return r;
     }
@@ -574,8 +509,6 @@ TypeId NormalRandomVariable::GetTypeId() {
 }
 
 NormalRandomVariable::NormalRandomVariable() : m_nextValid(false) {
-  // m_mean, m_variance, and m_bound are initialized after constructor
-  // by attributes
   NS_LOG_FUNCTION(this);
 }
 
@@ -597,16 +530,14 @@ double NormalRandomVariable::GetBound() const {
 double NormalRandomVariable::GetValue(double mean, double variance,
                                       double bound) {
   NS_LOG_FUNCTION(this << mean << variance << bound);
-  if (m_nextValid) { // use previously generated
+  if (m_nextValid) {
     m_nextValid = false;
     double x2 = mean + m_v2 * m_y * std::sqrt(variance);
     if (std::fabs(x2 - mean) <= bound) {
       return x2;
     }
   }
-  while (true) { // See Simulation Modeling and Analysis p. 466 (Averill Law)
-    // for algorithm; basically a Box-Muller transform:
-    // http://en.wikipedia.org/wiki/Box-Muller_transform
+  while (true) {
     double u1 = Peek()->RandU01();
     double u2 = Peek()->RandU01();
     if (IsAntithetic()) {
@@ -616,23 +547,20 @@ double NormalRandomVariable::GetValue(double mean, double variance,
     double v1 = 2 * u1 - 1;
     double v2 = 2 * u2 - 1;
     double w = v1 * v1 + v2 * v2;
-    if (w <= 1.0) { // Got good pair
+    if (w <= 1.0) {
       double y = std::sqrt((-2 * std::log(w)) / w);
       double x1 = mean + v1 * y * std::sqrt(variance);
-      // if x1 is in bounds, return it, cache v2 and y
       if (std::fabs(x1 - mean) <= bound) {
         m_nextValid = true;
         m_y = y;
         m_v2 = v2;
         return x1;
       }
-      // otherwise try and return the other if it is valid
       double x2 = mean + v2 * y * std::sqrt(variance);
       if (std::fabs(x2 - mean) <= bound) {
         m_nextValid = false;
         return x2;
       }
-      // otherwise, just run this loop again
     }
   }
 }
@@ -672,8 +600,6 @@ TypeId LogNormalRandomVariable::GetTypeId() {
 }
 
 LogNormalRandomVariable::LogNormalRandomVariable() : m_nextValid(false) {
-  // m_mu and m_sigma are initialized after constructor by
-  // attributes
   NS_LOG_FUNCTION(this);
 }
 
@@ -687,35 +613,8 @@ double LogNormalRandomVariable::GetSigma() const {
   return m_sigma;
 }
 
-// The code from this function was adapted from the GNU Scientific
-// Library 1.8:
-/* randist/lognormal.c
- *
- * Copyright (C) 1996, 1997, 1998, 1999, 2000 James Theiler, Brian Gough
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
- * USA.
- */
-/* The lognormal distribution has the form
-
-   p(x) dx = 1/(x * sqrt(2 pi sigma^2)) exp(-(ln(x) - zeta)^2/2 sigma^2) dx
-
-   for x > 0. Lognormal random numbers are the exponentials of
-   gaussian random numbers */
 double LogNormalRandomVariable::GetValue(double mu, double sigma) {
-  if (m_nextValid) { // use previously generated
+  if (m_nextValid) {
     m_nextValid = false;
     double normal = m_v2 * m_normal;
 
@@ -731,7 +630,6 @@ double LogNormalRandomVariable::GetValue(double mu, double sigma) {
   NS_LOG_FUNCTION(this << mu << sigma);
 
   do {
-    /* choose x,y in uniform square (-1,-1) to (+1,+1) */
 
     double u1 = Peek()->RandU01();
     double u2 = Peek()->RandU01();
@@ -743,7 +641,6 @@ double LogNormalRandomVariable::GetValue(double mu, double sigma) {
     v1 = -1 + 2 * u1;
     v2 = -1 + 2 * u2;
 
-    /* see if it is in the unit circle */
     r2 = v1 * v1 + v2 * v2;
   } while (r2 > 1.0 || r2 == 0);
 
@@ -791,8 +688,6 @@ TypeId GammaRandomVariable::GetTypeId() {
 }
 
 GammaRandomVariable::GammaRandomVariable() : m_nextValid(false) {
-  // m_alpha and m_beta are initialized after constructor by
-  // attributes
   NS_LOG_FUNCTION(this);
 }
 
@@ -806,22 +701,6 @@ double GammaRandomVariable::GetBeta() const {
   return m_beta;
 }
 
-/*
-  The code for the following generator functions was adapted from ns-2
-  tools/ranvar.cc
-
-  Originally the algorithm was devised by Marsaglia in 2000:
-  G. Marsaglia, W. W. Tsang: A simple method for generating Gamma variables
-  ACM Transactions on mathematical software, Vol. 26, No. 3, Sept. 2000
-
-  The Gamma distribution density function has the form
-
-                             x^(alpha-1) * exp(-x/beta)
-        p(x; alpha, beta) = ----------------------------
-                             beta^alpha * Gamma(alpha)
-
-  for x > 0.
-*/
 double GammaRandomVariable::GetValue(double alpha, double beta) {
   NS_LOG_FUNCTION(this << alpha << beta);
   if (alpha < 1) {
@@ -840,8 +719,6 @@ double GammaRandomVariable::GetValue(double alpha, double beta) {
 
   while (true) {
     do {
-      // Get a value from a normal distribution that has mean
-      // zero, variance 1, and no bound.
       double mean = 0.0;
       double variance = 1.0;
       double bound = NormalRandomVariable::INFINITE_VALUE;
@@ -874,16 +751,14 @@ double GammaRandomVariable::GetValue() {
 double GammaRandomVariable::GetNormalValue(double mean, double variance,
                                            double bound) {
   NS_LOG_FUNCTION(this << mean << variance << bound);
-  if (m_nextValid) { // use previously generated
+  if (m_nextValid) {
     m_nextValid = false;
     double x2 = mean + m_v2 * m_y * std::sqrt(variance);
     if (std::fabs(x2 - mean) <= bound) {
       return x2;
     }
   }
-  while (true) { // See Simulation Modeling and Analysis p. 466 (Averill Law)
-    // for algorithm; basically a Box-Muller transform:
-    // http://en.wikipedia.org/wiki/Box-Muller_transform
+  while (true) {
     double u1 = Peek()->RandU01();
     double u2 = Peek()->RandU01();
     if (IsAntithetic()) {
@@ -893,23 +768,20 @@ double GammaRandomVariable::GetNormalValue(double mean, double variance,
     double v1 = 2 * u1 - 1;
     double v2 = 2 * u2 - 1;
     double w = v1 * v1 + v2 * v2;
-    if (w <= 1.0) { // Got good pair
+    if (w <= 1.0) {
       double y = std::sqrt((-2 * std::log(w)) / w);
       double x1 = mean + v1 * y * std::sqrt(variance);
-      // if x1 is in bounds, return it, cache v2 an y
       if (std::fabs(x1 - mean) <= bound) {
         m_nextValid = true;
         m_y = y;
         m_v2 = v2;
         return x1;
       }
-      // otherwise try and return the other if it is valid
       double x2 = mean + v2 * y * std::sqrt(variance);
       if (std::fabs(x2 - mean) <= bound) {
         m_nextValid = false;
         return x2;
       }
-      // otherwise, just run this loop again
     }
   }
 }
@@ -937,10 +809,7 @@ TypeId ErlangRandomVariable::GetTypeId() {
   return tid;
 }
 
-ErlangRandomVariable::ErlangRandomVariable() {
-  // m_k and m_lambda are initialized after constructor by attributes
-  NS_LOG_FUNCTION(this);
-}
+ErlangRandomVariable::ErlangRandomVariable() { NS_LOG_FUNCTION(this); }
 
 uint32_t ErlangRandomVariable::GetK() const {
   NS_LOG_FUNCTION(this);
@@ -952,18 +821,6 @@ double ErlangRandomVariable::GetLambda() const {
   return m_lambda;
 }
 
-/*
-  The code for the following generator functions was adapted from ns-2
-  tools/ranvar.cc
-
-  The Erlang distribution density function has the form
-
-                           x^(k-1) * exp(-x/lambda)
-        p(x; k, lambda) = ---------------------------
-                             lambda^k * (k-1)!
-
-  for x > 0.
-*/
 double ErlangRandomVariable::GetValue(uint32_t k, double lambda) {
   NS_LOG_FUNCTION(this << k << lambda);
   double mean = lambda;
@@ -990,16 +847,13 @@ double ErlangRandomVariable::GetValue() {
 double ErlangRandomVariable::GetExponentialValue(double mean, double bound) {
   NS_LOG_FUNCTION(this << mean << bound);
   while (true) {
-    // Get a uniform random variable in [0,1].
     double v = Peek()->RandU01();
     if (IsAntithetic()) {
       v = (1 - v);
     }
 
-    // Calculate the exponential random variable.
     double r = -mean * std::log(v);
 
-    // Use this value if it's acceptable.
     if (bound == 0 || r <= bound) {
       return r;
     }
@@ -1035,11 +889,7 @@ TypeId TriangularRandomVariable::GetTypeId() {
   return tid;
 }
 
-TriangularRandomVariable::TriangularRandomVariable() {
-  // m_mean, m_min, and m_max are initialized after constructor by
-  // attributes
-  NS_LOG_FUNCTION(this);
-}
+TriangularRandomVariable::TriangularRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double TriangularRandomVariable::GetMean() const {
   NS_LOG_FUNCTION(this);
@@ -1057,17 +907,14 @@ double TriangularRandomVariable::GetMax() const {
 }
 
 double TriangularRandomVariable::GetValue(double mean, double min, double max) {
-  // Calculate the mode.
   NS_LOG_FUNCTION(this << mean << min << max);
   double mode = 3.0 * mean - min - max;
 
-  // Get a uniform random variable in [0,1].
   double u = Peek()->RandU01();
   if (IsAntithetic()) {
     u = (1 - u);
   }
 
-  // Calculate the triangular random variable.
   if (u <= (mode - min) / (max - min)) {
     return min + std::sqrt(u * (max - min) * (mode - min));
   } else {
@@ -1109,10 +956,7 @@ TypeId ZipfRandomVariable::GetTypeId() {
   return tid;
 }
 
-ZipfRandomVariable::ZipfRandomVariable() {
-  // m_n and m_alpha are initialized after constructor by attributes
-  NS_LOG_FUNCTION(this);
-}
+ZipfRandomVariable::ZipfRandomVariable() { NS_LOG_FUNCTION(this); }
 
 uint32_t ZipfRandomVariable::GetN() const {
   NS_LOG_FUNCTION(this);
@@ -1126,14 +970,12 @@ double ZipfRandomVariable::GetAlpha() const {
 
 double ZipfRandomVariable::GetValue(uint32_t n, double alpha) {
   NS_LOG_FUNCTION(this << n << alpha);
-  // Calculate the normalization constant c.
   m_c = 0.0;
   for (uint32_t i = 1; i <= n; i++) {
     m_c += (1.0 / std::pow((double)i, alpha));
   }
   m_c = 1.0 / m_c;
 
-  // Get a uniform random variable in [0,1].
   double u = Peek()->RandU01();
   if (IsAntithetic()) {
     u = (1 - u);
@@ -1178,10 +1020,7 @@ TypeId ZetaRandomVariable::GetTypeId() {
   return tid;
 }
 
-ZetaRandomVariable::ZetaRandomVariable() {
-  // m_alpha is initialized after constructor by attributes
-  NS_LOG_FUNCTION(this);
-}
+ZetaRandomVariable::ZetaRandomVariable() { NS_LOG_FUNCTION(this); }
 
 double ZetaRandomVariable::GetAlpha() const {
   NS_LOG_FUNCTION(this);
@@ -1199,13 +1038,11 @@ double ZetaRandomVariable::GetValue(double alpha) {
   double test;
 
   do {
-    // Get a uniform random variable in [0,1].
     u = Peek()->RandU01();
     if (IsAntithetic()) {
       u = (1 - u);
     }
 
-    // Get a uniform random variable in [0,1].
     v = Peek()->RandU01();
     if (IsAntithetic()) {
       v = (1 - v);
@@ -1245,7 +1082,6 @@ DeterministicRandomVariable::DeterministicRandomVariable()
 }
 
 DeterministicRandomVariable::~DeterministicRandomVariable() {
-  // Delete any values currently set.
   NS_LOG_FUNCTION(this);
   if (m_data != nullptr) {
     delete[] m_data;
@@ -1260,17 +1096,14 @@ void DeterministicRandomVariable::SetValueArray(
 void DeterministicRandomVariable::SetValueArray(const double *values,
                                                 std::size_t length) {
   NS_LOG_FUNCTION(this << values << length);
-  // Delete any values currently set.
   if (m_data != nullptr) {
     delete[] m_data;
   }
 
-  // Make room for the values being set.
   m_data = new double[length];
   m_count = length;
   m_next = length;
 
-  // Copy the values.
   for (std::size_t i = 0; i < m_count; i++) {
     m_data[i] = values[i];
   }
@@ -1278,7 +1111,6 @@ void DeterministicRandomVariable::SetValueArray(const double *values,
 
 double DeterministicRandomVariable::GetValue() {
   NS_LOG_FUNCTION(this);
-  // Make sure the array has been set.
   NS_ASSERT(m_count > 0);
 
   if (m_next == m_count) {
@@ -1323,7 +1155,6 @@ bool EmpiricalRandomVariable::PreSample(double &value) {
     Validate();
   }
 
-  // Get a uniform random variable in [0, 1].
   double r = Peek()->RandU01();
   if (IsAntithetic()) {
     r = (1 - r);
@@ -1331,12 +1162,11 @@ bool EmpiricalRandomVariable::PreSample(double &value) {
 
   value = r;
   bool valid = false;
-  // check extrema
   if (r <= m_empCdf.begin()->first) {
-    value = m_empCdf.begin()->second; // Less than first
+    value = m_empCdf.begin()->second;
     valid = true;
   } else if (r >= m_empCdf.rbegin()->first) {
-    value = m_empCdf.rbegin()->second; // Greater than last
+    value = m_empCdf.rbegin()->second;
     valid = true;
   }
   return valid;
@@ -1350,7 +1180,6 @@ double EmpiricalRandomVariable::GetValue() {
     return value;
   }
 
-  // value now has the (unused) URNG selector
   if (m_interpolate) {
     value = DoInterpolate(value);
   } else {
@@ -1362,7 +1191,6 @@ double EmpiricalRandomVariable::GetValue() {
 double EmpiricalRandomVariable::DoSampleCDF(double r) {
   NS_LOG_FUNCTION(this << r);
 
-  // Find first CDF that is greater than r
   auto bound = m_empCdf.upper_bound(r);
 
   return bound->second;
@@ -1376,7 +1204,6 @@ double EmpiricalRandomVariable::Interpolate() {
     return value;
   }
 
-  // value now has the (unused) URNG selector
   value = DoInterpolate(value);
   return value;
 }
@@ -1384,10 +1211,6 @@ double EmpiricalRandomVariable::Interpolate() {
 double EmpiricalRandomVariable::DoInterpolate(double r) {
   NS_LOG_FUNCTION(this << r);
 
-  // Return a value from the empirical distribution
-  // This code based (loosely) on code by Bruce Mah (Thanks Bruce!)
-
-  // search
   auto upper = m_empCdf.upper_bound(r);
   auto lower = std::prev(upper, 1);
 
@@ -1395,7 +1218,6 @@ double EmpiricalRandomVariable::DoInterpolate(double r) {
     lower = upper;
   }
 
-  // Interpolate random value in range [v1..v2) based on [c1 .. r .. c2)
   double c1 = lower->first;
   double c2 = upper->first;
   double v1 = lower->second;
@@ -1428,7 +1250,6 @@ void EmpiricalRandomVariable::Validate() {
 
   double vPrev = m_empCdf.begin()->second;
 
-  // Check if values are non-decreasing
   for (const auto &cdfPair : m_empCdf) {
     const auto &vCurr = cdfPair.second;
 
@@ -1441,7 +1262,6 @@ void EmpiricalRandomVariable::Validate() {
     vPrev = vCurr;
   }
 
-  // Bounds check on CDF endpoints
   auto firstCdfPair = m_empCdf.begin();
   auto lastCdfPair = m_empCdf.rbegin();
 

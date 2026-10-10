@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2020 University of Padova, Dep. of Information Engineering,
- * SIGNET lab.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "three-gpp-antenna-model.h"
 
@@ -70,20 +53,12 @@ double ThreeGppAntennaModel::GetGainDb(Angles a) {
   NS_ASSERT_MSG(0.0 <= thetaDeg && thetaDeg <= 180.0,
                 "Out of boundaries: thetaDeg=" << thetaDeg);
 
-  // compute the radiation power pattern using equations in table 7.3-1 in
-  // 3GPP TR 38.901
   double vertGain = -std::min(
-      m_slaV, 12 * pow((thetaDeg - 90) / m_verticalBeamwidthDegrees,
-                       2)); // vertical cut of the radiation power pattern (dB)
-  double horizGain = -std::min(
-      m_aMax,
-      12 * pow(phiDeg / m_horizontalBeamwidthDegrees,
-               2)); // horizontal cut of the radiation power pattern (dB)
+      m_slaV, 12 * pow((thetaDeg - 90) / m_verticalBeamwidthDegrees, 2));
+  double horizGain =
+      -std::min(m_aMax, 12 * pow(phiDeg / m_horizontalBeamwidthDegrees, 2));
 
-  double gainDb =
-      m_geMax -
-      std::min(m_aMax,
-               -(vertGain + horizGain)); // 3D radiation power pattern (dB)
+  double gainDb = m_geMax - std::min(m_aMax, -(vertGain + horizGain));
 
   NS_LOG_DEBUG("gain=" << gainDb << " dB");
   return gainDb;

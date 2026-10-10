@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007, 2014 University of Washington
- *               2015 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:  Stefano Avallone <stavallo@unina.it>
- *           Tom Henderson <tomhend@u.washington.edu>
- */
 
 #include "pfifo-fast-queue-disc.h"
 
@@ -76,9 +56,6 @@ bool PfifoFastQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   uint32_t band = prio2band[priority & 0x0f];
 
   bool retval = GetInternalQueue(band)->Enqueue(item);
-
-  // If Queue::Enqueue fails, QueueDisc::DropBeforeEnqueue is called by the
-  // internal queue because QueueDisc::AddInternalQueue sets the trace callback
 
   if (!retval) {
     NS_LOG_WARN("Packet enqueue failed. Check the size of the internal queues");
@@ -139,7 +116,6 @@ bool PfifoFastQueueDisc::CheckConfig() {
   }
 
   if (GetNInternalQueues() == 0) {
-    // create 3 DropTail queues with GetLimit() packets each
     ObjectFactory factory;
     factory.SetTypeId("ns3::DropTailQueue<QueueDiscItem>");
     factory.Set("MaxSize", QueueSizeValue(GetMaxSize()));

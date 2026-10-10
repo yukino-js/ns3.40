@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-fr-hard-algorithm.h"
 
@@ -28,15 +9,13 @@ NS_LOG_COMPONENT_DEFINE("LteFrHardAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(LteFrHardAlgorithm);
 
-/// FrHardDownlinkDefaultConfiguration structure
 struct FrHardDownlinkDefaultConfiguration {
-  uint8_t m_cellId;      ///< cell ID
-  uint8_t m_dlBandwidth; ///< DL bandwidth
-  uint8_t m_dlOffset;    ///< DL offset
-  uint8_t m_dlSubBand;   ///< DL subband
+  uint8_t m_cellId;
+  uint8_t m_dlBandwidth;
+  uint8_t m_dlOffset;
+  uint8_t m_dlSubBand;
 };
 
-/// The hard downlink default configuration
 static const FrHardDownlinkDefaultConfiguration
     g_frHardDownlinkDefaultConfiguration[]{
         {1, 15, 0, 4},   {2, 15, 4, 4},    {3, 15, 8, 6},    {1, 25, 0, 8},
@@ -45,15 +24,13 @@ static const FrHardDownlinkDefaultConfiguration
         {1, 100, 0, 32}, {2, 100, 32, 32}, {3, 100, 64, 36},
     };
 
-/// FrHardUplinkDefaultConfiguration structure
 struct FrHardUplinkDefaultConfiguration {
-  uint8_t m_cellId;      ///< cell ID
-  uint8_t m_ulBandwidth; ///< UL bandwidth
-  uint8_t m_ulOffset;    ///< Ul offset
-  uint8_t m_ulSubBand;   ///< UL subband
+  uint8_t m_cellId;
+  uint8_t m_ulBandwidth;
+  uint8_t m_ulOffset;
+  uint8_t m_ulSubBand;
 };
 
-/// The hard uplink default configuration
 static const FrHardUplinkDefaultConfiguration
     g_frHardUplinkDefaultConfiguration[]{
         {1, 15, 0, 5},   {2, 15, 5, 5},    {3, 15, 10, 5},   {1, 25, 0, 8},
@@ -62,10 +39,8 @@ static const FrHardUplinkDefaultConfiguration
         {1, 100, 0, 32}, {2, 100, 32, 32}, {3, 100, 64, 36},
     };
 
-/** \returns number of downlink configurations */
 const uint16_t NUM_DOWNLINK_CONFS(sizeof(g_frHardDownlinkDefaultConfiguration) /
                                   sizeof(FrHardDownlinkDefaultConfiguration));
-/** \returns number of uplink configurations */
 const uint16_t NUM_UPLINK_CONFS(sizeof(g_frHardUplinkDefaultConfiguration) /
                                 sizeof(FrHardUplinkDefaultConfiguration));
 
@@ -289,8 +264,7 @@ void LteFrHardAlgorithm::DoReportUlCqiInfo(
 
 uint8_t LteFrHardAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
-  return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute mode
-            // TS36.213 Table 5.1.1.1-2
+  return 1;
 }
 
 uint16_t LteFrHardAlgorithm::DoGetMinContinuousUlBandwidth() {
@@ -315,4 +289,4 @@ void LteFrHardAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, because it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

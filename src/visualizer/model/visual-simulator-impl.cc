@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Gustavo Carneiro
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo Carneiro <gjcarneiro@gmail.com> <gjc@inescporto.pt>
- */
 #include <Python.h>
 #undef HAVE_SYS_STAT_H
 #include "visual-simulator-impl.h"
@@ -31,10 +13,6 @@ NS_LOG_COMPONENT_DEFINE("VisualSimulatorImpl");
 NS_OBJECT_ENSURE_REGISTERED(VisualSimulatorImpl);
 
 namespace {
-/**
- * Get an object factory configured to the default simulator implementation
- * \return an object factory.
- */
 ObjectFactory GetDefaultSimulatorImplFactory() {
   ObjectFactory factory;
   factory.SetTypeId(DefaultSimulatorImpl::GetTypeId());
@@ -80,7 +58,6 @@ void VisualSimulatorImpl::SetScheduler(ObjectFactory schedulerFactory) {
   m_simulator->SetScheduler(schedulerFactory);
 }
 
-// System ID for non-distributed simulation is always zero
 uint32_t VisualSimulatorImpl::GetSystemId() const {
   return m_simulator->GetSystemId();
 }
@@ -108,9 +85,6 @@ void VisualSimulatorImpl::Stop() { m_simulator->Stop(); }
 
 void VisualSimulatorImpl::Stop(const Time &delay) { m_simulator->Stop(delay); }
 
-//
-// Schedule an event for a _relative_ time in the future.
-//
 EventId VisualSimulatorImpl::Schedule(const Time &delay, EventImpl *event) {
   return m_simulator->Schedule(delay, event);
 }

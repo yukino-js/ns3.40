@@ -1,55 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * (c) 2009, GTech Systems, Inc. - Alfred Park <park@gtech-systems.com>
- */
-
-/**
- * \file
- * \ingroup mpi
- *
- * DARPA NMS Campus Network Model
- *
- * This topology replicates the original NMS Campus Network model
- * with the exception of chord links (which were never utilized in the
- * original model)
- * Link Bandwidths and Delays may not be the same as the original
- * specifications
- *
- * Modified for distributed simulation by Josh Pelkey <jpelkey@gatech.edu>
- *
- * The fundamental unit of the NMS model consists of a campus network. The
- * campus network topology can been seen here:
- * http://www.nsnam.org/~jpelkey3/nms.png
- * The number of hosts (default 42) is variable.  Finally, an arbitrary
- * number of these campus networks can be connected together (default 2)
- * to make very large simulations.
- */
 
 #include "mpi-test-fixtures.h"
 
@@ -85,16 +34,16 @@ int main(int argc, char *argv[]) {
   typedef std::vector<vectorOfNetDeviceContainer>
       vectorOfVectorOfNetDeviceContainer;
 
-  SystemWallClockMs t0; // Total time
-  SystemWallClockMs t1; // Setup time
-  SystemWallClockMs t2; // Run time/
+  SystemWallClockMs t0;
+  SystemWallClockMs t1;
+  SystemWallClockMs t2;
   t0.Start();
   t1.Start();
 
   uint32_t nCN = 2;
   uint32_t nLANClients = 10;
   bool single = false;
-  int nPackets = 10; // Packets sent by OnOff applications
+  int nPackets = 10;
   bool nix = true;
   Time stop = Seconds(100);
   bool verbose = false;
@@ -113,7 +62,6 @@ int main(int argc, char *argv[]) {
 
   cmd.Parse(argc, argv);
 
-  // Enable parallel simulator with the command line arguments
   MpiInterface::Enable(&argc, &argv);
 
   SinkTracer::Init();
@@ -186,13 +134,11 @@ int main(int argc, char *argv[]) {
 
   if (nix) {
     Ipv4NixVectorHelper nixRouting;
-    stack.SetRoutingHelper(nixRouting); // has effect on the next Install ()
+    stack.SetRoutingHelper(nixRouting);
   }
 
-  // Create Campus Networks
   for (uint32_t z = 0; z < nCN; ++z) {
     RANK0COUT("Creating Campus Network " << z << ":" << std::endl);
-    // Create Net0
     RANK0COUT("  SubNet [ 0");
     for (int i = 0; i < 3; ++i) {
       Ptr<Node> node = CreateObject<Node>(z % systemCount);
@@ -206,7 +152,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 3; ++i) {
       ndc0[i] = p2p_1gb5ms.Install(nodes_net0[z][i]);
     }
-    // Create Net1
     RANK0COUTAPPEND(" 1");
     for (int i = 0; i < 6; ++i) {
       Ptr<Node> node = CreateObject<Node>(z % systemCount);
@@ -225,7 +170,6 @@ int main(int argc, char *argv[]) {
       }
       ndc1[i] = p2p_1gb5ms.Install(nodes_net1[z][i]);
     }
-    // Connect Net0 <-> Net1
     NodeContainer net0_1;
     net0_1.Add(nodes_net0[z][2].Get(0));
     net0_1.Add(nodes_net1[z][0].Get(0));
@@ -235,7 +179,6 @@ int main(int argc, char *argv[]) {
     oss << 10 + z << ".1.252.0";
     address.SetBase(oss.str().c_str(), "255.255.255.0");
     ifs = address.Assign(ndc0_1);
-    // Create Net2
     RANK0COUTAPPEND(" 2");
     for (int i = 0; i < 14; ++i) {
       Ptr<Node> node = CreateObject<Node>(z % systemCount);
@@ -275,7 +218,6 @@ int main(int argc, char *argv[]) {
         ifs2LAN[z][i][j] = address.Assign(ndc2LAN[i][j]);
       }
     }
-    // Create Net3
     RANK0COUTAPPEND(" 3 ]" << std::endl);
     for (int i = 0; i < 9; ++i) {
       Ptr<Node> node = CreateObject<Node>(z % systemCount);
@@ -311,7 +253,6 @@ int main(int argc, char *argv[]) {
       }
     }
     RANK0COUT("  Connecting Subnets..." << std::endl);
-    // Create Lone Routers (Node 4 & 5)
     Ptr<Node> node1 = CreateObject<Node>(z % systemCount);
     Ptr<Node> node2 = CreateObject<Node>(z % systemCount);
     nodes_netLR[z].Add(node1);
@@ -319,7 +260,6 @@ int main(int argc, char *argv[]) {
     stack.Install(nodes_netLR[z]);
     NetDeviceContainer ndcLR;
     ndcLR = p2p_1gb5ms.Install(nodes_netLR[z]);
-    // Connect Net2/Net3 through Lone Routers to Net0
     NodeContainer net0_4;
     NodeContainer net0_5;
     NodeContainer net2_4a;
@@ -374,7 +314,6 @@ int main(int argc, char *argv[]) {
     oss << 10 + z << ".5.254.0";
     address.SetBase(oss.str().c_str(), "255.255.255.0");
     ifs = address.Assign(ndc3_5b);
-    // Assign IP addresses
     RANK0COUT("  Assigning IP addresses..." << std::endl);
     for (int i = 0; i < 3; ++i) {
       oss.str("");
@@ -408,7 +347,6 @@ int main(int argc, char *argv[]) {
       ifs3[z][i] = address.Assign(ndc3[i]);
     }
   }
-  // Create Ring Links
   if (nCN > 1) {
     RANK0COUT("Forming Ring Topology..." << std::endl);
     vectorOfNodeContainer nodes_ring(nCN);
@@ -428,7 +366,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Create Traffic Flows
   RANK0COUT("Creating UDP Traffic Flows:" << std::endl);
   Config::SetDefault("ns3::OnOffApplication::MaxBytes",
                      UintegerValue(nPackets * 512));
@@ -491,11 +428,9 @@ int main(int argc, char *argv[]) {
       if (z == nCN - 1) {
         x = 0;
       }
-      // Subnet 2 LANs
       RANK0COUT("  Campus Network " << z << " Flows [ Net2 ");
       for (int i = 0; i < 7; ++i) {
         for (uint32_t j = 0; j < nLANClients; ++j) {
-          // Sinks
           if (systemCount == 1) {
             PacketSinkHelper sinkHelper(
                 "ns3::UdpSocketFactory",
@@ -523,7 +458,6 @@ int main(int argc, char *argv[]) {
                   "RxWithAddresses", MakeCallback(&SinkTracer::SinkTrace));
             }
           }
-          // Sources
           if (systemCount == 1) {
             r1 = 2 + (int)(4 * urng->GetValue());
             r2 = 10 * urng->GetValue();
@@ -551,11 +485,9 @@ int main(int argc, char *argv[]) {
           }
         }
       }
-      // Subnet 3 LANs
       RANK0COUTAPPEND("Net3 ]" << std::endl);
       for (int i = 0; i < 5; ++i) {
         for (uint32_t j = 0; j < nLANClients; ++j) {
-          // Sinks
           if (systemCount == 1) {
             PacketSinkHelper sinkHelper(
                 "ns3::UdpSocketFactory",
@@ -582,7 +514,6 @@ int main(int argc, char *argv[]) {
                   "RxWithAddresses", MakeCallback(&SinkTracer::SinkTrace));
             }
           }
-          // Sources
           if (systemCount == 1) {
             r1 = 2 + (int)(4 * urng->GetValue());
             r2 = 10 * urng->GetValue();
@@ -621,7 +552,6 @@ int main(int argc, char *argv[]) {
   if (nix) {
     RANK0COUT("Using Nix-vectors..." << std::endl);
   } else {
-    // Calculate routing tables
     RANK0COUT("Populating Routing tables..." << std::endl);
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
   }
@@ -641,14 +571,12 @@ int main(int argc, char *argv[]) {
   Simulator::Destroy();
 
   if (testing) {
-    const int numberNodesSending =
-        nCN * (nLANClients * (7 + 5)); // 7 size of Net2, 5 size of Net3
+    const int numberNodesSending = nCN * (nLANClients * (7 + 5));
     const int expectedPacketCount = numberNodesSending * nPackets;
 
     SinkTracer::Verify(expectedPacketCount);
   }
 
-  // Exit the parallel execution environment
   MpiInterface::Disable();
   t2.End();
   RANK0COUT("-----" << std::endl);

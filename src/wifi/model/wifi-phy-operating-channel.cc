@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2021
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Stefano Avallone <stavallo@unina.it>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "wifi-phy-operating-channel.h"
 
@@ -33,8 +14,6 @@ NS_LOG_COMPONENT_DEFINE("WifiPhyOperatingChannel");
 
 const std::set<FrequencyChannelInfo>
     WifiPhyOperatingChannel::m_frequencyChannels = {
-        // 2.4 GHz channels
-        //  802.11b uses width of 22, while OFDM modes use width of 20
         {std::make_tuple(1, 2412, 22, WIFI_PHY_DSSS_CHANNEL,
                          WIFI_PHY_BAND_2_4GHZ)},
         {std::make_tuple(1, 2412, 20, WIFI_PHY_OFDM_CHANNEL,
@@ -87,10 +66,8 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_2_4GHZ)},
         {std::make_tuple(13, 2472, 20, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_2_4GHZ)},
-        // Only defined for 802.11b
         {std::make_tuple(14, 2484, 22, WIFI_PHY_DSSS_CHANNEL,
                          WIFI_PHY_BAND_2_4GHZ)},
-        // 40 MHz channels
         {std::make_tuple(3, 2422, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_2_4GHZ)},
         {std::make_tuple(4, 2427, 40, WIFI_PHY_OFDM_CHANNEL,
@@ -110,8 +87,6 @@ const std::set<FrequencyChannelInfo>
         {std::make_tuple(11, 2462, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_2_4GHZ)},
 
-        // Now the 5 GHz channels used for 802.11a/n/ac/ax/be
-        // 20 MHz channels
         {std::make_tuple(36, 5180, 20, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(40, 5200, 20, WIFI_PHY_OFDM_CHANNEL,
@@ -170,7 +145,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(181, 5905, 20, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
-        // 40 MHz channels
         {std::make_tuple(38, 5190, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(46, 5230, 40, WIFI_PHY_OFDM_CHANNEL,
@@ -199,7 +173,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(175, 5875, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
-        // 80 MHz channels
         {std::make_tuple(42, 5210, 80, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(58, 5290, 80, WIFI_PHY_OFDM_CHANNEL,
@@ -214,7 +187,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(171, 5855, 80, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
-        // 160 MHz channels
         {std::make_tuple(50, 5250, 160, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(114, 5570, 160, WIFI_PHY_OFDM_CHANNEL,
@@ -222,7 +194,6 @@ const std::set<FrequencyChannelInfo>
         {std::make_tuple(163, 5815, 160, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
 
-        // 802.11p 10 MHz channels at the 5.855-5.925 band
         {std::make_tuple(172, 5860, 10, WIFI_PHY_80211p_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(174, 5870, 10, WIFI_PHY_80211p_CHANNEL,
@@ -238,9 +209,6 @@ const std::set<FrequencyChannelInfo>
         {std::make_tuple(184, 5920, 10, WIFI_PHY_80211p_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
 
-        // 802.11p 5 MHz channels at the 5.855-5.925 band (for simplification,
-        // we consider the same
-        // center frequencies as the 10 MHz channels)
         {std::make_tuple(171, 5860, 5, WIFI_PHY_80211p_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
         {std::make_tuple(173, 5870, 5, WIFI_PHY_80211p_CHANNEL,
@@ -256,8 +224,6 @@ const std::set<FrequencyChannelInfo>
         {std::make_tuple(183, 5920, 5, WIFI_PHY_80211p_CHANNEL,
                          WIFI_PHY_BAND_5GHZ)},
 
-        // Now the 6 GHz channels for 802.11ax/be
-        // 20 MHz channels
         {std::make_tuple(1, 5955, 20, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(5, 5975, 20, WIFI_PHY_OFDM_CHANNEL,
@@ -376,7 +342,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(233, 7115, 20, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
-        // 40 MHz channels
         {std::make_tuple(3, 5965, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(11, 6005, 40, WIFI_PHY_OFDM_CHANNEL,
@@ -435,7 +400,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(227, 7085, 40, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
-        // 80 MHz channels
         {std::make_tuple(7, 5985, 80, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(23, 6065, 80, WIFI_PHY_OFDM_CHANNEL,
@@ -464,7 +428,6 @@ const std::set<FrequencyChannelInfo>
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(215, 7025, 80, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
-        // 160 MHz channels
         {std::make_tuple(15, 6025, 160, WIFI_PHY_OFDM_CHANNEL,
                          WIFI_PHY_BAND_6GHZ)},
         {std::make_tuple(47, 6185, 160, WIFI_PHY_OFDM_CHANNEL,
@@ -507,14 +470,11 @@ void WifiPhyOperatingChannel::Set(uint8_t number, uint16_t frequency,
   if (channelIt != m_frequencyChannels.end() &&
       FindFirst(number, frequency, width, standard, band,
                 std::next(channelIt)) == m_frequencyChannels.end()) {
-    // a unique channel matches the specified criteria
     m_channelIt = channelIt;
     m_primary20Index = 0;
     return;
   }
 
-  // if a unique channel was not found, throw an exception (mainly for unit
-  // testing this code)
   throw std::runtime_error("WifiPhyOperatingChannel: No unique channel found "
                            "given the specified criteria");
 }
@@ -532,12 +492,9 @@ uint8_t WifiPhyOperatingChannel::GetDefaultChannelNumber(uint16_t width,
   auto channelIt = FindFirst(0, 0, width, standard, band);
 
   if (channelIt != m_frequencyChannels.end()) {
-    // a channel matches the specified criteria
     return std::get<0>(*channelIt);
   }
 
-  // if a default channel was not found, throw an exception (mainly for unit
-  // testing this code)
   throw std::runtime_error(
       "WifiPhyOperatingChannel: No default channel found of the given width "
       "and for the given PHY standard and band");
@@ -547,7 +504,6 @@ WifiPhyOperatingChannel::ConstIterator
 WifiPhyOperatingChannel::FindFirst(uint8_t number, uint16_t frequency,
                                    uint16_t width, WifiStandard standard,
                                    WifiPhyBand band, ConstIterator start) {
-  // lambda used to match channels against the specified criteria
   auto predicate = [&](const FrequencyChannelInfo &channel) {
     if (number != 0 && std::get<0>(channel) != number) {
       return false;
@@ -568,9 +524,6 @@ WifiPhyOperatingChannel::FindFirst(uint8_t number, uint16_t frequency,
     return true;
   };
 
-  // Do not search for a channel matching the specified criteria if the given
-  // PHY band is not allowed for the given standard (if any) or the given
-  // channel width is not allowed for the given standard (if any)
   if (const auto standardIt = wifiStandards.find(standard);
       standardIt != wifiStandards.cend() &&
       (std::find(standardIt->second.cbegin(), standardIt->second.cend(),
@@ -631,8 +584,6 @@ uint8_t WifiPhyOperatingChannel::GetPrimaryChannelIndex(
 
   NS_ASSERT(primaryChannelWidth <= GetWidth());
 
-  // the index of primary40 is half the index of primary20; the index of
-  // primary80 is half the index of primary40, ...
   uint16_t width = 20;
   uint8_t index = m_primary20Index;
 
@@ -699,11 +650,10 @@ WifiPhyOperatingChannel::GetPrimaryChannelNumber(uint16_t primaryChannelWidth,
 std::set<uint8_t> WifiPhyOperatingChannel::GetAll20MHzChannelIndicesInPrimary(
     uint16_t width) const {
   if (width > GetWidth()) {
-    // a primary channel of the given width does not exist
     return {};
   }
 
-  uint16_t currWidth = 20; // MHz
+  uint16_t currWidth = 20;
   std::set<uint8_t> indices;
   indices.insert(m_primary20Index);
 
@@ -728,17 +678,13 @@ std::set<uint8_t> WifiPhyOperatingChannel::GetAll20MHzChannelIndicesInSecondary(
   }
 
   uint8_t size = 1;
-  uint16_t primaryWidth = 20; // MHz
+  uint16_t primaryWidth = 20;
 
-  // find the width of the primary channel corresponding to the size of the
-  // given set
   while (size != primaryIndices.size()) {
     size <<= 1;
     primaryWidth <<= 1;
 
     if (primaryWidth >= GetWidth()) {
-      // the width of the primary channel resulting from the given indices
-      // exceeds the width of the operating channel
       return {};
     }
   }
@@ -764,18 +710,13 @@ WifiPhyOperatingChannel::Get20MHzIndicesCoveringRu(HeRu::RuSpec ru,
                                     << " MHz) exceeds the operational width ("
                                     << GetWidth() << " MHz)");
 
-  // trivial case: 2x996-tone RU
   if (ruType == HeRu::RU_2x996_TONE) {
     return {0, 1, 2, 3, 4, 5, 6, 7};
   }
 
-  // handle first the special case of center 26-tone RUs
   if (ruType == HeRu::RU_26_TONE && ru.GetIndex() == 19) {
     NS_ASSERT_MSG(width >= 80, "26-tone RU with index 19 is only present in "
                                "channels of at least 80 MHz");
-    // the center 26-tone RU in an 80 MHz channel is not fully covered by
-    // any 20 MHz channel, but by the two central 20 MHz channels in the 80 MHz
-    // channel
     auto indices = ru.GetPrimary80MHz()
                        ? GetAll20MHzChannelIndicesInPrimary(80)
                        : GetAll20MHzChannelIndicesInSecondary(80);
@@ -787,18 +728,13 @@ WifiPhyOperatingChannel::Get20MHzIndicesCoveringRu(HeRu::RuSpec ru,
   auto ruIndex = ru.GetIndex();
 
   if (ruType == HeRu::RU_26_TONE && ruIndex > 19) {
-    // "ignore" the center 26-tone RU in an 80 MHz channel
     ruIndex--;
   }
 
-  // if the RU refers to a 160 MHz channel, we have to update the RU index
-  // (which refers to an 80 MHz channel) if the RU is not in the lower 80 MHz
-  // channel
   if (width == 160) {
     bool primary80IsLower80 = (m_primary20Index < 4);
     if (primary80IsLower80 != ru.GetPrimary80MHz()) {
       auto nRusIn80MHz = HeRu::GetNRus(80, ruType);
-      // "ignore" the center 26-tone RU in an 80 MHz channel
       if (ruType == HeRu::RU_26_TONE) {
         nRusIn80MHz--;
       }
@@ -806,8 +742,7 @@ WifiPhyOperatingChannel::Get20MHzIndicesCoveringRu(HeRu::RuSpec ru,
     }
   }
 
-  uint8_t n20MHzChannels; // number of 20 MHz channels in the channel covering
-                          // the RU
+  uint8_t n20MHzChannels;
 
   switch (ruType) {
   case HeRu::RU_26_TONE:
@@ -827,15 +762,10 @@ WifiPhyOperatingChannel::Get20MHzIndicesCoveringRu(HeRu::RuSpec ru,
   }
 
   auto nRusInCoveringChannel = HeRu::GetNRus(n20MHzChannels * 20, ruType);
-  // compute the index (starting at 0) of the covering channel within the given
-  // width
   std::size_t indexOfCoveringChannelInGivenWidth =
       (ruIndex - 1) / nRusInCoveringChannel;
 
-  // expand the index of the covering channel in the indices of its constituent
-  // 20 MHz channels (within the given width)
-  NS_ASSERT(indexOfCoveringChannelInGivenWidth <
-            8); // max number of 20 MHz channels
+  NS_ASSERT(indexOfCoveringChannelInGivenWidth < 8);
   std::set<uint8_t> indices(
       {static_cast<uint8_t>(indexOfCoveringChannelInGivenWidth)});
 
@@ -849,8 +779,6 @@ WifiPhyOperatingChannel::Get20MHzIndicesCoveringRu(HeRu::RuSpec ru,
     n20MHzChannels /= 2;
   }
 
-  // finally, add the appropriate offset if width is less than the operational
-  // channel width
   auto offset = GetPrimaryChannelIndex(width) * width / 20;
 
   if (offset > 0) {

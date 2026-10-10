@@ -1,57 +1,4 @@
-/*
- * Copyright (c) 2011 UPB
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Radu Lupu <rlupu@elcom.pub.ro>
- *         Ankit Deepak <adadeepak8@gmail.com>
- *         Deepti Rajagopal <deeptir96@gmail.com>
- *
- */
 
-/*
- * Network layout:
- *
- * R0 is a DHCP server. The DHCP server announced R1 as the default router.
- * Nodes N1 will send UDP Echo packets to node A.
- *
- *
- *                ┌-------------------------------------------------┐
- *                | DHCP Clients                                    |
- *                |                                   172.30.0.14   |
- *                |                                   DHCP static   |
- *                |   ┌──────┐       ┌──────┐        ┌──────┐       |
- *                |   │  N0  │       │  N1  │        │  N2  │       | ┌──────┐
- *                |   └──────┘       └──────┘        └──────┘       | ┌────│  A
- * │ |       │              │               │          |       │    └──────┘
- *                └-------│--------------│---------------│----------┘       │
- * 172.30.1.2 DHCP Server           │              │               │ │ ┌──────┐
- * │              │               │      ┌──────┐    │ │  R0
- * │────────┴──────────────┴───────────────┴──────│  R1  │────┘ └──────┘
- * └──────┘172.30.1.1 172.30.0.12                                  172.30.0.17
- *
- * Things to notice:
- * 1) The routes in A are manually set to have R1 as the default router,
- *    just because using a dynamic outing in this example is an overkill.
- * 2) R1's address is set statically though the DHCP server helper interface.
- *    This is useful to prevent address conflicts with the dynamic pool.
- *    Not necessary if the DHCP pool is not conflicting with static addresses.
- * 3) N2 has a dynamically-assigned, static address (i.e., a fixed address
- * assigned via DHCP).
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -74,8 +21,6 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("tracing", "turn on the tracing", tracing);
 
   cmd.Parse(argc, argv);
-
-  // GlobalValue::Bind ("ChecksumEnabled", BooleanValue (true));
 
   if (verbose) {
     LogComponentEnable("DhcpServer", LOG_LEVEL_ALL);
@@ -122,7 +67,6 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer p2pInterfaces;
   p2pInterfaces = address.Assign(p2pDevices);
 
-  // manually add a routing entry because we don't want to add a dynamic routing
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4> ipv4Ptr = p2pNodes.Get(1)->GetObject<Ipv4>();
   Ptr<Ipv4StaticRouting> staticRoutingA =
@@ -133,19 +77,15 @@ int main(int argc, char *argv[]) {
   NS_LOG_INFO("Setup the IP addresses and create DHCP applications.");
   DhcpHelper dhcpHelper;
 
-  // The router must have a fixed IP.
   Ipv4InterfaceContainer fixedNodes = dhcpHelper.InstallFixedAddress(
       devNet.Get(4), Ipv4Address("172.30.0.17"), Ipv4Mask("/24"));
-  // Not really necessary, IP forwarding is enabled by default in IPv4.
   fixedNodes.Get(0).first->SetAttribute("IpForward", BooleanValue(true));
 
-  // DHCP server
   ApplicationContainer dhcpServerApp = dhcpHelper.InstallDhcpServer(
       devNet.Get(3), Ipv4Address("172.30.0.12"), Ipv4Address("172.30.0.0"),
       Ipv4Mask("/24"), Ipv4Address("172.30.0.10"), Ipv4Address("172.30.0.15"),
       Ipv4Address("172.30.0.17"));
 
-  // This is just to show how it can be done.
   DynamicCast<DhcpServer>(dhcpServerApp.Get(0))
       ->AddStaticDhcpEntry(devNet.Get(2)->GetAddress(),
                            Ipv4Address("172.30.0.14"));
@@ -153,7 +93,6 @@ int main(int argc, char *argv[]) {
   dhcpServerApp.Start(Seconds(0.0));
   dhcpServerApp.Stop(stopTime);
 
-  // DHCP clients
   NetDeviceContainer dhcpClientNetDevs;
   dhcpClientNetDevs.Add(devNet.Get(0));
   dhcpClientNetDevs.Add(devNet.Get(1));

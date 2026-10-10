@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017 Alexander Krotov
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alexander Krotov <krotov@iitp.ru>
- *
- */
 
 #include "lte-test-aggregation-throughput-scale.h"
 
@@ -54,10 +35,6 @@ LteAggregationThroughputScaleTestSuite::LteAggregationThroughputScaleTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteAggregationThroughputScaleTestSuite
     g_lteAggregationThroughputScaleTestSuite;
 
@@ -122,14 +99,12 @@ double LteAggregationThroughputScaleTestCase::GetThroughput(
 
   Ipv4InterfaceContainer ueIpIface = epcHelper->AssignUeIpv4Address(ueDevs);
 
-  // Attach to last CC as primary
   std::map<uint8_t, Ptr<ComponentCarrierUe>> ueCcMap = ueDev->GetCcMap();
   ueDev->SetDlEarfcn(ueCcMap.at(numberOfComponentCarriers - 1)->GetDlEarfcn());
   lteHelper->Attach(ueDevs);
   m_expectedCellId =
       enbDev->GetCcMap().at(numberOfComponentCarriers - 1)->GetCellId();
 
-  // Applications
   const uint16_t port = 21;
 
   ApplicationContainer apps;

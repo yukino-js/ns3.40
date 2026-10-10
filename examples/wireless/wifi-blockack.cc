@@ -1,46 +1,4 @@
-/*
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mirko Banchi <mk.banchi@gmail.com>
- */
 
-/**
- * This is a simple example in order to show how 802.11n compressed block ack
- * mechanism could be used.
- *
- * Network topology:
- *
- *  Wifi 192.168.1.0
- *
- *        AP
- *   *    *
- *   |    |
- *   n1   n2
- *
- * In this example a QoS sta sends UDP datagram packets to access point. On the
- * access point there is no application installed so it replies to every packet
- * with an ICMP frame. However our attention is on originator sta n1. We have
- * set blockAckThreshold (minimum number of packets to use block ack) to 2 so if
- * there are in the BestEffort queue more than 2 packets a block ack will be
- * negotiated. We also set a timeout for block ack inactivity to 3 blocks of
- * 1024 microseconds. This timer is reset when:
- *    - the originator receives a block ack frame.
- *    - the recipient receives a block ack request or a MPDU with ack policy
- * Block Ack.
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -81,26 +39,20 @@ int main(int argc, char *argv[]) {
   WifiHelper wifi;
   wifi.SetStandard(WIFI_STANDARD_80211n);
   WifiMacHelper mac;
-  /* disable fragmentation */
   wifi.SetRemoteStationManager("ns3::IdealWifiManager",
                                "FragmentationThreshold", UintegerValue(2500));
 
   Ssid ssid("My-network");
 
-  mac.SetType(
-      "ns3::StaWifiMac", "QosSupported", BooleanValue(true), "Ssid",
-      SsidValue(ssid),
-      /* setting blockack threshold for sta's BE queue */
-      "BE_BlockAckThreshold", UintegerValue(2),
-      /* setting block inactivity timeout to 3*1024 = 3072 microseconds */
-      "BE_BlockAckInactivityTimeout", UintegerValue(3));
+  mac.SetType("ns3::StaWifiMac", "QosSupported", BooleanValue(true), "Ssid",
+              SsidValue(ssid), "BE_BlockAckThreshold", UintegerValue(2),
+              "BE_BlockAckInactivityTimeout", UintegerValue(3));
   NetDeviceContainer staDevice = wifi.Install(phy, mac, sta);
 
   mac.SetType("ns3::ApWifiMac", "QosSupported", BooleanValue(true), "Ssid",
               SsidValue(ssid), "BE_BlockAckThreshold", UintegerValue(0));
   NetDeviceContainer apDevice = wifi.Install(phy, mac, ap);
 
-  /* Setting mobility model */
   MobilityHelper mobility;
 
   mobility.SetPositionAllocator(
@@ -115,7 +67,6 @@ int main(int argc, char *argv[]) {
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(ap);
 
-  /* Internet stack*/
   InternetStackHelper stack;
   stack.Install(sta);
   stack.Install(ap);
@@ -127,8 +78,6 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer apIf;
   staIf = address.Assign(staDevice);
   apIf = address.Assign(apDevice);
-
-  /* Setting applications */
 
   uint16_t port = 9;
   DataRate dataRate("1Mb/s");

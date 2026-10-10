@@ -1,50 +1,4 @@
-/*
- * Copyright (c) 2014 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N Nguyen <trucanh524@gmail.com>
- * Modified by:   Pasquale Imputato <p.imputato@gmail.com>
- *
- */
 
-/*
- * This is an example that compares CoDel and PfifoFast queues using a
- * typical cable modem topology and delay
- * (total RTT 37 ms as measured by Measuring Broadband America)
- *
- *          10gigE         22 Mb/s         gigE
- *           15 ms          1 ms           0.1 ms
- *  --------       ------- (1)    --------        -------
- *  |      |------>|      |------>|      |------->|     |
- *  |server|       |CMTS  |       |Router|        |Host |
- *  |      |<------|      |<------|      |<-------|     |
- *  --------       --------    (2)--------        -------
- *          10gigE         5 Mb/s          gigE
- *           15 ms         6 ms            0.1 ms
- *
- * (1) PfifoFast queue , 256K bytes
- * (2) PfifoFast, CoDel
- *
- * The server initiates a bulk send TCP transfer to the host.
- * The host initiates a bulk send TCP transfer to the server.
- * Also, isochronous traffic (VoIP-like) between server and host
- * The default TCP version in ns-3, TcpNewReno, is used as the transport-layer
- * protocol.
- * Packets transmitted during a simulation run are captured into a .pcap file,
- * and congestion window values are also traced.
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/config-store-module.h"
@@ -68,23 +22,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("CoDelPfifoFastAsymmetricTest");
 
-/**
- * TCP Congestion window tracker.
- *
- * \param stream The output stream.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void CwndTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldval,
                        uint32_t newval) {
   *stream->GetStream() << oldval << " " << newval << std::endl;
 }
 
-/**
- * Setup for TCP congestion window tracking.
- *
- * \param cwndTrFileName Congestion window output file name.
- */
 static void TraceCwnd(std::string cwndTrFileName) {
   AsciiTraceHelper ascii;
   if (cwndTrFileName.empty()) {
@@ -98,21 +40,10 @@ static void TraceCwnd(std::string cwndTrFileName) {
   }
 }
 
-/**
- * Traffic Control Sojourn tracker.
- *
- * \param stream The output stream.
- * \param newval New value.
- */
 static void SojournTracer(Ptr<OutputStreamWrapper> stream, Time newval) {
   *stream->GetStream() << newval << std::endl;
 }
 
-/**
- * Setup for Traffic Control Sojourn time tracking.
- *
- * \param sojournTrFileName Sojourn time output file name.
- */
 static void TraceSojourn(std::string sojournTrFileName) {
   AsciiTraceHelper ascii;
   if (sojournTrFileName.empty()) {
@@ -127,23 +58,11 @@ static void TraceSojourn(std::string sojournTrFileName) {
   }
 }
 
-/**
- * Traffic Control Queue length tracker.
- *
- * \param stream The output stream.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void QueueLengthTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldval,
                               uint32_t newval) {
   *stream->GetStream() << oldval << " " << newval << std::endl;
 }
 
-/**
- * Setup for Traffic Control Queue length tracking.
- *
- * \param queueLengthTrFileName Queue length output file name.
- */
 static void TraceQueueLength(std::string queueLengthTrFileName) {
   AsciiTraceHelper ascii;
   if (queueLengthTrFileName.empty()) {
@@ -159,23 +78,12 @@ static void TraceQueueLength(std::string queueLengthTrFileName) {
   }
 }
 
-/**
- * Traffic control drop trace.
- *
- * \param stream The output stream.
- * \param item The dropped item.
- */
 static void EveryDropTracer(Ptr<OutputStreamWrapper> stream,
                             Ptr<const QueueDiscItem> item) {
   *stream->GetStream() << Simulator::Now().GetSeconds() << " " << item
                        << std::endl;
 }
 
-/**
- * Setup for Traffic Control drop tracking.
- *
- * \param everyDropTrFileName TC drop output file name.
- */
 static void TraceEveryDrop(std::string everyDropTrFileName) {
   AsciiTraceHelper ascii;
   if (everyDropTrFileName.empty()) {
@@ -190,13 +98,6 @@ static void TraceEveryDrop(std::string everyDropTrFileName) {
   }
 }
 
-/**
- * Traffic Control Dropping state trace.
- *
- * \param stream The output stream.
- * \param oldVal Old value.
- * \param newVal New value.
- */
 static void DroppingStateTracer(Ptr<OutputStreamWrapper> stream, bool oldVal,
                                 bool newVal) {
   if (!oldVal && newVal) {
@@ -208,11 +109,6 @@ static void DroppingStateTracer(Ptr<OutputStreamWrapper> stream, bool oldVal,
   }
 }
 
-/**
- * Setup for Traffic Control dropping tracking.
- *
- * \param dropStateTrFileName TC drop state output file name.
- */
 static void TraceDroppingState(std::string dropStateTrFileName) {
   AsciiTraceHelper ascii;
   if (dropStateTrFileName.empty()) {
@@ -228,14 +124,6 @@ static void TraceDroppingState(std::string dropStateTrFileName) {
   }
 }
 
-/**
- * Create a Bulk Flow application
- *
- * \param remoteAddress Remote address.
- * \param sender Sender node.
- * \param pktSize Pakcet size.
- * \param stopTime Stop time.
- */
 void CreateBulkFlow(AddressValue remoteAddress, Ptr<Node> sender,
                     uint32_t pktSize, float stopTime) {
   BulkSendHelper sourceHelper("ns3::TcpSocketFactory", Address());
@@ -247,13 +135,6 @@ void CreateBulkFlow(AddressValue remoteAddress, Ptr<Node> sender,
   sourceApp.Stop(Seconds(stopTime - 3));
 }
 
-/**
- * Create a On Off Flow application.
- *
- * \param remoteAddress Remote address.
- * \param sender Sender node.
- * \param stopTime Stop time.
- */
 void CreateOnOffFlow(AddressValue remoteAddress, Ptr<Node> sender,
                      float stopTime) {
   OnOffHelper sourceHelper("ns3::UdpSocketFactory", Address());
@@ -275,17 +156,17 @@ int main(int argc, char *argv[]) {
   std::string routerLanDataRate = "10Gbps";
   std::string hostLanDataRate = "10Gbps";
 
-  std::string routerWanQueueDiscType = "CoDel"; // outbound cable router queue
-  uint32_t pktSize = 1458;              // in bytes. 1458 to prevent fragments
-  uint32_t queueSize = 1000;            // in packets
-  uint32_t numOfUpLoadBulkFlows = 1;    // # of upload bulk transfer flows
-  uint32_t numOfDownLoadBulkFlows = 1;  // # of download bulk transfer flows
-  uint32_t numOfUpLoadOnOffFlows = 1;   // # of upload onoff flows
-  uint32_t numOfDownLoadOnOffFlows = 1; // # of download onoff flows
+  std::string routerWanQueueDiscType = "CoDel";
+  uint32_t pktSize = 1458;
+  uint32_t queueSize = 1000;
+  uint32_t numOfUpLoadBulkFlows = 1;
+  uint32_t numOfDownLoadBulkFlows = 1;
+  uint32_t numOfUpLoadOnOffFlows = 1;
+  uint32_t numOfDownLoadOnOffFlows = 1;
   bool isPcapEnabled = true;
 
   float startTime = 0.1F;
-  float simDuration = 60; // in seconds
+  float simDuration = 60;
 
   std::string fileNamePrefix = "codel-vs-pfifo-fast-asymmetric";
   bool logging = true;
@@ -346,13 +227,9 @@ int main(int argc, char *argv[]) {
   std::string dropStateTrFileName =
       fileNamePrefix + "-" + routerWanQueueDiscType + "-drop-state" + ".tr";
   if (logging) {
-    // LogComponentEnable ("CoDelPfifoFastAsymmetricTest", LOG_LEVEL_ALL);
-    // LogComponentEnable ("BulkSendApplication", LOG_LEVEL_INFO);
-    // LogComponentEnable ("PfifoFastQueue", LOG_LEVEL_ALL);
     LogComponentEnable("CoDelQueueDisc", LOG_LEVEL_FUNCTION);
   }
 
-  // Queue defaults
   Config::SetDefault(
       "ns3::PfifoFastQueueDisc::MaxSize",
       QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueSize)));
@@ -360,11 +237,9 @@ int main(int argc, char *argv[]) {
       "ns3::CoDelQueueDisc::MaxSize",
       QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queueSize)));
 
-  // Create the nodes
   NS_LOG_INFO("Create nodes");
   NodeContainer nodes;
   nodes.Create(4);
-  // Descriptive names
   Names::Add("server", nodes.Get(0));
   Names::Add("cmts", nodes.Get(1));
   Names::Add("router", nodes.Get(2));
@@ -376,7 +251,6 @@ int main(int argc, char *argv[]) {
   NodeContainer routerHost;
   routerHost = NodeContainer(nodes.Get(2), nodes.Get(3));
 
-  // Enable checksum
   if (isPcapEnabled) {
     GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
   }
@@ -502,7 +376,6 @@ int main(int argc, char *argv[]) {
     p2p.EnablePcapAll(pcapFileName);
   }
 
-  // Output config store to txt format
   Config::SetDefault("ns3::ConfigStore::Filename",
                      StringValue(attributeFileName));
   Config::SetDefault("ns3::ConfigStore::FileFormat", StringValue("RawText"));

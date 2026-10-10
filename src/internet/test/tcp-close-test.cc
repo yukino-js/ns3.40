@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2016 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
@@ -27,16 +10,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TcpCloseTestSuite");
 
-/**
- * \brief Check if the TCP correctly close the connection after receiving
- * previously lost data
- */
 class TcpCloseWithLossTestCase : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor
-   * \param sackEnabled Enable or disable SACK
-   */
   TcpCloseWithLossTestCase(bool sackEnabled);
 
 protected:
@@ -56,21 +31,15 @@ protected:
     }
   }
 
-  /**
-   * Called when a packet is dropped.
-   * \param ipH IP header
-   * \param tcpH TCP header
-   * \param pkt packet
-   */
   void PktDropped(const Ipv4Header &ipH, const TcpHeader &tcpH,
                   Ptr<const Packet> pkt);
 
 private:
-  Ptr<TcpSeqErrorModel> m_errorModel; //!< The error model
-  bool m_sendClose;                   //!< true when the sender has closed
-  bool m_recvClose;                   //!< true when the receiver has closed
-  bool m_synReceived;                 //!< true when the receiver gets SYN
-  bool m_sackEnabled;                 //!< true if sack should be enabled
+  Ptr<TcpSeqErrorModel> m_errorModel;
+  bool m_sendClose;
+  bool m_recvClose;
+  bool m_synReceived;
+  bool m_sackEnabled;
 };
 
 TcpCloseWithLossTestCase::TcpCloseWithLossTestCase(bool sackEnabled)
@@ -135,9 +104,6 @@ void TcpCloseWithLossTestCase::Rx(const Ptr<const Packet> p, const TcpHeader &h,
   }
 }
 
-/**
- * Check if the TCP is correctly closing its state
- */
 class TcpTcpCloseTestSuite : public TestSuite {
 public:
   TcpTcpCloseTestSuite() : TestSuite("tcp-close", UNIT) {
@@ -146,7 +112,6 @@ public:
   }
 };
 
-static TcpTcpCloseTestSuite
-    g_tcpTcpCloseTestSuite; //!< Static variable for test initialization
+static TcpTcpCloseTestSuite g_tcpTcpCloseTestSuite;
 
 } // namespace ns3

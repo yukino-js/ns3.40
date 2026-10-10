@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Lalith Suresh
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Lalith Suresh <suresh.lalith@gmail.com>
- */
 
 #include "ipv4-click-routing.h"
 
@@ -38,7 +20,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Ipv4ClickRouting");
 
-// Values from nsclick ExtRouter implementation
 #define INTERFACE_ID_KERNELTAP 0
 #define INTERFACE_ID_FIRST 1
 #define INTERFACE_ID_FIRST_DROP 33
@@ -79,8 +60,6 @@ void Ipv4ClickRouting::DoInitialize() {
 
   NS_ASSERT(!m_clickFile.empty());
 
-  // Even though simclick_click_create() will halt programme execution
-  // if it is unable to initialise a Click router, we play safe
   if (simclick_click_create(m_simNode, m_clickFile.c_str()) >= 0) {
     NS_LOG_DEBUG(m_nodeName << " has initialised a Click Router");
     m_clickInitialised = true;
@@ -134,18 +113,6 @@ std::string Ipv4ClickRouting::GetNodeName() { return m_nodeName; }
 int Ipv4ClickRouting::GetInterfaceId(const char *ifname) {
   int retval = -1;
 
-  // The below hard coding of interface names follows the
-  // same approach as used in the original nsclick code for
-  // ns-2. The interface names map directly to what is to
-  // be used in the Click configuration files.
-  // Thus eth0 will refer to the first network device of
-  // the node, and is to be named so in the Click graph.
-  // This function is called by Click during the initialisation
-  // phase of the Click graph, during which it tries to map
-  // interface IDs to interface names. The return value
-  // corresponds to the interface ID that Click will use.
-
-  // Tap/tun devices refer to the kernel devices
   if (strstr(ifname, "tap") || strstr(ifname, "tun")) {
     retval = 0;
   } else if (const char *devname = strstr(ifname, "eth")) {
@@ -165,10 +132,6 @@ int Ipv4ClickRouting::GetInterfaceId(const char *ifname) {
     }
   }
 
-  // This protects against a possible inconsistency of having
-  // more interfaces defined in the Click graph
-  // for a Click node than are defined for it in
-  // the simulation script
   if (retval >= (int)m_ipv4->GetNInterfaces()) {
     return -1;
   }
@@ -273,9 +236,6 @@ void Ipv4ClickRouting::HandlePacketFromClick(int ifid, int ptype,
                                              int len) {
   NS_LOG_DEBUG("HandlePacketFromClick");
 
-  // Figure out packet's destination here:
-  // If ifid == 0, then the packet's going up
-  // else, the packet's going down
   if (ifid == 0) {
     NS_LOG_DEBUG("Incoming packet from tap0. Sending Packet up the stack.");
     Ptr<Ipv4L3ClickProtocol> ipv4l3 = DynamicCast<Ipv4L3ClickProtocol>(m_ipv4);
@@ -302,9 +262,6 @@ void Ipv4ClickRouting::SendPacketToClick(int ifid, int ptype,
   NS_LOG_FUNCTION(this << ifid);
   m_simNode->curtime = GetTimevalFromNow();
 
-  // Since packets in ns-3 don't have global Packet ID's and Flow ID's, we
-  // feed dummy values into pinfo. This avoids the need to make changes in the
-  // Click code
   simclick_simpacketinfo pinfo;
   pinfo.id = 0;
   pinfo.fid = 0;
@@ -315,7 +272,6 @@ void Ipv4ClickRouting::SendPacketToClick(int ifid, int ptype,
 void Ipv4ClickRouting::Send(Ptr<Packet> p, Ipv4Address src, Ipv4Address dst) {
   uint32_t ifid;
 
-  // Find out which interface holds the src address of the packet...
   for (ifid = 0; ifid < m_ipv4->GetNInterfaces(); ifid++) {
     Ipv4Address addr = m_ipv4->GetAddress(ifid, 0).GetLocal();
 
@@ -328,7 +284,6 @@ void Ipv4ClickRouting::Send(Ptr<Packet> p, Ipv4Address src, Ipv4Address dst) {
   auto buf = new uint8_t[len];
   p->CopyData(buf, len);
 
-  // ... and send the packet on the corresponding Click interface.
   SendPacketToClick(0, SIMCLICK_PTYPE_IP, buf, len);
 
   delete[] buf;
@@ -340,7 +295,6 @@ void Ipv4ClickRouting::Receive(Ptr<Packet> p, Mac48Address receiverAddr,
 
   uint32_t ifid;
 
-  // Find out which device this packet was received from...
   for (ifid = 0; ifid < m_ipv4->GetNInterfaces(); ifid++) {
     Ptr<NetDevice> device = m_ipv4->GetNetDevice(ifid);
 
@@ -353,7 +307,6 @@ void Ipv4ClickRouting::Receive(Ptr<Packet> p, Mac48Address receiverAddr,
   auto buf = new uint8_t[len];
   p->CopyData(buf, len);
 
-  // ... and send the packet to the corresponding Click interface
   SendPacketToClick(ifid, SIMCLICK_PTYPE_ETHER, buf, len);
 
   delete[] buf;
@@ -365,9 +318,6 @@ std::string Ipv4ClickRouting::ReadHandler(std::string elementName,
       m_simNode, elementName.c_str(), handlerName.c_str(), nullptr, nullptr);
   std::string ret(handle);
 
-  // This is required because Click does not free
-  // the memory allocated to the return string
-  // from simclick_click_read_handler()
   free(handle);
 
   return ret;
@@ -378,12 +328,6 @@ int Ipv4ClickRouting::WriteHandler(std::string elementName,
                                    std::string writeString) {
   int r = simclick_click_write_handler(
       m_simNode, elementName.c_str(), handlerName.c_str(), writeString.c_str());
-
-  // Note: There are probably use-cases for returning
-  // a write handler's error code, so don't assert.
-  // For example, the 'add' handler for IPRouteTable
-  // type elements fails if the route to be added
-  // already exists.
 
   return r;
 }
@@ -403,8 +347,6 @@ Ptr<Ipv4Route> Ipv4ClickRouting::RouteOutput(Ptr<Packet> p,
   std::stringstream addr;
   addr << "lookup ";
   header.GetDestination().Print(addr);
-  // Probe the Click Routing Table for the required IP
-  // This returns a string of the form "InterfaceID GatewayAddr"
   NS_LOG_DEBUG("Probe click routing table for " << addr.str());
   std::string s = ReadHandler(m_clickRoutingTableElement, addr.str());
   NS_LOG_DEBUG("string from click routing table: " << s);
@@ -413,7 +355,6 @@ Ptr<Ipv4Route> Ipv4ClickRouting::RouteOutput(Ptr<Packet> p,
   Ipv4Address destination;
   int interfaceId;
   if (pos == std::string::npos) {
-    // Only an interface ID is found
     destination = Ipv4Address("0.0.0.0");
     interfaceId = atoi(s.c_str());
     NS_LOG_DEBUG("case 1:  destination " << destination << " interfaceId "
@@ -428,9 +369,6 @@ Ptr<Ipv4Route> Ipv4ClickRouting::RouteOutput(Ptr<Packet> p,
   if (interfaceId != -1) {
     rtentry = Create<Ipv4Route>();
     rtentry->SetDestination(header.GetDestination());
-    // the source address is the interface address that matches
-    // the destination address (when multiple are present on the
-    // outgoing interface, one is selected via scoping rules)
     NS_ASSERT(m_ipv4);
     uint32_t numOifAddresses = m_ipv4->GetNAddresses(interfaceId);
     NS_ASSERT(numOifAddresses > 0);
@@ -438,7 +376,6 @@ Ptr<Ipv4Route> Ipv4ClickRouting::RouteOutput(Ptr<Packet> p,
     if (numOifAddresses == 1) {
       ifAddr = m_ipv4->GetAddress(interfaceId, 0);
     } else {
-      /** \todo Implement IP aliasing and Click */
       NS_FATAL_ERROR("XXX Not implemented yet:  IP aliasing and Click");
     }
     rtentry->SetSource(ifAddr.GetLocal());
@@ -460,8 +397,6 @@ Ptr<Ipv4Route> Ipv4ClickRouting::RouteOutput(Ptr<Packet> p,
   return rtentry;
 }
 
-// This method should never be called since Click handles
-// forwarding directly
 bool Ipv4ClickRouting::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
                                   Ptr<const NetDevice> idev,
                                   const UnicastForwardCallback &ucb,
@@ -506,8 +441,6 @@ static int simstrlcpy(char *buf, int len, const std::string &s) {
   return 0;
 }
 
-// Sends a Packet from Click to the Simulator: Defined in simclick.h. Click
-// calls these methods.
 int simclick_sim_send(simclick_node_t *simnode, int ifid, int type,
                       const unsigned char *data, int len,
                       simclick_simpacketinfo *pinfo) {
@@ -527,7 +460,6 @@ int simclick_sim_send(simclick_node_t *simnode, int ifid, int type,
   return 0;
 }
 
-// Click Service Methods: Defined in simclick.h
 int simclick_sim_command(simclick_node_t *simnode, int cmd, ...) {
   va_list val;
   va_start(val, cmd);
@@ -652,9 +584,8 @@ int simclick_sim_command(simclick_node_t *simnode, int cmd, ...) {
   }
 
   case SIMCLICK_IF_READY: {
-    int ifid = va_arg(val, int); // Commented out so that optimized build works
+    int ifid = va_arg(val, int);
 
-    // We're not using a ClickQueue, so we're always ready (for the timebeing)
     retval = clickInstance->IsInterfaceReady(ifid);
 
     NS_LOG_DEBUG(clickInstance->GetNodeName() << " SIMCLICK_IF_READY: " << ifid
@@ -663,14 +594,12 @@ int simclick_sim_command(simclick_node_t *simnode, int cmd, ...) {
   }
 
   case SIMCLICK_TRACE: {
-    // Used only for tracing
     NS_LOG_DEBUG(clickInstance->GetNodeName()
                  << " Received a call for SIMCLICK_TRACE");
     break;
   }
 
   case SIMCLICK_GET_NODE_ID: {
-    // Used only for tracing
     NS_LOG_DEBUG(clickInstance->GetNodeName()
                  << " Received a call for SIMCLICK_GET_NODE_ID");
     break;
@@ -695,12 +624,6 @@ int simclick_sim_command(simclick_node_t *simnode, int cmd, ...) {
     size_t *size = va_arg(val, size_t *);
     uint32_t required = 0;
 
-    // Try to fill the buffer with up to size bytes.
-    // If this is not enough space, write the required buffer size into
-    // the size variable and return an error code.
-    // Otherwise return the bytes actually written into the buffer in size.
-
-    // Append key/value pair, separated by \0.
     std::map<std::string, std::string> defines = clickInstance->GetDefines();
 
     for (auto it = defines.begin(); it != defines.end(); it++) {

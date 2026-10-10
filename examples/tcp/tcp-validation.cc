@@ -1,158 +1,4 @@
-/*
- * Copyright (c) 2019 Cable Television Laboratories, Inc.
- * Copyright (c) 2020 Tom Henderson (adapted for DCTCP testing)
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions, and the following disclaimer,
- *    without modification.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. The names of the authors may not be used to endorse or promote products
- *    derived from this software without specific prior written permission.
- *
- * Alternatively, provided that this notice is retained in full, this
- * software may be distributed under the terms of the GNU General
- * Public License ("GPL") version 2, in which case the provisions of the
- * GPL apply INSTEAD OF those given above.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 
-// This program is designed to observe long-running TCP congestion control
-// behavior over a configurable bottleneck link.  The program is also
-// instrumented to check program data against validated results, when
-// the validation option is enabled.
-//
-// ---> downstream (primary data transfer from servers to clients)
-// <--- upstream (return acks and ICMP echo response)
-//
-//              ----   bottleneck link    ----
-//  servers ---| WR |--------------------| LR |--- clients
-//              ----                      ----
-//  ns-3 node IDs:
-//  nodes 0-2    3                         4        5-7
-//
-// - The box WR is notionally a WAN router, aggregating all server links
-// - The box LR is notionally a LAN router, aggregating all client links
-// - Three servers are connected to WR, three clients are connected to LR
-//
-// clients and servers are configured for ICMP measurements and TCP throughput
-// and latency measurements in the downstream direction
-//
-// All link rates are enforced by a point-to-point (P2P) ns-3 model with full
-// duplex operation.  Dynamic queue limits
-// (BQL) are enabled to allow for queueing to occur at the priority queue layer;
-// the notional P2P hardware device queue is limited to three packets.
-//
-// One-way link delays and link rates
-// -----------------------------------
-// (1) server to WR links, 1000 Mbps, 1us delay
-// (2) bottleneck link:  configurable rate, configurable delay
-// (3) client to LR links, 1000 Mbps, 1us delay
-//
-// By default, ns-3 FQ-CoDel model is installed on all interfaces, but
-// the bottleneck queue uses CoDel by default and is configurable.
-//
-// The ns-3 FQ-CoDel model uses ns-3 defaults:
-// - 100ms interval
-// - 5ms target
-// - drop batch size of 64 packets
-// - minbytes of 1500
-//
-// Default simulation time is 70 sec.  For single flow experiments, the flow is
-// started at simulation time 5 sec; if a second flow is used, it starts
-// at 15 sec.
-//
-// ping frequency is set at 100ms.
-//
-// A command-line option to enable a step-threshold CE threshold
-// from the CoDel queue model is provided.
-//
-// Measure:
-//  - ping RTT
-//  - TCP RTT estimate
-//  - TCP throughput
-//
-// IPv4 addressing
-// ----------------------------
-// pingServer       10.1.1.2 (ping source)
-// firstServer      10.1.2.2 (data sender)
-// secondServer     10.1.3.2 (data sender)
-// pingClient       192.168.1.2
-// firstClient      192.168.2.2
-// secondClient     192.168.3.2
-//
-// Program Options:
-// ---------------
-//    --firstTcpType:   first TCP type (cubic, dctcp, or reno) [cubic]
-//    --secondTcpType:  second TCP type (cubic, dctcp, or reno) []
-//    --queueType:      bottleneck queue type (fq, codel, pie, or red) [codel]
-//    --baseRtt:        base RTT [+80ms]
-//    --ceThreshold:    CoDel CE threshold (for DCTCP) [+1ms]
-//    --linkRate:       data rate of bottleneck link [50000000bps]
-//    --stopTime:       simulation stop time [+1.16667min]
-//    --queueUseEcn:    use ECN on queue [false]
-//    --enablePcap:     enable Pcap [false]
-//    --validate:       validation case to run []
-//
-// validation cases (and syntax of how to run):
-// ------------
-// Case 'dctcp-10ms':  DCTCP single flow, 10ms base RTT, 50 Mbps link, ECN
-// enabled, CoDel:
-//     ./ns3 run 'tcp-validation --firstTcpType=dctcp --linkRate=50Mbps
-//     --baseRtt=10ms
-//     --queueUseEcn=1 --stopTime=15s --validate=1 --validation=dctcp-10ms'
-//    - Throughput between 48 Mbps and 49 Mbps for time greater than 5.6s
-//    - DCTCP alpha below 0.1 for time greater than 5.4s
-//    - DCTCP alpha between 0.06 and 0.085 for time greater than 7s
-//
-// Case 'dctcp-80ms': DCTCP single flow, 80ms base RTT, 50 Mbps link, ECN
-// enabled, CoDel:
-//     ./ns3 run 'tcp-validation --firstTcpType=dctcp --linkRate=50Mbps
-//     --baseRtt=80ms
-//     --queueUseEcn=1 --stopTime=40s --validate=1 --validation=dctcp-80ms'
-//    - Throughput less than 20 Mbps for time less than 14s
-//    - Throughput less than 48 Mbps for time less than 30s
-//    - Throughput between 47.5 Mbps and 48.5 for time greater than 32s
-//    - DCTCP alpha above 0.1 for time less than 7.5
-//    - DCTCP alpha below 0.01 for time greater than 11 and less than 30
-//    - DCTCP alpha between 0.015 and 0.025 for time greater than 34
-//
-// Case 'cubic-50ms-no-ecn': CUBIC single flow, 50ms base RTT, 50 Mbps link, ECN
-// disabled, CoDel:
-//     ./ns3 run 'tcp-validation --firstTcpType=cubic --linkRate=50Mbps
-//     --baseRtt=50ms
-//     --queueUseEcn=0 --stopTime=20s --validate=1
-//     --validation=cubic-50ms-no-ecn'
-//    - Maximum value of cwnd is 511 segments at 5.4593 seconds
-//    - cwnd decreases to 173 segments at 5.80304 seconds
-//    - cwnd reaches another local maxima around 14.2815 seconds of 236 segments
-//    - cwnd reaches a second maximum around 18.048 seconds of 234 segments
-//
-// Case 'cubic-50ms-ecn': CUBIC single flow, 50ms base RTT, 50 Mbps link, ECN
-// enabled, CoDel:
-//     ./ns3 run 'tcp-validation --firstTcpType=cubic --linkRate=50Mbps
-//     --baseRtt=50ms
-//     --queueUseEcn=0 --stopTime=20s --validate=1
-//     --validation=cubic-50ms-no-ecn'
-//    - Maximum value of cwnd is 511 segments at 5.4593 seconds
-//    - cwnd decreases to 173 segments at 5.7939 seconds
-//    - cwnd reaches another local maxima around 14.3477 seconds of 236 segments
-//    - cwnd reaches a second maximum around 18.064 seconds of 234 segments
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -170,31 +16,19 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpValidation");
 
-// These variables are declared outside of main() so that they can
-// be used in trace sinks.
-uint32_t g_firstBytesReceived = 0;  //!< First received packet size.
-uint32_t g_secondBytesReceived = 0; //!< Second received packet size.
-uint32_t g_marksObserved = 0;       //!< Number of marked packets observed.
-uint32_t g_dropsObserved = 0;       //!< Number of dropped packets observed.
-std::string g_validate = "";        //!< Empty string disables validation.
-bool g_validationFailed = false;    //!< True if validation failed.
+uint32_t g_firstBytesReceived = 0;
+uint32_t g_secondBytesReceived = 0;
+uint32_t g_marksObserved = 0;
+uint32_t g_dropsObserved = 0;
+std::string g_validate = "";
+bool g_validationFailed = false;
 
-/**
- * Trace first congestion window.
- *
- * \param ofStream Output filestream.
- * \param oldCwnd Old value.
- * \param newCwnd new value.
- */
 void TraceFirstCwnd(std::ofstream *ofStream, uint32_t oldCwnd,
                     uint32_t newCwnd) {
-  // TCP segment size is configured below to be 1448 bytes
-  // so that we can report cwnd in units of segments
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " "
               << static_cast<double>(newCwnd) / 1448 << std::endl;
   }
-  // Validation checks; both the ECN enabled and disabled cases are similar
   if (g_validate == "cubic-50ms-no-ecn" || g_validate == "cubic-50ms-ecn") {
     double now = Simulator::Now().GetSeconds();
     double cwnd = static_cast<double>(newCwnd) / 1448;
@@ -218,20 +52,11 @@ void TraceFirstCwnd(std::ofstream *ofStream, uint32_t oldCwnd,
   }
 }
 
-/**
- * Trace first TcpDctcp.
- *
- * \param ofStream Output filestream.
- * \param bytesMarked Bytes marked.
- * \param bytesAcked Bytes ACKed.
- * \param alpha Alpha.
- */
 void TraceFirstDctcp(std::ofstream *ofStream, uint32_t bytesMarked,
                      uint32_t bytesAcked, double alpha) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " " << alpha << std::endl;
   }
-  // Validation checks
   if (g_validate == "dctcp-80ms") {
     double now = Simulator::Now().GetSeconds();
     if ((now < 7.5) && (alpha < 0.1)) {
@@ -262,13 +87,6 @@ void TraceFirstDctcp(std::ofstream *ofStream, uint32_t bytesMarked,
   }
 }
 
-/**
- * Trace first RTT.
- *
- * \param ofStream Output filestream.
- * \param oldRtt Old value.
- * \param newRtt New value.
- */
 void TraceFirstRtt(std::ofstream *ofStream, Time oldRtt, Time newRtt) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " "
@@ -276,30 +94,14 @@ void TraceFirstRtt(std::ofstream *ofStream, Time oldRtt, Time newRtt) {
   }
 }
 
-/**
- * Trace second congestion window.
- *
- * \param ofStream Output filestream.
- * \param oldCwnd Old value.
- * \param newCwnd new value.
- */
 void TraceSecondCwnd(std::ofstream *ofStream, uint32_t oldCwnd,
                      uint32_t newCwnd) {
-  // TCP segment size is configured below to be 1448 bytes
-  // so that we can report cwnd in units of segments
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " "
               << static_cast<double>(newCwnd) / 1448 << std::endl;
   }
 }
 
-/**
- * Trace second RTT.
- *
- * \param ofStream Output filestream.
- * \param oldRtt Old value.
- * \param newRtt New value.
- */
 void TraceSecondRtt(std::ofstream *ofStream, Time oldRtt, Time newRtt) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " "
@@ -307,14 +109,6 @@ void TraceSecondRtt(std::ofstream *ofStream, Time oldRtt, Time newRtt) {
   }
 }
 
-/**
- * Trace second TcpDctcp.
- *
- * \param ofStream Output filestream.
- * \param bytesMarked Bytes marked.
- * \param bytesAcked Bytes ACKed.
- * \param alpha Alpha.
- */
 void TraceSecondDctcp(std::ofstream *ofStream, uint32_t bytesMarked,
                       uint32_t bytesAcked, double alpha) {
   if (g_validate.empty()) {
@@ -322,12 +116,6 @@ void TraceSecondDctcp(std::ofstream *ofStream, uint32_t bytesMarked,
   }
 }
 
-/**
- * Trace ping RTT.
- *
- * \param ofStream Output filestream.
- * \param rtt RTT value.
- */
 void TracePingRtt(std::ofstream *ofStream, uint16_t, Time rtt) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " " << rtt.GetSeconds() * 1000
@@ -335,32 +123,14 @@ void TracePingRtt(std::ofstream *ofStream, uint16_t, Time rtt) {
   }
 }
 
-/**
- * Trace first Rx.
- *
- * \param packet The packet.
- * \param address The sender address.
- */
 void TraceFirstRx(Ptr<const Packet> packet, const Address &address) {
   g_firstBytesReceived += packet->GetSize();
 }
 
-/**
- * Trace second Rx.
- *
- * \param packet The packet.
- * \param address The sender address.
- */
 void TraceSecondRx(Ptr<const Packet> packet, const Address &address) {
   g_secondBytesReceived += packet->GetSize();
 }
 
-/**
- * Trace queue drop.
- *
- * \param ofStream Output filestream.
- * \param item The dropped QueueDiscItem.
- */
 void TraceQueueDrop(std::ofstream *ofStream, Ptr<const QueueDiscItem> item) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " " << std::hex
@@ -369,13 +139,6 @@ void TraceQueueDrop(std::ofstream *ofStream, Ptr<const QueueDiscItem> item) {
   g_dropsObserved++;
 }
 
-/**
- * Trace queue marks.
- *
- * \param ofStream Output filestream.
- * \param item The marked QueueDiscItem.
- * \param reason The reason.
- */
 void TraceQueueMark(std::ofstream *ofStream, Ptr<const QueueDiscItem> item,
                     const char *reason) {
   if (g_validate.empty()) {
@@ -385,17 +148,8 @@ void TraceQueueMark(std::ofstream *ofStream, Ptr<const QueueDiscItem> item,
   g_marksObserved++;
 }
 
-/**
- * Trace queue length.
- *
- * \param ofStream Output filestream.
- * \param queueLinkRate Queue link rate.
- * \param oldVal Old value.
- * \param newVal New value.
- */
 void TraceQueueLength(std::ofstream *ofStream, DataRate queueLinkRate,
                       uint32_t oldVal, uint32_t newVal) {
-  // output in units of ms
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " " << std::fixed
               << static_cast<double>(newVal * 8) /
@@ -404,12 +158,6 @@ void TraceQueueLength(std::ofstream *ofStream, DataRate queueLinkRate,
   }
 }
 
-/**
- * Trace marks frequency.
- *
- * \param ofStream Output filestream.
- * \param marksSamplingInterval The mark sampling interval.
- */
 void TraceMarksFrequency(std::ofstream *ofStream, Time marksSamplingInterval) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " " << g_marksObserved
@@ -420,12 +168,6 @@ void TraceMarksFrequency(std::ofstream *ofStream, Time marksSamplingInterval) {
                       marksSamplingInterval);
 }
 
-/**
- * Trace the first throughput.
- *
- * \param ofStream Output filestream.
- * \param throughputInterval The throughput interval.
- */
 void TraceFirstThroughput(std::ofstream *ofStream, Time throughputInterval) {
   double throughput =
       g_firstBytesReceived * 8 / throughputInterval.GetSeconds() / 1e6;
@@ -463,12 +205,6 @@ void TraceFirstThroughput(std::ofstream *ofStream, Time throughputInterval) {
   }
 }
 
-/**
- * Trace the second throughput.
- *
- * \param ofStream Output filestream.
- * \param throughputInterval The throughput interval.
- */
 void TraceSecondThroughput(std::ofstream *ofStream, Time throughputInterval) {
   if (g_validate.empty()) {
     *ofStream << Simulator::Now().GetSeconds() << " "
@@ -481,33 +217,18 @@ void TraceSecondThroughput(std::ofstream *ofStream, Time throughputInterval) {
                       throughputInterval);
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleFirstTcpCwndTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow",
       MakeBoundCallback(&TraceFirstCwnd, ofStream));
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleFirstTcpRttTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/RTT",
       MakeBoundCallback(&TraceFirstRtt, ofStream));
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleFirstDctcpTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/1/$ns3::TcpL4Protocol/SocketList/0/"
@@ -515,11 +236,6 @@ void ScheduleFirstDctcpTraceConnection(std::ofstream *ofStream) {
       MakeBoundCallback(&TraceFirstDctcp, ofStream));
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleSecondDctcpTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/2/$ns3::TcpL4Protocol/SocketList/0/"
@@ -527,40 +243,24 @@ void ScheduleSecondDctcpTraceConnection(std::ofstream *ofStream) {
       MakeBoundCallback(&TraceSecondDctcp, ofStream));
 }
 
-/**
- * Schedule trace connection.
- */
 void ScheduleFirstPacketSinkConnection() {
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/6/ApplicationList/*/$ns3::PacketSink/Rx",
       MakeCallback(&TraceFirstRx));
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleSecondTcpCwndTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContext(
       "/NodeList/2/$ns3::TcpL4Protocol/SocketList/0/CongestionWindow",
       MakeBoundCallback(&TraceSecondCwnd, ofStream));
 }
 
-/**
- * Schedule trace connection.
- *
- * \param ofStream Output filestream.
- */
 void ScheduleSecondTcpRttTraceConnection(std::ofstream *ofStream) {
   Config::ConnectWithoutContext(
       "/NodeList/2/$ns3::TcpL4Protocol/SocketList/0/RTT",
       MakeBoundCallback(&TraceSecondRtt, ofStream));
 }
 
-/**
- * Schedule trace connection.
- */
 void ScheduleSecondPacketSinkConnection() {
   Config::ConnectWithoutContext(
       "/NodeList/7/ApplicationList/*/$ns3::PacketSink/Rx",
@@ -568,10 +268,7 @@ void ScheduleSecondPacketSinkConnection() {
 }
 
 int main(int argc, char *argv[]) {
-  ////////////////////////////////////////////////////////////
-  // variables not configured at command line               //
-  ////////////////////////////////////////////////////////////
-  uint32_t pingSize = 100; // bytes
+  uint32_t pingSize = 100;
   bool enableSecondTcp = false;
   bool enableLogging = false;
   Time pingInterval = MilliSeconds(100);
@@ -594,9 +291,6 @@ int main(int argc, char *argv[]) {
       "tcp-validation-queue-marks-frequency.dat";
   std::string queueLengthTraceFile = "tcp-validation-queue-length.dat";
 
-  ////////////////////////////////////////////////////////////
-  // variables configured at command line                   //
-  ////////////////////////////////////////////////////////////
   std::string firstTcpType = "cubic";
   std::string secondTcpType = "";
   std::string queueType = "codel";
@@ -607,22 +301,13 @@ int main(int argc, char *argv[]) {
   Time ceThreshold = MilliSeconds(1);
   bool enablePcap = false;
 
-  ////////////////////////////////////////////////////////////
-  // Override ns-3 defaults                                 //
-  ////////////////////////////////////////////////////////////
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1448));
-  // Increase default buffer sizes to improve throughput over long delay paths
-  // Config::SetDefault ("ns3::TcpSocket::SndBufSize",UintegerValue (8192000));
-  // Config::SetDefault ("ns3::TcpSocket::RcvBufSize",UintegerValue (8192000));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(32768000));
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(32768000));
   Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(10));
   Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                      TypeIdValue(TcpPrrRecovery::GetTypeId()));
 
-  ////////////////////////////////////////////////////////////
-  // command-line argument parsing                          //
-  ////////////////////////////////////////////////////////////
   CommandLine cmd(__FILE__);
   cmd.AddValue("firstTcpType", "first TCP type (cubic, dctcp, or reno)",
                firstTcpType);
@@ -639,7 +324,6 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("validate", "validation case to run", g_validate);
   cmd.Parse(argc, argv);
 
-  // If validation is selected, perform some configuration checks
   if (!g_validate.empty()) {
     NS_ABORT_MSG_UNLESS(
         g_validate == "dctcp-10ms" || g_validate == "dctcp-80ms" ||
@@ -737,10 +421,8 @@ int main(int argc, char *argv[]) {
     Config::SetDefault("ns3::PieQueueDisc::UseEcn", BooleanValue(true));
     Config::SetDefault("ns3::RedQueueDisc::UseEcn", BooleanValue(true));
   }
-  // Enable TCP to use ECN regardless
   Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("On"));
 
-  // Report on configuration
   if (enableSecondTcp) {
     NS_LOG_DEBUG("first TCP: " << firstTcpTypeId.GetName()
                                << "; second TCP: " << secondTcpTypeId.GetName()
@@ -753,7 +435,6 @@ int main(int argc, char *argv[]) {
                                << ceThreshold.GetSeconds() * 1000 << "ms");
   }
 
-  // Write traces only if we are not in validation mode (g_validate == "")
   std::ofstream pingOfStream;
   std::ofstream firstTcpRttOfStream;
   std::ofstream firstTcpCwndOfStream;
@@ -792,9 +473,6 @@ int main(int argc, char *argv[]) {
     queueLengthOfStream.open(queueLengthTraceFile, std::ofstream::out);
   }
 
-  ////////////////////////////////////////////////////////////
-  // scenario setup                                         //
-  ////////////////////////////////////////////////////////////
   Ptr<Node> pingServer = CreateObject<Node>();
   Ptr<Node> firstServer = CreateObject<Node>();
   Ptr<Node> secondServer = CreateObject<Node>();
@@ -804,7 +482,6 @@ int main(int argc, char *argv[]) {
   Ptr<Node> firstClient = CreateObject<Node>();
   Ptr<Node> secondClient = CreateObject<Node>();
 
-  // Device containers
   NetDeviceContainer pingServerDevices;
   NetDeviceContainer firstServerDevices;
   NetDeviceContainer secondServerDevices;
@@ -817,7 +494,6 @@ int main(int argc, char *argv[]) {
   p2p.SetQueue("ns3::DropTailQueue", "MaxSize",
                QueueSizeValue(QueueSize("3p")));
   p2p.SetDeviceAttribute("DataRate", DataRateValue(DataRate("1000Mbps")));
-  // Add delay only on the WAN links
   p2p.SetChannelAttribute("Delay", TimeValue(MicroSeconds(1)));
   pingServerDevices = p2p.Install(wanRouter, pingServer);
   firstServerDevices = p2p.Install(wanRouter, firstServer);
@@ -831,7 +507,6 @@ int main(int argc, char *argv[]) {
   firstClientDevices = p2p.Install(lanRouter, firstClient);
   secondClientDevices = p2p.Install(lanRouter, secondClient);
 
-  // Limit the bandwidth on the wanRouter->lanRouter interface
   Ptr<PointToPointNetDevice> p =
       wanLanDevices.Get(0)->GetObject<PointToPointNetDevice>();
   p->SetAttribute("DataRate", DataRateValue(linkRate));
@@ -848,7 +523,6 @@ int main(int argc, char *argv[]) {
   stackHelper.Install(pingClient);
 
   stackHelper.Install(firstClient);
-  // Set the per-node TCP type here
   proto = firstClient->GetObject<TcpL4Protocol>();
   proto->SetAttribute("SocketType", TypeIdValue(firstTcpTypeId));
   stackHelper.Install(secondClient);
@@ -860,11 +534,6 @@ int main(int argc, char *argv[]) {
     proto->SetAttribute("SocketType", TypeIdValue(secondTcpTypeId));
   }
 
-  // InternetStackHelper will install a base TrafficControlLayer on the node,
-  // but the Ipv4AddressHelper below will install the default FqCoDelQueueDisc
-  // on all single device nodes.  The below code overrides the configuration
-  // that is normally done by the Ipv4AddressHelper::Install() method by
-  // instead explicitly configuring the queue discs we want on each device.
   TrafficControlHelper tchFq;
   tchFq.SetRootQueueDisc("ns3::FqCoDelQueueDisc");
   tchFq.SetQueueLimits("ns3::DynamicQueueLimits", "HoldTime",
@@ -876,7 +545,6 @@ int main(int argc, char *argv[]) {
   tchFq.Install(pingClientDevices);
   tchFq.Install(firstClientDevices);
   tchFq.Install(secondClientDevices);
-  // Install queue for bottleneck link
   TrafficControlHelper tchBottleneck;
   tchBottleneck.SetRootQueueDisc(queueTypeId.GetName());
   tchBottleneck.SetQueueLimits("ns3::DynamicQueueLimits", "HoldTime",
@@ -901,9 +569,6 @@ int main(int argc, char *argv[]) {
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  ////////////////////////////////////////////////////////////
-  // application setup                                      //
-  ////////////////////////////////////////////////////////////
   PingHelper pingHelper(Ipv4Address("192.168.1.2"));
   pingHelper.SetAttribute("Interval", TimeValue(pingInterval));
   pingHelper.SetAttribute("Size", UintegerValue(pingSize));
@@ -918,9 +583,7 @@ int main(int argc, char *argv[]) {
   ApplicationContainer firstApp;
   uint16_t firstPort = 5000;
   BulkSendHelper tcp("ns3::TcpSocketFactory", Address());
-  // set to large value:  e.g. 1000 Mb/s for 60 seconds = 7500000000 bytes
   tcp.SetAttribute("MaxBytes", UintegerValue(7500000000));
-  // Configure first TCP client/server pair
   InetSocketAddress firstDestAddress(firstClientIfaces.GetAddress(1),
                                      firstPort);
   tcp.SetAttribute("Remote", AddressValue(firstDestAddress));
@@ -935,7 +598,6 @@ int main(int argc, char *argv[]) {
   firstSinkApp.Start(Seconds(5));
   firstSinkApp.Stop(stopTime - MilliSeconds(500));
 
-  // Configure second TCP client/server pair
   if (enableSecondTcp) {
     BulkSendHelper tcp("ns3::TcpSocketFactory", Address());
     uint16_t secondPort = 5000;
@@ -957,10 +619,8 @@ int main(int argc, char *argv[]) {
     secondSinkApp.Stop(stopTime - MilliSeconds(500));
   }
 
-  // Setup traces that can be hooked now
   Ptr<TrafficControlLayer> tc;
   Ptr<QueueDisc> qd;
-  // Trace drops and marks for bottleneck
   tc = wanLanDevices.Get(0)->GetNode()->GetObject<TrafficControlLayer>();
   qd = tc->GetRootQueueDiscOnDevice(wanLanDevices.Get(0));
   qd->TraceConnectWithoutContext(
@@ -971,7 +631,6 @@ int main(int argc, char *argv[]) {
       "BytesInQueue",
       MakeBoundCallback(&TraceQueueLength, &queueLengthOfStream, linkRate));
 
-  // Setup scheduled traces; TCP traces must be hooked after socket creation
   Simulator::Schedule(Seconds(5) + MilliSeconds(100),
                       &ScheduleFirstTcpRttTraceConnection,
                       &firstTcpRttOfStream);
@@ -988,7 +647,6 @@ int main(int argc, char *argv[]) {
   Simulator::Schedule(throughputSamplingInterval, &TraceFirstThroughput,
                       &firstTcpThroughputOfStream, throughputSamplingInterval);
   if (enableSecondTcp) {
-    // Setup scheduled traces; TCP traces must be hooked after socket creation
     Simulator::Schedule(Seconds(15) + MilliSeconds(100),
                         &ScheduleSecondTcpRttTraceConnection,
                         &secondTcpRttOfStream);

@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2012-2018 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/config-store-module.h"
@@ -31,14 +12,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LenaX2HandoverExample");
 
-/**
- * UE Connection established notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyConnectionEstablishedUe(std::string context, uint64_t imsi,
                                    uint16_t cellid, uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " UE IMSI "
@@ -46,15 +19,6 @@ void NotifyConnectionEstablishedUe(std::string context, uint64_t imsi,
             << rnti << std::endl;
 }
 
-/**
- * UE Start Handover notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The actual Cell ID.
- * \param rnti The RNTI.
- * \param targetCellId The target Cell ID.
- */
 void NotifyHandoverStartUe(std::string context, uint64_t imsi, uint16_t cellid,
                            uint16_t rnti, uint16_t targetCellId) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " UE IMSI "
@@ -63,14 +27,6 @@ void NotifyHandoverStartUe(std::string context, uint64_t imsi, uint16_t cellid,
             << targetCellId << std::endl;
 }
 
-/**
- * UE Handover end successful notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyHandoverEndOkUe(std::string context, uint64_t imsi, uint16_t cellid,
                            uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " UE IMSI "
@@ -78,14 +34,6 @@ void NotifyHandoverEndOkUe(std::string context, uint64_t imsi, uint16_t cellid,
             << " with RNTI " << rnti << std::endl;
 }
 
-/**
- * eNB Connection established notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyConnectionEstablishedEnb(std::string context, uint64_t imsi,
                                     uint16_t cellid, uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " eNB CellId "
@@ -93,15 +41,6 @@ void NotifyConnectionEstablishedEnb(std::string context, uint64_t imsi,
             << " RNTI " << rnti << std::endl;
 }
 
-/**
- * eNB Start Handover notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The actual Cell ID.
- * \param rnti The RNTI.
- * \param targetCellId The target Cell ID.
- */
 void NotifyHandoverStartEnb(std::string context, uint64_t imsi, uint16_t cellid,
                             uint16_t rnti, uint16_t targetCellId) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " eNB CellId "
@@ -109,14 +48,6 @@ void NotifyHandoverStartEnb(std::string context, uint64_t imsi, uint16_t cellid,
             << rnti << " to CellId " << targetCellId << std::endl;
 }
 
-/**
- * eNB Handover end successful notification.
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyHandoverEndOkEnb(std::string context, uint64_t imsi, uint16_t cellid,
                             uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " eNB CellId "
@@ -124,14 +55,6 @@ void NotifyHandoverEndOkEnb(std::string context, uint64_t imsi, uint16_t cellid,
             << " RNTI " << rnti << std::endl;
 }
 
-/**
- * Handover failure notification
- *
- * \param context The context.
- * \param imsi The IMSI of the connected terminal.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyHandoverFailure(std::string context, uint64_t imsi, uint16_t cellid,
                            uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " eNB CellId "
@@ -139,27 +62,7 @@ void NotifyHandoverFailure(std::string context, uint64_t imsi, uint16_t cellid,
             << " handover failure" << std::endl;
 }
 
-/**
- * Sample simulation script for a X2-based handover.
- * It instantiates two eNodeB, attaches one UE to the 'source' eNB and
- * triggers a handover of the UE towards the 'target' eNB.
- */
 int main(int argc, char *argv[]) {
-  // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  // LOG_LEVEL_ALL);
-
-  // LogComponentEnable ("LteHelper", logLevel);
-  // LogComponentEnable ("EpcHelper", logLevel);
-  // LogComponentEnable ("EpcEnbApplication", logLevel);
-  // LogComponentEnable ("EpcMmeApplication", logLevel);
-  // LogComponentEnable ("EpcPgwApplication", logLevel);
-  // LogComponentEnable ("EpcSgwApplication", logLevel);
-  // LogComponentEnable ("EpcX2", logLevel);
-
-  // LogComponentEnable ("LteEnbRrc", logLevel);
-  // LogComponentEnable ("LteEnbNetDevice", logLevel);
-  // LogComponentEnable ("LteUeRrc", logLevel);
-  // LogComponentEnable ("LteUeNetDevice", logLevel);
 
   uint16_t numberOfUes = 1;
   uint16_t numberOfEnbs = 2;
@@ -169,14 +72,10 @@ int main(int argc, char *argv[]) {
   bool disableDl = false;
   bool disableUl = false;
 
-  // change some default attributes so that they are reasonable for
-  // this scenario, but do this before processing command line
-  // arguments, so that the user is allowed to override these settings
   Config::SetDefault("ns3::UdpClient::Interval", TimeValue(MilliSeconds(10)));
   Config::SetDefault("ns3::UdpClient::MaxPackets", UintegerValue(1000000));
   Config::SetDefault("ns3::LteHelper::UseIdealRrc", BooleanValue(false));
 
-  // Command line arguments
   CommandLine cmd(__FILE__);
   cmd.AddValue("numberOfUes", "Number of UEs", numberOfUes);
   cmd.AddValue("numberOfEnbs", "Number of eNodeBs", numberOfEnbs);
@@ -189,19 +88,16 @@ int main(int argc, char *argv[]) {
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
   lteHelper->SetSchedulerType("ns3::RrFfMacScheduler");
-  lteHelper->SetHandoverAlgorithmType(
-      "ns3::NoOpHandoverAlgorithm"); // disable automatic handover
+  lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the Internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -212,11 +108,9 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
   Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
 
-  // Routing of the Internet Host (towards the LTE network)
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
       ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-  // interface 0 is localhost, 1 is the p2p device
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.0.0.0"), 1);
 
@@ -225,7 +119,6 @@ int main(int argc, char *argv[]) {
   enbNodes.Create(numberOfEnbs);
   ueNodes.Create(numberOfUes);
 
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
   for (uint16_t i = 0; i < numberOfEnbs; i++) {
@@ -240,29 +133,22 @@ int main(int argc, char *argv[]) {
   mobility.Install(enbNodes);
   mobility.Install(ueNodes);
 
-  // Install LTE Devices in eNB and UEs
   NetDeviceContainer enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Install the IP stack on the UEs
   internet.Install(ueNodes);
   Ipv4InterfaceContainer ueIpIfaces;
   ueIpIfaces = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLteDevs));
 
-  // Attach all UEs to the first eNodeB
   for (uint16_t i = 0; i < numberOfUes; i++) {
     lteHelper->Attach(ueLteDevs.Get(i), enbLteDevs.Get(0));
   }
 
   NS_LOG_LOGIC("setting up applications");
 
-  // Install and start applications on UEs and remote host
   uint16_t dlPort = 10000;
   uint16_t ulPort = 20000;
 
-  // randomize a bit start times to avoid simulation artifacts
-  // (e.g., buffer overflows due to packet transmissions happening
-  // exactly at the same time)
   Ptr<UniformRandomVariable> startTimeSeconds =
       CreateObject<UniformRandomVariable>();
   startTimeSeconds->SetAttribute("Min", DoubleValue(0.05));
@@ -270,7 +156,6 @@ int main(int argc, char *argv[]) {
 
   for (uint32_t u = 0; u < numberOfUes; ++u) {
     Ptr<Node> ue = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -322,19 +207,13 @@ int main(int argc, char *argv[]) {
       serverApps.Start(startTime);
       clientApps.Start(startTime);
       clientApps.Stop(simTime);
-
-    } // end for b
+    }
   }
 
-  // Add X2 interface
   lteHelper->AddX2Interface(enbNodes);
 
-  // X2-based Handover
   lteHelper->HandoverRequest(MilliSeconds(300), ueLteDevs.Get(0),
                              enbLteDevs.Get(0), enbLteDevs.Get(1));
-
-  // Uncomment to enable PCAP tracing
-  // p2ph.EnablePcapAll("lena-x2-handover");
 
   lteHelper->EnablePhyTraces();
   lteHelper->EnableMacTraces();
@@ -345,8 +224,6 @@ int main(int argc, char *argv[]) {
   Ptr<RadioBearerStatsCalculator> pdcpStats = lteHelper->GetPdcpStats();
   pdcpStats->SetAttribute("EpochDuration", TimeValue(Seconds(0.05)));
 
-  // connect custom trace sinks for RRC connection establishment and handover
-  // notification
   Config::Connect("/NodeList/*/DeviceList/*/LteEnbRrc/ConnectionEstablished",
                   MakeCallback(&NotifyConnectionEstablishedEnb));
   Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/ConnectionEstablished",
@@ -360,7 +237,6 @@ int main(int argc, char *argv[]) {
   Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk",
                   MakeCallback(&NotifyHandoverEndOkUe));
 
-  // Hook a trace sink (the same one) to the four handover failure traces
   Config::Connect(
       "/NodeList/*/DeviceList/*/LteEnbRrc/HandoverFailureNoPreamble",
       MakeCallback(&NotifyHandoverFailure));
@@ -373,9 +249,6 @@ int main(int argc, char *argv[]) {
 
   Simulator::Stop(simTime + MilliSeconds(20));
   Simulator::Run();
-
-  // GtkConfigStore config;
-  // config.ConfigureAttributes ();
 
   Simulator::Destroy();
   return 0;

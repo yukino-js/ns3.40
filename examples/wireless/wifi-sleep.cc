@@ -1,48 +1,4 @@
-/*
- * Copyright (c) 2009 The Boeing Company
- *               2014 Universita' degli Studi di Napoli "Federico II"
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
-// This script configures two nodes on an 802.11b physical layer, with
-// 802.11b NICs in adhoc mode. One of the nodes generates on-off traffic
-// destined to the other node.
-//
-// The purpose is to test the energy depletion on the nodes and the
-// activation of the callback that puts a node in the sleep state when
-// its energy is depleted. Furthermore, this script can be used to test
-// the available policies for updating the transmit current based on
-// the nominal tx power used to transmit each frame.
-//
-// There are a number of command-line options available to control
-// the default behavior.  The list of available command-line options
-// can be listed with the following command:
-// ./ns3 run "wifi-sleep --help"
-//
-// Note that all ns-3 attributes (not just the ones exposed in the below
-// script) can be changed at command line; see the documentation.
-//
-// This script can also be helpful to put the Wifi layer into verbose
-// logging mode; this command will turn on all wifi logging:
-//
-// ./ns3 run "wifi-sleep --verbose=1"
-//
-// When you are done, you will notice four trace files in your directory:
-// two for the remaining energy on each node and two for the state transitions
-// of each node.
 
 #include "ns3/basic-energy-source-helper.h"
 #include "ns3/command-line.h"
@@ -65,13 +21,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiSleep");
 
-/**
- * Remaining energy trace sink
- *
- * \tparam node The node ID this trace belongs to.
- * \param oldValue Old value.
- * \param newValue New value.
- */
 template <int node>
 void RemainingEnergyTrace(double oldValue, double newValue) {
   std::stringstream ss;
@@ -83,15 +32,6 @@ void RemainingEnergyTrace(double oldValue, double newValue) {
     << std::endl;
 }
 
-/**
- * PHY state trace sink
- *
- * \tparam node The node ID this trace belongs to.
- * \param context The context
- * \param start Start time for the current state
- * \param duration Duratio of the current state
- * \param state State
- */
 template <int node>
 void PhyStateTrace(std::string context, Time start, Time duration,
                    WifiPhyState state) {
@@ -106,16 +46,16 @@ void PhyStateTrace(std::string context, Time start, Time duration,
 
 int main(int argc, char *argv[]) {
   std::string dataRate = "1Mbps";
-  uint32_t packetSize = 1000; // bytes
-  double duration = 10.0;     // seconds
-  double initialEnergy = 7.5; // joule
-  double voltage = 3.0;       // volts
-  double txPowerStart = 0.0;  // dbm
-  double txPowerEnd = 15.0;   // dbm
+  uint32_t packetSize = 1000;
+  double duration = 10.0;
+  double initialEnergy = 7.5;
+  double voltage = 3.0;
+  double txPowerStart = 0.0;
+  double txPowerEnd = 15.0;
   uint32_t nTxPowerLevels = 16;
   uint32_t txPowerLevel = 0;
-  double idleCurrent = 0.273; // Ampere
-  double txCurrent = 0.380;   // Ampere
+  double idleCurrent = 0.273;
+  double txCurrent = 0.380;
   bool verbose = false;
 
   CommandLine cmd(__FILE__);
@@ -143,10 +83,9 @@ int main(int argc, char *argv[]) {
   NodeContainer c;
   c.Create(2);
 
-  // The below set of helpers will help us to put together the wifi NICs we want
   WifiHelper wifi;
   if (verbose) {
-    WifiHelper::EnableLogComponents(); // Turn on all Wifi logging
+    WifiHelper::EnableLogComponents();
   }
   wifi.SetStandard(WIFI_STANDARD_80211b);
 
@@ -158,11 +97,9 @@ int main(int argc, char *argv[]) {
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   wifiPhy.SetChannel(wifiChannel.Create());
 
-  // Add a mac and set the selected tx power level
   WifiMacHelper wifiMac;
   wifi.SetRemoteStationManager("ns3::ArfWifiManager", "DefaultTxPowerLevel",
                                UintegerValue(txPowerLevel));
-  // Set it to adhoc mode
   wifiMac.SetType("ns3::AdhocWifiMac");
   NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, c);
 
@@ -199,14 +136,12 @@ int main(int argc, char *argv[]) {
   apps.Start(Seconds(0.01));
   apps.Stop(Seconds(duration));
 
-  // Create a packet sink to receive these packets
   PacketSinkHelper sink(transportProto,
                         InetSocketAddress(Ipv4Address::GetAny(), 9001));
   apps = sink.Install(c.Get(1));
   apps.Start(Seconds(0.01));
   apps.Stop(Seconds(duration));
 
-  // Energy sources
   EnergySourceContainer eSources;
   BasicEnergySourceHelper basicSourceHelper;
   WifiRadioEnergyModelHelper radioEnergyHelper;
@@ -218,15 +153,12 @@ int main(int argc, char *argv[]) {
   radioEnergyHelper.Set("IdleCurrentA", DoubleValue(idleCurrent));
   radioEnergyHelper.Set("TxCurrentA", DoubleValue(txCurrent));
 
-  // compute the efficiency of the power amplifier (eta) assuming that the
-  // provided value for tx current corresponds to the minimum tx power level
   double eta = DbmToW(txPowerStart) / ((txCurrent - idleCurrent) * voltage);
 
   radioEnergyHelper.SetTxCurrentModel(
       "ns3::LinearWifiTxCurrentModel", "Voltage", DoubleValue(voltage),
       "IdleCurrent", DoubleValue(idleCurrent), "Eta", DoubleValue(eta));
 
-  // install an energy source on each node
   for (auto n = c.Begin(); n != c.End(); n++) {
     eSources.Add(basicSourceHelper.Install(*n));
 
@@ -234,15 +166,12 @@ int main(int argc, char *argv[]) {
 
     for (uint32_t i = 0; i < (*n)->GetNDevices(); ++i) {
       wnd = (*n)->GetDevice(i)->GetObject<WifiNetDevice>();
-      // if it is a WifiNetDevice
       if (wnd) {
-        // this device draws power from the last created energy source
         radioEnergyHelper.Install(wnd, eSources.Get(eSources.GetN() - 1));
       }
     }
   }
 
-  // Tracing
   eSources.Get(0)->TraceConnectWithoutContext(
       "RemainingEnergy", MakeCallback(&RemainingEnergyTrace<0>));
   eSources.Get(1)->TraceConnectWithoutContext(

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "log.h"
 
 #include "assert.h"
@@ -25,28 +7,17 @@
 
 #include "ns3/core-config.h"
 
-#include <algorithm> // transform
-#include <cstring>   // strlen
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <list>
-#include <locale> // toupper
+#include <locale>
 #include <map>
-#include <numeric> // accumulate
+#include <numeric>
 #include <stdexcept>
 #include <utility>
 
-/**
- * \file
- * \ingroup logging
- * ns3::LogComponent and related implementations.
- */
-
-/**
- * \ingroup logging
- * Unnamed namespace for log.cc
- */
 namespace {
-/** Mapping of log level text names to values. */
 const std::map<std::string, ns3::LogLevel> LOG_LABEL_LEVELS = {
     // clang-format off
         {"none",           ns3::LOG_NONE},
@@ -76,14 +47,11 @@ const std::map<std::string, ns3::LogLevel> LOG_LABEL_LEVELS = {
     // clang-format on
 };
 
-/** Inverse mapping of level values to log level text names. */
 const std::map<ns3::LogLevel, std::string> LOG_LEVEL_LABELS = {[]() {
   std::map<ns3::LogLevel, std::string> labels;
   for (const auto &[label, lev] : LOG_LABEL_LEVELS) {
-    // Only keep the first label for a level
     if (labels.find(lev) == labels.end()) {
       std::string pad{label};
-      // Add whitespace for alignment with "ERROR", "DEBUG" etc.
       if (pad.size() < 5) {
         pad.insert(pad.size(), 5 - pad.size(), ' ');
       }
@@ -94,45 +62,20 @@ const std::map<ns3::LogLevel, std::string> LOG_LEVEL_LABELS = {[]() {
   return labels;
 }()};
 
-} // Unnamed namespace
+} // namespace
 
 namespace ns3 {
 
-/**
- * \ingroup logging
- * The Log TimePrinter.
- * This is private to the logging implementation.
- */
 static TimePrinter g_logTimePrinter = nullptr;
-/**
- * \ingroup logging
- * The Log NodePrinter.
- */
 static NodePrinter g_logNodePrinter = nullptr;
 
-/**
- * \ingroup logging
- * Handler for the undocumented \c print-list token in NS_LOG
- * which triggers printing of the list of log components, then exits.
- *
- * A static instance of this class is instantiated below, so the
- * \c print-list token is handled before any other logging action
- * can take place.
- *
- * This is private to the logging implementation.
- */
 class PrintList {
 public:
-  PrintList(); //<! Constructor, prints the list and exits.
+  PrintList();
 };
 
-/**
- * Invoke handler for \c print-list in NS_LOG environment variable.
- * This is private to the logging implementation.
- */
 static PrintList g_printList;
 
-/* static */
 LogComponent::ComponentList *LogComponent::GetComponentList() {
   static LogComponent::ComponentList components;
   return &components;
@@ -147,9 +90,8 @@ PrintList::PrintList() {
 }
 
 LogComponent::LogComponent(const std::string &name, const std::string &file,
-                           const LogLevel mask /* = 0 */)
+                           const LogLevel mask)
     : m_levels(0), m_mask(mask), m_name(name), m_file(file) {
-  // Check if we're mentioned in NS_LOG, and set our flags appropriately
   EnvVarCheck();
 
   LogComponent::ComponentList *components = GetComponentList();
@@ -188,11 +130,9 @@ void LogComponent::EnvVarCheck() {
   }
 
   if (value.empty()) {
-    // Default is enable all levels, all prefixes
     value = "**";
   }
 
-  // Got a value, might have flags
   int level = 0;
   StringVector flags = SplitString(value, "|");
   NS_ASSERT_MSG(!flags.empty(), "Unexpected empty flags from non-empty value");
@@ -212,7 +152,6 @@ void LogComponent::EnvVarCheck() {
 }
 
 bool LogComponent::IsEnabled(const LogLevel level) const {
-  //  LogComponentEnableEnvVar ();
   return level & m_levels;
 }
 
@@ -230,7 +169,6 @@ std::string LogComponent::Name() const { return m_name; }
 
 std::string LogComponent::File() const { return m_file; }
 
-/* static */
 std::string LogComponent::GetLevelLabel(const LogLevel level) {
   auto it = LOG_LEVEL_LABELS.find(level);
   if (it != LOG_LEVEL_LABELS.end()) {
@@ -278,14 +216,12 @@ void LogComponentDisableAll(LogLevel level) {
 }
 
 void LogComponentPrintList() {
-  // Create sorted map of components by inserting them into a map
   std::map<std::string, LogComponent *> componentsSorted;
 
   for (const auto &component : *LogComponent::GetComponentList()) {
     componentsSorted.insert(component);
   }
 
-  // Iterate through sorted components
   for (const auto &[name, component] : componentsSorted) {
     std::cout << name << "=";
     if (component->IsNoneEnabled()) {
@@ -334,25 +270,12 @@ void LogComponentPrintList() {
   }
 }
 
-/**
- * \ingroup logging
- * Check if a log component exists.
- * This is private to the logging implementation.
- *
- * \param [in] componentName The putative log component name.
- * \returns \c true if \c componentName exists.
- */
 static bool ComponentExists(std::string componentName) {
   LogComponent::ComponentList *components = LogComponent::GetComponentList();
 
   return components->find(componentName) != components->end();
 }
 
-/**
- * \ingroup logging
- * Parse the \c NS_LOG environment variable.
- * This is private to the logging implementation.
- */
 static void CheckEnvironmentVariables() {
   auto dict = EnvironmentVariable::GetDictionary("NS_LOG", ":")->GetStore();
 
@@ -367,12 +290,9 @@ static void CheckEnvironmentVariables() {
                         "valid components");
     }
 
-    // We have a valid component or wildcard, check the flags
     if (!value.empty()) {
-      // Check the flags present in value
       StringVector flags = SplitString(value, "|");
       for (const auto &flag : flags) {
-        // Handle wild cards
         if (flag == "*" || flag == "**") {
           continue;
         }
@@ -383,17 +303,13 @@ static void CheckEnvironmentVariables() {
                          << "\" in env variable NS_LOG for component name "
                          << component);
         }
-      } // for flag
-    } // !value.empty
-  } // for component
+      }
+    }
+  }
 }
 
 void LogSetTimePrinter(TimePrinter printer) {
   g_logTimePrinter = printer;
-  /** \internal
-   *  This is the only place where we are more or less sure that all log
-   * variables are registered. See \bugid{1082} for details.
-   */
   CheckEnvironmentVariables();
 }
 

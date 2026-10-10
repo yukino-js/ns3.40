@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2010 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3tcp-socket-writer.h"
 
@@ -40,12 +24,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("Ns3SocketTest");
 
-/**
- * \ingroup system-tests-tcp
- *
- * \brief Tests of TCP implementations from the application/socket perspective
- * using point-to-point links.
- */
 class Ns3TcpSocketTestCaseP2P : public TestCase {
 public:
   Ns3TcpSocketTestCaseP2P();
@@ -54,18 +32,12 @@ public:
 
 private:
   void DoRun() override;
-  bool m_writeResults; //!< True if write PCAP files.
+  bool m_writeResults;
 
-  /**
-   * Receive a TCP packet.
-   * \param path The callback context (unused).
-   * \param p The received packet.
-   * \param address The sender's address (unused).
-   */
   void SinkRx(std::string path, Ptr<const Packet> p, const Address &address);
 
-  TestVectors<uint32_t> m_inputs;    //!< Sent packets test vector.
-  TestVectors<uint32_t> m_responses; //!< Received packets test vector.
+  TestVectors<uint32_t> m_inputs;
+  TestVectors<uint32_t> m_responses;
 };
 
 Ns3TcpSocketTestCaseP2P::Ns3TcpSocketTestCaseP2P()
@@ -81,9 +53,9 @@ void Ns3TcpSocketTestCaseP2P::SinkRx(std::string path, Ptr<const Packet> p,
 
 void Ns3TcpSocketTestCaseP2P::DoRun() {
   uint16_t sinkPort = 50000;
-  double sinkStopTime = 40;   // sec; will trigger Socket::Close
-  double writerStopTime = 30; // sec; will trigger Socket::Close
-  double simStopTime = 60;    // sec
+  double sinkStopTime = 40;
+  double writerStopTime = 30;
+  double simStopTime = 60;
   Time sinkStopTimeObj = Seconds(sinkStopTime);
   Time writerStopTimeObj = Seconds(writerStopTime);
   Time simStopTimeObj = Seconds(simStopTime);
@@ -115,7 +87,6 @@ void Ns3TcpSocketTestCaseP2P::DoRun() {
   PacketSinkHelper sink("ns3::TcpSocketFactory",
                         InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
   ApplicationContainer apps = sink.Install(n1);
-  // Start the sink application at time zero, and stop it at sinkStopTime
   apps.Start(Seconds(0.0));
   apps.Stop(sinkStopTimeObj);
 
@@ -123,7 +94,6 @@ void Ns3TcpSocketTestCaseP2P::DoRun() {
                   MakeCallback(&Ns3TcpSocketTestCaseP2P::SinkRx, this));
 
   Simulator::Schedule(Seconds(2), &SocketWriter::Connect, socketWriter);
-  // Send 1, 10, 100, 1000 bytes
   Simulator::Schedule(Seconds(10), &SocketWriter::Write, socketWriter, 1);
   m_inputs.Add(1);
   Simulator::Schedule(Seconds(12), &SocketWriter::Write, socketWriter, 10);
@@ -132,7 +102,7 @@ void Ns3TcpSocketTestCaseP2P::DoRun() {
   m_inputs.Add(100);
   Simulator::Schedule(Seconds(16), &SocketWriter::Write, socketWriter, 1000);
   m_inputs.Add(536);
-  m_inputs.Add(464); // ns-3 TCP default segment size of 536
+  m_inputs.Add(464);
   Simulator::Schedule(writerStopTimeObj, &SocketWriter::Close, socketWriter);
 
   if (m_writeResults) {
@@ -143,7 +113,6 @@ void Ns3TcpSocketTestCaseP2P::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Compare inputs and outputs
   NS_TEST_ASSERT_MSG_EQ(m_inputs.GetN(), m_responses.GetN(),
                         "Incorrect number of expected receive events");
   for (uint32_t i = 0; i < m_responses.GetN(); i++) {
@@ -155,12 +124,6 @@ void Ns3TcpSocketTestCaseP2P::DoRun() {
   }
 }
 
-/**
- * \ingroup system-tests-tcp
- *
- * \brief Tests of TCP implementations from the application/socket perspective
- * using CSMA links.
- */
 class Ns3TcpSocketTestCaseCsma : public TestCase {
 public:
   Ns3TcpSocketTestCaseCsma();
@@ -169,18 +132,12 @@ public:
 
 private:
   void DoRun() override;
-  bool m_writeResults; //!< True if write PCAP files.
+  bool m_writeResults;
 
-  /**
-   * Receive a TCP packet.
-   * \param path The callback context (unused).
-   * \param p The received packet.
-   * \param address The sender's address (unused).
-   */
   void SinkRx(std::string path, Ptr<const Packet> p, const Address &address);
 
-  TestVectors<uint32_t> m_inputs;    //!< Sent packets test vector.
-  TestVectors<uint32_t> m_responses; //!< Received packets test vector.
+  TestVectors<uint32_t> m_inputs;
+  TestVectors<uint32_t> m_responses;
 };
 
 Ns3TcpSocketTestCaseCsma::Ns3TcpSocketTestCaseCsma()
@@ -196,9 +153,9 @@ void Ns3TcpSocketTestCaseCsma::SinkRx(std::string path, Ptr<const Packet> p,
 
 void Ns3TcpSocketTestCaseCsma::DoRun() {
   uint16_t sinkPort = 50000;
-  double sinkStopTime = 40;   // sec; will trigger Socket::Close
-  double writerStopTime = 30; // sec; will trigger Socket::Close
-  double simStopTime = 60;    // sec
+  double sinkStopTime = 40;
+  double writerStopTime = 30;
+  double simStopTime = 60;
   Time sinkStopTimeObj = Seconds(sinkStopTime);
   Time writerStopTimeObj = Seconds(writerStopTime);
   Time simStopTimeObj = Seconds(simStopTime);
@@ -234,7 +191,6 @@ void Ns3TcpSocketTestCaseCsma::DoRun() {
   PacketSinkHelper sink("ns3::TcpSocketFactory",
                         InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
   ApplicationContainer apps = sink.Install(n1);
-  // Start the sink application at time zero, and stop it at sinkStopTime
   apps.Start(Seconds(0.0));
   apps.Stop(sinkStopTimeObj);
 
@@ -242,8 +198,6 @@ void Ns3TcpSocketTestCaseCsma::DoRun() {
                   MakeCallback(&Ns3TcpSocketTestCaseCsma::SinkRx, this));
 
   Simulator::Schedule(Seconds(2), &SocketWriter::Connect, socketWriter);
-  // Send 1, 10, 100, 1000 bytes
-  // PointToPoint default MTU is 576 bytes, which leaves 536 bytes for TCP
   Simulator::Schedule(Seconds(10), &SocketWriter::Write, socketWriter, 1);
   m_inputs.Add(1);
   Simulator::Schedule(Seconds(12), &SocketWriter::Write, socketWriter, 10);
@@ -252,7 +206,6 @@ void Ns3TcpSocketTestCaseCsma::DoRun() {
   m_inputs.Add(100);
   Simulator::Schedule(Seconds(16), &SocketWriter::Write, socketWriter, 1000);
   m_inputs.Add(1000);
-  // Next packet will fragment
   Simulator::Schedule(Seconds(16), &SocketWriter::Write, socketWriter, 1001);
   m_inputs.Add(1000);
   m_inputs.Add(1);
@@ -265,7 +218,6 @@ void Ns3TcpSocketTestCaseCsma::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Compare inputs and outputs
   NS_TEST_ASSERT_MSG_EQ(m_inputs.GetN(), m_responses.GetN(),
                         "Incorrect number of expected receive events");
   for (uint32_t i = 0; i < m_responses.GetN(); i++) {
@@ -277,11 +229,6 @@ void Ns3TcpSocketTestCaseCsma::DoRun() {
   }
 }
 
-/**
- * \ingroup system-tests-tcp
- *
- * TCP implementations from the application/socket perspective TestSuite.
- */
 class Ns3TcpSocketTestSuite : public TestSuite {
 public:
   Ns3TcpSocketTestSuite();
@@ -293,5 +240,4 @@ Ns3TcpSocketTestSuite::Ns3TcpSocketTestSuite()
   AddTestCase(new Ns3TcpSocketTestCaseCsma, TestCase::QUICK);
 }
 
-/// Do not forget to allocate an instance of this TestSuite.
 static Ns3TcpSocketTestSuite g_ns3TcpSocketTestSuite;

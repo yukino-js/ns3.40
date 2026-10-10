@@ -1,36 +1,4 @@
-/*
- * Copyright (c) 2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- *         Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
-// Network topology
-// //
-// //             n0   R    n1
-// //             |    _    |
-// //             ====|_|====
-// //                router
-// // - R sends RA to n0's subnet (2001:1::/64 and 2001:ABCD::/64);
-// // - R interface to n0 has two addresses with following prefixes 2001:1::/64
-// and 2001:ABCD::/64;
-// // - R sends RA to n1's subnet (2001:2::/64);
-// // - n0 ping n1.
-// //
-// // - Tracing of queues and packet receptions to file "radvd-two-prefix.tr"
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -48,16 +16,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("RadvdTwoPrefixExample");
 
-/**
- * \class IpAddressHelper
- * \brief Helper to print a node's IP addresses.
- */
 class IpAddressHelper {
 public:
-  /**
-   * \brief Print the node's IP addresses.
-   * \param n the node
-   */
   inline void PrintIpAddresses(Ptr<Node> &n) {
     Ptr<Ipv6> ipv6 = n->GetObject<Ipv6>();
     uint32_t nInterfaces = ipv6->GetNInterfaces();
@@ -112,51 +72,43 @@ int main(int argc, char **argv) {
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(5000000));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
-  NetDeviceContainer d1 = csma.Install(net1); /* n0 - R */
-  NetDeviceContainer d2 = csma.Install(net2); /* R - n1 */
+  NetDeviceContainer d1 = csma.Install(net1);
+  NetDeviceContainer d2 = csma.Install(net2);
 
   NS_LOG_INFO("Create networks and assign IPv6 Addresses.");
   Ipv6AddressHelper ipv6;
 
-  /* first subnet */
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   NetDeviceContainer tmp;
-  tmp.Add(d1.Get(0)); /* n0 */
-  Ipv6InterfaceContainer iic1 =
-      ipv6.AssignWithoutAddress(tmp); /* n0 interface */
+  tmp.Add(d1.Get(0));
+  Ipv6InterfaceContainer iic1 = ipv6.AssignWithoutAddress(tmp);
 
   NetDeviceContainer tmp2;
-  tmp2.Add(d1.Get(1)); /* R */
-  Ipv6InterfaceContainer iicr1 = ipv6.Assign(
-      tmp2); /* R interface to the first subnet is just statically assigned */
+  tmp2.Add(d1.Get(1));
+  Ipv6InterfaceContainer iicr1 = ipv6.Assign(tmp2);
   iicr1.SetForwarding(0, true);
   iic1.Add(iicr1);
 
-  /* add another IPv6 address for second prefix advertised on first subnet */
   ipv6.SetBase(Ipv6Address("2001:ABCD::"), Ipv6Prefix(64));
   ipv6.Assign(tmp2);
 
-  /* second subnet R - n1 */
   ipv6.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
   NetDeviceContainer tmp3;
-  tmp3.Add(d2.Get(0));                              /* R */
-  Ipv6InterfaceContainer iicr2 = ipv6.Assign(tmp3); /* R interface */
+  tmp3.Add(d2.Get(0));
+  Ipv6InterfaceContainer iicr2 = ipv6.Assign(tmp3);
   iicr2.SetForwarding(0, true);
 
   NetDeviceContainer tmp4;
-  tmp4.Add(d2.Get(1)); /* n1 */
+  tmp4.Add(d2.Get(1));
   Ipv6InterfaceContainer iic2 = ipv6.AssignWithoutAddress(tmp4);
   iic2.Add(iicr2);
 
-  /* radvd configuration */
   RadvdHelper radvdHelper;
-  /* R interface (n0 - R) */
   radvdHelper.AddAnnouncedPrefix(iic1.GetInterfaceIndex(1),
                                  Ipv6Address("2001:ABCD::0"), 64);
   radvdHelper.AddAnnouncedPrefix(iic1.GetInterfaceIndex(1),
                                  Ipv6Address("2001:1::0"), 64);
 
-  // Set some non-standard timers so the simulation is not taking ages
   Ptr<RadvdInterface> routerInterface =
       radvdHelper.GetRadvdInterface(iic1.GetInterfaceIndex(1));
   routerInterface->SetMaxRtrAdvInterval(2000);
@@ -167,11 +119,9 @@ int main(int argc, char **argv) {
     (*iter)->SetValidLifeTime(5);
   }
 
-  /* R interface (R - n1) */
   radvdHelper.AddAnnouncedPrefix(iic2.GetInterfaceIndex(1),
                                  Ipv6Address("2001:2::0"), 64);
 
-  // Set some non-standard timers so the simulation is not taking ages
   routerInterface = radvdHelper.GetRadvdInterface(iic2.GetInterfaceIndex(1));
   routerInterface->SetMaxRtrAdvInterval(2000);
   routerInterface->SetMinRtrAdvInterval(1000);
@@ -185,14 +135,9 @@ int main(int argc, char **argv) {
   radvdApps.Start(Seconds(1.0));
   radvdApps.Stop(Seconds(2.0));
 
-  /* Create a Ping application to send ICMPv6 echo request from n0 to n1 via R
-   */
   uint32_t packetSize = 1024;
   uint32_t maxPacketCount = 8;
-  PingHelper ping(
-      Ipv6Address("2001:2::200:ff:fe00:4")); /* should be n1 address after
-                                                autoconfiguration */
-  // ping.SetIfIndex(iic1.GetInterfaceIndex(0));
+  PingHelper ping(Ipv6Address("2001:2::200:ff:fe00:4"));
 
   ping.SetAttribute("Count", UintegerValue(maxPacketCount));
   ping.SetAttribute("Size", UintegerValue(packetSize));
@@ -206,11 +151,8 @@ int main(int argc, char **argv) {
   Ipv6RoutingHelper::PrintRoutingTableAt(Seconds(10.0), n0, routingStream);
 
   IpAddressHelper ipAddressHelper;
-  /* RA should be received, two prefixes + routes + default route should be
-   * present */
   Simulator::Schedule(Seconds(2.0), &IpAddressHelper::PrintIpAddresses,
                       &ipAddressHelper, n0);
-  /* at the end, RA addresses and routes should be cleared */
   Simulator::Schedule(Seconds(10.0), &IpAddressHelper::PrintIpAddresses,
                       &ipAddressHelper, n0);
 

@@ -1,17 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import math
 from .base import PIXELS_PER_METER
 from gi.repository import Pango
@@ -19,20 +5,7 @@ from gi.repository import Gtk
 from gi.repository import GooCanvas
 
 
-## Axes class
 class Axes(object):
-    ## @var viz
-    #  visualizer
-    ## @var color
-    #  color
-    ## @var hlines
-    #  horizontal lines
-    ## @var vlines
-    #  vertical lines
-    ## @var labels
-    #  list of labels
-    ## @var visible
-    #  visible
     def __init__(self, viz):
         """!
         Initializer function
@@ -108,20 +81,13 @@ class Axes(object):
             return math.floor(x + 0.5)
 
         dx_over_ndiv = dx / ndiv
-        for n in range(5):  # iterate 5 times to find optimum division size
-            # /* div: length of each division */
-            tbe = math.log10(
-                dx_over_ndiv
-            )  # ;   /* looking for approx. 'ndiv' divisions in a length 'dx' */
-            div = pow(
-                10, rint(tbe)
-            )  # ;         /* div: power of 10 closest to dx/ndiv */
-            if math.fabs(div / 2 - dx_over_ndiv) < math.fabs(
-                div - dx_over_ndiv
-            ):  # /* test if div/2 is closer to dx/ndiv */
+        for n in range(5):
+            tbe = math.log10(dx_over_ndiv)
+            div = pow(10, rint(tbe))
+            if math.fabs(div / 2 - dx_over_ndiv) < math.fabs(div - dx_over_ndiv):
                 div /= 2
             elif math.fabs(div * 2 - dx_over_ndiv) < math.fabs(div - dx_over_ndiv):
-                div *= 2  # /* test if div*2 is closer to dx/ndiv */
+                div *= 2
             x0 = div * math.ceil(xi / div) - div
             if n > 1:
                 ndiv = rint(size / text_width)
@@ -173,7 +139,6 @@ class Axes(object):
         )
         line_width = 5.0 / self.viz.zoom.get_value()
 
-        # draw the horizontal axis
         self.hlines.set_property("line-width", line_width)
         yc = y2 - line_width / 2
 
@@ -193,7 +158,6 @@ class Axes(object):
                 text=("%G" % x),
                 fill_color_rgba=self.color,
                 alignment=Pango.Alignment.CENTER,
-                # anchor=Gtk.Widget.ANCHOR_S,
                 x=PIXELS_PER_METER * x,
                 y=(yc - offset),
             )
@@ -202,7 +166,6 @@ class Axes(object):
 
         self.hlines.set_property("data", " ".join(path))
 
-        # draw the vertical axis
         self.vlines.set_property("line-width", line_width)
         xc = x1 + line_width / 2
 
@@ -223,7 +186,6 @@ class Axes(object):
                 text=("%G" % y),
                 fill_color_rgba=self.color,
                 alignment=Pango.Alignment.LEFT,
-                # anchor=Gtk.ANCHOR_W,
                 x=xc + offset,
                 y=PIXELS_PER_METER * y,
             )

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mitch Watrous (watrous@u.washington.edu)
- */
 
 #include "ns3/basic-data-calculators.h"
 #include "ns3/test.h"
@@ -24,14 +6,8 @@
 
 using namespace ns3;
 
-// See issue #698 for discussion of this tolerance
 const double TOLERANCE = 1e-13;
 
-/**
- * \ingroup stats-tests
- *
- * \brief MinMaxAvgTotalCalculator class - Test case for a single integer.
- */
 class OneIntegerTestCase : public TestCase {
 public:
   OneIntegerTestCase();
@@ -61,7 +37,6 @@ void OneIntegerTestCase::DoRun() {
   double stddev;
   double variance;
 
-  // Put all of the values into the calculator.
   int multiple = 5;
   int value;
   for (long i = 0; i < count; i++) {
@@ -73,14 +48,12 @@ void OneIntegerTestCase::DoRun() {
     sqrSum += value * value;
   }
 
-  // Calculate the expected values for the statistical functions.
   min = multiple;
   max = multiple * count;
   mean = sum / count;
   variance = 0;
   stddev = std::sqrt(variance);
 
-  // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getCount(), count, TOLERANCE,
                             "Count value wrong");
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getSum(), sum, TOLERANCE,
@@ -99,11 +72,6 @@ void OneIntegerTestCase::DoRun() {
                             "SqrSum value wrong");
 }
 
-/**
- * \ingroup stats-tests
- *
- * \brief MinMaxAvgTotalCalculator class - Test case for five integers.
- */
 class FiveIntegersTestCase : public TestCase {
 public:
   FiveIntegersTestCase();
@@ -133,7 +101,6 @@ void FiveIntegersTestCase::DoRun() {
   double stddev;
   double variance;
 
-  // Put all of the values into the calculator.
   int multiple = 5;
   int value;
   for (long i = 0; i < count; i++) {
@@ -145,14 +112,12 @@ void FiveIntegersTestCase::DoRun() {
     sqrSum += value * value;
   }
 
-  // Calculate the expected values for the statistical functions.
   min = multiple;
   max = multiple * count;
   mean = sum / count;
   variance = (count * sqrSum - sum * sum) / (count * (count - 1));
   stddev = std::sqrt(variance);
 
-  // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getCount(), count, TOLERANCE,
                             "Count value wrong");
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getSum(), sum, TOLERANCE,
@@ -171,11 +136,6 @@ void FiveIntegersTestCase::DoRun() {
                             "SqrSum value wrong");
 }
 
-/**
- * \ingroup stats-tests
- *
- * \brief MinMaxAvgTotalCalculator class - Test case for five double values.
- */
 class FiveDoublesTestCase : public TestCase {
 public:
   FiveDoublesTestCase();
@@ -205,7 +165,6 @@ void FiveDoublesTestCase::DoRun() {
   double stddev;
   double variance;
 
-  // Put all of the values into the calculator.
   double multiple = 3.14;
   double value;
   for (long i = 0; i < count; i++) {
@@ -217,14 +176,12 @@ void FiveDoublesTestCase::DoRun() {
     sqrSum += value * value;
   }
 
-  // Calculate the expected values for the statistical functions.
   min = multiple;
   max = multiple * count;
   mean = sum / count;
   variance = (count * sqrSum - sum * sum) / (count * (count - 1));
   stddev = std::sqrt(variance);
 
-  // Test the calculator.
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getCount(), count, TOLERANCE,
                             "Count value wrong");
   NS_TEST_ASSERT_MSG_EQ_TOL(calculator.getSum(), sum, TOLERANCE,
@@ -243,11 +200,6 @@ void FiveDoublesTestCase::DoRun() {
                             "SqrSum value wrong");
 }
 
-/**
- * \ingroup stats-tests
- *
- * \brief MinMaxAvgTotalCalculator class TestSuite
- */
 class BasicDataCalculatorsTestSuite : public TestSuite {
 public:
   BasicDataCalculatorsTestSuite();
@@ -260,5 +212,4 @@ BasicDataCalculatorsTestSuite::BasicDataCalculatorsTestSuite()
   AddTestCase(new FiveDoublesTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static BasicDataCalculatorsTestSuite basicDataCalculatorsTestSuite;

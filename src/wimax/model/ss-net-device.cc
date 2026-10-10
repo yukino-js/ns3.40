@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "ss-net-device.h"
 
@@ -251,11 +231,9 @@ void SubscriberStationNetDevice::InitSubscriberStationNetDevice() {
   m_maxDcdInterval = Seconds(10);
   m_maxUcdInterval = Seconds(10);
   m_intervalT1 = Seconds(5 * m_maxDcdInterval.GetSeconds());
-  m_intervalT2 = Seconds(
-      5 * 2); // shall be 5 * RangingInterval, if ranging interval=see T2 at
-              // page 638) means Initial Ranging Interval=see page 637)
+  m_intervalT2 = Seconds(5 * 2);
   m_intervalT3 = MilliSeconds(200);
-  m_intervalT7 = Seconds(0.1); // maximum is 1
+  m_intervalT7 = Seconds(0.1);
   m_intervalT12 = Seconds(5 * m_maxUcdInterval.GetSeconds());
   m_intervalT21 = Seconds(11);
   m_maxContentionRangingRetries = 16;
@@ -700,12 +678,10 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
   uint32_t pktSize = packet->GetSize();
   packet->RemoveHeader(gnrcMacHdr);
   FragmentationSubheader fragSubhdr;
-  bool fragmentation =
-      false; // it becomes true when there is a fragmentation subheader
+  bool fragmentation = false;
 
   if (gnrcMacHdr.GetHt() == MacHeaderType::HEADER_TYPE_GENERIC) {
     if (!gnrcMacHdr.check_hcs()) {
-      // The header is noisy
       NS_LOG_INFO("Header HCS ERROR");
       m_ssRxDropTrace(packet);
       return;
@@ -713,13 +689,10 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
 
     cid = gnrcMacHdr.GetCid();
 
-    // checking for subheaders
     uint8_t type = gnrcMacHdr.GetType();
     if (type) {
-      // Check if there is a fragmentation Subheader
       uint8_t tmpType = type;
       if (((tmpType >> 2) & 1) == 1) {
-        // a TRANSPORT packet with fragmentation subheader has been received!
         fragmentation = true;
         NS_LOG_INFO("SS DoReceive -> the packet is a fragment" << std::endl);
       }
@@ -794,9 +767,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
         }
 
         Dcd dcd;
-        // number of burst profiles is set to number of DL-MAP IEs after
-        // processing DL-MAP, not a very good solution dcd.SetNrDlBurstProfiles
-        // (m_nrDlMapElements);
         dcd.SetNrDlBurstProfiles(7);
         packet->RemoveHeader(dcd);
 
@@ -805,9 +775,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       }
       case ManagementMessageType::MESSAGE_TYPE_UCD: {
         Ucd ucd;
-        // number of burst profiles is set to number of UL-MAP IEs after
-        // processing UL-MAP, not a very good solution ucd.SetNrUlBurstProfiles
-        // (m_nrUlMapElements);
         ucd.SetNrUlBurstProfiles(7);
         packet->RemoveHeader(ucd);
 
@@ -821,9 +788,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
         }
 
         if (GetState() == SS_STATE_ACQUIRING_PARAMETERS) {
-          /*state indicating that SS has completed scanning, synchronization and
-           parameter acquisition successfully and now waiting for UL-MAP to
-           start initial ranging.*/
           SetState(SS_STATE_WAITING_REG_RANG_INTRVL);
 
           m_linkManager->ScheduleScanningRestart(
@@ -844,7 +808,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       packet->RemoveHeader(msgType);
       switch (msgType.GetType()) {
       case ManagementMessageType::MESSAGE_TYPE_RNG_REQ:
-        // intended for base station, ignore
         break;
       case ManagementMessageType::MESSAGE_TYPE_RNG_RSP:
         NS_ASSERT_MSG(
@@ -863,7 +826,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       packet->RemoveHeader(msgType);
       switch (msgType.GetType()) {
       case ManagementMessageType::MESSAGE_TYPE_RNG_REQ:
-        // intended for base station, ignore
         break;
       case ManagementMessageType::MESSAGE_TYPE_RNG_RSP:
         NS_ASSERT_MSG(
@@ -882,14 +844,10 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       packet->RemoveHeader(msgType);
       switch (msgType.GetType()) {
       case ManagementMessageType::MESSAGE_TYPE_REG_REQ:
-        // not yet implemented
         break;
       case ManagementMessageType::MESSAGE_TYPE_REG_RSP:
-        // intended for base station, ignore
         break;
       case ManagementMessageType::MESSAGE_TYPE_DSA_REQ:
-        /*from other station as DSA initiation
-         by BS is not supported, ignore*/
         break;
       case ManagementMessageType::MESSAGE_TYPE_DSA_RSP: {
         Simulator::Cancel(GetServiceFlowManager()->GetDsaRspTimeoutEvent());
@@ -899,15 +857,11 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
         break;
       }
       case ManagementMessageType::MESSAGE_TYPE_DSA_ACK:
-        /*from other station as DSA initiation
-         by BS is not supported, ignore*/
         break;
       default:
         NS_LOG_ERROR("Invalid management message type");
       }
-    } else if (GetConnectionManager()->GetConnection(
-                   cid)) // transport connection
-    {
+    } else if (GetConnectionManager()->GetConnection(cid)) {
       ServiceFlow *serviceFlow =
           GetConnectionManager()->GetConnection(cid)->GetServiceFlow();
       ServiceFlowRecord *record = serviceFlow->GetRecord();
@@ -915,12 +869,9 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       record->UpdatePktsRcvd(1);
       record->UpdateBytesRcvd(pktSize);
 
-      // If fragmentation is true, the packet is a fragment.
       if (!fragmentation) {
         m_ssRxTrace(packet);
-        ForwardUp(
-            packet, m_baseStationId,
-            GetMacAddress()); // source shall be BS's address or sender SS's?
+        ForwardUp(packet, m_baseStationId, GetMacAddress());
       } else {
         NS_LOG_INFO("FRAG_DEBUG: SS DoReceive, the Packet is a fragment"
                     << std::endl);
@@ -929,9 +880,6 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
         NS_LOG_INFO("\t fragment size = " << packet->GetSize() << std::endl);
 
         if (fc == 2) {
-          // This is the latest fragment.
-          // Take the fragment queue, defragment a packet and send it to the
-          // upper layer
           NS_LOG_INFO("\t Received the latest fragment" << std::endl);
           GetConnectionManager()->GetConnection(cid)->FragmentEnqueue(packet);
 
@@ -940,11 +888,9 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
 
           Ptr<Packet> fullPacket = Create<Packet>();
 
-          // DEFRAGMENTATION
           NS_LOG_INFO("\t SS PACKET DEFRAGMENTATION" << std::endl);
           for (auto iter = fragmentsQueue.begin(); iter != fragmentsQueue.end();
                ++iter) {
-            // Create the whole Packet
             fullPacket->AddAtEnd(*iter);
           }
           GetConnectionManager()->GetConnection(cid)->ClearFragmentsQueue();
@@ -952,12 +898,8 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
                                               << std::endl);
 
           m_ssRxTrace(fullPacket);
-          ForwardUp(
-              fullPacket, m_baseStationId,
-              GetMacAddress()); // source shall be BS's address or sender SS's?
+          ForwardUp(fullPacket, m_baseStationId, GetMacAddress());
         } else {
-          // This is the first or middle fragment.
-          // Take the fragment queue, store the fragment into the queue
           NS_LOG_INFO("\t Received the first or the middle fragment"
                       << std::endl);
           GetConnectionManager()->GetConnection(cid)->FragmentEnqueue(packet);
@@ -965,19 +907,14 @@ void SubscriberStationNetDevice::DoReceive(Ptr<Packet> packet) {
       }
     } else if (cid.IsMulticast()) {
       m_traceSSRx(packet, GetMacAddress(), cid);
-      ForwardUp(
-          packet, m_baseStationId,
-          GetMacAddress()); // source shall be BS's address or sender SS's?
+      ForwardUp(packet, m_baseStationId, GetMacAddress());
     } else if (IsPromisc()) {
       NotifyPromiscTrace(packet);
       m_ssPromiscRxTrace(packet);
 
-      // not for me, ignore
     } else {
-      // not for me drop
     }
   } else {
-    // from other SS, ignore
   }
 }
 
@@ -993,16 +930,9 @@ void SubscriberStationNetDevice::ProcessDlMap(const DlMap &dlmap) {
     }
 
     if (iter->GetCid() == m_basicConnection->GetCid()) {
-      /*here the SS shall actually acquire the start time it shall start
-       receiving the burst at. start time is used for power saving which is not
-       implemented here, furthermore there is no need since the simulator
-       architecture automatically callbacks the receive function. shall acquire
-       the DIUC (burst profile) as well to decode the burst, again not required
-       again because the callback mechanism automatically passes it as
-       parameter.*/
     }
 
-#if 0 /* a template for future implementation following */
+#if 0
       uint8_t temp = iter->GetDiuc ();
       temp = iter->GetPreamblePresent ();
       temp = iter->GetStartTime ();
@@ -1036,8 +966,7 @@ void SubscriberStationNetDevice::ProcessUlMap(const UlMap &ulmap) {
       Time timeToAllocation = GetTimeToAllocation(Seconds(
           ulMapIe.GetStartTime() * GetPhy()->GetSymbolDuration().GetSeconds()));
 
-      if (ulMapIe.GetUiuc() ==
-          OfdmUlBurstProfile::UIUC_INITIAL_RANGING) // invited ranging interval
+      if (ulMapIe.GetUiuc() == OfdmUlBurstProfile::UIUC_INITIAL_RANGING)
 
       {
         m_linkManager->IncrementNrInvitedPollsRecvd();
@@ -1047,15 +976,13 @@ void SubscriberStationNetDevice::ProcessUlMap(const UlMap &ulmap) {
         Simulator::Schedule(timeToAllocation,
                             &SSLinkManager::SendRangingRequest, m_linkManager,
                             ulMapIe.GetUiuc(), ulMapIe.GetDuration());
-      } else if (ulMapIe.GetUiuc() ==
-                 OfdmUlBurstProfile::UIUC_REQ_REGION_FULL) // unicast poll
+      } else if (ulMapIe.GetUiuc() == OfdmUlBurstProfile::UIUC_REQ_REGION_FULL)
 
       {
         Simulator::Schedule(
             timeToAllocation, &BandwidthManager::SendBandwidthRequest,
             GetBandwidthManager(), ulMapIe.GetUiuc(), ulMapIe.GetDuration());
-      } else // regular allocation/grant for data, for UGS flows or in response
-             // of requests for non-UGS flows
+      } else
 
       {
         Ptr<WimaxConnection> connection = nullptr;
@@ -1066,7 +993,7 @@ void SubscriberStationNetDevice::ProcessUlMap(const UlMap &ulmap) {
       }
     } else {
       if (ulMapIe.GetUiuc() == OfdmUlBurstProfile::UIUC_INITIAL_RANGING &&
-          cid == GetBroadcastConnection()->GetCid()) // regular ranging interval
+          cid == GetBroadcastConnection()->GetCid())
 
       {
         if (GetCurrentUcd().GetChannelEncodings().GetRangReqOppSize() != 0) {
@@ -1088,12 +1015,11 @@ void SubscriberStationNetDevice::ProcessDcd(const Dcd &dcd) {
   m_nrDcdRecvd++;
   if (dcd.GetConfigurationChangeCount() ==
       GetCurrentDcd().GetConfigurationChangeCount()) {
-    return; // nothing new in DCD so don't read
+    return;
   }
   SetCurrentDcd(dcd);
   OfdmDcdChannelEncodings dcdChnlEncodings = dcd.GetChannelEncodings();
 
-  // parameters for initial ranging
   m_linkManager->SetBsEirp(dcdChnlEncodings.GetBsEirp());
   m_linkManager->SetEirXPIrMax(dcdChnlEncodings.GetEirxPIrMax());
 
@@ -1105,8 +1031,6 @@ void SubscriberStationNetDevice::ProcessDcd(const Dcd &dcd) {
        ++iter) {
     OfdmDlBurstProfile brstProfile = *iter;
 
-    /*NS-2 does this, may be not correct, assumes DIUC/UIUC to
-     modulation type mapping in DCD/UCD may change over time*/
     if (brstProfile.GetFecCodeType() == m_modulationType) {
       m_dlBurstProfile->SetFecCodeType(brstProfile.GetFecCodeType());
       m_dlBurstProfile->SetDiuc(brstProfile.GetDiuc());
@@ -1123,12 +1047,11 @@ void SubscriberStationNetDevice::ProcessUcd(const Ucd &ucd) {
 
   if (ucd.GetConfigurationChangeCount() ==
       GetCurrentUcd().GetConfigurationChangeCount()) {
-    return; // nothing new in UCD so don't read
+    return;
   }
   SetCurrentUcd(ucd);
   m_linkManager->SetRangingCW(
-      (uint8_t)std::pow(2.0, (double)ucd.GetRangingBackoffStart()) -
-      1); // initializing ranging CW
+      (uint8_t)std::pow(2.0, (double)ucd.GetRangingBackoffStart()) - 1);
   OfdmUcdChannelEncodings ucdChnlEncodings = ucd.GetChannelEncodings();
 
   std::vector<OfdmUlBurstProfile> ulBurstProfiles = ucd.GetUlBurstProfiles();
@@ -1137,8 +1060,6 @@ void SubscriberStationNetDevice::ProcessUcd(const Ucd &ucd) {
        ++iter) {
     OfdmUlBurstProfile brstProfile = *iter;
 
-    /*NS-2 does this, may be not correct, assumes DIUC/UIUC to
-     modulation type mapping in DCD/UCD may change over time*/
     if (brstProfile.GetFecCodeType() == m_modulationType) {
       m_ulBurstProfile->SetFecCodeType(brstProfile.GetFecCodeType());
       m_ulBurstProfile->SetUiuc(brstProfile.GetUiuc());
@@ -1146,8 +1067,6 @@ void SubscriberStationNetDevice::ProcessUcd(const Ucd &ucd) {
   }
 }
 
-/*temporarily assuming registered if ranging is complete,
- shall actually consider the registration step also */
 bool SubscriberStationNetDevice::IsRegistered() const {
   return GetState() >= SS_STATE_REGISTERED;
 }
@@ -1162,8 +1081,7 @@ Time SubscriberStationNetDevice::GetTimeToAllocation(Time deferTime) {
 
 void SubscriberStationNetDevice::SetTimer(EventId eventId, EventId &event) {
   if (GetState() == SS_STATE_STOPPED) {
-    Simulator::Cancel(
-        eventId); // cancelling this event (already scheduled in function call)
+    Simulator::Cancel(eventId);
     return;
   }
 

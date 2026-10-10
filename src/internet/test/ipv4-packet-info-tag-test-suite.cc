@@ -1,25 +1,4 @@
-/*
- * Copyright (c) 2010 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
- */
 
-//-----------------------------------------------------------------------------
-// Unit tests
-//-----------------------------------------------------------------------------
 
 #include "ns3/abort.h"
 #include "ns3/arp-l3-protocol.h"
@@ -52,11 +31,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 PacketInfoTag Test
- */
 class Ipv4PacketInfoTagTest : public TestCase {
 public:
   Ipv4PacketInfoTagTest();
@@ -64,16 +38,7 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * \brief Receive callback.
-   * \param socket Receiving socket.
-   */
   void RxCb(Ptr<Socket> socket);
-  /**
-   * \brief Send data.
-   * \param socket Sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
 };
 
@@ -100,9 +65,7 @@ void Ipv4PacketInfoTagTest::DoSendData(Ptr<Socket> socket, std::string to) {
   if (DynamicCast<UdpSocket>(socket)) {
     NS_TEST_EXPECT_MSG_EQ(socket->SendTo(Create<Packet>(123), 0, realTo), 123,
                           "100");
-  }
-  // Should only Ipv4RawSock
-  else {
+  } else {
     socket->SendTo(Create<Packet>(123), 0, realTo);
   }
 }
@@ -120,7 +83,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   InternetStackHelper internet;
   internet.SetIpv6StackInstall(false);
 
-  // For Node 0
   node0->AddDevice(device);
   internet.Install(node0);
   Ptr<Ipv4> ipv4 = node0->GetObject<Ipv4>();
@@ -132,7 +94,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   ipv4->SetMetric(index, 1);
   ipv4->SetUp(index);
 
-  // For Node 1
   node1->AddDevice(device2);
   internet.Install(node1);
   ipv4 = node1->GetObject<Ipv4>();
@@ -144,7 +105,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   ipv4->SetMetric(index, 1);
   ipv4->SetUp(index);
 
-  // IPv4 test
   Ptr<SocketFactory> factory =
       node0->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
   Ptr<Socket> socket = factory->CreateSocket();
@@ -153,7 +113,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   socket->SetRecvPktInfo(true);
   socket->SetRecvCallback(MakeCallback(&Ipv4PacketInfoTagTest::RxCb, this));
 
-  // receive on loopback
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &Ipv4PacketInfoTagTest::DoSendData, this,
                                  socket, "127.0.0.1");
@@ -167,7 +126,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
                                  socket, "10.1.1.1");
   Simulator::Run();
 
-  // ipv4 w rawsocket
   factory = node0->GetObject<SocketFactory>(Ipv4RawSocketFactory::GetTypeId());
   socket = factory->CreateSocket();
   local = InetSocketAddress(Ipv4Address::GetAny(), 0);
@@ -175,7 +133,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   socket->SetRecvPktInfo(true);
   socket->SetRecvCallback(MakeCallback(&Ipv4PacketInfoTagTest::RxCb, this));
 
-  // receive on loopback
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &Ipv4PacketInfoTagTest::DoSendData, this,
                                  socket, "127.0.0.1");
@@ -190,11 +147,6 @@ void Ipv4PacketInfoTagTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 PacketInfoTag TestSuite
- */
 class Ipv4PacketInfoTagTestSuite : public TestSuite {
 public:
   Ipv4PacketInfoTagTestSuite();
@@ -207,5 +159,4 @@ Ipv4PacketInfoTagTestSuite::Ipv4PacketInfoTagTestSuite()
   AddTestCase(new Ipv4PacketInfoTagTest(), TestCase::QUICK);
 }
 
-static Ipv4PacketInfoTagTestSuite
-    g_packetinfotagTests; //!< Static variable for test initialization
+static Ipv4PacketInfoTagTestSuite g_packetinfotagTests;

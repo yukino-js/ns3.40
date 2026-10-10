@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2006 Georgia Tech Research Corporation, INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: George F. Riley<riley@ece.gatech.edu>
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "node.h"
 
@@ -39,11 +20,6 @@ NS_LOG_COMPONENT_DEFINE("Node");
 
 NS_OBJECT_ENSURE_REGISTERED(Node);
 
-/**
- * \relates Node
- * \anchor GlobalValueChecksumEnabled
- * \brief A global switch to enable all checksums for all protocols.
- */
 static GlobalValue g_checksumEnabled =
     GlobalValue("ChecksumEnabled",
                 "A global switch to enable all checksums for all protocols",
@@ -65,8 +41,8 @@ TypeId Node::GetTypeId() {
                         MakeObjectVectorAccessor(&Node::m_applications),
                         MakeObjectVectorChecker<Application>())
           .AddAttribute("Id", "The id (unique integer) of this Node.",
-                        TypeId::ATTR_GET, // allow only getting it.
-                        UintegerValue(0), MakeUintegerAccessor(&Node::m_id),
+                        TypeId::ATTR_GET, UintegerValue(0),
+                        MakeUintegerAccessor(&Node::m_id),
                         MakeUintegerChecker<uint32_t>())
           .AddAttribute("SystemId",
                         "The systemId of this node: a unique integer used for "
@@ -208,7 +184,6 @@ void Node::RegisterProtocolHandler(ProtocolHandler handler,
   entry.device = device;
   entry.promiscuous = promiscuous;
 
-  // On demand enable promiscuous mode in netdevices
   if (promiscuous) {
     if (!device) {
       for (auto i = m_devices.begin(); i != m_devices.end(); i++) {
@@ -294,7 +269,6 @@ bool Node::ReceiveFromDevice(Ptr<NetDevice> device, Ptr<const Packet> packet,
 void Node::RegisterDeviceAdditionListener(DeviceAdditionListener listener) {
   NS_LOG_FUNCTION(this << &listener);
   m_deviceAdditionListeners.push_back(listener);
-  // and, then, notify the new listener about all existing devices.
   for (auto i = m_devices.begin(); i != m_devices.end(); ++i) {
     listener(*i);
   }

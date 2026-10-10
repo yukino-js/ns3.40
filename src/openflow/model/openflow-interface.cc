@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Blake Hurd  <naimorai@gmail.com>
- */
 
 #include "openflow-interface.h"
 
@@ -57,23 +28,20 @@ Stats::Stats(ofp_stats_types _type, size_t body_len) {
     break;
   case OFPST_PORT:
     min_body = 0;
-    max_body =
-        std::numeric_limits<size_t>::max(); // Not sure about this one. This
-                                            // would guarantee that the body_len
-                                            // is always acceptable.
+    max_body = std::numeric_limits<size_t>::max();
     break;
   case OFPST_PORT_TABLE:
     break;
   default:
     NS_LOG_ERROR("received stats request of unknown type " << type);
-    return; // -EINVAL;
+    return;
   }
 
   if ((min_body != 0 || max_body != 0) &&
       (body_len < min_body || body_len > max_body)) {
     NS_LOG_ERROR("stats request type " << type << " with bad body length "
                                        << body_len);
-    return; // -EINVAL;
+    return;
   }
 }
 
@@ -173,7 +141,6 @@ int Stats::FlowStatsInit(const void *body, int body_len, void **state) {
 int Stats_FlowDumpCallback(sw_flow *flow, void *state) {
   auto s = (Stats::FlowStatsState *)state;
 
-  // Fill Flow Stats
   ofp_flow_stats *ofs;
   int length = sizeof *ofs + flow->sf_acts->actions_len;
   ofs = (ofp_flow_stats *)ofpbuf_put_zeros(s->buffer, length);
@@ -225,7 +192,6 @@ int Stats::FlowStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, FlowStatsState *s,
 }
 
 int Stats::AggregateStatsInit(const void *body, int body_len, void **state) {
-  // ofp_aggregate_stats_request *s = (ofp_aggregate_stats_request*)body;
   *state = (ofp_aggregate_stats_request *)body;
   return 0;
 }
@@ -288,7 +254,6 @@ int Stats::TableStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, void *state,
   return 0;
 }
 
-// stats for the port table which is similar to stats for the flow tables
 int Stats::PortTableStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, void *state,
                               ofpbuf *buffer) {
   ofp_vport_table_stats *opts =
@@ -305,7 +270,6 @@ int Stats::PortTableStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, void *state,
 int Stats::PortStatsInit(const void *body, int body_len, void **state) {
   auto s = (PortStatsState *)xmalloc(sizeof(PortStatsState));
 
-  // the body contains a list of port numbers
   s->ports = (uint32_t *)xmalloc(body_len);
   memcpy(s->ports, body, body_len);
   s->num_ports = body_len / sizeof(uint32_t);
@@ -319,10 +283,8 @@ int Stats::PortStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, PortStatsState *s,
   ofp_port_stats *ops;
   uint32_t port;
 
-  // port stats are different depending on whether port is physical or virtual
   for (size_t i = 0; i < s->num_ports; i++) {
     port = ntohl(s->ports[i]);
-    // physical port?
     if (port <= OFPP_MAX) {
       Port p = swtch->GetSwitchPort(port);
 
@@ -346,16 +308,13 @@ int Stats::PortStatsDump(Ptr<OpenFlowSwitchNetDevice> swtch, PortStatsState *s,
       ops->collisions = htonll(-1);
       ops->mpls_ttl0_dropped = htonll(p.mpls_ttl0_dropped);
       ops++;
-    } else if (port >= OFPP_VP_START && port <= OFPP_VP_END) // virtual port?
-    {
-      // lookup the virtual port
+    } else if (port >= OFPP_VP_START && port <= OFPP_VP_END) {
       vport_table_t vt = swtch->GetVPortTable();
       vport_table_entry *vpe = vport_table_lookup(&vt, port);
       if (!vpe) {
         NS_LOG_ERROR("vport entry not found!");
         continue;
       }
-      // only tx_packets and tx_bytes are really relevant for virtual ports
       ops = (ofp_port_stats *)ofpbuf_put_zeros(buffer, sizeof *ops);
       ops->port_no = htonl(vpe->vport);
       ops->rx_packets = htonll(-1);
@@ -409,13 +368,7 @@ uint16_t Action::Validate(ofp_action_type type, size_t len,
 
     ofp_action_output *oa = (ofp_action_output *)ah;
 
-    // To prevent loops, make sure there's no action to send to the OFP_TABLE
-    // virtual port.
-
-    // port is now 32-bit
-    if (oa->port == OFPP_NONE ||
-        oa->port == key->flow.in_port) // htonl(OFPP_NONE);
-    { // if (oa->port == htons(OFPP_NONE) || oa->port == key->flow.in_port)
+    if (oa->port == OFPP_NONE || oa->port == key->flow.in_port) {
       return OFPBAC_BAD_OUT_PORT;
     }
 
@@ -612,7 +565,6 @@ void EricssonAction::Execute(er_action_type type, ofpbuf *buffer,
   }
 }
 
-/* static */
 TypeId Controller::GetTypeId() {
   static TypeId tid = TypeId("ns3::ofi::Controller")
                           .SetParent<Object>()
@@ -658,23 +610,19 @@ ofp_flow_mod *Controller::BuildFlow(sw_flow_key key, uint32_t buffer_id,
   ofm->priority = OFP_DEFAULT_PRIORITY;
   memcpy(ofm->actions, acts, actions_len);
 
-  ofm->match.wildcards = key.wildcards;  // Wildcard fields
-  ofm->match.in_port = key.flow.in_port; // Input switch port
-  memcpy(ofm->match.dl_src, key.flow.dl_src,
-         sizeof ofm->match.dl_src); // Ethernet source address.
-  memcpy(ofm->match.dl_dst, key.flow.dl_dst,
-         sizeof ofm->match.dl_dst);        // Ethernet destination address.
-  ofm->match.dl_vlan = key.flow.dl_vlan;   // Input VLAN OFP_VLAN_NONE;
-  ofm->match.dl_type = key.flow.dl_type;   // Ethernet frame type ETH_TYPE_IP;
-  ofm->match.nw_proto = key.flow.nw_proto; // IP Protocol
-  ofm->match.nw_src = key.flow.nw_src;     // IP source address
-  ofm->match.nw_dst = key.flow.nw_dst;     // IP destination address
-  ofm->match.tp_src = key.flow.tp_src;     // TCP/UDP source port
-  ofm->match.tp_dst = key.flow.tp_dst;     // TCP/UDP destination port
-  ofm->match.mpls_label1 =
-      key.flow.mpls_label1; // Top of label stack htonl(MPLS_INVALID_LABEL);
-  ofm->match.mpls_label2 = key.flow.mpls_label1; // Second label (if available)
-                                                 // htonl(MPLS_INVALID_LABEL);
+  ofm->match.wildcards = key.wildcards;
+  ofm->match.in_port = key.flow.in_port;
+  memcpy(ofm->match.dl_src, key.flow.dl_src, sizeof ofm->match.dl_src);
+  memcpy(ofm->match.dl_dst, key.flow.dl_dst, sizeof ofm->match.dl_dst);
+  ofm->match.dl_vlan = key.flow.dl_vlan;
+  ofm->match.dl_type = key.flow.dl_type;
+  ofm->match.nw_proto = key.flow.nw_proto;
+  ofm->match.nw_src = key.flow.nw_src;
+  ofm->match.nw_dst = key.flow.nw_dst;
+  ofm->match.tp_src = key.flow.tp_src;
+  ofm->match.tp_dst = key.flow.tp_dst;
+  ofm->match.mpls_label1 = key.flow.mpls_label1;
+  ofm->match.mpls_label2 = key.flow.mpls_label1;
 
   return ofm;
 }
@@ -689,24 +637,18 @@ uint8_t Controller::GetPacketType(ofpbuf *buffer) {
 void Controller::StartDump(StatsDumpCallback *cb) {
   if (cb) {
     int error = 1;
-    while (error >
-           0) // Switch's StatsDump returns 1 if the reply isn't complete.
-    {
+    while (error > 0) {
       error = cb->swtch->StatsDump(cb);
     }
 
-    if (error != 0) // When the reply is complete, error will equal zero if
-                    // there's no errors.
-    {
+    if (error != 0) {
       NS_LOG_WARN("Dump Callback Error: " << strerror(-error));
     }
 
-    // Clean up
     cb->swtch->StatsDone(cb);
   }
 }
 
-/* static */
 TypeId DropController::GetTypeId() {
   static TypeId tid = TypeId("ns3::ofi::DropController")
                           .SetParent<Controller>()
@@ -723,18 +665,13 @@ void DropController::ReceiveFromSwitch(Ptr<OpenFlowSwitchNetDevice> swtch,
     return;
   }
 
-  // We have received any packet at this point, so we pull the header to figure
-  // out what type of packet we're handling.
   uint8_t type = GetPacketType(buffer);
 
-  if (type == OFPT_PACKET_IN) // The switch didn't understand the packet it
-                              // received, so it forwarded it to the controller.
-  {
+  if (type == OFPT_PACKET_IN) {
     ofp_packet_in *opi =
         (ofp_packet_in *)ofpbuf_try_pull(buffer, offsetof(ofp_packet_in, data));
     int port = ntohs(opi->in_port);
 
-    // Create matching key.
     sw_flow_key key;
     key.wildcards = 0;
     flow_extract(buffer, port != -1 ? port : OFPP_NONE, &key.flow);
@@ -768,18 +705,13 @@ void LearningController::ReceiveFromSwitch(Ptr<OpenFlowSwitchNetDevice> swtch,
     return;
   }
 
-  // We have received any packet at this point, so we pull the header to figure
-  // out what type of packet we're handling.
   uint8_t type = GetPacketType(buffer);
 
-  if (type == OFPT_PACKET_IN) // The switch didn't understand the packet it
-                              // received, so it forwarded it to the controller.
-  {
+  if (type == OFPT_PACKET_IN) {
     ofp_packet_in *opi =
         (ofp_packet_in *)ofpbuf_try_pull(buffer, offsetof(ofp_packet_in, data));
     int port = ntohs(opi->in_port);
 
-    // Create matching key.
     sw_flow_key key;
     key.wildcards = 0;
     flow_extract(buffer, port != -1 ? port : OFPP_NONE, &key.flow);
@@ -787,7 +719,6 @@ void LearningController::ReceiveFromSwitch(Ptr<OpenFlowSwitchNetDevice> swtch,
     uint16_t out_port = OFPP_FLOOD;
     uint16_t in_port = ntohs(key.flow.in_port);
 
-    // If the destination address is learned to a specific port, find it.
     Mac48Address dst_addr;
     dst_addr.CopyFrom(key.flow.dl_dst);
     if (!dst_addr.IsBroadcast()) {
@@ -802,39 +733,32 @@ void LearningController::ReceiveFromSwitch(Ptr<OpenFlowSwitchNetDevice> swtch,
       NS_LOG_INFO("Setting to flood; this packet is a broadcast");
     }
 
-    // Create output-to-port action
     ofp_action_output x[1];
     x[0].type = htons(OFPAT_OUTPUT);
     x[0].len = htons(sizeof(ofp_action_output));
     x[0].port = out_port;
 
-    // Create a new flow that outputs matched packets to a learned port,
-    // OFPP_FLOOD if there's no learned port.
     ofp_flow_mod *ofm = BuildFlow(
         key, opi->buffer_id, OFPFC_ADD, x, sizeof(x), OFP_FLOW_PERMANENT,
         m_expirationTime.IsZero() ? OFP_FLOW_PERMANENT
                                   : m_expirationTime.GetSeconds());
     SendToSwitch(swtch, ofm, ofm->header.length);
 
-    // We can learn a specific port for the source address for future use.
     Mac48Address src_addr;
     src_addr.CopyFrom(key.flow.dl_src);
     auto st = m_learnState.find(src_addr);
-    if (st == m_learnState.end()) // We haven't learned our source MAC yet.
-    {
+    if (st == m_learnState.end()) {
       LearnedState ls;
       ls.port = in_port;
       m_learnState.insert(std::make_pair(src_addr, ls));
       NS_LOG_INFO("Learned that " << src_addr << " can be found over port "
                                   << in_port);
 
-      // Learn src_addr goes to a certain port.
       ofp_action_output x2[1];
       x2[0].type = htons(OFPAT_OUTPUT);
       x2[0].len = htons(sizeof(ofp_action_output));
       x2[0].port = in_port;
 
-      // Switch MAC Addresses and ports to the flow we're modifying
       src_addr.CopyTo(key.flow.dl_dst);
       dst_addr.CopyTo(key.flow.dl_src);
       key.flow.in_port = out_port;
@@ -852,13 +776,9 @@ void ExecuteActions(Ptr<OpenFlowSwitchNetDevice> swtch, uint64_t packet_uid,
                     const ofp_action_header *actions, size_t actions_len,
                     int ignore_no_fwd) {
   NS_LOG_FUNCTION_NOARGS();
-  /* Every output action needs a separate clone of 'buffer', but the common
-   * case is just a single output action, so that doing a clone and then
-   * freeing the original buffer is wasteful.  So the following code is
-   * slightly obscure just to avoid that. */
   int prev_port;
-  size_t max_len = 0;                   // Initialize to make compiler happy
-  uint16_t in_port = key->flow.in_port; // ntohs(key->flow.in_port);
+  size_t max_len = 0;
+  uint16_t in_port = key->flow.in_port;
   auto p = (uint8_t *)actions;
 
   prev_port = -1;
@@ -868,8 +788,6 @@ void ExecuteActions(Ptr<OpenFlowSwitchNetDevice> swtch, uint64_t packet_uid,
     return;
   }
 
-  /* The action list was already validated, so we can be a bit looser
-   * in our sanity-checking. */
   while (actions_len > 0) {
     ofp_action_header *ah = (ofp_action_header *)p;
     size_t len = htons(ah->len);
@@ -882,16 +800,11 @@ void ExecuteActions(Ptr<OpenFlowSwitchNetDevice> swtch, uint64_t packet_uid,
     if (ah->type == htons(OFPAT_OUTPUT)) {
       ofp_action_output *oa = (ofp_action_output *)p;
 
-      // port is now 32-bits
-      prev_port = oa->port; // ntohl(oa->port);
-      // prev_port = ntohs(oa->port);
+      prev_port = oa->port;
       max_len = ntohs(oa->max_len);
     } else {
       uint16_t type = ntohs(ah->type);
-      if (Action::IsValidType(
-              (ofp_action_type)
-                  type)) // Execute a built-in OpenFlow action against 'buffer'.
-      {
+      if (Action::IsValidType((ofp_action_type)type)) {
         Action::Execute((ofp_action_type)type, buffer, key, ah);
       } else if (type == OFPAT_VENDOR) {
         ExecuteVendor(buffer, key, ah);
@@ -917,16 +830,12 @@ uint16_t ValidateActions(const sw_flow_key *key,
     size_t len = ntohs(ah->len);
     uint16_t type;
 
-    /* Make there's enough remaining data for the specified length
-     * and that the action length is a multiple of 64 bits. */
     if ((actions_len < len) || (len % 8) != 0) {
       return OFPBAC_BAD_LEN;
     }
 
     type = ntohs(ah->type);
-    if (Action::IsValidType(
-            (ofp_action_type)type)) // Validate built-in OpenFlow actions.
-    {
+    if (Action::IsValidType((ofp_action_type)type)) {
       err = Action::Validate((ofp_action_type)type, len, key, ah);
       if (err != ACT_VALIDATION_OK) {
         return err;
@@ -944,7 +853,6 @@ uint16_t ValidateActions(const sw_flow_key *key,
     actions_len -= len;
   }
 
-  // Check if there's any trailing garbage.
   if (actions_len != 0) {
     return OFPBAC_BAD_LEN;
   }
@@ -955,20 +863,14 @@ uint16_t ValidateActions(const sw_flow_key *key,
 void ExecuteVPortActions(Ptr<OpenFlowSwitchNetDevice> swtch,
                          uint64_t packet_uid, ofpbuf *buffer, sw_flow_key *key,
                          const ofp_action_header *actions, size_t actions_len) {
-  /* Every output action needs a separate clone of 'buffer', but the common
-   * case is just a single output action, so that doing a clone and then
-   * freeing the original buffer is wasteful.  So the following code is
-   * slightly obscure just to avoid that. */
   int prev_port;
-  size_t max_len = 0; // Initialize to make compiler happy
+  size_t max_len = 0;
   uint16_t in_port = ntohs(key->flow.in_port);
   auto p = (uint8_t *)actions;
   uint16_t type;
   ofp_action_output *oa;
 
   prev_port = -1;
-  /* The action list was already validated, so we can be a bit looser
-   * in our sanity-checking. */
   while (actions_len > 0) {
     ofp_action_header *ah = (ofp_action_header *)p;
     size_t len = htons(ah->len);
@@ -982,7 +884,7 @@ void ExecuteVPortActions(Ptr<OpenFlowSwitchNetDevice> swtch,
       prev_port = ntohl(oa->port);
       max_len = ntohs(oa->max_len);
     } else {
-      type = ah->type; // ntohs(ah->type);
+      type = ah->type;
       VPortAction::Execute((ofp_vport_action_type)type, buffer, key, ah);
     }
 
@@ -1005,17 +907,12 @@ uint16_t ValidateVPortActions(const ofp_action_header *actions,
     size_t len = ntohs(ah->len);
     uint16_t type;
 
-    /* Make there's enough remaining data for the specified length
-     * and that the action length is a multiple of 64 bits. */
     if ((actions_len < len) || (len % 8) != 0) {
       return OFPBAC_BAD_LEN;
     }
 
     type = ntohs(ah->type);
-    if (VPortAction::IsValidType(
-            (ofp_vport_action_type)
-                type)) // Validate "built-in" OpenFlow port table actions.
-    {
+    if (VPortAction::IsValidType((ofp_vport_action_type)type)) {
       err = VPortAction::Validate((ofp_vport_action_type)type, len, ah);
       if (err != ACT_VALIDATION_OK) {
         return err;
@@ -1028,7 +925,6 @@ uint16_t ValidateVPortActions(const ofp_action_header *actions,
     actions_len -= len;
   }
 
-  // Check if there's any trailing garbage.
   if (actions_len != 0) {
     return OFPBAC_BAD_LEN;
   }
@@ -1042,7 +938,6 @@ void ExecuteVendor(ofpbuf *buffer, const sw_flow_key *key,
 
   switch (ntohl(avh->vendor)) {
   case NX_VENDOR_ID:
-    // Nothing to execute yet.
     break;
   case ER_VENDOR_ID: {
     const er_action_header *erah = (const er_action_header *)avh;
@@ -1051,7 +946,6 @@ void ExecuteVendor(ofpbuf *buffer, const sw_flow_key *key,
     break;
   }
   default:
-    // This should not be possible due to prior validation.
     NS_LOG_INFO("attempt to execute action with unknown vendor: "
                 << ntohl(avh->vendor));
     break;
@@ -1070,11 +964,10 @@ uint16_t ValidateVendor(const sw_flow_key *key, const ofp_action_header *ah,
   avh = (ofp_action_vendor_header *)ah;
 
   switch (ntohl(avh->vendor)) {
-  case NX_VENDOR_ID:              // Validate Nicara OpenFlow actions.
-    ret = OFPBAC_BAD_VENDOR_TYPE; // Nothing to validate yet.
+  case NX_VENDOR_ID:
+    ret = OFPBAC_BAD_VENDOR_TYPE;
     break;
-  case ER_VENDOR_ID: // Validate Ericsson OpenFlow actions.
-  {
+  case ER_VENDOR_ID: {
     const er_action_header *erah = (const er_action_header *)avh;
     ret = EricssonAction::Validate((er_action_type)ntohs(erah->subtype), len);
     break;

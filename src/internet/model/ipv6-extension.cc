@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- */
 
 #include "ipv6-extension.h"
 
@@ -79,7 +61,6 @@ uint8_t Ipv6Extension::ProcessOptions(Ptr<Packet> &packet, uint8_t offset,
   NS_LOG_FUNCTION(this << packet << offset << length << ipv6Header << dst
                        << nextHeader << isDropped);
 
-  // For ICMPv6 Error packets
   Ptr<Packet> malformedPacket = packet->Copy();
   malformedPacket->AddHeader(ipv6Header);
   Ptr<Icmpv6L4Protocol> icmpv6 =
@@ -548,7 +529,6 @@ void Ipv6ExtensionFragment::HandleFragmentsTimeout(FragmentKey_t fragmentKey,
 
   Ptr<Packet> packet = fragments->GetPartialPacket();
 
-  // if we have at least 8 bytes, we can send an ICMP.
   if (packet && packet->GetSize() > 8) {
     Ptr<Packet> p = packet->Copy();
     p->AddHeader(ipHeader);
@@ -560,7 +540,6 @@ void Ipv6ExtensionFragment::HandleFragmentsTimeout(FragmentKey_t fragmentKey,
   Ptr<Ipv6L3Protocol> ipL3 = GetNode()->GetObject<Ipv6L3Protocol>();
   ipL3->ReportDrop(ipHeader, packet, Ipv6L3Protocol::DROP_FRAGMENT_TIMEOUT);
 
-  // clear the buffers
   m_fragments.erase(fragmentKey);
 }
 
@@ -591,8 +570,6 @@ void Ipv6ExtensionFragment::HandleTimeout() {
   NS_LOG_FUNCTION(this);
   Time now = Simulator::Now();
 
-  // std::list Time, Fragment_key_t, Ipv6Header
-  // Fragment key is a pair: Ipv6Address, uint32_t ipHeaderId
   for (auto &element : m_timeoutEventList) {
     NS_LOG_DEBUG("Handle time " << std::get<0>(element).GetSeconds()
                                 << " IP hdr id "
@@ -742,7 +719,6 @@ uint8_t Ipv6ExtensionRouting::Process(Ptr<Packet> &packet, uint8_t offset,
   NS_LOG_FUNCTION(this << packet << offset << ipv6Header << dst << nextHeader
                        << isDropped);
 
-  // For ICMPv6 Error Packets
   Ptr<Packet> malformedPacket = packet->Copy();
   malformedPacket->AddHeader(ipv6Header);
 
@@ -895,14 +871,12 @@ uint8_t Ipv6ExtensionLooseRouting::Process(
   NS_LOG_FUNCTION(this << packet << offset << ipv6Header << dst << nextHeader
                        << isDropped);
 
-  // For ICMPv6 Error packets
   Ptr<Packet> malformedPacket = packet->Copy();
   malformedPacket->AddHeader(ipv6Header);
 
   Ptr<Packet> p = packet->Copy();
   p->RemoveAtStart(offset);
 
-  // Copy IPv6 Header : ipv6Header -> ipv6header
   Buffer tmp;
   tmp.AddAtStart(ipv6Header.GetSerializedSize());
   Buffer::Iterator it = tmp.Begin();
@@ -910,7 +884,6 @@ uint8_t Ipv6ExtensionLooseRouting::Process(
   ipv6Header.Serialize(it);
   ipv6header.Deserialize(it);
 
-  // Get the number of routers' address field
   uint8_t buf[2];
   p->CopyData(buf, sizeof(buf));
   Ipv6ExtensionLooseRoutingHeader routingHeader;
@@ -986,13 +959,6 @@ uint8_t Ipv6ExtensionLooseRouting::Process(
   ipv6header.SetHopLimit(hopLimit - 1);
   p->AddHeader(routingHeader);
 
-  /* short-circuiting routing stuff
-   *
-   * If we process this option,
-   * the packet was for us so we resend it to
-   * the new destination (modified in the header above).
-   */
-
   Ptr<Ipv6L3Protocol> ipv6 = GetNode()->GetObject<Ipv6L3Protocol>();
   Ptr<Ipv6RoutingProtocol> ipv6rp = ipv6->GetRoutingProtocol();
   Socket::SocketErrno err;
@@ -1001,13 +967,11 @@ uint8_t Ipv6ExtensionLooseRouting::Process(
   Ptr<Ipv6Route> rtentry = ipv6rp->RouteOutput(p, ipv6header, nullptr, err);
 
   if (rtentry) {
-    /* we know a route exists so send packet now */
     ipv6->SendRealOut(rtentry, p, ipv6header);
   } else {
     NS_LOG_INFO("No route for next router");
   }
 
-  /* as we directly send packet, mark it as dropped */
   isDropped = true;
 
   return routingHeader.GetSerializedSize();
@@ -1037,8 +1001,6 @@ uint8_t Ipv6ExtensionESP::Process(Ptr<Packet> &packet, uint8_t offset,
   NS_LOG_FUNCTION(this << packet << offset << ipv6Header << dst << nextHeader
                        << isDropped);
 
-  /** \todo */
-
   return 0;
 }
 
@@ -1066,9 +1028,7 @@ uint8_t Ipv6ExtensionAH::Process(Ptr<Packet> &packet, uint8_t offset,
   NS_LOG_FUNCTION(this << packet << offset << ipv6Header << dst << nextHeader
                        << isDropped);
 
-  /** \todo */
-
   return 1;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

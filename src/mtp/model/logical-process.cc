@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "logical-process.h"
 
@@ -44,7 +31,6 @@ LogicalProcess::~LogicalProcess() {
   NS_LOG_INFO("system " << m_systemId << " finished with event count "
                         << m_eventCount);
 
-  // if others hold references to event list, do not unref events
   if (m_events->GetReferenceCount() == 1) {
     while (!m_events->IsEmpty()) {
       Scheduler::Event next = m_events->RemoveNext();
@@ -63,7 +49,7 @@ void LogicalProcess::CalculateLookAhead() {
   NS_LOG_FUNCTION(this);
 
   if (m_systemId == 0) {
-    m_lookAhead = TimeStep(0); // No lookahead for public LP
+    m_lookAhead = TimeStep(0);
   } else {
     m_lookAhead = Time::Max() / 2 - TimeStep(1);
     NodeContainer c = NodeContainer::GetGlobal();
@@ -79,7 +65,6 @@ void LogicalProcess::CalculateLookAhead() {
 #endif
       for (uint32_t i = 0; i < (*iter)->GetNDevices(); ++i) {
         Ptr<NetDevice> localNetDevice = (*iter)->GetDevice(i);
-        // only works for p2p links currently
         if (!localNetDevice->IsPointToPoint()) {
           continue;
         }
@@ -87,25 +72,20 @@ void LogicalProcess::CalculateLookAhead() {
         if (!channel) {
           continue;
         }
-        // grab the adjacent node
         Ptr<Node> remoteNode;
         if (channel->GetDevice(0) == localNetDevice) {
           remoteNode = (channel->GetDevice(1))->GetNode();
         } else {
           remoteNode = (channel->GetDevice(0))->GetNode();
         }
-        // if it's not remote, don't consider it
         if (remoteNode->GetSystemId() == m_systemId) {
           continue;
         }
-        // compare delay on the channel with current value of m_lookAhead.
-        // if delay on channel is smaller, make it the new lookAhead.
         TimeValue delay;
         channel->GetAttribute("Delay", delay);
         if (delay.Get() < m_lookAhead) {
           m_lookAhead = delay.Get();
         }
-        // add the neighbour to the mailbox
         m_mailbox[remoteNode->GetSystemId()];
       }
     }
@@ -136,16 +116,13 @@ void LogicalProcess::ReceiveMessages() {
 void LogicalProcess::ProcessOneRound() {
   NS_LOG_FUNCTION(this);
 
-  // set thread context
   MtpInterface::SetSystem(m_systemId);
 
-  // calculate time window
   Time grantedTime = Min(MtpInterface::GetSmallestTime() + m_lookAhead,
                          MtpInterface::GetNextPublicTime());
 
   auto start = std::chrono::system_clock::now();
 
-  // process events
   while (Next() <= grantedTime) {
     Scheduler::Event next = m_events->RemoveNext();
     m_eventCount++;
@@ -220,7 +197,6 @@ void LogicalProcess::InvokeNow(const Scheduler::Event &ev) {
   ev.impl->Invoke();
   ev.impl->Unref();
 
-  // restore previous thread context
   MtpInterface::SetSystem(oldSystemId);
 }
 
@@ -236,7 +212,6 @@ void LogicalProcess::Remove(const EventId &id) {
   event.key.m_uid = id.GetUid();
   m_events->Remove(event);
   event.impl->Cancel();
-  // whenever we remove an event from the event list, we have to unref it.
   event.impl->Unref();
 }
 

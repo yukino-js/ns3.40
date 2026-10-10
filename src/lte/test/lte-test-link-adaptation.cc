@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-test-link-adaptation.h"
 
@@ -35,19 +17,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteLinkAdaptationTest");
 
-/**
- * Test 1.3 Link Adaptation
- */
-
 void LteTestDlSchedulingCallback(LteLinkAdaptationTestCase *testcase,
                                  std::string path,
                                  DlSchedulingCallbackInfo dlInfo) {
   testcase->DlScheduling(dlInfo);
 }
-
-/**
- * TestSuite
- */
 
 LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
     : TestSuite("lte-link-adaptation", SYSTEM) {
@@ -59,10 +33,6 @@ LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
     int mcsIndex;
   };
 
-  /**
-   * Test vectors: SNRDB, Spectral Efficiency, MCS index
-   * From XXX
-   */
   SnrEfficiencyMcs snrEfficiencyMcs[] = {
       {-5.00000, 0.08024, -1}, {-4.00000, 0.10030, -1}, {-3.00000, 0.12518, -1},
       {-2.00000, 0.15589, 0},  {-1.00000, 0.19365, 0},  {0.00000, 0.23983, 2},
@@ -79,13 +49,10 @@ LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
   };
   int numOfTests = sizeof(snrEfficiencyMcs) / sizeof(SnrEfficiencyMcs);
 
-  double txPowerDbm = 30; // default eNB TX power over whole bandwidth
-  double ktDbm = -174;    // reference LTE noise PSD
-  double noisePowerDbm =
-      ktDbm +
-      10 * std::log10(25 *
-                      180000); // corresponds to kT*bandwidth in linear units
-  double receiverNoiseFigureDb = 9.0; // default UE noise figure
+  double txPowerDbm = 30;
+  double ktDbm = -174;
+  double noisePowerDbm = ktDbm + 10 * std::log10(25 * 180000);
+  double receiverNoiseFigureDb = 9.0;
 
   for (int i = 0; i < numOfTests; i++) {
     double lossDb = txPowerDbm - snrEfficiencyMcs[i].snrDb - noisePowerDbm -
@@ -101,15 +68,7 @@ LteLinkAdaptationTestSuite::LteLinkAdaptationTestSuite()
   }
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteLinkAdaptationTestSuite lteLinkAdaptationTestSuite;
-
-/**
- * TestCase
- */
 
 LteLinkAdaptationTestCase::LteLinkAdaptationTestCase(std::string name,
                                                      double snrDb, double loss,
@@ -139,51 +98,38 @@ void LteLinkAdaptationTestCase::DoRun() {
   Config::SetDefault("ns3::RadioBearerStatsCalculator::UlRlcOutputFilename",
                      StringValue(CreateTempDirFilename("UlRlcStats.txt")));
 
-  // Disable Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(false));
 
-  /**
-   * Simulation Topology
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
-  //   lteHelper->EnableLogComponents ();
   lteHelper->SetAttribute(
       "PathlossModel",
       StringValue("ns3::ConstantSpectrumPropagationLossModel"));
   NS_LOG_INFO("SNR = " << m_snrDb << "  LOSS = " << m_loss);
   lteHelper->SetPathlossModelAttribute("Loss", DoubleValue(m_loss));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::RrFfMacScheduler");
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate the default EPS bearer
   EpsBearer::Qci q = EpsBearer::NGBR_VIDEO_TCP_DEFAULT;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
 
-  // Use testing chunk processor in the PHY layer
-  // It will be used to test that the SNR is as intended
   Ptr<LtePhy> uePhy =
       ueDevs.Get(0)->GetObject<LteUeNetDevice>()->GetPhy()->GetObject<LtePhy>();
   Ptr<LteChunkProcessor> testSinr = Create<LteChunkProcessor>();
@@ -217,12 +163,6 @@ void LteLinkAdaptationTestCase::DlScheduling(DlSchedulingCallbackInfo dlInfo) {
     NS_LOG_INFO("SNR\tRef_MCS\tCalc_MCS");
   }
 
-  /**
-   * Note:
-   * the MCS can only be properly evaluated after:
-   * RRC connection has been completed and
-   * CQI feedback is available at the eNB.
-   */
   if (Simulator::Now().GetSeconds() > 0.030) {
     NS_LOG_INFO(m_snrDb << "\t" << m_mcsIndex << "\t"
                         << (uint16_t)dlInfo.mcsTb1);

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "peer-management-protocol-mac.h"
 
@@ -64,16 +46,12 @@ void PeerManagementProtocolMac::TxOk(Ptr<const WifiMpdu> mpdu) {
 bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
                                         const WifiMacHeader &header) {
   NS_LOG_FUNCTION(this << const_packet << header);
-  // First of all we copy a packet, because we need to remove some
-  // headers
   Ptr<Packet> packet = const_packet->Copy();
   if (header.IsBeacon()) {
     NS_LOG_DEBUG("Is Beacon from " << header.GetAddr2());
     MgtBeaconHeader beacon_hdr;
     packet->RemoveHeader(beacon_hdr);
     MeshInformationElementVector elements;
-    // To determine header size here, we can rely on the knowledge that
-    // this is the last header to remove.
     packet->RemoveHeader(elements, packet->GetSize());
     Ptr<IeBeaconTiming> beaconTiming =
         DynamicCast<IeBeaconTiming>(elements.FindFirst(IE_BEACON_TIMING));
@@ -88,17 +66,15 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
       NS_LOG_DEBUG("MeshId mismatch " << m_protocol->GetMeshId()->PeekString()
                                       << " " << (*meshId) << "; ignoring");
     }
-    // Beacon shall not be dropped. May be needed to another plugins
     return true;
   }
-  uint16_t aid = 0; // applicable only in Confirm message
+  uint16_t aid = 0;
   IeConfiguration config;
   if (header.IsAction()) {
     NS_LOG_DEBUG("Is action");
     WifiActionHeader actionHdr;
     packet->RemoveHeader(actionHdr);
     WifiActionHeader::ActionValue actionValue = actionHdr.GetAction();
-    // If can not handle - just return;
     if (actionHdr.GetCategory() != WifiActionHeader::SELF_PROTECTED) {
       NS_LOG_DEBUG("Cannot handle non SELF PROTECTED");
       return m_protocol->IsActiveLink(m_ifIndex, header.GetAddr2());
@@ -116,7 +92,6 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
       if (!fields.meshId.IsEqual(*(m_protocol->GetMeshId()))) {
         NS_LOG_DEBUG("PEER_LINK_OPEN:  MeshId mismatch");
         m_protocol->ConfigurationMismatch(m_ifIndex, peerAddress);
-        // Broken peer link frame - drop it
         m_stats.brokenMgt++;
         return false;
       }
@@ -124,7 +99,6 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
               AllSupportedRates{fields.rates, fields.extendedRates}))) {
         NS_LOG_DEBUG("PEER_LINK_OPEN:  configuration mismatch");
         m_protocol->ConfigurationMismatch(m_ifIndex, peerAddress);
-        // Broken peer link frame - drop it
         m_stats.brokenMgt++;
         return false;
       }
@@ -140,7 +114,6 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
               AllSupportedRates{fields.rates, fields.extendedRates}))) {
         NS_LOG_DEBUG("PEER_LINK_CONFIRM:  configuration mismatch");
         m_protocol->ConfigurationMismatch(m_ifIndex, peerAddress);
-        // Broken peer link frame - drop it
         m_stats.brokenMgt++;
         return false;
       }
@@ -156,7 +129,6 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
       if (!fields.meshId.IsEqual(*(m_protocol->GetMeshId()))) {
         NS_LOG_DEBUG("PEER_LINK_CLOSE:  configuration mismatch");
         m_protocol->ConfigurationMismatch(m_ifIndex, peerAddress);
-        // Broken peer link frame - drop it
         m_stats.brokenMgt++;
         return false;
       }
@@ -166,14 +138,11 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
     }
     Ptr<IePeerManagement> peerElement;
     MeshInformationElementVector elements;
-    // To determine header size here, we can rely on the knowledge that
-    // this is the last header to remove.
     packet->RemoveHeader(elements, packet->GetSize());
     peerElement = DynamicCast<IePeerManagement>(
         elements.FindFirst(IE_MESH_PEERING_MANAGEMENT));
 
     NS_ASSERT(peerElement);
-    // Check that frame subtype corresponds to peer link subtype
     if (peerElement->SubtypeIsOpen()) {
       m_stats.rxOpen++;
       NS_ASSERT(actionValue.selfProtectedAction ==
@@ -189,10 +158,8 @@ bool PeerManagementProtocolMac::Receive(Ptr<Packet> const_packet,
       NS_ASSERT(actionValue.selfProtectedAction ==
                 WifiActionHeader::PEER_LINK_CLOSE);
     }
-    // Deliver Peer link management frame to protocol:
     m_protocol->ReceivePeerLinkFrame(m_ifIndex, peerAddress, peerMpAddress, aid,
                                      *peerElement, config);
-    // if we can handle a frame - drop it
     return false;
   }
   return m_protocol->IsActiveLink(m_ifIndex, header.GetAddr2());
@@ -236,14 +203,11 @@ void PeerManagementProtocolMac::SendPeerLinkManagementFrame(
     Mac48Address peerAddress, Mac48Address peerMpAddress, uint16_t aid,
     IePeerManagement peerElement, IeConfiguration meshConfig) {
   NS_LOG_FUNCTION(this << peerAddress << peerMpAddress);
-  // Create a packet:
   meshConfig.SetNeighborCount(m_protocol->GetNumberOfLinks());
   Ptr<Packet> packet = Create<Packet>();
   MeshInformationElementVector elements;
   elements.AddInformationElement(Ptr<IePeerManagement>(&peerElement));
   packet->AddHeader(elements);
-  // Create an 802.11 frame header:
-  // Send management frame to MAC:
   if (peerElement.SubtypeIsOpen()) {
     PeerLinkOpenStart::PlinkOpenStartFields fields;
     auto allSupportedRates = m_parent->GetSupportedRates();
@@ -295,12 +259,10 @@ void PeerManagementProtocolMac::SendPeerLinkManagementFrame(
   }
   m_stats.txMgt++;
   m_stats.txMgtBytes += packet->GetSize();
-  // Wifi Mac header:
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_MGT_ACTION);
   hdr.SetAddr1(peerAddress);
   hdr.SetAddr2(m_parent->GetAddress());
-  // Addr is not used here, we use it as our MP address
   hdr.SetAddr3(m_protocol->GetAddress());
   hdr.SetDsNotFrom();
   hdr.SetDsNotTo();

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011-2018 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Nicola Baldo <nbaldo@cttc.es>
- *          Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "ns3/epc-tft-classifier.h"
 #include "ns3/ipv4-header.h"
@@ -38,30 +18,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TestEpcTftClassifier");
 
-/**
- * \ingroup lte-test
- *
- * \brief Test case to check the functionality of the Tft Classifier. Test
- * consist of defining different TFT configurations, i.e. direction, ports,
- * address, and it is checking if the clasiffication of UDP packets is
- * done correctly.
- */
 class EpcTftClassifierTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param c the EPC TFT classifier
-   * \param d the EPC TFT direction
-   * \param sa the source address (in IPv4 format)
-   * \param da the destination address (in IPv4 format)
-   * \param sp the source port
-   * \param dp the destination port
-   * \param tos the TOS
-   * \param tftId the TFT ID
-   * \param useIpv6 use IPv6 or IPv4 addresses. If set, addresses will be used
-   * as IPv4 mapped addresses
-   */
   EpcTftClassifierTestCase(Ptr<EpcTftClassifier> c, EpcTft::Direction d,
                            std::string sa, std::string da, uint16_t sp,
                            uint16_t dp, uint8_t tos, uint32_t tftId,
@@ -70,28 +28,15 @@ public:
   ~EpcTftClassifierTestCase() override;
 
 private:
-  Ptr<EpcTftClassifier> m_c; ///< the EPC TFT classifier
-  EpcTft::Direction m_d;     ///< the EPC TFT direction
-  uint8_t m_tftId;           ///< the TFT ID
-  bool m_useIpv6;            ///< use IPv4 or IPv6 header/addresses
-  Ipv4Header m_ipHeader;     ///< the IPv4 header
-  Ipv6Header m_ipv6Header;   ///< the IPv6 header
-  UdpHeader m_udpHeader;     ///< the UDP header
-  TcpHeader m_tcpHeader;     ///< the TCP header
+  Ptr<EpcTftClassifier> m_c;
+  EpcTft::Direction m_d;
+  uint8_t m_tftId;
+  bool m_useIpv6;
+  Ipv4Header m_ipHeader;
+  Ipv6Header m_ipv6Header;
+  UdpHeader m_udpHeader;
+  TcpHeader m_tcpHeader;
 
-  /**
-   * Build name string
-   * \param c the EPC TFT classifier
-   * \param d the EPC TFT direction
-   * \param sa the source address
-   * \param da the destination address
-   * \param sp the source port
-   * \param dp the destination port
-   * \param tos the TOS
-   * \param tftId the TFT ID
-   * \param useIpv6 use IPv6 or IPv4 addresses. If set, addresses will be used
-   * as IPv4 mapped addresses \returns the name string
-   */
   static std::string BuildNameString(Ptr<EpcTftClassifier> c,
                                      EpcTft::Direction d, std::string sa,
                                      std::string da, uint16_t sp, uint16_t dp,
@@ -117,13 +62,13 @@ EpcTftClassifierTestCase::EpcTftClassifierTestCase(Ptr<EpcTftClassifier> c,
     m_ipv6Header.SetDestination(
         Ipv6Address::MakeIpv4MappedAddress(Ipv4Address(da.c_str())));
     m_ipv6Header.SetTrafficClass(tos);
-    m_ipv6Header.SetPayloadLength(8); // Full UDP header
+    m_ipv6Header.SetPayloadLength(8);
     m_ipv6Header.SetNextHeader(UdpL4Protocol::PROT_NUMBER);
   } else {
     m_ipHeader.SetSource(Ipv4Address(sa.c_str()));
     m_ipHeader.SetDestination(Ipv4Address(da.c_str()));
     m_ipHeader.SetTos(tos);
-    m_ipHeader.SetPayloadSize(8); // Full UDP header
+    m_ipHeader.SetPayloadSize(8);
     m_ipHeader.SetProtocol(UdpL4Protocol::PROT_NUMBER);
   }
 
@@ -170,37 +115,18 @@ void EpcTftClassifierTestCase::DoRun() {
                         "bad classification of UDP packet");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Epc Tft Classifier Test Suite
- */
 class EpcTftClassifierTestSuite : public TestSuite {
 public:
   EpcTftClassifierTestSuite();
 };
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static EpcTftClassifierTestSuite g_lteTftClassifierTestSuite;
 
 EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
     : TestSuite("eps-tft-classifier", UNIT) {
   NS_LOG_FUNCTION(this);
 
-  /////////////////////////////////////////////////////////////////////////////////
-  // Same testcases using IPv4 and IPv6 addresses
-  // IPv6 addresses are IPv4 mapped addresses, i.e. 1.2.3.4 -> 0::ffff:1.2.3.4
-  // Currently, we use the format '0::ffff:0102:0304' because
-  // the format '0::ffff:1.2.3.4' is not supported by the Ipv6Address class
-  /////////////////////////////////////////////////////////////////////////////////
-
   for (bool useIpv6 : {false, true}) {
-    //////////////////////////
-    // check some TFT matches
-    //////////////////////////
 
     Ptr<EpcTftClassifier> c1 = Create<EpcTftClassifier>();
 
@@ -260,9 +186,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
 
     c1->Add(tft1_2, 2);
 
-    // --------------------------------classifier----direction-------src_addr---dst_addr--src_port--dst_port--ToS--TFT_id
-
-    // test IP addresses
     AddTestCase(new EpcTftClassifierTestCase(c1, EpcTft::UPLINK, "2.2.3.4",
                                              "1.1.1.1", 4, 1234, 0, 1, useIpv6),
                 TestCase::QUICK);
@@ -282,7 +205,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "4.4.2.1", 4, 1234, 0, 0, useIpv6),
                 TestCase::QUICK);
 
-    // test remote port
     AddTestCase(new EpcTftClassifierTestCase(c1, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 1024, 0, 2, useIpv6),
                 TestCase::QUICK);
@@ -305,7 +227,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "8.1.1.1", 4, 1035, 0, 0, useIpv6),
                 TestCase::QUICK);
 
-    // test local port
     AddTestCase(new EpcTftClassifierTestCase(c1, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 3456, 0, 0, useIpv6),
                 TestCase::QUICK);
@@ -340,17 +261,9 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              useIpv6),
                 TestCase::QUICK);
 
-    ///////////////////////////
-    // check default TFT
-    ///////////////////////////
-
     Ptr<EpcTftClassifier> c2 = Create<EpcTftClassifier>();
     c2->Add(EpcTft::Default(), 1);
 
-    // --------------------------------classifier---direction--------src_addr---dst_addr--src_port--dst_port--ToS--TFT
-    // id
-
-    // test IP addresses
     AddTestCase(new EpcTftClassifierTestCase(c2, EpcTft::UPLINK, "2.2.3.4",
                                              "1.1.1.1", 4, 1234, 0, 1, useIpv6),
                 TestCase::QUICK);
@@ -370,7 +283,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "4.4.2.1", 4, 1234, 0, 1, useIpv6),
                 TestCase::QUICK);
 
-    // test remote port
     AddTestCase(new EpcTftClassifierTestCase(c2, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 1024, 0, 1, useIpv6),
                 TestCase::QUICK);
@@ -393,7 +305,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "8.1.1.1", 4, 1035, 0, 1, useIpv6),
                 TestCase::QUICK);
 
-    // test local port
     AddTestCase(new EpcTftClassifierTestCase(c2, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 3456, 0, 1, useIpv6),
                 TestCase::QUICK);
@@ -414,18 +325,11 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "8.1.1.1", 9, 3489, 0, 1, useIpv6),
                 TestCase::QUICK);
 
-    ///////////////////////////////////////////
-    // check default TFT plus dedicated ones
-    ///////////////////////////////////////////
-
     Ptr<EpcTftClassifier> c3 = Create<EpcTftClassifier>();
     c3->Add(EpcTft::Default(), 1);
     c3->Add(tft1_1, 2);
     c3->Add(tft1_2, 3);
 
-    // --------------------------------classifier---direction--------src_addr---dst_addr---src_port--dst_port--ToS--TFT_id
-
-    // test IP addresses
     AddTestCase(new EpcTftClassifierTestCase(c3, EpcTft::UPLINK, "2.2.3.4",
                                              "1.1.1.1", 4, 1234, 0, 2, useIpv6),
                 TestCase::QUICK);
@@ -445,7 +349,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "4.4.2.1", 4, 1234, 0, 1, useIpv6),
                 TestCase::QUICK);
 
-    // test remote port
     AddTestCase(new EpcTftClassifierTestCase(c3, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 1024, 0, 3, useIpv6),
                 TestCase::QUICK);
@@ -468,7 +371,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
                                              "8.1.1.1", 4, 1035, 0, 1, useIpv6),
                 TestCase::QUICK);
 
-    // test local port
     AddTestCase(new EpcTftClassifierTestCase(c3, EpcTft::UPLINK, "9.1.1.1",
                                              "8.1.1.1", 4, 3456, 0, 1, useIpv6),
                 TestCase::QUICK);
@@ -488,10 +390,6 @@ EpcTftClassifierTestSuite::EpcTftClassifierTestSuite()
     AddTestCase(new EpcTftClassifierTestCase(c3, EpcTft::DOWNLINK, "9.1.1.1",
                                              "8.1.1.1", 9, 3489, 0, 3, useIpv6),
                 TestCase::QUICK);
-
-    ///////////////////////////////////////////
-    // check two TFTs with different ports
-    ///////////////////////////////////////////
 
     Ptr<EpcTftClassifier> c4 = Create<EpcTftClassifier>();
     Ptr<EpcTft> tft4_1 = Create<EpcTft>();

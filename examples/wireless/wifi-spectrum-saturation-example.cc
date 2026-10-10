@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2009 MIRKO BANCHI
- * Copyright (c) 2015 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mirko Banchi <mk.banchi@gmail.com>
- *          Sebastien Deronne <sebastien.deronne@gmail.com>
- *          Tom Henderson <tomhend@u.washington.edu>
- *
- * Adapted from wifi-ht-network.cc example
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -42,64 +19,13 @@
 
 #include <iomanip>
 
-// This is a simple example of an IEEE 802.11n Wi-Fi network.
-//
-// The main use case is to enable and test SpectrumWifiPhy vs YansWifiPhy
-// under saturation conditions (for max throughput).
-//
-// Network topology:
-//
-//  Wi-Fi 192.168.1.0
-//
-//   STA                  AP
-//    * <-- distance -->  *
-//    |                   |
-//    n1                  n2
-//
-// Users may vary the following command-line arguments in addition to the
-// attributes, global values, and default values typically available:
-//
-//    --simulationTime:  Simulation time in seconds [10]
-//    --distance:        meters separation between nodes [1]
-//    --index:           restrict index to single value between 0 and 31 [256]
-//    --wifiType:        select ns3::SpectrumWifiPhy or ns3::YansWifiPhy
-//    [ns3::SpectrumWifiPhy]
-//    --errorModelType:  select ns3::NistErrorRateModel or
-//    ns3::YansErrorRateModel [ns3::NistErrorRateModel]
-//    --enablePcap:      enable pcap output [false]
-//
-// By default, the program will step through 64 index values, corresponding
-// to the following MCS, channel width, and guard interval combinations:
-//   index 0-7:    MCS 0-7, long guard interval, 20 MHz channel
-//   index 8-15:   MCS 0-7, short guard interval, 20 MHz channel
-//   index 16-23:  MCS 0-7, long guard interval, 40 MHz channel
-//   index 24-31:  MCS 0-7, short guard interval, 40 MHz channel
-//   index 32-39:    MCS 8-15, long guard interval, 20 MHz channel
-//   index 40-47:   MCS 8-15, short guard interval, 20 MHz channel
-//   index 48-55:  MCS 8-15, long guard interval, 40 MHz channel
-//   index 56-63:  MCS 8-15, short guard interval, 40 MHz channel
-// and send packets at a high rate using each MCS, using the SpectrumWifiPhy
-// and the NistErrorRateModel, at a distance of 1 meter.  The program outputs
-// results such as:
-//
-// wifiType: ns3::SpectrumWifiPhy distance: 1m
-// index   MCS   width Rate (Mb/s) Tput (Mb/s) Received
-//     0     0      20       6.5     5.96219    5063
-//     1     1      20        13     11.9491   10147
-//     2     2      20      19.5     17.9184   15216
-//     3     3      20        26     23.9253   20317
-//     ...
-//
-// selection of index values 32-63 will result in MCS selection 8-15
-// involving two spatial streams
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiSpectrumSaturationExample");
 
 int main(int argc, char *argv[]) {
   double distance = 1;
-  double simulationTime = 10; // seconds
+  double simulationTime = 10;
   uint16_t index = 256;
   uint32_t channelWidth = 0;
   std::string wifiType = "ns3::SpectrumWifiPhy";
@@ -133,7 +59,7 @@ int main(int argc, char *argv[]) {
             << "Tput (Mb/s)" << std::setw(10) << "Received " << std::endl;
   for (uint16_t i = startIndex; i <= stopIndex; i++) {
     uint32_t payloadSize;
-    payloadSize = 1472; // 1500 bytes IPv4
+    payloadSize = 1472;
 
     NodeContainer wifiStaNode;
     wifiStaNode.Create(1);
@@ -457,7 +383,6 @@ int main(int argc, char *argv[]) {
           BooleanValue(true));
     }
 
-    // mobility.
     MobilityHelper mobility;
     Ptr<ListPositionAllocator> positionAlloc =
         CreateObject<ListPositionAllocator>();
@@ -471,7 +396,6 @@ int main(int argc, char *argv[]) {
     mobility.Install(wifiApNode);
     mobility.Install(wifiStaNode);
 
-    /* Internet stack*/
     InternetStackHelper stack;
     stack.Install(wifiApNode);
     stack.Install(wifiStaNode);
@@ -484,7 +408,6 @@ int main(int argc, char *argv[]) {
     staNodeInterface = address.Assign(staDevice);
     apNodeInterface = address.Assign(apDevice);
 
-    /* Setting applications */
     uint16_t port = 9;
     UdpServerHelper server(port);
     ApplicationContainer serverApp = server.Install(wifiStaNode.Get(0));
@@ -493,7 +416,7 @@ int main(int argc, char *argv[]) {
 
     UdpClientHelper client(staNodeInterface.GetAddress(0), port);
     client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-    client.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+    client.SetAttribute("Interval", TimeValue(Time("0.0001")));
     client.SetAttribute("PacketSize", UintegerValue(payloadSize));
     ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
     clientApp.Start(Seconds(1.0));
@@ -513,8 +436,8 @@ int main(int argc, char *argv[]) {
     uint64_t totalPacketsThrough;
     totalPacketsThrough =
         DynamicCast<UdpServer>(serverApp.Get(0))->GetReceived();
-    throughput = totalPacketsThrough * payloadSize * 8 /
-                 (simulationTime * 1000000.0); // Mbit/s
+    throughput =
+        totalPacketsThrough * payloadSize * 8 / (simulationTime * 1000000.0);
     std::cout << std::setw(5) << i << std::setw(6) << (i % 8) + 8 * (i / 32)
               << std::setw(8) << channelWidth << std::setw(10) << datarate
               << std::setw(12) << throughput << std::setw(8)

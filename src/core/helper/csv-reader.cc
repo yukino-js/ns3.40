@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathew Bielejeski <bielejeski1@llnl.gov>
- */
 
 #include "csv-reader.h"
 
@@ -29,30 +11,10 @@
 #include <sstream>
 #include <vector>
 
-/**
- * \file
- * \ingroup core
- * \ingroup csvreader
- *
- * ns3::CsvReader implementation
- */
-
 NS_LOG_COMPONENT_DEFINE("CsvReader");
 
 namespace {
 
-/**
- * Convert a string into another type.
- *
- * Uses a stringstream to deserialize the value stored in \p input
- * to a value of type T and writes the deserialized value to \p output.
- *
- * \tparam T Data type of output.
- * \param input String containing serialized data.
- * \param output Place to store deserialized value.
- *
- * \return \c true if deserialization was successful, \c false otherwise.
- */
 template <typename T> bool GenericTransform(std::string input, T &output) {
   NS_LOG_FUNCTION(input);
 
@@ -63,17 +25,17 @@ template <typename T> bool GenericTransform(std::string input, T &output) {
   return static_cast<bool>(stream);
 }
 
-} // unnamed namespace
+} // namespace
 
 namespace ns3 {
 
-CsvReader::CsvReader(const std::string &filepath, char delimiter /* =',' */)
+CsvReader::CsvReader(const std::string &filepath, char delimiter)
     : m_delimiter(delimiter), m_rowsRead(0), m_fileStream(filepath),
       m_stream(&m_fileStream) {
   NS_LOG_FUNCTION(this << filepath);
 }
 
-CsvReader::CsvReader(std::istream &stream, char delimiter /* =',' */)
+CsvReader::CsvReader(std::istream &stream, char delimiter)
     : m_delimiter(delimiter), m_rowsRead(0), m_fileStream(), m_stream(&stream) {
   NS_LOG_FUNCTION(this);
 }
@@ -303,7 +265,6 @@ CsvReader::ParseColumn(std::string::const_iterator begin,
 
     NS_LOG_DEBUG("Next character: '" << c << "'");
 
-    // handle common cases here to avoid duplicating logic
     if (state != State::QUOTED_STRING) {
       if (IsDelimiter(c)) {
         NS_LOG_DEBUG("Found field delimiter, switching to END state");
@@ -313,7 +274,6 @@ CsvReader::ParseColumn(std::string::const_iterator begin,
                        << buffer << "'");
           auto len = buffer.size();
 
-          // remove trailing whitespace from the field
           while (!buffer.empty() &&
                  std::isspace(static_cast<unsigned char>(buffer.back()))) {
             buffer.pop_back();
@@ -331,8 +291,6 @@ CsvReader::ParseColumn(std::string::const_iterator begin,
       } else if (c == '#') {
         NS_LOG_DEBUG("Found start of comment, switching to END state");
 
-        // comments consume the rest of the line, set iter to end
-        // to reflect that fact.
         iter = end;
         state = State::END;
 
@@ -365,7 +323,6 @@ CsvReader::ParseColumn(std::string::const_iterator begin,
       if (c == '"') {
         NS_LOG_DEBUG("Switching state: END_QUOTE -> QUOTED_STRING");
 
-        // an escape quote instead of an end quote
         state = State::QUOTED_STRING;
         buffer.push_back(c);
       } else {

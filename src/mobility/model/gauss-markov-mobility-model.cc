@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 Dan Broyles
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Dan Broyles <dbroyl01@ku.edu>
- */
 #include "gauss-markov-mobility-model.h"
 
 #include "position-allocator.h"
@@ -79,8 +61,7 @@ TypeId GaussMarkovMobilityModel::GetTypeId() {
               "value.",
               StringValue(
                   "ns3::NormalRandomVariable[Mean=0.0|Variance=1.0|Bound=10."
-                  "0]"), // Defaults to zero mean, and std dev = 1, and bound to
-                         // +-10 of the mean
+                  "0]"),
               MakePointerAccessor(&GaussMarkovMobilityModel::m_normalVelocity),
               MakePointerChecker<NormalRandomVariable>())
           .AddAttribute(
@@ -113,7 +94,6 @@ GaussMarkovMobilityModel::GaussMarkovMobilityModel() {
 
 void GaussMarkovMobilityModel::Start() {
   if (m_meanVelocity == 0.0) {
-    // Initialize the mean velocity, direction, and pitch variables
     m_meanVelocity = m_rndMeanVelocity->GetValue();
     m_meanDirection = m_rndMeanDirection->GetValue();
     m_meanPitch = m_rndMeanPitch->GetValue();
@@ -121,27 +101,18 @@ void GaussMarkovMobilityModel::Start() {
     double cosP = std::cos(m_meanPitch);
     double sinD = std::sin(m_meanDirection);
     double sinP = std::sin(m_meanPitch);
-    // Initialize the starting velocity, direction, and pitch to be identical to
-    // the mean ones
     m_Velocity = m_meanVelocity;
     m_Direction = m_meanDirection;
     m_Pitch = m_meanPitch;
-    // Set the velocity vector to give to the constant velocity helper
     m_helper.SetVelocity(Vector(m_Velocity * cosD * cosP,
                                 m_Velocity * sinD * cosP, m_Velocity * sinP));
   }
   m_helper.Update();
 
-  // Get the next values from the gaussian distributions for velocity,
-  // direction, and pitch
   double rv = m_normalVelocity->GetValue();
   double rd = m_normalDirection->GetValue();
   double rp = m_normalPitch->GetValue();
 
-  // Calculate the NEW velocity, direction, and pitch values using the
-  // Gauss-Markov formula: newVal = alpha*oldVal + (1-alpha)*meanVal +
-  // sqrt(1-alpha^2)*rv where rv is a random number from a normal (gaussian)
-  // distribution
   double one_minus_alpha = 1 - m_alpha;
   double sqrt_alpha = std::sqrt(1 - m_alpha * m_alpha);
   m_Velocity =
@@ -150,8 +121,6 @@ void GaussMarkovMobilityModel::Start() {
                 sqrt_alpha * rd;
   m_Pitch = m_alpha * m_Pitch + one_minus_alpha * m_meanPitch + sqrt_alpha * rp;
 
-  // Calculate the linear velocity vector to give to the constant velocity
-  // helper
   double cosDir = std::cos(m_Direction);
   double cosPit = std::cos(m_Pitch);
   double sinDir = std::sin(m_Direction);
@@ -178,9 +147,6 @@ void GaussMarkovMobilityModel::DoWalk(Time delayLeft) {
     delayLeft = Seconds(1.0);
   }
 
-  // Make sure that the position by the next time step is still within the
-  // boundary. If out of bounds, then alter the velocity vector and average
-  // direction to keep the position in bounds
   if (m_bounds.IsInside(nextPosition)) {
     m_event =
         Simulator::Schedule(delayLeft, &GaussMarkovMobilityModel::Start, this);
@@ -210,10 +176,7 @@ void GaussMarkovMobilityModel::DoWalk(Time delayLeft) {
   NotifyCourseChange();
 }
 
-void GaussMarkovMobilityModel::DoDispose() {
-  // chain up
-  MobilityModel::DoDispose();
-}
+void GaussMarkovMobilityModel::DoDispose() { MobilityModel::DoDispose(); }
 
 Vector GaussMarkovMobilityModel::DoGetPosition() const {
   m_helper.Update();

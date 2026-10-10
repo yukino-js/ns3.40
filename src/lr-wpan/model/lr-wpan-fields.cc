@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Ritsumeikan University, Shiga, Japan.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *  Author: Alberto Gallegos Ramonet <ramonet@fc.ritsumei.ac.jp>
- */
 
 #include "lr-wpan-fields.h"
 
@@ -34,13 +16,12 @@ SuperframeField::SuperframeField() {
 }
 
 void SuperframeField::SetSuperframe(uint16_t superFrmSpec) {
-  m_sspecBcnOrder = (superFrmSpec) & (0x0F);          // Bits 0-3
-  m_sspecSprFrmOrder = (superFrmSpec >> 4) & (0x0F);  // Bits 4-7
-  m_sspecFnlCapSlot = (superFrmSpec >> 8) & (0x0F);   // Bits 8-11
-  m_sspecBatLifeExt = (superFrmSpec >> 12) & (0x01);  // Bit 12
-                                                      // Bit 13 (Reserved)
-  m_sspecPanCoor = (superFrmSpec >> 14) & (0x01);     // Bit 14
-  m_sspecAssocPermit = (superFrmSpec >> 15) & (0x01); // Bit 15
+  m_sspecBcnOrder = (superFrmSpec) & (0x0F);
+  m_sspecSprFrmOrder = (superFrmSpec >> 4) & (0x0F);
+  m_sspecFnlCapSlot = (superFrmSpec >> 8) & (0x0F);
+  m_sspecBatLifeExt = (superFrmSpec >> 12) & (0x01);
+  m_sspecPanCoor = (superFrmSpec >> 14) & (0x01);
+  m_sspecAssocPermit = (superFrmSpec >> 15) & (0x01);
 }
 
 void SuperframeField::SetBeaconOrder(uint8_t bcnOrder) {
@@ -93,20 +74,17 @@ bool SuperframeField::IsAssocPermit() const { return m_sspecAssocPermit; }
 uint16_t SuperframeField::GetSuperframe() const {
   uint16_t superframe;
 
-  superframe = m_sspecBcnOrder & (0x0F);                   // Bits 0-3
-  superframe |= (m_sspecSprFrmOrder << 4) & (0x0F << 4);   // Bits 4-7
-  superframe |= (m_sspecFnlCapSlot << 8) & (0x0F << 8);    // Bits 8-11
-  superframe |= (m_sspecBatLifeExt << 12) & (0x01 << 12);  // Bit 12
-                                                           // Bit 13 (Reserved)
-  superframe |= (m_sspecPanCoor << 14) & (0x01 << 14);     // Bit 14
-  superframe |= (m_sspecAssocPermit << 15) & (0x01 << 15); // Bit 15
+  superframe = m_sspecBcnOrder & (0x0F);
+  superframe |= (m_sspecSprFrmOrder << 4) & (0x0F << 4);
+  superframe |= (m_sspecFnlCapSlot << 8) & (0x0F << 8);
+  superframe |= (m_sspecBatLifeExt << 12) & (0x01 << 12);
+  superframe |= (m_sspecPanCoor << 14) & (0x01 << 14);
+  superframe |= (m_sspecAssocPermit << 15) & (0x01 << 15);
 
   return superframe;
 }
 
-uint32_t SuperframeField::GetSerializedSize() const {
-  return 2; // 2 Octets (superframeSpec)
-}
+uint32_t SuperframeField::GetSerializedSize() const { return 2; }
 
 Buffer::Iterator SuperframeField::Serialize(Buffer::Iterator i) const {
   i.WriteHtolsbU16(GetSuperframe());
@@ -131,24 +109,17 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-/***********************************************************
- *         Guaranteed Time Slots (GTS) Fields
- ***********************************************************/
-
 GtsFields::GtsFields() {
-  // GTS Specification Field
   m_gtsSpecDescCount = 0;
   m_gtsSpecPermit = 0;
-  // GTS Direction Field
   m_gtsDirMask = 0;
 }
 
 uint8_t GtsFields::GetGtsSpecField() const {
   uint8_t gtsSpecField;
 
-  gtsSpecField = m_gtsSpecDescCount & (0x07);           // Bits 0-2
-                                                        // Bits 3-6 (Reserved)
-  gtsSpecField |= (m_gtsSpecPermit << 7) & (0x01 << 7); // Bit 7
+  gtsSpecField = m_gtsSpecDescCount & (0x07);
+  gtsSpecField |= (m_gtsSpecPermit << 7) & (0x01 << 7);
 
   return gtsSpecField;
 }
@@ -156,20 +127,17 @@ uint8_t GtsFields::GetGtsSpecField() const {
 uint8_t GtsFields::GetGtsDirectionField() const {
   uint8_t gtsDirectionField;
 
-  gtsDirectionField = m_gtsDirMask & (0x7F); // Bit 0-6
-                                             // Bit 7 (Reserved)
+  gtsDirectionField = m_gtsDirMask & (0x7F);
   return gtsDirectionField;
 }
 
 void GtsFields::SetGtsSpecField(uint8_t gtsSpec) {
-  m_gtsSpecDescCount = (gtsSpec) & (0x07);   // Bits 0-2
-                                             // Bits 3-6 (Reserved)
-  m_gtsSpecPermit = (gtsSpec >> 7) & (0x01); // Bit 7
+  m_gtsSpecDescCount = (gtsSpec) & (0x07);
+  m_gtsSpecPermit = (gtsSpec >> 7) & (0x01);
 }
 
 void GtsFields::SetGtsDirectionField(uint8_t gtsDir) {
-  m_gtsDirMask = (gtsDir) & (0x7F); // Bits 0-6
-                                    // Bit 7 (Reserved)
+  m_gtsDirMask = (gtsDir) & (0x7F);
 }
 
 bool GtsFields::GetGtsPermit() const { return m_gtsSpecPermit; }
@@ -177,10 +145,10 @@ bool GtsFields::GetGtsPermit() const { return m_gtsSpecPermit; }
 uint32_t GtsFields::GetSerializedSize() const {
   uint32_t size;
 
-  size = 1; // 1 octet  GTS Specification Field
+  size = 1;
   if (m_gtsSpecDescCount > 0) {
-    size += 1;                        // 1 octet GTS Direction Field
-    size += (m_gtsSpecDescCount * 3); // 3 octets per GTS descriptor
+    size += 1;
+    size += (m_gtsSpecDescCount * 3);
   }
 
   return size;
@@ -196,10 +164,8 @@ Buffer::Iterator GtsFields::Serialize(Buffer::Iterator i) const {
     for (int j = 0; j < m_gtsSpecDescCount; j++) {
       WriteTo(i, m_gtsList[j].m_gtsDescDevShortAddr);
 
-      gtsDescStartAndLength =
-          (m_gtsList[j].m_gtsDescStartSlot &
-           0x0F) |                               // GTS descriptor bits 16-19
-          (m_gtsList[j].m_gtsDescLength & 0xF0); // GTS descriptor bits 20-23
+      gtsDescStartAndLength = (m_gtsList[j].m_gtsDescStartSlot & 0x0F) |
+                              (m_gtsList[j].m_gtsDescLength & 0xF0);
 
       i.WriteU8(gtsDescStartAndLength);
     }
@@ -233,10 +199,6 @@ std::ostream &operator<<(std::ostream &os, const GtsFields &gtsFields) {
   return os;
 }
 
-/***********************************************************
- *              Pending Address Fields
- ***********************************************************/
-
 PendingAddrFields::PendingAddrFields() {
   m_pndAddrSpecNumShortAddr = 0;
   m_pndAddrSpecNumExtAddr = 0;
@@ -253,11 +215,8 @@ uint8_t PendingAddrFields::GetNumExtAddr() const {
 uint8_t PendingAddrFields::GetPndAddrSpecField() const {
   uint8_t pndAddrSpecField;
 
-  pndAddrSpecField = m_pndAddrSpecNumShortAddr & (0x07); // Bits 0-2
-                                                         // Bit  3 (Reserved)
-  pndAddrSpecField |=
-      (m_pndAddrSpecNumExtAddr << 4) & (0x07 << 4); // Bits 4-6
-                                                    // Bit  7 (Reserved)
+  pndAddrSpecField = m_pndAddrSpecNumShortAddr & (0x07);
+  pndAddrSpecField |= (m_pndAddrSpecNumExtAddr << 4) & (0x07 << 4);
 
   return pndAddrSpecField;
 }
@@ -305,20 +264,16 @@ bool PendingAddrFields::SearchAddress(Mac64Address extAddr) {
 }
 
 void PendingAddrFields::SetPndAddrSpecField(uint8_t pndAddrSpecField) {
-  m_pndAddrSpecNumShortAddr = (pndAddrSpecField) & (0x07);    // Bit 0-2
-                                                              // Bit 3
-  m_pndAddrSpecNumExtAddr = (pndAddrSpecField >> 4) & (0x07); // Bit 4-6
-                                                              // Bit 7
+  m_pndAddrSpecNumShortAddr = (pndAddrSpecField) & (0x07);
+  m_pndAddrSpecNumExtAddr = (pndAddrSpecField >> 4) & (0x07);
 }
 
 uint32_t PendingAddrFields::GetSerializedSize() const {
   uint32_t size;
 
-  size = 1; // 1 octet  (Pending Address Specification Field)
-  size = size + (m_pndAddrSpecNumShortAddr *
-                 2); // X octets (Short Pending Address List)
-  size = size + (m_pndAddrSpecNumExtAddr *
-                 8); // X octets (Extended Pending Address List)
+  size = 1;
+  size = size + (m_pndAddrSpecNumShortAddr * 2);
+  size = size + (m_pndAddrSpecNumExtAddr * 8);
 
   return size;
 }
@@ -360,10 +315,6 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-/***********************************************************
- *              Capability Information Field
- ***********************************************************/
-
 CapabilityField::CapabilityField() {
   m_deviceType = true;
   m_powerSource = false;
@@ -377,25 +328,25 @@ CapabilityField::CapabilityField(uint8_t bitmap) { SetCapability(bitmap); }
 uint8_t CapabilityField::GetCapability() const {
   uint8_t capability;
 
-  capability = (m_reservedBit0) & (0x01);                  //!< Bit 0 (reserved)
-  capability |= (m_deviceType << 1) & (0x01 << 1);         //!< Bit 1
-  capability |= (m_powerSource << 2) & (0x01 << 2);        //!< Bit 2
-  capability |= (m_receiverOnWhenIdle << 3) & (0x01 << 3); //!< Bit 3
-  capability |= (m_reservedBit45 << 4) & (0x03 << 4); //!< Bit 4-5 (reserved)
-  capability |= (m_securityCap << 6) & (0x01 << 6);   //!< Bit 6
-  capability |= (m_allocAddr << 7) & (0x01 << 7);     //!< Bit 7
+  capability = (m_reservedBit0) & (0x01);
+  capability |= (m_deviceType << 1) & (0x01 << 1);
+  capability |= (m_powerSource << 2) & (0x01 << 2);
+  capability |= (m_receiverOnWhenIdle << 3) & (0x01 << 3);
+  capability |= (m_reservedBit45 << 4) & (0x03 << 4);
+  capability |= (m_securityCap << 6) & (0x01 << 6);
+  capability |= (m_allocAddr << 7) & (0x01 << 7);
 
   return capability;
 }
 
 void CapabilityField::SetCapability(uint8_t bitmap) {
-  m_reservedBit0 = (bitmap) & (0x01);            //!< Bit 0 (reserved)
-  m_deviceType = (bitmap >> 1) & (0x01);         //!< Bit 1
-  m_powerSource = (bitmap >> 2) & (0x01);        //!< Bit 2
-  m_receiverOnWhenIdle = (bitmap >> 3) & (0x01); //!< Bit 3
-  m_reservedBit45 = (bitmap >> 4) & (0x03);      //!< Bit 4-5 (reserved)
-  m_securityCap = (bitmap >> 6) & (0x01);        //!< Bit 6
-  m_allocAddr = (bitmap >> 7) & (0x01);          //!< Bit 7
+  m_reservedBit0 = (bitmap) & (0x01);
+  m_deviceType = (bitmap >> 1) & (0x01);
+  m_powerSource = (bitmap >> 2) & (0x01);
+  m_receiverOnWhenIdle = (bitmap >> 3) & (0x01);
+  m_reservedBit45 = (bitmap >> 4) & (0x03);
+  m_securityCap = (bitmap >> 6) & (0x01);
+  m_allocAddr = (bitmap >> 7) & (0x01);
 }
 
 uint32_t CapabilityField::GetSerializedSize() const { return 1; }
@@ -437,14 +388,6 @@ void CapabilityField::SetShortAddrAllocOn(bool addrAlloc) {
   m_allocAddr = addrAlloc;
 }
 
-/**
- * output stream output operator
- *
- * \param os output stream
- * \param capabilityField the Capability Information Field
- *
- * \returns output stream
- */
 std::ostream &operator<<(std::ostream &os,
                          const CapabilityField &capabilityField) {
   os << " FFD device capable = " << bool(capabilityField.IsDeviceTypeFfd())

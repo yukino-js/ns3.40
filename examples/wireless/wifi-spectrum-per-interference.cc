@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2009 MIRKO BANCHI
- * Copyright (c) 2015 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mirko Banchi <mk.banchi@gmail.com>
- *          Sebastien Deronne <sebastien.deronne@gmail.com>
- *          Tom Henderson <tomhend@u.washington.edu>
- *
- * Adapted from wifi-ht-network.cc example
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -45,77 +22,12 @@
 
 #include <iomanip>
 
-// This is a simple example of an IEEE 802.11n Wi-Fi network with a
-// non-Wi-Fi interferer.  It is an adaptation of the wifi-spectrum-per-example
-//
-// Unless the --waveformPower argument is passed, it will operate similarly to
-// wifi-spectrum-per-example.  Adding --waveformPower=value for values
-// greater than 0.0001 will result in frame losses beyond those that
-// result from the normal SNR based on distance path loss.
-//
-// If YansWifiPhy is selected as the wifiType, --waveformPower will have
-// no effect.
-//
-// Network topology:
-//
-//  Wi-Fi 192.168.1.0
-//
-//   STA                  AP
-//    * <-- distance -->  *
-//    |                   |
-//    n1                  n2
-//
-// Users may vary the following command-line arguments in addition to the
-// attributes, global values, and default values typically available:
-//
-//    --simulationTime:  Simulation time in seconds [10]
-//    --udp:             UDP if set to 1, TCP otherwise [true]
-//    --distance:        meters separation between nodes [50]
-//    --index:           restrict index to single value between 0 and 31 [256]
-//    --wifiType:        select ns3::SpectrumWifiPhy or ns3::YansWifiPhy
-//    [ns3::SpectrumWifiPhy]
-//    --errorModelType:  select ns3::NistErrorRateModel or
-//    ns3::YansErrorRateModel [ns3::NistErrorRateModel]
-//    --enablePcap:      enable pcap output [false]
-//    --waveformPower:   Waveform power (linear W) [0]
-//
-// By default, the program will step through 32 index values, corresponding
-// to the following MCS, channel width, and guard interval combinations:
-//   index 0-7:    MCS 0-7, long guard interval, 20 MHz channel
-//   index 8-15:   MCS 0-7, short guard interval, 20 MHz channel
-//   index 16-23:  MCS 0-7, long guard interval, 40 MHz channel
-//   index 24-31:  MCS 0-7, short guard interval, 40 MHz channel
-// and send UDP for 10 seconds using each MCS, using the SpectrumWifiPhy and the
-// NistErrorRateModel, at a distance of 50 meters.  The program outputs
-// results such as:
-//
-// wifiType: ns3::SpectrumWifiPhy distance: 50m; time: 10; TxPower: 16 dBm (40
-// mW) index   MCS  Rate (Mb/s) Tput (Mb/s) Received Signal (dBm)Noi+Inf(dBm)
-// SNR (dB)
-//     0     0      6.50        5.77    7414      -64.69      -93.97       29.27
-//     1     1     13.00       11.58   14892      -64.69      -93.97       29.27
-//     2     2     19.50       17.39   22358      -64.69      -93.97       29.27
-//     3     3     26.00       23.23   29875      -64.69      -93.97       29.27
-//   ...
-//
-
 using namespace ns3;
 
-// Global variables for use in callbacks.
-double g_signalDbmAvg; //!< Average signal power [dBm]
-double g_noiseDbmAvg;  //!< Average noise power [dBm]
-uint32_t g_samples;    //!< Number of samples
+double g_signalDbmAvg;
+double g_noiseDbmAvg;
+uint32_t g_samples;
 
-/**
- * Monitor sniffer Rx trace
- *
- * \param packet The sensed packet.
- * \param channelFreqMhz The channel frequency [MHz].
- * \param txVector The Tx vector.
- * \param aMpdu The aMPDU.
- * \param signalNoise The signal and noise dBm.
- * \param staId The STA ID.
- */
 void MonitorSniffRx(Ptr<const Packet> packet, uint16_t channelFreqMhz,
                     WifiTxVector txVector, MpduInfo aMpdu,
                     SignalNoiseDbm signalNoise, uint16_t staId)
@@ -128,10 +40,9 @@ void MonitorSniffRx(Ptr<const Packet> packet, uint16_t channelFreqMhz,
 
 NS_LOG_COMPONENT_DEFINE("WifiSpectrumPerInterference");
 
-Ptr<SpectrumModel> SpectrumModelWifi5180MHz; //!< Spectrum model at 5180 MHz.
-Ptr<SpectrumModel> SpectrumModelWifi5190MHz; //!< Spectrum model at 5190 MHz.
+Ptr<SpectrumModel> SpectrumModelWifi5180MHz;
+Ptr<SpectrumModel> SpectrumModelWifi5190MHz;
 
-/** Initializer for a static spectrum model centered around 5180 MHz */
 class static_SpectrumModelWifi5180MHz_initializer {
 public:
   static_SpectrumModelWifi5180MHz_initializer() {
@@ -147,11 +58,9 @@ public:
   }
 };
 
-/// Static instance to initizlize the spectrum model around 5180 MHz.
 static_SpectrumModelWifi5180MHz_initializer
     static_SpectrumModelWifi5180MHz_initializer_instance;
 
-/** Initializer for a static spectrum model centered around 5190 MHz */
 class static_SpectrumModelWifi5190MHz_initializer {
 public:
   static_SpectrumModelWifi5190MHz_initializer() {
@@ -167,14 +76,13 @@ public:
   }
 };
 
-/// Static instance to initizlize the spectrum model around 5190 MHz.
 static_SpectrumModelWifi5190MHz_initializer
     static_SpectrumModelWifi5190MHz_initializer_instance;
 
 int main(int argc, char *argv[]) {
   bool udp = true;
   double distance = 50;
-  double simulationTime = 10; // seconds
+  double simulationTime = 10;
   uint16_t index = 256;
   std::string wifiType = "ns3::SpectrumWifiPhy";
   std::string errorModelType = "ns3::NistErrorRateModel";
@@ -214,9 +122,9 @@ int main(int argc, char *argv[]) {
   for (uint16_t i = startIndex; i <= stopIndex; i++) {
     uint32_t payloadSize;
     if (udp) {
-      payloadSize = 972; // 1000 bytes IPv4
+      payloadSize = 972;
     } else {
-      payloadSize = 1448; // 1500 bytes IPv6
+      payloadSize = 1448;
       Config::SetDefault("ns3::TcpSocket::SegmentSize",
                          UintegerValue(payloadSize));
     }
@@ -254,7 +162,6 @@ int main(int argc, char *argv[]) {
 
       spectrumPhy.SetChannel(spectrumChannel);
       spectrumPhy.SetErrorRateModel(errorModelType);
-      // channel 36 at 20 MHz, 38 at 40 MHz
       spectrumPhy.Set("ChannelSettings",
                       StringValue(std::string("{") +
                                   (frequency == 5180 ? "36" : "38") +
@@ -409,7 +316,6 @@ int main(int argc, char *argv[]) {
           BooleanValue(true));
     }
 
-    // mobility.
     MobilityHelper mobility;
     Ptr<ListPositionAllocator> positionAlloc =
         CreateObject<ListPositionAllocator>();
@@ -425,7 +331,6 @@ int main(int argc, char *argv[]) {
     mobility.Install(wifiStaNode);
     mobility.Install(interferingNode);
 
-    /* Internet stack*/
     InternetStackHelper stack;
     stack.Install(wifiApNode);
     stack.Install(wifiStaNode);
@@ -438,10 +343,8 @@ int main(int argc, char *argv[]) {
     staNodeInterface = address.Assign(staDevice);
     apNodeInterface = address.Assign(apDevice);
 
-    /* Setting applications */
     ApplicationContainer serverApp;
     if (udp) {
-      // UDP flow
       uint16_t port = 9;
       UdpServerHelper server(port);
       serverApp = server.Install(wifiStaNode.Get(0));
@@ -450,13 +353,12 @@ int main(int argc, char *argv[]) {
 
       UdpClientHelper client(staNodeInterface.GetAddress(0), port);
       client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-      client.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+      client.SetAttribute("Interval", TimeValue(Time("0.0001")));
       client.SetAttribute("PacketSize", UintegerValue(payloadSize));
       ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
       clientApp.Start(Seconds(1.0));
       clientApp.Stop(Seconds(simulationTime + 1));
     } else {
-      // TCP flow
       uint16_t port = 50000;
       Address localAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
       PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", localAddress);
@@ -470,7 +372,7 @@ int main(int argc, char *argv[]) {
       onoff.SetAttribute(
           "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
       onoff.SetAttribute("PacketSize", UintegerValue(payloadSize));
-      onoff.SetAttribute("DataRate", DataRateValue(1000000000)); // bit/s
+      onoff.SetAttribute("DataRate", DataRateValue(1000000000));
       AddressValue remoteAddress(
           InetSocketAddress(staNodeInterface.GetAddress(0), port));
       onoff.SetAttribute("Remote", remoteAddress);
@@ -479,10 +381,9 @@ int main(int argc, char *argv[]) {
       clientApp.Stop(Seconds(simulationTime + 1));
     }
 
-    // Configure waveform generator
     Ptr<SpectrumValue> wgPsd = Create<SpectrumValue>(
         i <= 15 ? SpectrumModelWifi5180MHz : SpectrumModelWifi5190MHz);
-    *wgPsd = waveformPower / 20e6; // PSD spread across 20 MHz
+    *wgPsd = waveformPower / 20e6;
     NS_LOG_INFO("wgPsd : " << *wgPsd << " integrated power: "
                            << Integral(*(GetPointer(wgPsd))));
 
@@ -518,8 +419,6 @@ int main(int argc, char *argv[]) {
     g_noiseDbmAvg = 0;
     g_samples = 0;
 
-    // Make sure we are tuned to 5180 MHz; if not, the example will
-    // not work properly
     Ptr<NetDevice> staDevicePtr = staDevice.Get(0);
     Ptr<WifiPhy> wifiPhyPtr =
         staDevicePtr->GetObject<WifiNetDevice>()->GetPhy();
@@ -543,17 +442,15 @@ int main(int argc, char *argv[]) {
     double throughput = 0;
     uint64_t totalPacketsThrough = 0;
     if (udp) {
-      // UDP
       totalPacketsThrough =
           DynamicCast<UdpServer>(serverApp.Get(0))->GetReceived();
-      throughput = totalPacketsThrough * payloadSize * 8 /
-                   (simulationTime * 1000000.0); // Mbit/s
+      throughput =
+          totalPacketsThrough * payloadSize * 8 / (simulationTime * 1000000.0);
     } else {
-      // TCP
       uint64_t totalBytesRx =
           DynamicCast<PacketSink>(serverApp.Get(0))->GetTotalRx();
       totalPacketsThrough = totalBytesRx / tcpPacketSize;
-      throughput = totalBytesRx * 8 / (simulationTime * 1000000.0); // Mbit/s
+      throughput = totalBytesRx * 8 / (simulationTime * 1000000.0);
     }
     std::cout << std::setw(5) << i << std::setw(6) << (i % 8)
               << std::setprecision(2) << std::fixed << std::setw(10) << datarate

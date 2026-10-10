@@ -1,0 +1,34 @@
+# root @ c3c1c25638f0 in ~/github/ns3.40 on git:main o [13:58:35] 
+$ ./ns3 clean                                                             
+Finished executing the following commands:
+rm -R build
+rm -R cmake-cache
+
+# root @ c3c1c25638f0 in ~/github/ns3.40 on git:main o [13:58:40] 
+$ ./ns3 configure --build-profile=optimized --enable-mtp --enable-examples
+
+-- The CXX compiler identification is Clang 14.0.0
+-- The C compiler identification is Clang 14.0.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/clang++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/clang - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Using default output directory /root/github/ns3.40/build
+CMake Error at build-support/custom-modules/ns3-module-macros.cmake:418 (endfunction):
+  Flow control statements are not properly nested.
+Call Stack (most recent call first):
+  build-support/macros-and-definitions.cmake:1610 (include)
+  CMakeLists.txt:112 (include)
+
+
+-- Configuring incomplete, errors occurred!
+See also "/root/github/ns3.40/cmake-cache/CMakeFiles/CMakeOutput.log".
+Finished executing the following commands:
+mkdir cmake-cache
+cd cmake-cache; /usr/bin/cmake -DCMAKE_BUILD_TYPE=release -DNS3_ASSERT=OFF -DNS3_LOG=OFF-DNS3_WARNINGS_AS_ERRORS=OFF -DNS3_NATIVE_OPTIMIZATIONS=ON -DNS3_EXAMPLES=ON -DNS3_MTP=ON -G Ninja .. ; cd ..

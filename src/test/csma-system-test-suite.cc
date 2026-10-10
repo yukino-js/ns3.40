@@ -1,36 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-// This is not a test of CsmaNetDevice model behavior per-se, but
-// instead is a roll up of several end-to-end examples in examples/csma
-// directory, converted into system tests.  Writing a test suite
-// to test Csma itself is for further study.
 
 #include "ns3/address.h"
 #include "ns3/application-container.h"
@@ -64,11 +32,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA Bridge mode test.
- */
 class CsmaBridgeTestCase : public TestCase {
 public:
   CsmaBridgeTestCase();
@@ -77,16 +40,10 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   */
   void SinkRx(Ptr<const Packet> p, const Address &ad);
-  uint32_t m_count; //!< Counter of received packets.
+  uint32_t m_count;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaBridgeTestCase::CsmaBridgeTestCase()
     : TestCase(
           "Bridge example for Carrier Sense Multiple Access (CSMA) networks"),
@@ -98,18 +55,6 @@ void CsmaBridgeTestCase::SinkRx(Ptr<const Packet> p, const Address &ad) {
   m_count++;
 }
 
-// Network topology
-//
-//        n0     n1
-//        |      |
-//       ----------
-//       | Switch |
-//       ----------
-//        |      |
-//        n2     n3
-//
-// - CBR/UDP test flow from n0 to n1; test that packets received on n1
-//
 void CsmaBridgeTestCase::DoRun() {
   NodeContainer terminals;
   terminals.Create(4);
@@ -131,7 +76,6 @@ void CsmaBridgeTestCase::DoRun() {
     switchDevices.Add(link.Get(1));
   }
 
-  // Create the bridge netdevice, which will do the packet switching
   Ptr<Node> switchNode = csmaSwitch.Get(0);
   BridgeHelper bridge;
   bridge.Install(switchNode, switchDevices);
@@ -143,12 +87,8 @@ void CsmaBridgeTestCase::DoRun() {
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   ipv4.Assign(terminalDevices);
 
-  uint16_t port = 9; // Discard port (RFC 863)
+  uint16_t port = 9;
 
-  // Create the OnOff application to send UDP datagrams from n0 to n1.
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     Address(InetSocketAddress(Ipv4Address("10.1.1.2"), port)));
   onoff.SetConstantRate(DataRate(5000));
@@ -163,7 +103,6 @@ void CsmaBridgeTestCase::DoRun() {
   app = sink.Install(terminals.Get(1));
   app.Start(Seconds(0.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/1/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaBridgeTestCase::SinkRx, this));
@@ -171,15 +110,9 @@ void CsmaBridgeTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_count, 10, "Bridge should have passed 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA Broadcast mode test.
- */
 class CsmaBroadcastTestCase : public TestCase {
 public:
   CsmaBroadcastTestCase();
@@ -188,28 +121,16 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received by a node.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   * @{
-   */
   void SinkRxNode1(Ptr<const Packet> p, const Address &ad);
   void SinkRxNode2(Ptr<const Packet> p, const Address &ad);
-  /** @} */
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
 
-  uint32_t m_countNode1; //!< Counter of received packets on node 1.
-  uint32_t m_countNode2; //!< Counter of received packets on node 2.
-  uint32_t m_drops;      //!< Counter of dropped packets.
+  uint32_t m_countNode1;
+  uint32_t m_countNode2;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaBroadcastTestCase::CsmaBroadcastTestCase()
     : TestCase("Broadcast example for Carrier Sense Multiple Access (CSMA) "
                "networks"),
@@ -229,19 +150,6 @@ void CsmaBroadcastTestCase::SinkRxNode2(Ptr<const Packet> p,
 
 void CsmaBroadcastTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-//
-// Example of the sending of a datagram to a broadcast address
-//
-// Network topology
-//     ==============
-//       |          |
-//       n0    n1   n2
-//       |     |
-//     ==========
-//
-//   n0 originates UDP broadcast to 255.255.255.255/discard port, which
-//   is replicated and received on both n1 and n2
-//
 void CsmaBroadcastTestCase::DoRun() {
   NodeContainer c;
   c.Create(3);
@@ -264,26 +172,17 @@ void CsmaBroadcastTestCase::DoRun() {
   ipv4.SetBase("192.168.1.0", "255.255.255.0");
   ipv4.Assign(n1);
 
-  // RFC 863 discard port ("9") indicates packet should be thrown away
-  // by the system.  We allow this silent discard to be overridden
-  // by the PacketSink application.
   uint16_t port = 9;
 
-  // Create the OnOff application to send UDP datagrams from n0.
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   OnOffHelper onoff(
       "ns3::UdpSocketFactory",
       Address(InetSocketAddress(Ipv4Address("255.255.255.255"), port)));
   onoff.SetConstantRate(DataRate(5000));
 
   ApplicationContainer app = onoff.Install(c0.Get(0));
-  // Start the application
   app.Start(Seconds(1.0));
   app.Stop(Seconds(10.0));
 
-  // Create an optional packet sink to receive these packets
   PacketSinkHelper sink(
       "ns3::UdpSocketFactory",
       Address(InetSocketAddress(Ipv4Address::GetAny(), port)));
@@ -292,7 +191,6 @@ void CsmaBroadcastTestCase::DoRun() {
   app.Start(Seconds(1.0));
   app.Stop(Seconds(10.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/1/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaBroadcastTestCase::SinkRxNode1, this));
@@ -303,18 +201,12 @@ void CsmaBroadcastTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_countNode1, 10,
                         "Node 1 should have received 10 packets");
   NS_TEST_ASSERT_MSG_EQ(m_countNode2, 10,
                         "Node 2 should have received 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA Multicast mode test.
- */
 class CsmaMulticastTestCase : public TestCase {
 public:
   CsmaMulticastTestCase();
@@ -323,24 +215,14 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received by a node.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   */
   void SinkRx(Ptr<const Packet> p, const Address &ad);
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
 
-  uint32_t m_count; //!< Counter of received packets.
-  uint32_t m_drops; //!< Counter of dropped packets.
+  uint32_t m_count;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaMulticastTestCase::CsmaMulticastTestCase()
     : TestCase("Multicast example for Carrier Sense Multiple Access (CSMA) "
                "networks"),
@@ -354,32 +236,12 @@ void CsmaMulticastTestCase::SinkRx(Ptr<const Packet> p, const Address &ad) {
 
 void CsmaMulticastTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-// Network topology
-//
-//                     Lan1
-//                 ===========
-//                 |    |    |
-//       n0   n1   n2   n3   n4
-//       |    |    |
-//       ===========
-//           Lan0
-//
-// - Multicast source is at node n0;
-// - Multicast forwarded by node n2 onto LAN1;
-// - Nodes n0, n1, n2, n3, and n4 receive the multicast frame.
-// - Node n4 listens for the data
-//
 void CsmaMulticastTestCase::DoRun() {
-  //
-  // Set up default values for the simulation.
-  //
-  // Select DIX/Ethernet II-style encapsulation (no LLC/Snap header)
   Config::SetDefault("ns3::CsmaNetDevice::EncapsulationMode",
                      StringValue("Dix"));
 
   NodeContainer c;
   c.Create(5);
-  // We will later want two subcontainers of these nodes, for the two LANs
   NodeContainer c0 = NodeContainer(c.Get(0), c.Get(1), c.Get(2));
   NodeContainer c1 = NodeContainer(c.Get(2), c.Get(3), c.Get(4));
 
@@ -387,9 +249,8 @@ void CsmaMulticastTestCase::DoRun() {
   csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
 
-  // We will use these NetDevice containers later, for IP addressing
-  NetDeviceContainer nd0 = csma.Install(c0); // First LAN
-  NetDeviceContainer nd1 = csma.Install(c1); // Second LAN
+  NetDeviceContainer nd0 = csma.Install(c0);
+  NetDeviceContainer nd1 = csma.Install(c1);
 
   InternetStackHelper internet;
   internet.Install(c);
@@ -400,91 +261,52 @@ void CsmaMulticastTestCase::DoRun() {
   ipv4Addr.SetBase("10.1.2.0", "255.255.255.0");
   ipv4Addr.Assign(nd1);
 
-  //
-  // Now we can configure multicasting.  As described above, the multicast
-  // source is at node zero, which we assigned the IP address of 10.1.1.1
-  // earlier.  We need to define a multicast group to send packets to.  This
-  // can be any multicast address from 224.0.0.0 through 239.255.255.255
-  // (avoiding the reserved routing protocol addresses).
-  //
-
   Ipv4Address multicastSource("10.1.1.1");
   Ipv4Address multicastGroup("225.1.2.4");
 
-  // Now, we will set up multicast routing.  We need to do three things:
-  // 1) Configure a (static) multicast route on node n2
-  // 2) Set up a default multicast route on the sender n0
-  // 3) Have node n4 join the multicast group
-  // We have a helper that can help us with static multicast
   Ipv4StaticRoutingHelper multicast;
 
-  // 1) Configure a (static) multicast route on node n2 (multicastRouter)
-  Ptr<Node> multicastRouter = c.Get(2); // The node in question
-  Ptr<NetDevice> inputIf = nd0.Get(2);  // The input NetDevice
-  NetDeviceContainer outputDevices;     // A container of output NetDevices
-  outputDevices.Add(nd1.Get(0));        // (we only need one NetDevice here)
+  Ptr<Node> multicastRouter = c.Get(2);
+  Ptr<NetDevice> inputIf = nd0.Get(2);
+  NetDeviceContainer outputDevices;
+  outputDevices.Add(nd1.Get(0));
 
   multicast.AddMulticastRoute(multicastRouter, multicastSource, multicastGroup,
                               inputIf, outputDevices);
 
-  // 2) Set up a default multicast route on the sender n0
   Ptr<Node> sender = c.Get(0);
   Ptr<NetDevice> senderIf = nd0.Get(0);
   multicast.SetDefaultMulticastRoute(sender, senderIf);
 
-  //
-  // Create an OnOff application to send UDP datagrams from node zero to the
-  // multicast group (node four will be listening).
-  //
+  uint16_t multicastPort = 9;
 
-  uint16_t multicastPort = 9; // Discard port (RFC 863)
-
-  // Configure a multicast packet generator.
-  //
-  // Make packets be sent about every defaultPacketSize / dataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     Address(InetSocketAddress(multicastGroup, multicastPort)));
   onoff.SetConstantRate(DataRate(5000));
 
   ApplicationContainer srcC = onoff.Install(c0.Get(0));
 
-  //
-  // Tell the application when to start and stop.
-  //
   srcC.Start(Seconds(1.));
   srcC.Stop(Seconds(10.));
 
-  // Create an optional packet sink to receive these packets
   PacketSinkHelper sink(
       "ns3::UdpSocketFactory",
       InetSocketAddress(Ipv4Address::GetAny(), multicastPort));
 
-  ApplicationContainer sinkC = sink.Install(c1.Get(2)); // Node n4
-  // Start the sink
+  ApplicationContainer sinkC = sink.Install(c1.Get(2));
   sinkC.Start(Seconds(1.0));
   sinkC.Stop(Seconds(10.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/4/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaMulticastTestCase::SinkRx, this));
 
-  //
-  // Now, do the actual simulation.
-  //
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_count, 10, "Node 4 should have received 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA One Subnet mode test.
- */
 class CsmaOneSubnetTestCase : public TestCase {
 public:
   CsmaOneSubnetTestCase();
@@ -493,27 +315,15 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received by a node.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   * @{
-   */
   void SinkRxNode0(Ptr<const Packet> p, const Address &ad);
   void SinkRxNode1(Ptr<const Packet> p, const Address &ad);
-  /** @} */
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
-  uint32_t m_countNode0; //!< Counter of received packets on node 0.
-  uint32_t m_countNode1; //!< Counter of received packets on node 1.
-  uint32_t m_drops;      //!< Counter of dropped packets.
+  uint32_t m_countNode0;
+  uint32_t m_countNode1;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaOneSubnetTestCase::CsmaOneSubnetTestCase()
     : TestCase("One subnet example for Carrier Sense Multiple Access (CSMA) "
                "networks"),
@@ -533,16 +343,6 @@ void CsmaOneSubnetTestCase::SinkRxNode1(Ptr<const Packet> p,
 
 void CsmaOneSubnetTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-// Network topology
-//
-//       n0    n1   n2   n3
-//       |     |    |    |
-//       =================
-//              LAN
-//
-// - CBR/UDP flows from n0 to n1 and from n3 to n0
-// - DropTail queues
-//
 void CsmaOneSubnetTestCase::DoRun() {
   NodeContainer nodes;
   nodes.Create(4);
@@ -550,48 +350,31 @@ void CsmaOneSubnetTestCase::DoRun() {
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(5000000));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
-  //
-  // Now fill out the topology by creating the net devices required to connect
-  // the nodes to the channels and hooking them up.
-  //
   NetDeviceContainer devices = csma.Install(nodes);
 
   InternetStackHelper internet;
   internet.Install(nodes);
 
-  // We've got the "hardware" in place.  Now we need to add IP addresses.
-  //
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
-  uint16_t port = 9; // Discard port (RFC 863)
+  uint16_t port = 9;
 
-  //
-  // Create an OnOff application to send UDP datagrams from node zero
-  // to node 1.
-  //
-  // Make packets be sent about every defaultPacketSize / dataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     Address(InetSocketAddress(interfaces.GetAddress(1), port)));
   onoff.SetConstantRate(DataRate(5000));
 
   ApplicationContainer app = onoff.Install(nodes.Get(0));
-  // Start the application
   app.Start(Seconds(1.0));
   app.Stop(Seconds(10.0));
 
-  // Create an optional packet sink to receive these packets
   PacketSinkHelper sink(
       "ns3::UdpSocketFactory",
       Address(InetSocketAddress(Ipv4Address::GetAny(), port)));
   app = sink.Install(nodes.Get(1));
   app.Start(Seconds(0.0));
 
-  //
-  // Create a similar flow from n3 to n0, starting at time 1.1 seconds
-  //
   onoff.SetAttribute("Remote", AddressValue(InetSocketAddress(
                                    interfaces.GetAddress(0), port)));
   app = onoff.Install(nodes.Get(3));
@@ -601,7 +384,6 @@ void CsmaOneSubnetTestCase::DoRun() {
   app = sink.Install(nodes.Get(0));
   app.Start(Seconds(0.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/0/ApplicationList/1/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaOneSubnetTestCase::SinkRxNode0, this));
@@ -609,24 +391,15 @@ void CsmaOneSubnetTestCase::DoRun() {
       "/NodeList/1/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaOneSubnetTestCase::SinkRxNode1, this));
 
-  //
-  // Now, do the actual simulation.
-  //
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_countNode0, 10,
                         "Node 0 should have received 10 packets");
   NS_TEST_ASSERT_MSG_EQ(m_countNode1, 10,
                         "Node 1 should have received 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA PacketSocket test.
- */
 class CsmaPacketSocketTestCase : public TestCase {
 public:
   CsmaPacketSocketTestCase();
@@ -634,25 +407,14 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Sink called when a packet is received by a node.
-   * \param path Sink path.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   */
   void SinkRx(std::string path, Ptr<const Packet> p, const Address &ad);
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
 
-  uint32_t m_count; //!< Counter of received packets.
-  uint32_t m_drops; //!< Counter of dropped packets.
+  uint32_t m_count;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaPacketSocketTestCase::CsmaPacketSocketTestCase()
     : TestCase("Packet socket example for Carrier Sense Multiple Access (CSMA) "
                "networks"),
@@ -667,39 +429,21 @@ void CsmaPacketSocketTestCase::SinkRx(std::string path, Ptr<const Packet> p,
 
 void CsmaPacketSocketTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-//
-// Network topology
-//
-//       n0    n1   n2   n3
-//       |     |    |    |
-//     =====================
-//
-// - Packet socket flow from n0 to n1 and from node n3 to n0
-// -- We will test reception at node n0
-// - Default 512 byte packets generated by traffic generator
-//
 void CsmaPacketSocketTestCase::DoRun() {
-  // Here, we will explicitly create four nodes.
   NodeContainer nodes;
   nodes.Create(4);
 
   PacketSocketHelper packetSocket;
   packetSocket.Install(nodes);
 
-  // create the shared medium used by all csma devices.
   Ptr<CsmaChannel> channel = CreateObjectWithAttributes<CsmaChannel>(
       "DataRate", DataRateValue(DataRate(5000000)), "Delay",
       TimeValue(MilliSeconds(2)));
 
-  // use a helper function to connect our nodes to the shared channel.
   CsmaHelper csma;
   csma.SetDeviceAttribute("EncapsulationMode", StringValue("Llc"));
   NetDeviceContainer devs = csma.Install(nodes, channel);
 
-  // Create the OnOff application to send raw datagrams
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   PacketSocketAddress socket;
   socket.SetSingleDevice(devs.Get(0)->GetIfIndex());
   socket.SetPhysicalAddress(devs.Get(1)->GetAddress());
@@ -723,22 +467,15 @@ void CsmaPacketSocketTestCase::DoRun() {
   apps.Start(Seconds(0.0));
   apps.Stop(Seconds(20.0));
 
-  // Trace receptions
   Config::Connect("/NodeList/0/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&CsmaPacketSocketTestCase::SinkRx, this));
 
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have received 10 packets on node 0
   NS_TEST_ASSERT_MSG_EQ(m_count, 10, "Node 0 should have received 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA PING test.
- */
 class CsmaPingTestCase : public TestCase {
 public:
   CsmaPingTestCase();
@@ -746,27 +483,17 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Sink called when a packet is received by a node.
-   */
   void SinkRx(Ptr<const Packet>, const Address &);
 
-  /**
-   * Sink called when a PING is received.
-   */
   void PingRtt(std::string, uint16_t, Time);
 
-  /**
-   * Sink called when a packet is dropped.
-   */
   void DropEvent(Ptr<const Packet>);
 
-  uint32_t m_countSinkRx;  //!< Counter of received packets.
-  uint32_t m_countPingRtt; //!< Counter of PING received.
-  uint32_t m_drops;        //!< Counter of dropped packets.
+  uint32_t m_countSinkRx;
+  uint32_t m_countPingRtt;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaPingTestCase::CsmaPingTestCase()
     : TestCase(
           "Ping example for Carrier Sense Multiple Access (CSMA) networks"),
@@ -784,40 +511,23 @@ void CsmaPingTestCase::PingRtt(std::string, uint16_t, Time) {
 
 void CsmaPingTestCase::DropEvent(Ptr<const Packet>) { m_drops++; }
 
-// Network topology
-//
-//       n0    n1   n2   n3
-//       |     |    |    |
-//     =====================
-//
-//  node n0,n1,n3 pings to node n2
-//  node n0 generates protocol 2 (IGMP) to node n3
-//
 void CsmaPingTestCase::DoRun() {
-  // Here, we will explicitly create four nodes.
   NodeContainer c;
   c.Create(4);
 
-  // connect all our nodes to a shared channel.
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
   csma.SetDeviceAttribute("EncapsulationMode", StringValue("Llc"));
   NetDeviceContainer devs = csma.Install(c);
 
-  // add an ip stack to all nodes.
   InternetStackHelper ipStack;
   ipStack.Install(c);
 
-  // assign ip addresses
   Ipv4AddressHelper ip;
   ip.SetBase("192.168.1.0", "255.255.255.0");
   Ipv4InterfaceContainer addresses = ip.Assign(devs);
 
-  // Create the OnOff application to send UDP datagrams from n0 to n1.
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   Config::SetDefault("ns3::Ipv4RawSocketImpl::Protocol", StringValue("2"));
   InetSocketAddress dst(addresses.GetAddress(3));
   OnOffHelper onoff = OnOffHelper("ns3::Ipv4RawSocketFactory", dst);
@@ -841,32 +551,23 @@ void CsmaPingTestCase::DoRun() {
   apps.Start(Seconds(2.0));
   apps.Stop(Seconds(5.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaPingTestCase::SinkRx, this));
 
-  // Trace pings
   Config::Connect("/NodeList/*/ApplicationList/*/$ns3::Ping/Rtt",
                   MakeCallback(&CsmaPingTestCase::PingRtt, this));
 
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_countSinkRx, 10,
                         "Node 3 should have received 10 packets");
 
-  // We should have 3 pingers that ping every second for 3 seconds.
   NS_TEST_ASSERT_MSG_EQ(m_countPingRtt, 9,
                         "Node 2 should have been pinged 9 times");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA Raw IP test.
- */
 class CsmaRawIpSocketTestCase : public TestCase {
 public:
   CsmaRawIpSocketTestCase();
@@ -875,24 +576,14 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received by a node.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   */
   void SinkRx(Ptr<const Packet> p, const Address &ad);
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
 
-  uint32_t m_count; //!< Counter of received packets.
-  uint32_t m_drops; //!< Counter of dropped packets.
+  uint32_t m_count;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaRawIpSocketTestCase::CsmaRawIpSocketTestCase()
     : TestCase("Raw internet protocol socket example for Carrier Sense "
                "Multiple Access (CSMA) networks"),
@@ -906,41 +597,23 @@ void CsmaRawIpSocketTestCase::SinkRx(Ptr<const Packet> p, const Address &ad) {
 
 void CsmaRawIpSocketTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-//
-// Network topology
-//    (sender)         (receiver)
-//       n0    n1   n2   n3
-//       |     |    |    |
-//     =====================
-//
-// Node n0 sends data to node n3 over a raw IP socket.  The protocol
-// number used is 2.
-//
 void CsmaRawIpSocketTestCase::DoRun() {
-  // Here, we will explicitly create four nodes.
   NodeContainer c;
   c.Create(4);
 
-  // connect all our nodes to a shared channel.
   CsmaHelper csma;
   csma.SetChannelAttribute("DataRate", DataRateValue(DataRate(5000000)));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
   csma.SetDeviceAttribute("EncapsulationMode", StringValue("Llc"));
   NetDeviceContainer devs = csma.Install(c);
 
-  // add an ip stack to all nodes.
   InternetStackHelper ipStack;
   ipStack.Install(c);
 
-  // assign ip addresses
   Ipv4AddressHelper ip;
   ip.SetBase("192.168.1.0", "255.255.255.0");
   Ipv4InterfaceContainer addresses = ip.Assign(devs);
 
-  // IP protocol configuration
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   Config::SetDefault("ns3::Ipv4RawSocketImpl::Protocol", StringValue("2"));
   InetSocketAddress dst(addresses.GetAddress(3));
   OnOffHelper onoff = OnOffHelper("ns3::Ipv4RawSocketFactory", dst);
@@ -955,7 +628,6 @@ void CsmaRawIpSocketTestCase::DoRun() {
   apps.Start(Seconds(0.0));
   apps.Stop(Seconds(12.0));
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/3/ApplicationList/0/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaRawIpSocketTestCase::SinkRx, this));
@@ -963,15 +635,9 @@ void CsmaRawIpSocketTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // We should have sent and received 10 packets
   NS_TEST_ASSERT_MSG_EQ(m_count, 10, "Node 3 should have received 10 packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA star mode test.
- */
 class CsmaStarTestCase : public TestCase {
 public:
   CsmaStarTestCase();
@@ -980,24 +646,14 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Sink called when a packet is received by a node.
-   * \param p Received packet (unused).
-   * \param ad Sender's address (uused).
-   */
   void SinkRx(Ptr<const Packet> p, const Address &ad);
 
-  /**
-   * Sink called when a packet is dropped.
-   * \param p Received packet (unused).
-   */
   void DropEvent(Ptr<const Packet> p);
 
-  uint32_t m_count; //!< Counter of received packets.
-  uint32_t m_drops; //!< Counter of dropped packets.
+  uint32_t m_count;
+  uint32_t m_drops;
 };
 
-// Add some help text to this case to describe what it is intended to test
 CsmaStarTestCase::CsmaStarTestCase()
     : TestCase(
           "Star example for Carrier Sense Multiple Access (CSMA) networks"),
@@ -1011,27 +667,7 @@ void CsmaStarTestCase::SinkRx(Ptr<const Packet> p, const Address &ad) {
 
 void CsmaStarTestCase::DropEvent(Ptr<const Packet> p) { m_drops++; }
 
-// Network topology (default)
-//
-//            n2     +          +     n3          .
-//             | ... |\        /| ... |           .
-//             ======= \      / =======           .
-//              CSMA    \    /   CSMA             .
-//                       \  /                     .
-//            n1     +--- n0 ---+     n4          .
-//             | ... |   /  \   | ... |           .
-//             =======  /    \  =======           .
-//              CSMA   /      \  CSMA             .
-//                    /        \                  .
-//            n6     +          +     n5          .
-//             | ... |          | ... |           .
-//             =======          =======           .
-//              CSMA             CSMA             .
-//
 void CsmaStarTestCase::DoRun() {
-  //
-  // Default number of nodes in the star.
-  //
   uint32_t nSpokes = 7;
 
   CsmaHelper csma;
@@ -1041,11 +677,6 @@ void CsmaStarTestCase::DoRun() {
 
   NodeContainer fillNodes;
 
-  //
-  // Just to be nasy, hang some more nodes off of the CSMA channel for each
-  // spoke, so that there are a total of 16 nodes on each channel.  Stash
-  // all of these new devices into a container.
-  //
   NetDeviceContainer fillDevices;
 
   uint32_t nFill = 14;
@@ -1064,16 +695,6 @@ void CsmaStarTestCase::DoRun() {
 
   star.AssignIpv4Addresses(Ipv4AddressHelper("10.1.0.0", "255.255.255.0"));
 
-  //
-  // We assigned addresses to the logical hub and the first "drop" of the
-  // CSMA network that acts as the spoke, but we also have a number of fill
-  // devices (nFill) also hanging off the CSMA network.  We have got to
-  // assign addresses to them as well.  We put all of the fill devices into
-  // a single device container, so the first nFill devices are associated
-  // with the channel connected to spokeDevices.Get (0), the second nFill
-  // devices are associated with the channel connected to spokeDevices.Get (1)
-  // etc.
-  //
   Ipv4AddressHelper address;
   for (uint32_t i = 0; i < star.SpokeCount(); ++i) {
     std::ostringstream subnet;
@@ -1085,9 +706,6 @@ void CsmaStarTestCase::DoRun() {
     }
   }
 
-  //
-  // Create a packet sink on the star "hub" to receive packets.
-  //
   uint16_t port = 50000;
   Address hubLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
   PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", hubLocalAddress);
@@ -1095,11 +713,6 @@ void CsmaStarTestCase::DoRun() {
   hubApp.Start(Seconds(1.0));
   hubApp.Stop(Seconds(10.0));
 
-  //
-  // Create OnOff applications to send TCP to the hub, one on each spoke node.
-  //
-  // Make packets be sent about every DefaultPacketSize / DataRate =
-  // 4096 bits / (5000 bits/second) = 0.82 second.
   OnOffHelper onOffHelper("ns3::TcpSocketFactory", Address());
   onOffHelper.SetConstantRate(DataRate(5000));
 
@@ -1115,14 +728,6 @@ void CsmaStarTestCase::DoRun() {
   spokeApps.Start(Seconds(1.0));
   spokeApps.Stop(Seconds(10.0));
 
-  //
-  // Because we are evil, we also add OnOff applications to send TCP to the hub
-  // from the fill devices on each CSMA link.  The first nFill nodes in the
-  // fillNodes container are on the CSMA network talking to the zeroth device
-  // on the hub node.  The next nFill nodes are on the CSMA network talking to
-  // the first device on the hub node, etc.  So the ith fillNode is associated
-  // with the hub address found on the (i / nFill)th device on the hub node.
-  //
   ApplicationContainer fillApps;
 
   for (uint32_t i = 0; i < fillNodes.GetN(); ++i) {
@@ -1135,12 +740,8 @@ void CsmaStarTestCase::DoRun() {
   fillApps.Start(Seconds(1.0));
   fillApps.Stop(Seconds(10.0));
 
-  //
-  // Turn on global static routing so we can actually be routed across the star.
-  //
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Trace receptions
   Config::ConnectWithoutContext(
       "/NodeList/0/ApplicationList/*/$ns3::PacketSink/Rx",
       MakeCallback(&CsmaStarTestCase::SinkRx, this));
@@ -1148,18 +749,11 @@ void CsmaStarTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // The hub node should have received 10 packets from the nFill + 1
-  // nodes on each spoke.
   NS_TEST_ASSERT_MSG_EQ(
       m_count, 10 * (nSpokes * (nFill + 1)),
       "Hub node did not receive the proper number of packets");
 }
 
-/**
- * \ingroup system-tests-csma
- *
- * \brief CSMA TestSuite.
- */
 class CsmaSystemTestSuite : public TestSuite {
 public:
   CsmaSystemTestSuite();
@@ -1176,5 +770,4 @@ CsmaSystemTestSuite::CsmaSystemTestSuite() : TestSuite("csma-system", UNIT) {
   AddTestCase(new CsmaStarTestCase, TestCase::QUICK);
 }
 
-/// Do not forget to allocate an instance of this TestSuite
 static CsmaSystemTestSuite csmaSystemTestSuite;

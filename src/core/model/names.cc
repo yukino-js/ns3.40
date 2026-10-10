@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "names.h"
 
@@ -25,57 +9,23 @@
 
 #include <map>
 
-/**
- * \file
- * \ingroup config
- * ns3::Names, ns3::NamesNode and ns3::NamePriv implementations.
- */
-
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Names");
 
-/**
- * \ingroup config
- *  Node in the naming tree.
- */
 class NameNode {
 public:
-  /** Default constructor. */
   NameNode();
-  /**
-   * Copy constructor.
-   *
-   * \param [in] nameNode The NameNode to copy from.
-   */
   NameNode(const NameNode &nameNode);
-  /**
-   * Constructor.
-   *
-   * \param [in] parent The parent NameNode.
-   * \param [in] name The name of this NameNode
-   * \param [in] object The object corresponding to this NameNode.
-   */
   NameNode(NameNode *parent, std::string name, Ptr<Object> object);
-  /**
-   * Assignment operator.
-   *
-   * \param [in] rhs The NameNode to copy from.
-   * \returns The lhs NameNode.
-   */
   NameNode &operator=(const NameNode &rhs);
 
-  /** Destructor. */
   ~NameNode();
 
-  /** The parent NameNode. */
   NameNode *m_parent;
-  /** The name of this NameNode. */
   std::string m_name;
-  /** The object corresponding to this NameNode. */
   Ptr<Object> m_object;
 
-  /** Children of this NameNode. */
   std::map<std::string, NameNode *> m_nameMap;
 };
 
@@ -103,162 +53,34 @@ NameNode::NameNode(NameNode *parent, std::string name, Ptr<Object> object)
 
 NameNode::~NameNode() { NS_LOG_FUNCTION(this); }
 
-/**
- * \ingroup config
- * The singleton root Names object.
- */
 class NamesPriv : public Singleton<NamesPriv> {
 public:
-  /** Constructor. */
   NamesPriv();
-  /** Destructor. */
   ~NamesPriv() override;
 
-  // Doxygen \copydoc bug: won't copy these docs, so we repeat them.
-
-  /**
-   * Internal implementation for Names::Add(std::string,Ptr<Object>)
-   *
-   * \param [in] name The name of the object you want to associate;
-   *             which may be prepended with a path to that object.
-   * \param [in] object A smart pointer to the object itself.
-   * \return \c true if the object was named successfully.
-   */
   bool Add(std::string name, Ptr<Object> object);
-  /**
-   * Internal implementation for Names::Add(std::string,std::string,Ptr<Object>)
-   *
-   * \param [in] path A path name describing a previously named object
-   *             under which you want this new name to be defined.
-   * \param [in] name The name of the object you want to associate.
-   * \param [in] object A smart pointer to the object itself.
-   * \return \c true if the object was named successfully.
-   */
   bool Add(std::string path, std::string name, Ptr<Object> object);
-  /**
-   * Internal implementation for Names::Add(Ptr<Object>,std::string,Ptr<Object>)
-   *
-   * \param [in] context A smart pointer to an object that is used
-   *             in place of the path under which you want this new
-   *             name to be defined.
-   * \param [in] name The name of the object you want to associate.
-   * \param [in] object A smart pointer to the object itself.
-   * \return \c true if the object was named successfully.
-   */
   bool Add(Ptr<Object> context, std::string name, Ptr<Object> object);
 
-  /**
-   * Internal implementation for Names::Rename(std::string,std::string)
-   *
-   * \param [in] oldpath The current path name to the object you want
-   *             to change.
-   * \param [in] newname The new name of the object you want to change.
-   * \return \c true if the object was renamed successfully.
-   */
   bool Rename(std::string oldpath, std::string newname);
-  /**
-   * Internal implementation for
-   * Names::Rename(std::string,std::string,std::string)
-   *
-   * \param [in] path A path name describing a previously named object
-   *             under which you want this name change to occur
-   *             (cf. directory).
-   * \param [in] oldname The currently defined name of the object.
-   * \param [in] newname The new name you want the object to have.
-   * \return \c true if the object was renamed successfully.
-   */
   bool Rename(std::string path, std::string oldname, std::string newname);
-  /**
-   * Internal implementation for
-   * Names::Rename(Ptr<Object>,std::string,std::string)
-   *
-   * \param [in] context A smart pointer to an object that is used
-   *             in place of the path under which you want this
-   *             new name to be defined.
-   * \param [in] oldname The current shortname of the object you want
-   *             to change.
-   * \param [in] newname The new shortname of the object you want
-   *             to change.
-   * \return \c true if the object was renamed successfully.
-   */
   bool Rename(Ptr<Object> context, std::string oldname, std::string newname);
 
-  /**
-   * Internal implementation for Names::FindName()
-   *
-   * \param [in] object A smart pointer to an object for which you want
-   *             to find its name.
-   * \returns A string containing the name of the object if found,
-   *          otherwise the empty string.
-   */
   std::string FindName(Ptr<Object> object);
-  /**
-   * Internal implementation of Names::FindPath()
-   *
-   * \param [in] object A smart pointer to an object for which you
-   *             want to find its fullname.
-   * \returns A string containing the name path of the object,
-   *          otherwise the empty string.
-   */
   std::string FindPath(Ptr<Object> object);
 
-  /**
-   * Internal implementation for Names::Clear()
-   */
   void Clear();
 
-  /**
-   * Internal implementation for ns3::Names::Find(std::string)
-   *
-   * \param [in] path A string containing a name space path used
-   *             to locate the object.
-   * \returns A smart pointer to the named object converted to
-   *          the requested type.
-   */
   Ptr<Object> Find(std::string path);
-  /**
-   * Internal implementation for ns3::Names::Find(std::string,std::string)
-   *
-   * \param [in] path A path name describing a previously named object
-   *             under which you want to look for the specified name.
-   * \param [in] name A string containing a name to search for.
-   * \returns A smart pointer to the named object converted to
-   *          the requested type.
-   */
   Ptr<Object> Find(std::string path, std::string name);
-  /**
-   * Internal implementation for ns3::Names::Find(Ptr<Object>,std::string)
-   *
-   * \param [in] context A smart pointer to an object that is used
-   *             in place of the path under which you want this
-   *             new name to be defined.
-   * \param [in] name A string containing a name to search for.
-   * \returns A smart pointer to the named object converted to
-   *          the requested type.
-   */
   Ptr<Object> Find(Ptr<Object> context, std::string name);
 
 private:
-  /**
-   * Check if an object has a name.
-   *
-   * \param [in] object The object to check.
-   * \returns The corresponding NameNode, if it exists.
-   */
   NameNode *IsNamed(Ptr<Object> object);
-  /**
-   * Check if a name already exists as a child of a NameNode.
-   *
-   * \param [in] node The node to search.
-   * \param [in] name The name to search for.
-   * \returns \c true if \c name already exists as a child of \c node.
-   */
   bool IsDuplicateName(NameNode *node, std::string name);
 
-  /** The root NameNode. */
   NameNode m_root;
 
-  /** Map from object pointers to their NameNodes. */
   std::map<Ptr<Object>, NameNode *> m_objectMap;
 };
 
@@ -278,11 +100,6 @@ NamesPriv::~NamesPriv() {
 
 void NamesPriv::Clear() {
   NS_LOG_FUNCTION(this);
-  //
-  // Every name is associated with an object in the object map, so freeing the
-  // NameNodes in this map will free all of the memory allocated for the
-  // NameNodes
-  //
   for (auto i = m_objectMap.begin(); i != m_objectMap.end(); ++i) {
     delete i->second;
     i->second = nullptr;
@@ -298,29 +115,9 @@ void NamesPriv::Clear() {
 
 bool NamesPriv::Add(std::string name, Ptr<Object> object) {
   NS_LOG_FUNCTION(this << name << object);
-  //
-  // This is the simple, easy to use version of Add, so we want it to be
-  // flexible. We don't want to force a user to always type the fully qualified
-  // namespace name, so we allow the namespace name to be omitted.  For example,
-  // calling Add ("Client/ath0", obj) should result in exactly the same behavior
-  // as Add ("/Names/Client/ath0", obj).  Calling Add ("Client", obj) should
-  // have the same effect as Add ("Names/Client", obj)
-  //
-  // The first thing to do, then, is to "canonicalize" the input string to
-  // always be a fully qualified name.
-  //
-  // If we are given a name that begins with "/Names/" we assume that this is a
-  // fully qualified path name to the object we want to create.  We split the
-  // name into a path string and a final segment (name) and then call the "Real"
-  // Add.
-  //
   std::string namespaceName = "/Names";
   std::string::size_type offset = name.find(namespaceName);
   if (offset != 0) {
-    //
-    // This must be a name that has the "/Names" namespace prefix omitted.
-    // Do some reasonableness checking on the rest of the name.
-    //
     offset = name.find('/');
     if (offset == 0) {
       NS_ASSERT_MSG(
@@ -331,30 +128,13 @@ bool NamesPriv::Add(std::string name, Ptr<Object> object) {
     name = "/Names/" + name;
   }
 
-  //
-  // There must now be a fully qualified path in the string.  All fully
-  // qualified names begin with "/Names".  We have to split off the final
-  // segment which will become the name of the object.  A '/' that
-  // separates the path from the final segment had better be there since
-  // we just made sure that at least the namespace name was there.
-  //
   std::string::size_type i = name.rfind('/');
   NS_ASSERT_MSG(i != std::string::npos,
                 "NamesPriv::Add(): Internal error.  Can't find '/' in name");
 
-  //
-  // The slash we found cannot be the slash at the start of the namespaceName.
-  // This would indicate there is no name in the path at all.  It can be
-  // any other index.
-  //
   NS_ASSERT_MSG(i != 0,
                 "NamesPriv::Add(): Can't find a name in the path string");
 
-  //
-  // We now know where the path string starts and ends, and where the
-  // name starts and ends.  All we have to do is to call our available
-  // function for adding a name under a path string.
-  //
   return Add(name.substr(0, i), name.substr(i + 1), object);
 }
 
@@ -398,30 +178,9 @@ bool NamesPriv::Add(Ptr<Object> context, std::string name, Ptr<Object> object) {
 
 bool NamesPriv::Rename(std::string oldpath, std::string newname) {
   NS_LOG_FUNCTION(this << oldpath << newname);
-  //
-  // This is the simple, easy to use version of Rename, so we want it to be
-  // flexible.   We don't want to force a user to always type the fully
-  // qualified namespace name, so we allow the namespace name to be omitted.
-  // For example, calling Rename ("Client/ath0", "eth0") should result in
-  // exactly the same behavior as Rename ("/Names/Client/ath0", "eth0").
-  // Calling Rename ("Client", "Router") should have the same effect as
-  // Rename ("Names/Client", "Router")
-  //
-  // The first thing to do, then, is to "canonicalize" the input string to
-  // always be a fully qualified path.
-  //
-  // If we are given a name that begins with "/Names/" we assume that this is a
-  // fully qualified path to the object we want to change.  We split the path
-  // into path string (cf directory) and a final segment (cf filename) and then
-  // call the "Real" Rename.
-  //
   std::string namespaceName = "/Names";
   std::string::size_type offset = oldpath.find(namespaceName);
   if (offset != 0) {
-    //
-    // This must be a name that has the "/Names" namespace prefix omitted.
-    // Do some reasonableness checking on the rest of the name.
-    //
     offset = oldpath.find('/');
     if (offset == 0) {
       NS_ASSERT_MSG(
@@ -432,30 +191,13 @@ bool NamesPriv::Rename(std::string oldpath, std::string newname) {
     oldpath = "/Names/" + oldpath;
   }
 
-  //
-  // There must now be a fully qualified path in the oldpath string.  All
-  // fully qualified names begin with "/Names".  We have to split off the final
-  // segment which will become the name we want to rename.  A '/' that
-  // separates the path from the final segment (name) had better be there since
-  // we just made sure that at least the namespace name was there.
-  //
   std::string::size_type i = oldpath.rfind('/');
   NS_ASSERT_MSG(i != std::string::npos,
                 "NamesPriv::Add(): Internal error.  Can't find '/' in name");
 
-  //
-  // The slash we found cannot be the slash at the start of the namespaceName.
-  // This would indicate there is no name in the path at all.  It can be
-  // any other index.
-  //
   NS_ASSERT_MSG(i != 0,
                 "NamesPriv::Add(): Can't find a name in the path string");
 
-  //
-  // We now know where the path part of the string starts and ends, and where
-  // the name part starts and ends.  All we have to do is to call our available
-  // function for creating adding a name under a path string.
-  //
   return Rename(oldpath.substr(0, i), oldpath.substr(i + 1), newname);
 }
 
@@ -494,13 +236,6 @@ bool NamesPriv::Rename(Ptr<Object> context, std::string oldname,
   } else {
     NS_LOG_LOGIC("Old name exists in name map");
 
-    //
-    // The rename process consists of:
-    // 1.  Getting the pointer to the name node from the map and remembering it;
-    // 2.  Removing the map entry corresponding to oldname from the map;
-    // 3.  Changing the name string in the name node;
-    // 4.  Adding the name node back in the map under the newname.
-    //
     NameNode *changeNode = i->second;
     node->m_nameMap.erase(i);
     changeNode->m_name = newname;
@@ -546,20 +281,6 @@ std::string NamesPriv::FindPath(Ptr<Object> object) {
 }
 
 Ptr<Object> NamesPriv::Find(std::string path) {
-  //
-  // This is hooked in from simple, easy to use version of Find, so we want it
-  // to be flexible.
-  //
-  // If we are provided a path that doesn't begin with "/Names", we assume
-  // that the caller has simply given us a path starting with a name that
-  // is in the root namespace.  This allows people to omit the "/Names" prefix.
-  // and simply do a Find ("Client/eth0") instead of having to always do a
-  // Find ("/Names/Client/eth0");
-  //
-  // So, if we are given a name that begins with "/Names/" the upshot is that we
-  // just remove that prefix and treat the rest of the string as starting with a
-  // name in the root namespace.
-  //
 
   NS_LOG_FUNCTION(this << path);
   std::string namespaceName = "/Names/";
@@ -576,21 +297,10 @@ Ptr<Object> NamesPriv::Find(std::string path) {
 
   NameNode *node = &m_root;
 
-  //
-  // The string <remaining> is now composed entirely of path segments in
-  // the /Names name space and we have eaten the leading slash. e.g.,
-  // remaining = "ClientNode/eth0"
-  //
-  // The start of the search is always at the root of the name space.
-  //
   for (;;) {
     NS_LOG_LOGIC("Looking for the object of name " << remaining);
     offset = remaining.find('/');
     if (offset == std::string::npos) {
-      //
-      // There are no remaining slashes so this is the last segment of the
-      // specified name.  We're done when we find it
-      //
       auto i = node->m_nameMap.find(remaining);
       if (i == node->m_nameMap.end()) {
         NS_LOG_LOGIC("Name does not exist in name map");
@@ -600,10 +310,6 @@ Ptr<Object> NamesPriv::Find(std::string path) {
         return i->second->m_object;
       }
     } else {
-      //
-      // There are more slashes so this is an intermediate segment of the
-      // specified name.  We need to "recurse" when we find this segment.
-      //
       offset = remaining.find('/');
       std::string segment = remaining.substr(0, offset);
 

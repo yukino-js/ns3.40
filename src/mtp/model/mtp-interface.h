@@ -1,18 +1,3 @@
-/*
- * Copyright 2026 hangtiancheng
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef MTP_INTERFACE_H
 #define MTP_INTERFACE_H
@@ -42,13 +27,10 @@ public:
     }
   };
 
-  static void Enable(); // auto topology partition
-  static void
-  Enable(const uint32_t threadCount); // auto partition, specify thread count
-  static void Enable(const uint32_t threadCount,
-                     const uint32_t systemCount); // manual partition
-  static void
-  EnableNew(const uint32_t newSystemCount); // add LPs for dynamic added node
+  static void Enable();
+  static void Enable(const uint32_t threadCount);
+  static void Enable(const uint32_t threadCount, const uint32_t systemCount);
+  static void EnableNew(const uint32_t newSystemCount);
   static void Disable();
   static void Run();
   static void RunBefore();
@@ -59,7 +41,6 @@ public:
   static bool isPartitioned();
   static void CalculateLookAhead();
 
-  // get current thread's executing logical process
   inline static LogicalProcess *GetSystem() {
     return static_cast<LogicalProcess *>(pthread_getspecific(g_key));
   }
@@ -68,7 +49,6 @@ public:
     return &g_systems[systemId];
   }
 
-  // set current thread's executing logical process
   inline static void SetSystem(const uint32_t systemId) {
     pthread_setspecific(g_key, &g_systems[systemId]);
   }
@@ -113,7 +93,6 @@ public:
 private:
   static void *ThreadFunc(void *arg);
 
-  // determine logical process priority
   static bool SortByExecutionTime(const uint32_t &i, const uint32_t &j);
   static bool SortByEventCount(const uint32_t &i, const uint32_t &j);
   static bool SortByPendingEventCount(const uint32_t &i, const uint32_t &j);
@@ -145,4 +124,4 @@ private:
 
 } // namespace ns3
 
-#endif /* MTP_INTERFACE_H */
+#endif

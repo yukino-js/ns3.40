@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "ns3/header.h"
 #include "ns3/packet-metadata.h"
 #include "ns3/packet.h"
@@ -30,36 +12,17 @@ using namespace ns3;
 
 namespace {
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Base header-type class to check the proper header concatenation
- *
- * \note Class internal to packet-metadata-test.cc
- */
 class HistoryHeaderBase : public Header {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
   HistoryHeaderBase();
-  /**
-   * Checks if the header has deserialization errors
-   * \returns True if no error found.
-   */
   bool IsOk() const;
 
 protected:
-  /**
-   * Signal that an error has been found in deserialization.
-   */
   void ReportError();
 
 private:
-  bool m_ok; //!< True if no error is signalled.
+  bool m_ok;
 };
 
 TypeId HistoryHeaderBase::GetTypeId() {
@@ -73,21 +36,9 @@ bool HistoryHeaderBase::IsOk() const { return m_ok; }
 
 void HistoryHeaderBase::ReportError() { m_ok = false; }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Template header-type class to check the proper header concatenation
- *
- * \note Class internal to packet-metadata-test.cc
- */
 template <int N> class HistoryHeader : public HistoryHeaderBase {
 public:
   HistoryHeader();
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   void Print(std::ostream &os) const override;
@@ -134,36 +85,17 @@ uint32_t HistoryHeader<N>::Deserialize(Buffer::Iterator start) {
   return N;
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Base trailer-type class to check the proper trailer concatenation
- *
- * \note Class internal to packet-metadata-test.cc
- */
 class HistoryTrailerBase : public Trailer {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
   HistoryTrailerBase();
-  /**
-   * Checks if the header has deserialization errors
-   * \returns True if no error found.
-   */
   bool IsOk() const;
 
 protected:
-  /**
-   * Signal that an error has been found in deserialization.
-   */
   void ReportError();
 
 private:
-  bool m_ok; //!< True if no error is signalled.
+  bool m_ok;
 };
 
 TypeId HistoryTrailerBase::GetTypeId() {
@@ -177,22 +109,10 @@ bool HistoryTrailerBase::IsOk() const { return m_ok; }
 
 void HistoryTrailerBase::ReportError() { m_ok = false; }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Template trailer-type class to check the proper trailer concatenation
- *
- * \note Class internal to packet-metadata-test.cc
- */
 template <int N> class HistoryTrailer : public HistoryTrailerBase {
 public:
   HistoryTrailer();
 
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   void Print(std::ostream &os) const override;
@@ -243,31 +163,14 @@ uint32_t HistoryTrailer<N>::Deserialize(Buffer::Iterator start) {
 
 } // namespace
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * Packet Metadata unit tests.
- */
 class PacketMetadataTest : public TestCase {
 public:
   PacketMetadataTest();
   ~PacketMetadataTest() override;
-  /**
-   * Checks the packet header and trailer history
-   * \param p The packet
-   * \param n The number of variable arguments
-   * \param ... The variable arguments
-   */
   void CheckHistory(Ptr<Packet> p, uint32_t n, ...);
   void DoRun() override;
 
 private:
-  /**
-   * Adds an header to the packet
-   * \param p The packet
-   * \return The packet with the header added.
-   */
   Ptr<Packet> DoAddHeader(Ptr<Packet> p);
 };
 
@@ -655,8 +558,6 @@ void PacketMetadataTest::DoRun() {
   p = Create<Packet>(16383);
   p = Create<Packet>(16384);
 
-  /// \internal
-  /// See \bugid{179}
   p = Create<Packet>(40);
   p2 = p->CreateFragment(5, 5);
   p3 = p->CreateFragment(10, 30);
@@ -726,8 +627,6 @@ void PacketMetadataTest::DoRun() {
   p->RemoveAtStart(10);
   CHECK_HISTORY(p, 1, 490);
 
-  /// \internal
-  /// See \bugid{1072}
   p = Create<Packet>(500);
   ADD_HEADER(p, 10);
   ADD_HEADER(p, 20);
@@ -737,8 +636,6 @@ void PacketMetadataTest::DoRun() {
   p2 = p->CreateFragment(6, 535 - 6);
   p1->AddAtEnd(p2);
 
-  /// \internal
-  /// See \bugid{1072}
   p = Create<Packet>(reinterpret_cast<const uint8_t *>("hello world"), 11);
   ADD_HEADER(p, 2);
   CHECK_HISTORY(p, 2, 2, 11);
@@ -781,12 +678,6 @@ void PacketMetadataTest::DoRun() {
                         "Could not find original data in received packet");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Packet Metadata TestSuite
- */
 class PacketMetadataTestSuite : public TestSuite {
 public:
   PacketMetadataTestSuite();
@@ -797,5 +688,4 @@ PacketMetadataTestSuite::PacketMetadataTestSuite()
   AddTestCase(new PacketMetadataTest, TestCase::QUICK);
 }
 
-static PacketMetadataTestSuite
-    g_packetMetadataTest; //!< Static variable for test initialization
+static PacketMetadataTestSuite g_packetMetadataTest;

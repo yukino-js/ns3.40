@@ -1,38 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/* This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
- * USA
- *
- */
-
-// OLSR was observed to not converge in simple 3-nodes varying topology.
-// https://www.nsnam.org/bugzilla/show_bug.cgi?id=780
-// tcpdump -r bug780-0-0.pcap -nn -tt icmp | wc
-// should show about 395 packets; there is a ping outage from time
-// 123-127 due to the mobility.
 
 #include "bug780-test.h"
 
@@ -79,7 +45,6 @@ void Bug780Test::CreateNodes() {
   NodeContainer c;
   c.Create(3);
 
-  // install TCP/IP & OLSR
   OlsrHelper olsr;
   InternetStackHelper internet;
   internet.SetRoutingHelper(olsr);
@@ -87,7 +52,6 @@ void Bug780Test::CreateNodes() {
   int64_t streamsUsed = olsr.AssignStreams(c, 0);
   NS_TEST_EXPECT_MSG_EQ(streamsUsed, 3, "Should have assigned 3 streams");
 
-  // create channel & devices
   SimpleNetDeviceHelper simpleNetHelper;
   simpleNetHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
   simpleNetHelper.SetChannelAttribute("Delay", StringValue("2ms"));
@@ -98,7 +62,6 @@ void Bug780Test::CreateNodes() {
   Ipv4InterfaceContainer adhocInterfaces;
   adhocInterfaces = addressAdhoc.Assign(nd);
 
-  // Blacklist some devices (equivalent to Wireless out of range)
   Ptr<SimpleNetDevice> nd0 = DynamicCast<SimpleNetDevice>(nd.Get(0));
   Ptr<SimpleNetDevice> nd2 = DynamicCast<SimpleNetDevice>(nd.Get(2));
   Ptr<SimpleChannel> ch = DynamicCast<SimpleChannel>(nd.Get(0)->GetChannel());
@@ -106,10 +69,9 @@ void Bug780Test::CreateNodes() {
   Simulator::Schedule(Seconds(100.0), &SimpleChannel::BlackList, ch, nd0, nd2);
   Simulator::Schedule(Seconds(100.0), &SimpleChannel::BlackList, ch, nd2, nd0);
 
-  // 3. Setup ping
   m_socket = Socket::CreateSocket(
       c.Get(0), TypeId::LookupByName("ns3::Ipv4RawSocketFactory"));
-  m_socket->SetAttribute("Protocol", UintegerValue(1)); // icmp
+  m_socket->SetAttribute("Protocol", UintegerValue(1));
   m_socket->SetRecvCallback(MakeCallback(&Bug780Test::Receive, this));
   InetSocketAddress src = InetSocketAddress(Ipv4Address::GetAny(), 0);
   m_socket->Bind(src);
@@ -151,10 +113,10 @@ void Bug780Test::Receive(Ptr<Socket> socket) {
 
     NS_ASSERT(InetSocketAddress::IsMatchingType(from));
     InetSocketAddress realFrom = InetSocketAddress::ConvertFrom(from);
-    NS_ASSERT(realFrom.GetPort() == 1); // protocol should be icmp.
+    NS_ASSERT(realFrom.GetPort() == 1);
     Ipv4Header ipv4;
     p->RemoveHeader(ipv4);
-    NS_ASSERT(ipv4.GetProtocol() == 1); // protocol should be icmp.
+    NS_ASSERT(ipv4.GetProtocol() == 1);
     Icmpv4Header icmp;
     p->RemoveHeader(icmp);
     if (icmp.GetType() == Icmpv4Header::ICMPV4_ECHO_REPLY) {

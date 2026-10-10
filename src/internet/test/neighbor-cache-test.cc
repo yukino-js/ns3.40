@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 ZHIHENG DONG
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Zhiheng Dong <dzh2077@gmail.com>
- */
 
 #include "ns3/icmpv4-l4-protocol.h"
 #include "ns3/icmpv6-l4-protocol.h"
@@ -39,70 +21,25 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief Dynamic Neighbor Cache Test
- */
 class DynamicNeighborCacheTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data immediately after being called.
-   * \param socket The sending socket.
-   * \param to IPv4 Destination address.
-   */
   void DoSendDatav4(Ptr<Socket> socket, Ipv4Address to);
 
-  /**
-   * \brief Send data immediately after being called.
-   * \param socket The sending socket.
-   * \param to IPv6 Destination address.
-   */
   void DoSendDatav6(Ptr<Socket> socket, Ipv6Address to);
 
-  /**
-   * \brief Schedules the DoSendData () function to send the data.
-   * \param socket The sending socket.
-   * \param to IPv4 Destination address.
-   */
   void SendData(Ptr<Socket> socket, Ipv4Address to);
 
-  /**
-   * \brief Schedules the DoSendData () function to send the data.
-   * \param socket The sending socket.
-   * \param to IPv6 Destination address.
-   */
   void SendData(Ptr<Socket> socket, Ipv6Address to);
 
-  /**
-   * \brief Add an IPv4 address to an IPv4 interface
-   * \param ipv4Interface The interface that address will be added.
-   * \param ifaceAddr The added IPv4 address.
-   */
   void AddIpv4Address(Ptr<Ipv4Interface> ipv4Interface,
                       Ipv4InterfaceAddress ifaceAddr);
 
-  /**
-   * \brief Add an IPv6 address to an IPv6 interface
-   * \param ipv6Interface The interface that address will be added.
-   * \param ifaceAddr The added IPv6 address.
-   */
   void AddIpv6Address(Ptr<Ipv6Interface> ipv6Interface,
                       Ipv6InterfaceAddress ifaceAddr);
 
-  /**
-   * \brief Remove an IPv4 address from an IPv4 interface
-   * \param ipv4Interface The interface that address will be removed from.
-   * \param index The index of IPv4 address that will be removed.
-   */
   void RemoveIpv4Address(Ptr<Ipv4Interface> ipv4Interface, uint32_t index);
 
-  /**
-   * \brief Remove an IPv6 address from an IPv6 interface
-   * \param ipv6Interface The interface that address will be removed from.
-   * \param index The index of IPv6 address that will be removed.
-   */
   void RemoveIpv6Address(Ptr<Ipv6Interface> ipv6Interface, uint32_t index);
 
 public:
@@ -110,13 +47,9 @@ public:
 
   DynamicNeighborCacheTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
-  std::vector<uint32_t> m_receivedPacketSizes; //!< Received packet sizes
+  std::vector<uint32_t> m_receivedPacketSizes;
 };
 
 DynamicNeighborCacheTest::DynamicNeighborCacheTest()
@@ -201,7 +134,6 @@ void DynamicNeighborCacheTest::DoRun() {
   internetNodes.Install(all);
 
   NetDeviceContainer net;
-  // Sender Node
   Ptr<SimpleNetDevice> tx1Dev;
   {
     tx1Dev = CreateObject<SimpleNetDevice>();
@@ -218,7 +150,6 @@ void DynamicNeighborCacheTest::DoRun() {
   }
   net.Add(tx2Dev);
 
-  // Receive node
   Ptr<SimpleNetDevice> rxDev;
   {
     rxDev = CreateObject<SimpleNetDevice>();
@@ -227,7 +158,6 @@ void DynamicNeighborCacheTest::DoRun() {
   }
   net.Add(rxDev);
 
-  // Sniffer node
   Ptr<SimpleNetDevice> snifferDev;
   {
     snifferDev = CreateObject<SimpleNetDevice>();
@@ -236,19 +166,16 @@ void DynamicNeighborCacheTest::DoRun() {
   }
   net.Add(snifferDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel = CreateObject<SimpleChannel>();
   tx1Dev->SetChannel(channel);
   tx2Dev->SetChannel(channel);
   rxDev->SetChannel(channel);
   snifferDev->SetChannel(channel);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase(Ipv4Address("10.0.1.0"), Ipv4Mask("255.255.255.0"));
   Ipv4InterfaceContainer icv4 = ipv4.Assign(net);
 
-  // Add address 10.1.1.5 to rxNode in 0.5 seconds
   Ptr<Node> n1 = rxNode;
   uint32_t ipv4ifIndex = 1;
   Ptr<Ipv4Interface> ipv4Interface =
@@ -258,18 +185,15 @@ void DynamicNeighborCacheTest::DoRun() {
   Simulator::Schedule(Seconds(0.5), &DynamicNeighborCacheTest::AddIpv4Address,
                       this, ipv4Interface, ifaceAddr);
 
-  // Remove the first address (10.1.1.3) from rxNode in 1.5 seconds
   uint32_t addressIndex = 0;
   Simulator::Schedule(Seconds(1.5),
                       &DynamicNeighborCacheTest::RemoveIpv4Address, this,
                       ipv4Interface, addressIndex);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv6 = ipv6.Assign(net);
 
-  // Add address 2001:1::200:ff:fe00:5 to rxNode in 0.5 seconds
   uint32_t ipv6ifIndex = 1;
   Ptr<Ipv6Interface> ipv6Interface =
       n1->GetObject<Ipv6L3Protocol>()->GetInterface(ipv6ifIndex);
@@ -278,19 +202,15 @@ void DynamicNeighborCacheTest::DoRun() {
   Simulator::Schedule(Seconds(0.5), &DynamicNeighborCacheTest::AddIpv6Address,
                       this, ipv6Interface, ifaceAddrv6);
 
-  // Remove the second address (2001:1::200:ff:fe00:3) from rxNode in 1.5
-  // seconds
   addressIndex = 1;
   Simulator::Schedule(Seconds(1.5),
                       &DynamicNeighborCacheTest::RemoveIpv6Address, this,
                       ipv6Interface, addressIndex);
 
-  // Populate neighbor caches.
   NeighborCacheHelper neighborCache;
   neighborCache.SetDynamicNeighborCache(true);
   neighborCache.PopulateNeighborCache();
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(1), arpStream);
@@ -298,7 +218,6 @@ void DynamicNeighborCacheTest::DoRun() {
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(2), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(2), ndiscStream);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocketv4 = rxSocketFactory->CreateSocket();
   Ptr<Socket> rxSocketv6 = rxSocketFactory->CreateSocket();
@@ -336,22 +255,15 @@ void DynamicNeighborCacheTest::DoRun() {
   Ptr<Socket> tx2Socket = tx2SocketFactory->CreateSocket();
   tx2Socket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
-
-  // send data to the added address
   SendData(tx1Socket, Ipv4Address("10.0.1.5"));
   SendData(tx1Socket, Ipv6Address("2001:0::200:ff:fe00:5"));
 
-  // send data to the removed address
   SendData(tx1Socket, Ipv4Address("10.0.1.3"));
   SendData(tx1Socket, Ipv6Address("2001:0::200:ff:fe00:3"));
 
   Simulator::Stop(Seconds(66));
   Simulator::Run();
 
-  // Check if all packet are correctly received.
   NS_TEST_EXPECT_MSG_EQ(
       m_receivedPacketSizes[0], 123,
       "Should receive packet sending to the added IPv4 address.");
@@ -362,10 +274,6 @@ void DynamicNeighborCacheTest::DoRun() {
                         "Should receive only 1 packet from IPv4 interface and "
                         "only 1 packet from IPv6 interface.");
 
-  // Check if the arp caches are populated correctly at time 0,
-  // Check if the arp caches are updated correctly at time 1 after new IP
-  // address is added, Check if the arp caches are updated correctly at time 2
-  // after an IP address is removed.
   constexpr auto arpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.0.1.2 dev 1 lladdr 04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -421,10 +329,6 @@ void DynamicNeighborCacheTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), arpCache,
                         "Arp cache is incorrect.");
 
-  // Check if the ndisc caches are populated correctly at time 0,
-  // Check if the ndisc caches are updated correctly at time 1 after new IP
-  // address is added, Check if the ndisc caches are updated correctly at time 2
-  // after an IP address is removed.
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "2001::200:ff:fe00:2 dev 1 lladdr "
                               "04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -595,18 +499,13 @@ void DynamicNeighborCacheTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Neighbor cache on Channel Test
- */
 class ChannelTest : public TestCase {
 public:
   void DoRun() override;
   ChannelTest();
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 ChannelTest::ChannelTest()
@@ -629,21 +528,18 @@ void ChannelTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Populate neighbor caches on the first channel
   NeighborCacheHelper neighborCache;
   neighborCache.PopulateNeighborCache(channel);
 
@@ -654,13 +550,11 @@ void ChannelTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
 
   Simulator::Run();
 
-  // Check if arp caches are populated correctly in the first channel
   constexpr auto arpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.1.1.2 dev 0 lladdr 04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -670,7 +564,6 @@ void ChannelTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), arpCache,
                         "Arp cache is incorrect.");
 
-  // Check if ndisc caches are populated correctly in the first channel
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "2001::200:ff:fe00:2 dev 0 lladdr "
                               "04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -687,18 +580,13 @@ void ChannelTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Neighbor Cache on NetDeviceContainer Test
- */
 class NetDeviceContainerTest : public TestCase {
 public:
   void DoRun() override;
   NetDeviceContainerTest();
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 NetDeviceContainerTest::NetDeviceContainerTest()
@@ -722,21 +610,18 @@ void NetDeviceContainerTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Populate neighbor caches on NetDeviceContainer net2.
   NeighborCacheHelper neighborCache;
   neighborCache.PopulateNeighborCache(net2);
 
@@ -747,13 +632,11 @@ void NetDeviceContainerTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
 
   Simulator::Run();
 
-  // Check if arp caches are populated correctly on NetDeviceContainer net2.
   constexpr auto arpCache =
       "ARP Cache of node 0 at time 0\n"
       "ARP Cache of node 1 at time 0\n"
@@ -763,7 +646,6 @@ void NetDeviceContainerTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), arpCache,
                         "Arp cache is incorrect.");
 
-  // Check if ndisc caches are populated correctly on NetDeviceContainer net2.
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "NDISC Cache of node 1 at time +0s\n"
                               "2001:1::200:ff:fe00:4 dev 1 lladdr "
@@ -780,18 +662,13 @@ void NetDeviceContainerTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Neighbor Cache on InterfaceContainer Test
- */
 class InterfaceContainerTest : public TestCase {
 public:
   void DoRun() override;
   InterfaceContainerTest();
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 InterfaceContainerTest::InterfaceContainerTest()
@@ -815,22 +692,18 @@ void InterfaceContainerTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Populate neighbor caches on Ipv4InterfaceContainer i and
-  // Ipv6InterfaceContainer icv62.
   NeighborCacheHelper neighborCache;
   neighborCache.PopulateNeighborCache(i);
   neighborCache.PopulateNeighborCache(icv62);
@@ -842,13 +715,11 @@ void InterfaceContainerTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
 
   Simulator::Run();
 
-  // Check if arp caches are populated correctly on Ipv4InterfaceContainer i.
   constexpr auto arpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.1.1.2 dev 0 lladdr 04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -858,8 +729,6 @@ void InterfaceContainerTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), arpCache,
                         "Arp cache is incorrect.");
 
-  // Check if ndisc caches are populated correctly on Ipv6InterfaceContainer
-  // icv62.
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "NDISC Cache of node 1 at time +0s\n"
                               "2001:1::200:ff:fe00:4 dev 1 lladdr "
@@ -876,18 +745,13 @@ void InterfaceContainerTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Neighbor Cache Flush Test
- */
 class FlushTest : public TestCase {
 public:
   void DoRun() override;
   FlushTest();
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 FlushTest::FlushTest()
@@ -911,25 +775,21 @@ void FlushTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Populate STATIC_AUTOGENERATED neighbor cache
   NeighborCacheHelper neighborCache;
   neighborCache.PopulateNeighborCache();
 
-  // Manually add an PERMANENT arp cache entry
   std::pair<Ptr<Ipv4>, uint32_t> returnValue = i.Get(0);
   Ptr<Ipv4> v4 = returnValue.first;
   uint32_t index = returnValue.second;
@@ -940,7 +800,6 @@ void FlushTest::DoRun() {
   arpCacheEntry->SetMacAddress(Mac48Address("04-06-00:00:00:00:00:01"));
   arpCacheEntry->MarkPermanent();
 
-  // Manually add an PERMANENT ndisc entry
   std::pair<Ptr<Ipv6>, uint32_t> returnValue2 = icv61.Get(0);
   Ptr<Ipv6> v6 = returnValue2.first;
   index = returnValue2.second;
@@ -952,7 +811,6 @@ void FlushTest::DoRun() {
   ndiscCacheEntry->SetMacAddress(Mac48Address("04-06-00:00:00:00:00:01"));
   ndiscCacheEntry->MarkPermanent();
 
-  // flush auto-generated cache
   neighborCache.FlushAutoGenerated();
 
   std::ostringstream stringStream1v4;
@@ -962,13 +820,10 @@ void FlushTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
 
   Simulator::Run();
-  // Check if the STATIC_AUTOGENERATED entries are flushed and the PERMANENT
-  // entry is left.
   constexpr auto ArpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.1.1.4 dev 0 lladdr 04-06-00:00:00:00:00:01 PERMANENT\n"
@@ -977,8 +832,6 @@ void FlushTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), ArpCache,
                         "Arp cache is incorrect.");
 
-  // Check if the STATIC_AUTOGENERATED entries are flushed and the PERMANENT
-  // entry is left.
   constexpr auto NdiscCache =
       "NDISC Cache of node 0 at time +0s\n"
       "2001::200:ff:fe00:4 dev 0 lladdr 04-06-00:00:00:00:00:01 PERMANENT\n"
@@ -989,18 +842,13 @@ void FlushTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Neighbor Cache on Overlapped Scope Test
- */
 class DuplicateTest : public TestCase {
 public:
   void DoRun() override;
   DuplicateTest();
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 DuplicateTest::DuplicateTest()
@@ -1024,21 +872,18 @@ void DuplicateTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Populate  neighbor cache in overlapped scope.
   NeighborCacheHelper neighborCache;
   neighborCache.PopulateNeighborCache();
   neighborCache.PopulateNeighborCache(channel);
@@ -1053,13 +898,10 @@ void DuplicateTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
 
   Simulator::Run();
-  // Check if the STATIC_AUTOGENERATED entries are flushed and the PERMANENT
-  // entry is left.
   constexpr auto ArpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.1.1.2 dev 0 lladdr 04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -1071,8 +913,6 @@ void DuplicateTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), ArpCache,
                         "Arp cache is incorrect.");
 
-  // Check if the STATIC_AUTOGENERATED entries are flushed and the PERMANENT
-  // entry is left.
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "2001::200:ff:fe00:2 dev 0 lladdr "
                               "04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -1097,48 +937,23 @@ void DuplicateTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Dynamic Neighbor Cache on Reduced Scope Test
- */
 class DynamicPartialTest : public TestCase {
 public:
   void DoRun() override;
   DynamicPartialTest();
 
-  /**
-   * \brief Add an IPv4 address to an IPv4 interface
-   * \param ipv4Interface The interface that address will be added.
-   * \param ifaceAddr The added IPv4 address.
-   */
   void AddIpv4Address(Ptr<Ipv4Interface> ipv4Interface,
                       Ipv4InterfaceAddress ifaceAddr);
 
-  /**
-   * \brief Add an IPv6 address to an IPv6 interface
-   * \param ipv6Interface The interface that address will be added.
-   * \param ifaceAddr The added IPv6 address.
-   */
   void AddIpv6Address(Ptr<Ipv6Interface> ipv6Interface,
                       Ipv6InterfaceAddress ifaceAddr);
 
-  /**
-   * \brief Remove an IPv4 address from an IPv4 interface
-   * \param ipv4Interface The interface that address will be removed from.
-   * \param index The index of IPv4 address that will be removed.
-   */
   void RemoveIpv4Address(Ptr<Ipv4Interface> ipv4Interface, uint32_t index);
 
-  /**
-   * \brief Remove an IPv6 address from an IPv6 interface
-   * \param ipv6Interface The interface that address will be removed from.
-   * \param index The index of IPv6 address that will be removed.
-   */
   void RemoveIpv6Address(Ptr<Ipv6Interface> ipv6Interface, uint32_t index);
 
 private:
-  NodeContainer m_nodes; //!< Nodes used in the test.
+  NodeContainer m_nodes;
 };
 
 DynamicPartialTest::DynamicPartialTest()
@@ -1182,14 +997,12 @@ void DynamicPartialTest::DoRun() {
   InternetStackHelper internet;
   internet.Install(m_nodes);
 
-  // Setup IPv4 addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   ipv4.SetBase("10.1.2.0", "255.255.255.252");
   Ipv4InterfaceContainer i2 = ipv4.Assign(net2);
 
-  // Add address 10.1.1.5 to n1 in 0.5 seconds
   Ptr<Node> n1 = m_nodes.Get(0);
   uint32_t ipv4ifIndex = 1;
   Ptr<Ipv4Interface> ipv4Interface =
@@ -1199,19 +1012,16 @@ void DynamicPartialTest::DoRun() {
   Simulator::Schedule(Seconds(0.5), &DynamicPartialTest::AddIpv4Address, this,
                       ipv4Interface, ifaceAddr);
 
-  // Remove the first address (10.1.1.1) from n1 in 1.5 seconds
   uint32_t addressIndex = 0;
   Simulator::Schedule(Seconds(1.5), &DynamicPartialTest::RemoveIpv4Address,
                       this, ipv4Interface, addressIndex);
 
-  // Setup IPv6 addresses
   Ipv6AddressHelper ipv6;
   ipv6.SetBase(Ipv6Address("2001:0::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv61 = ipv6.Assign(net);
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer icv62 = ipv6.Assign(net2);
 
-  // Add address 2001:1::200:ff:fe00:5 to n1 in 0.5 seconds
   uint32_t ipv6ifIndex = 1;
   Ptr<Ipv6Interface> ipv6Interface =
       n1->GetObject<Ipv6L3Protocol>()->GetInterface(ipv6ifIndex);
@@ -1220,12 +1030,10 @@ void DynamicPartialTest::DoRun() {
   Simulator::Schedule(Seconds(0.5), &DynamicPartialTest::AddIpv6Address, this,
                       ipv6Interface, ifaceAddrv6);
 
-  // Remove the second address (2001:1::200:ff:fe00:1) from n1 in 1.5 seconds
   addressIndex = 1;
   Simulator::Schedule(Seconds(1.5), &DynamicPartialTest::RemoveIpv6Address,
                       this, ipv6Interface, addressIndex);
 
-  // Populate dynamic neighbor cache on the first channel
   NeighborCacheHelper neighborCache;
   neighborCache.SetDynamicNeighborCache(true);
   neighborCache.PopulateNeighborCache(channel);
@@ -1237,7 +1045,6 @@ void DynamicPartialTest::DoRun() {
   Ptr<OutputStreamWrapper> ndiscStream =
       Create<OutputStreamWrapper>(&stringStream1v6);
 
-  // Print cache.
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), arpStream);
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(0), ndiscStream);
   Ipv4RoutingHelper::PrintNeighborCacheAllAt(Seconds(1), arpStream);
@@ -1246,9 +1053,6 @@ void DynamicPartialTest::DoRun() {
   Ipv6RoutingHelper::PrintNeighborCacheAllAt(Seconds(2), ndiscStream);
 
   Simulator::Run();
-  // Check if the dynamic neighbor cache doesn't change after an Ip address is
-  // added, Check if the dynamic neighbor cache update correctly after an Ip
-  // address is removed.
   constexpr auto ArpCache =
       "ARP Cache of node 0 at time 0\n"
       "10.1.1.2 dev 0 lladdr 04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -1267,9 +1071,6 @@ void DynamicPartialTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(stringStream1v4.str(), ArpCache,
                         "Arp cache is incorrect.");
 
-  // Check if the dynamic neighbor cache doesn't change after an Ip address is
-  // added, Check if the dynamic neighbor cache update correctly after an Ip
-  // address is removed.
   constexpr auto NdiscCache = "NDISC Cache of node 0 at time +0s\n"
                               "2001::200:ff:fe00:2 dev 0 lladdr "
                               "04-06-00:00:00:00:00:02 STATIC_AUTOGENERATED\n"
@@ -1306,11 +1107,6 @@ void DynamicPartialTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief NeighborCache TestSuite
- */
 class NeighborCacheTestSuite : public TestSuite {
 public:
   NeighborCacheTestSuite() : TestSuite("neighbor-cache", UNIT) {
@@ -1324,5 +1120,4 @@ public:
   }
 };
 
-static NeighborCacheTestSuite
-    g_neighborcacheTestSuite; //!< Static variable for test initialization
+static NeighborCacheTestSuite g_neighborcacheTestSuite;

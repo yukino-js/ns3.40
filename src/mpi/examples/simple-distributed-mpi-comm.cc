@@ -1,58 +1,4 @@
-/*
- *  Copyright 2018. Lawrence Livermore National Security, LLC.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Steven Smith <smith84@llnl.gov>
- */
 
-/**
- * \file
- * \ingroup mpi
- *
- * This test is equivalent to simple-distributed with the addition of
- * initialization of MPI by user code (this script) and providing
- * a communicator to ns-3.  The ns-3 communicator is smaller than
- * MPI Comm World as might be the case if ns-3 is run in parallel
- * with another simulator.
- *
- * TestDistributed creates a dumbbell topology and logically splits it in
- * half.  The left half is placed on logical processor 0 and the right half
- * is placed on logical processor 1.
- *
- *                 -------   -------
- *                  RANK 0    RANK 1
- *                 ------- | -------
- *                         |
- * n0 ---------|           |           |---------- n6
- *             |           |           |
- * n1 -------\ |           |           | /------- n7
- *            n4 ----------|---------- n5
- * n2 -------/ |           |           | \------- n8
- *             |           |           |
- * n3 ---------|           |           |---------- n9
- *
- *
- * OnOff clients are placed on each left leaf node. Each right leaf node
- * is a packet sink for a left leaf node.  As a packet travels from one
- * logical processor to another (the link between n4 and n5), MPI messages
- * are passed containing the serialized packet. The message is then
- * deserialized into a new packet and sent on as normal.
- *
- * One packet is sent from each left leaf node.  The packet sinks on the
- * right leaf nodes output logging information when they receive the packet.
- */
 
 #include "mpi-test-fixtures.h"
 
@@ -76,22 +22,9 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SimpleDistributedMpiComm");
 
-/**
- * Tag for whether this rank should go into a new communicator
- * ns-3 ranks will have color == 1.
- * @{
- */
 const int NS_COLOR = 1;
 const int NOT_NS_COLOR = NS_COLOR + 1;
 
-/** @} */
-
-/**
- * Report my rank, in both MPI_COMM_WORLD and the split communicator.
- *
- * \param [in] color My role, either ns-3 rank or other rank.
- * \param [in] splitComm The split communicator.
- */
 void ReportRank(int color, MPI_Comm splitComm) {
   int otherId = 0;
   int otherSize = 1;
@@ -109,8 +42,7 @@ void ReportRank(int color, MPI_Comm splitComm) {
                                         << SinkTracer::GetWorldSize()
                                         << ", in splitComm: " << otherId << ":"
                                         << otherSize << std::endl);
-
-} // ReportRank()
+}
 
 int main(int argc, char *argv[]) {
   bool nix = true;
@@ -120,7 +52,6 @@ int main(int argc, char *argv[]) {
   bool verbose = false;
   bool testing = false;
 
-  // Parse command line
   CommandLine cmd(__FILE__);
   cmd.AddValue("nix", "Enable the use of nix-vector or global routing", nix);
   cmd.AddValue("nullmsg",
@@ -133,9 +64,6 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("test", "Enable regression test output", testing);
   cmd.Parse(argc, argv);
 
-  // Defer reporting the configuration until we know the communicator
-
-  // Distributed simulation setup; by default use granted time window algorithm.
   if (nullmsg) {
     GlobalValue::Bind("SimulatorImplementationType",
                       StringValue("ns3::NullMessageSimulatorImpl"));
@@ -144,13 +72,9 @@ int main(int argc, char *argv[]) {
                       StringValue("ns3::DistributedSimulatorImpl"));
   }
 
-  // MPI_Init
-
   if (init) {
-    // Initialize MPI directly
     MPI_Init(&argc, &argv);
   } else {
-    // Let ns-3 call MPI_Init and MPI_Finalize
     MpiInterface::Enable(&argc, &argv);
   }
 
@@ -172,18 +96,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Set up the MPI communicator for ns-3
-  //  Condition                         ns-3 Communicator
-  //  a.  worldSize = 2    copy of MPI_COMM_WORLD
-  //  b.  worldSize > 2    communicator of ranks 1-2
-
-  // Flag to record that we created a communicator so we can free it at the end.
   bool freeComm = false;
-  // The new communicator, if we create one
   MPI_Comm splitComm = MPI_COMM_WORLD;
-  // The list of ranks assigned to ns-3
   std::string ns3Ranks;
-  // Tag for whether this rank should go into a new communicator
   int color = MPI_UNDEFINED;
 
   if (worldSize == 2) {
@@ -194,9 +109,7 @@ int main(int argc, char *argv[]) {
     splitComm = MPI_COMM_WORLD;
     freeComm = false;
   } else {
-    //  worldSize > 2    communicator of ranks 1-2
 
-    // Put ranks 1-2 in the new communicator
     if (worldRank == 1 || worldRank == 2) {
       color = NS_COLOR;
     } else {
@@ -206,7 +119,6 @@ int main(int argc, char *argv[]) {
     ss << "Split [1-2] (out of " << worldSize << " ranks) from MPI_COMM_WORLD";
     ns3Ranks = ss.str();
 
-    // Now create the new communicator
     MPI_Comm_split(MPI_COMM_WORLD, color, worldRank, &splitComm);
     freeComm = true;
   }
@@ -215,7 +127,6 @@ int main(int argc, char *argv[]) {
     MpiInterface::Enable(splitComm);
   }
 
-  // Report the configuration from rank 0 only
   RANK0COUT(cmd.GetName() << "\n");
   RANK0COUT("\n");
   RANK0COUT("Configuration:\n");
@@ -237,7 +148,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (verbose) {
-    // Circulate a token to have each rank report in turn
     int token;
 
     if (worldRank == 0) {
@@ -255,18 +165,11 @@ int main(int argc, char *argv[]) {
       MPI_Recv(&token, 1, MPI_INT, worldSize - 1, 0, MPI_COMM_WORLD,
                MPI_STATUS_IGNORE);
     }
-  } // circulate token to report rank
+  }
 
   RANK0COUT(std::endl);
 
   if (color != NS_COLOR) {
-    // Do other work outside the ns-3 communicator
-
-    // In real use of a separate communicator from ns-3
-    // the other tasks would be running another simulator
-    // or other desired work here..
-
-    // Our work is done, just wait for everyone else to finish.
 
     MpiInterface::Disable();
 
@@ -277,11 +180,6 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  // The code below here is essentially the same as simple-distributed.cc
-  // --------------------------------------------------------------------
-
-  // We use a trace instead of relying on NS_LOG
-
   if (verbose) {
     LogComponentEnable("PacketSink", LOG_LEVEL_INFO);
   }
@@ -289,34 +187,25 @@ int main(int argc, char *argv[]) {
   uint32_t systemId = MpiInterface::GetSystemId();
   uint32_t systemCount = MpiInterface::GetSize();
 
-  // Check for valid distributed parameters.
-  // Both this script and simple-distributed.cc will work
-  // with arbitrary numbers of ranks, as long as there are at least 2.
   if (systemCount < 2) {
     RANK0COUT("This simulation requires at least 2 logical processors."
               << std::endl);
     return 1;
   }
 
-  // Some default values
   Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(512));
   Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("1Mbps"));
   Config::SetDefault("ns3::OnOffApplication::MaxBytes", UintegerValue(512));
 
-  // Create leaf nodes on left with system id 0
   NodeContainer leftLeafNodes;
   leftLeafNodes.Create(4, 0);
 
-  // Create router nodes.  Left router
-  // with system id 0, right router with
-  // system id 1
   NodeContainer routerNodes;
   Ptr<Node> routerNode1 = CreateObject<Node>(0);
   Ptr<Node> routerNode2 = CreateObject<Node>(1);
   routerNodes.Add(routerNode1);
   routerNodes.Add(routerNode2);
 
-  // Create leaf nodes on left with system id 1
   NodeContainer rightLeafNodes;
   rightLeafNodes.Create(4, 1);
 
@@ -328,11 +217,9 @@ int main(int argc, char *argv[]) {
   leafLink.SetDeviceAttribute("DataRate", StringValue("1Mbps"));
   leafLink.SetChannelAttribute("Delay", StringValue("2ms"));
 
-  // Add link connecting routers
   NetDeviceContainer routerDevices;
   routerDevices = routerLink.Install(routerNodes);
 
-  // Add links for left side leaf nodes to left router
   NetDeviceContainer leftRouterDevices;
   NetDeviceContainer leftLeafDevices;
   for (uint32_t i = 0; i < 4; ++i) {
@@ -342,7 +229,6 @@ int main(int argc, char *argv[]) {
     leftRouterDevices.Add(temp.Get(1));
   }
 
-  // Add links for right side leaf nodes to right router
   NetDeviceContainer rightRouterDevices;
   NetDeviceContainer rightLeafDevices;
   for (uint32_t i = 0; i < 4; ++i) {
@@ -361,7 +247,7 @@ int main(int argc, char *argv[]) {
   list.Add(nixRouting, 10);
 
   if (nix) {
-    stack.SetRoutingHelper(list); // has effect on the next Install ()
+    stack.SetRoutingHelper(list);
   }
 
   stack.InstallAll();
@@ -381,10 +267,8 @@ int main(int argc, char *argv[]) {
   Ipv4AddressHelper rightAddress;
   rightAddress.SetBase("10.3.1.0", "255.255.255.0");
 
-  // Router-to-Router interfaces
   routerInterfaces = routerAddress.Assign(routerDevices);
 
-  // Left interfaces
   for (uint32_t i = 0; i < 4; ++i) {
     NetDeviceContainer ndc;
     ndc.Add(leftLeafDevices.Get(i));
@@ -395,7 +279,6 @@ int main(int argc, char *argv[]) {
     leftAddress.NewNetwork();
   }
 
-  // Right interfaces
   for (uint32_t i = 0; i < 4; ++i) {
     NetDeviceContainer ndc;
     ndc.Add(rightLeafDevices.Get(i));
@@ -422,7 +305,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Create a packet sink on the right leafs to receive packets from left leafs
   uint16_t port = 50000;
   if (systemId == 1) {
     Address sinkLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
@@ -442,7 +324,6 @@ int main(int argc, char *argv[]) {
     sinkApp.Stop(Seconds(5));
   }
 
-  // Create the OnOff applications to send
   if (systemId == 0) {
     OnOffHelper clientHelper("ns3::UdpSocketFactory", Address());
     clientHelper.SetAttribute(
@@ -467,10 +348,6 @@ int main(int argc, char *argv[]) {
   Simulator::Run();
   Simulator::Destroy();
 
-  // --------------------------------------------------------------------
-  // Conditional cleanup based on whether we built a communicator
-  // and called MPI_Init
-
   if (freeComm) {
     MPI_Comm_free(&splitComm);
   }
@@ -479,12 +356,9 @@ int main(int argc, char *argv[]) {
     SinkTracer::Verify(4);
   }
 
-  // Clean up the ns-3 MPI execution environment
-  // This will call MPI_Finalize if MpiInterface::Initialize was called
   MpiInterface::Disable();
 
   if (init) {
-    // We called MPI_Init, so we have to call MPI_Finalize
     MPI_Finalize();
   }
 

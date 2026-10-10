@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: kwong yin <kwong-sang.yin@boeing.com>
- */
 #include "lr-wpan-mac-header.h"
 
 #include <ns3/address-utils.h>
@@ -24,31 +6,29 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED(LrWpanMacHeader);
 
-// TODO: Test Compressed PAN Id, Security Enabled, different size Key
-
 LrWpanMacHeader::LrWpanMacHeader() {
-  SetType(LRWPAN_MAC_DATA); // Assume Data frame
-  SetSecDisable();          // Assume there is No Aux Sec but
-  SetNoFrmPend();           // No Frame Pending
-  SetNoAckReq();            // No Ack Frame will be expected from recipient
-  SetNoPanIdComp();         // No PAN Id Compression since no addresses
-  SetFrmCtrlRes(0);         // Initialize the 3 reserved bits to 0
-  SetDstAddrMode(NOADDR);   // Assume there will be no src and dst address
+  SetType(LRWPAN_MAC_DATA);
+  SetSecDisable();
+  SetNoFrmPend();
+  SetNoAckReq();
+  SetNoPanIdComp();
+  SetFrmCtrlRes(0);
+  SetDstAddrMode(NOADDR);
   SetSrcAddrMode(NOADDR);
-  SetFrameVer(1); // Indicates an IEEE 802.15.4 frame
+  SetFrameVer(1);
 }
 
 LrWpanMacHeader::LrWpanMacHeader(LrWpanMacType wpanMacType, uint8_t seqNum) {
   SetType(wpanMacType);
   SetSeqNum(seqNum);
-  SetSecDisable();        // Assume there is No Aux Sec but
-  SetNoFrmPend();         // No Frame Pending
-  SetNoAckReq();          // No Ack Frame will be expected from recipient
-  SetNoPanIdComp();       // No PAN Id Compression since no addresses
-  SetFrmCtrlRes(0);       // Initialize the 3 reserved bits to 0
-  SetDstAddrMode(NOADDR); // Assume there will be no src and dst address
+  SetSecDisable();
+  SetNoFrmPend();
+  SetNoAckReq();
+  SetNoPanIdComp();
+  SetFrmCtrlRes(0);
+  SetDstAddrMode(NOADDR);
   SetSrcAddrMode(NOADDR);
-  SetFrameVer(1); // Indicates an IEEE 802.15.4 frame
+  SetFrameVer(1);
 }
 
 LrWpanMacHeader::~LrWpanMacHeader() {}
@@ -71,15 +51,15 @@ LrWpanMacHeader::LrWpanMacType LrWpanMacHeader::GetType() const {
 uint16_t LrWpanMacHeader::GetFrameControl() const {
   uint16_t val = 0;
 
-  val = m_fctrlFrmType & (0x07);                    // Bit 0-2
-  val |= (m_fctrlSecU << 3) & (0x01 << 3);          // Bit 3
-  val |= (m_fctrlFrmPending << 4) & (0x01 << 4);    // Bit 4
-  val |= (m_fctrlAckReq << 5) & (0x01 << 5);        // Bit 5
-  val |= (m_fctrlPanIdComp << 6) & (0x01 << 6);     // Bit 6
-  val |= (m_fctrlReserved << 7) & (0x07 << 7);      // Bit 7-9
-  val |= (m_fctrlDstAddrMode << 10) & (0x03 << 10); // Bit 10-11
-  val |= (m_fctrlFrmVer << 12) & (0x03 << 12);      // Bit 12-13
-  val |= (m_fctrlSrcAddrMode << 14) & (0x03 << 14); // Bit 14-15
+  val = m_fctrlFrmType & (0x07);
+  val |= (m_fctrlSecU << 3) & (0x01 << 3);
+  val |= (m_fctrlFrmPending << 4) & (0x01 << 4);
+  val |= (m_fctrlAckReq << 5) & (0x01 << 5);
+  val |= (m_fctrlPanIdComp << 6) & (0x01 << 6);
+  val |= (m_fctrlReserved << 7) & (0x07 << 7);
+  val |= (m_fctrlDstAddrMode << 10) & (0x03 << 10);
+  val |= (m_fctrlFrmVer << 12) & (0x03 << 12);
+  val |= (m_fctrlSrcAddrMode << 14) & (0x03 << 14);
   return val;
 }
 
@@ -124,9 +104,9 @@ Mac64Address LrWpanMacHeader::GetExtSrcAddr() const {
 uint8_t LrWpanMacHeader::GetSecControl() const {
   uint8_t val = 0;
 
-  val = m_secctrlSecLevel & (0x7);               // Bit 0-2
-  val |= (m_secctrlKeyIdMode << 3) & (0x3 << 3); // Bit 3-4
-  val |= (m_secctrlReserved << 5) & (0x7 << 5);  // Bit 5-7
+  val = m_secctrlSecLevel & (0x7);
+  val |= (m_secctrlKeyIdMode << 3) & (0x3 << 3);
+  val |= (m_secctrlReserved << 5) & (0x7 << 5);
 
   return (val);
 }
@@ -168,15 +148,15 @@ void LrWpanMacHeader::SetType(LrWpanMacType wpanMacType) {
 }
 
 void LrWpanMacHeader::SetFrameControl(uint16_t frameControl) {
-  m_fctrlFrmType = (frameControl) & (0x07);           // Bit 0-2
-  m_fctrlSecU = (frameControl >> 3) & (0x01);         // Bit 3
-  m_fctrlFrmPending = (frameControl >> 4) & (0x01);   // Bit 4
-  m_fctrlAckReq = (frameControl >> 5) & (0x01);       // Bit 5
-  m_fctrlPanIdComp = (frameControl >> 6) & (0x01);    // Bit 6
-  m_fctrlReserved = (frameControl >> 7) & (0x07);     // Bit 7-9
-  m_fctrlDstAddrMode = (frameControl >> 10) & (0x03); // Bit 10-11
-  m_fctrlFrmVer = (frameControl >> 12) & (0x03);      // Bit 12-13
-  m_fctrlSrcAddrMode = (frameControl >> 14) & (0x03); // Bit 14-15
+  m_fctrlFrmType = (frameControl) & (0x07);
+  m_fctrlSecU = (frameControl >> 3) & (0x01);
+  m_fctrlFrmPending = (frameControl >> 4) & (0x01);
+  m_fctrlAckReq = (frameControl >> 5) & (0x01);
+  m_fctrlPanIdComp = (frameControl >> 6) & (0x01);
+  m_fctrlReserved = (frameControl >> 7) & (0x07);
+  m_fctrlDstAddrMode = (frameControl >> 10) & (0x03);
+  m_fctrlFrmVer = (frameControl >> 12) & (0x03);
+  m_fctrlSrcAddrMode = (frameControl >> 14) & (0x03);
 }
 
 void LrWpanMacHeader::SetSecEnable() { m_fctrlSecU = 1; }
@@ -230,9 +210,9 @@ void LrWpanMacHeader::SetDstAddrFields(uint16_t panId, Mac64Address addr) {
 }
 
 void LrWpanMacHeader::SetSecControl(uint8_t secControl) {
-  m_secctrlSecLevel = (secControl) & (0x07);       // Bit 0-2
-  m_secctrlKeyIdMode = (secControl >> 3) & (0x03); // Bit 3-4
-  m_secctrlReserved = (secControl >> 5) & (0x07);  // Bit 5-7
+  m_secctrlSecLevel = (secControl) & (0x07);
+  m_secctrlKeyIdMode = (secControl >> 3) & (0x03);
+  m_secctrlReserved = (secControl >> 5) & (0x07);
 }
 
 void LrWpanMacHeader::SetFrmCounter(uint32_t frmCntr) {
@@ -342,16 +322,6 @@ void LrWpanMacHeader::Print(std::ostream &os) const {
 }
 
 uint32_t LrWpanMacHeader::GetSerializedSize() const {
-  /*
-   * Each mac header will have
-   * Frame Control      : 2 octet
-   * Sequence Number    : 1 Octet
-   * Dst PAN Id         : 0/2 Octet
-   * Dst Address        : 0/2/8 octet
-   * Src PAN Id         : 0/2 octet
-   * Src Address        : 0/2/8 octet
-   * Aux Sec Header     : 0/5/6/10/14 octet
-   */
 
   uint32_t size = 3;
 
@@ -370,7 +340,6 @@ uint32_t LrWpanMacHeader::GetSerializedSize() const {
   case NOADDR:
     break;
   case SHORTADDR:
-    // check if PAN Id compression is enabled
     if (!IsPanIdComp()) {
       size += 4;
     } else {
@@ -378,7 +347,6 @@ uint32_t LrWpanMacHeader::GetSerializedSize() const {
     }
     break;
   case EXTADDR:
-    // check if PAN Id compression is enabled
     if (!IsPanIdComp()) {
       size += 10;
     } else {
@@ -387,7 +355,6 @@ uint32_t LrWpanMacHeader::GetSerializedSize() const {
     break;
   }
 
-  // check if security is enabled
   if (IsSecEnable()) {
     size += 5;
     switch (m_secctrlKeyIdMode) {

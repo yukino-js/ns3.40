@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2012 Telum (www.telum.ru)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@telum.ru>, Alexander Sofronov
- * <sofronov@telum.ru>
- */
 
 #include "jakes-process.h"
 
@@ -32,7 +13,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("JakesProcess");
 
-/// Represents a single oscillator
 JakesProcess::Oscillator::Oscillator(std::complex<double> amplitude,
                                      double initialPhase, double omega)
     : m_amplitude(amplitude), m_phase(initialPhase), m_omega(omega) {}
@@ -85,24 +65,16 @@ void JakesProcess::SetDopplerFrequencyHz(double dopplerFrequencyHz) {
 
 void JakesProcess::ConstructOscillators() {
   NS_ASSERT(m_jakes);
-  // Initial phase is common for all oscillators:
   double phi = m_jakes->GetUniformRandomVariable()->GetValue();
-  // Theta is common for all oscillators:
   double theta = m_jakes->GetUniformRandomVariable()->GetValue();
   for (unsigned int i = 0; i < m_nOscillators; i++) {
     unsigned int n = i + 1;
-    /// 1. Rotation speed
-    /// 1a. Initiate \f[ \alpha_n = \frac{2\pi n - \pi + \theta}{4M},  n=1,2,
-    /// \ldots,M\f], n is oscillatorNumber, M is m_nOscillators
     double alpha = (2.0 * M_PI * n - M_PI + theta) / (4.0 * m_nOscillators);
-    /// 1b. Initiate rotation speed:
     double omega = m_omegaDopplerMax * std::cos(alpha);
-    /// 2. Initiate complex amplitude:
     double psi = m_jakes->GetUniformRandomVariable()->GetValue();
     std::complex<double> amplitude =
         std::complex<double>(std::cos(psi), std::sin(psi)) * 2.0 /
         std::sqrt(m_nOscillators);
-    /// 3. Construct oscillator:
     m_oscillators.emplace_back(amplitude, phi, omega);
   }
 }

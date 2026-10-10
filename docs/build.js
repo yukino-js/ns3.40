@@ -1,32 +1,6 @@
 #!/usr/bin/env node
 // @ts-check
-/**
- * Copyright 2026 hangtiancheng
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-/**
- * LaTeX build driver for the documents in this directory.
- *
- * JavaScript port of the former `build.py`. Targets, exit codes, and the console
- * output are unchanged:
- *
- *   node docs/build.js njupt    # NJUPT master's thesis (with BibTeX)
- *   node docs/build.js thesis   # Chinese conference paper
- *   node docs/build.js all      # both, in parallel
- *   node docs/build.js clean    # remove LaTeX auxiliary files
- */
 
 import { spawnSync } from "node:child_process";
 import { readdir, rm } from "node:fs/promises";
@@ -34,18 +8,10 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-/** Absolute path of this script's directory. */
 const DOCS_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-/** Directory holding the NJUPT thesis sources. */
 const THESIS_DIR = path.join(DOCS_DIR, "NJUPT_Professional_Thesis_draft1");
 
-/**
- * Top-level auxiliary file suffixes removed by `clean`.
- *
- * The Python original keyed on the name ending with one of these, which also
- * catches compound suffixes such as `.run.xml`.
- */
 const AUXILIARY_SUFFIXES = [
   ".aux",
   ".bbl",
@@ -57,12 +23,8 @@ const AUXILIARY_SUFFIXES = [
   ".out",
 ];
 
-/** Targets that are re-cleaned automatically once the build finishes. */
 const AUTO_CLEAN_TARGETS = new Set(["njupt", "thesis", "all"]);
 
-/**
- * Signals that a build already reported its own error and should unwind.
- */
 class BuildAbort extends Error {
   constructor() {
     super("build aborted");
@@ -70,39 +32,18 @@ class BuildAbort extends Error {
   }
 }
 
-/**
- * @param {string} message
- * @returns {void}
- */
 function log(message) {
   console.log(`[BUILD] ${message}`);
 }
 
-/**
- * @param {string} message
- * @returns {void}
- */
 function warn(message) {
   console.warn(`[WARN] ${message}`);
 }
 
-/**
- * @param {string} message
- * @returns {void}
- */
 function err(message) {
   console.error(`[ERROR] ${message}`);
 }
 
-/**
- * Run a command, optionally tolerating failure.
- *
- * @param {string[]} command - Executable followed by its arguments.
- * @param {string} cwd - Working directory.
- * @param {boolean} [ignoreFailure] - Return `false` instead of throwing.
- * @returns {boolean} `true` when the command exited with status 0.
- * @throws {Error} On a missing executable or a non-zero exit, unless ignored.
- */
 export function runCommand(command, cwd, ignoreFailure = false) {
   const [executable, ...args] = command;
   const result = spawnSync(executable, args, {
@@ -124,19 +65,7 @@ export function runCommand(command, cwd, ignoreFailure = false) {
   return true;
 }
 
-/**
- * Delete LaTeX auxiliary files produced while compiling a document tree.
- *
- * Mirrors the Python behaviour: every suffix-matching file directly inside
- * `directory` is removed, and `.aux` files are additionally removed up to two
- * levels deep (so `NJUPT_Professional_Thesis_draft1/chapters/*.aux` is caught
- * without touching nested asset directories).
- *
- * @param {string} [directory] - Root to clean; defaults to the docs directory.
- * @returns {Promise<void>}
- */
 export async function cleanTrash(directory = DOCS_DIR) {
-  /** @type {import("node:fs").Dirent[]} */
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
@@ -154,17 +83,8 @@ export async function cleanTrash(directory = DOCS_DIR) {
   await removeNestedAux(directory, directory, 1);
 }
 
-/**
- * Recursively remove `.aux` files at most `depth` levels below `root`.
- *
- * @param {string} root
- * @param {string} current
- * @param {number} depth
- * @returns {Promise<void>}
- */
 async function removeNestedAux(root, current, depth) {
   if (depth > 2) return;
-  /** @type {import("node:fs").Dirent[]} */
   let entries;
   try {
     entries = await readdir(current, { withFileTypes: true });
@@ -186,13 +106,6 @@ async function removeNestedAux(root, current, depth) {
   }
 }
 
-/**
- * Compile a document that uses BibTeX, from the docs directory.
- *
- * @param {string} tex - Source file name, e.g. `thesis.tex`.
- * @param {string} [compiler] - LaTeX engine.
- * @returns {Promise<void>}
- */
 export async function buildConferenceWithBib(tex, compiler = "xelatex") {
   const name = tex.replace(/\.tex$/, "");
   log(`Compiling ${tex} (with BibTeX)...`);
@@ -213,12 +126,6 @@ export async function buildConferenceWithBib(tex, compiler = "xelatex") {
   log(`${name}.pdf successfully generated ✓`);
 }
 
-/**
- * Compile the NJUPT thesis, where BibTeX warnings are tolerated.
- *
- * @param {string} tex - Source file name.
- * @returns {Promise<void>}
- */
 export async function buildWithBib(tex) {
   const name = tex.replace(/\.tex$/, "");
   log(`Compiling ${tex} (with BibTeX)...`);
@@ -235,15 +142,6 @@ export async function buildWithBib(tex) {
   log(`${name}.pdf successfully generated ✓`);
 }
 
-/**
- * Run one compiler pass, converting a failure into the documented error message.
- *
- * @param {string} compiler
- * @param {string} tex
- * @param {string} cwd
- * @param {string} message - Message printed when the pass fails.
- * @returns {Promise<void>}
- */
 async function runPass(compiler, tex, cwd, message) {
   const command = [compiler, "-interaction=nonstopmode", "-halt-on-error", tex];
   try {
@@ -255,11 +153,6 @@ async function runPass(compiler, tex, cwd, message) {
   }
 }
 
-/**
- * Print the command-line help.
- *
- * @returns {void}
- */
 export function usage() {
   const program = path.basename(process.argv[1] ?? "build.js");
   console.log(`Usage: node ${program} <target...>`);
@@ -270,11 +163,6 @@ export function usage() {
   console.log("  clean    Clean compilation auxiliary files");
 }
 
-/**
- * Remove auxiliary files from every document tree.
- *
- * @returns {Promise<void>}
- */
 export async function cleanAll() {
   log("Cleaning auxiliary files...");
   await cleanTrash(DOCS_DIR);
@@ -283,11 +171,6 @@ export async function cleanAll() {
   log("Cleanup complete ✓");
 }
 
-/**
- * Build both documents concurrently.
- *
- * @returns {Promise<void>}
- */
 export async function buildAllParallel() {
   const targets = ["njupt", "thesis"];
   const results = await Promise.allSettled(
@@ -301,12 +184,6 @@ export async function buildAllParallel() {
   }
 }
 
-/**
- * Dispatch one build target.
- *
- * @param {string} target
- * @returns {Promise<void>}
- */
 export async function doBuild(target) {
   if (target === "njupt") {
     await buildWithBib("NJUPT_Professional_Thesis_d1.tex");
@@ -331,10 +208,6 @@ export async function doBuild(target) {
   throw new BuildAbort();
 }
 
-/**
- * @param {string[]} [argv] - Arguments after the script name.
- * @returns {Promise<number>} Process exit code.
- */
 export async function main(argv = process.argv.slice(2)) {
   if (argv.length === 0) {
     usage();

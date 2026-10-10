@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/log.h>
 #include <ns3/object.h>
@@ -32,35 +14,19 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SpectrumInterferenceTest");
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Spectrum Interference Test
- */
 class SpectrumInterferenceTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param s Spectrum value
-   * \param txBytes number of bytes to transmit
-   * \param rxCorrect expected Rx bytes
-   * \param name test name
-   */
   SpectrumInterferenceTestCase(Ptr<SpectrumValue> s, uint32_t txBytes,
                                bool rxCorrect, std::string name);
   ~SpectrumInterferenceTestCase() override;
   void DoRun() override;
-  /**
-   * Retrieve the test results
-   * \param si SpectrumInterference instance
-   */
   void RetrieveTestResult(SpectrumInterference *si);
 
 private:
-  Ptr<SpectrumValue> m_s;                     //!< Spectrum value
-  uint32_t m_txBytes;                         //!< number of bytes to transmit
-  bool m_rxCorrectKnownOutcome;               //!< expected Rx bytes
-  Ptr<const SpectrumModel> m_mySpectrumModel; //!< Spectrum model pointer
+  Ptr<SpectrumValue> m_s;
+  uint32_t m_txBytes;
+  bool m_rxCorrectKnownOutcome;
+  Ptr<const SpectrumModel> m_mySpectrumModel;
 };
 
 SpectrumInterferenceTestCase::SpectrumInterferenceTestCase(Ptr<SpectrumValue> s,
@@ -119,8 +85,6 @@ void SpectrumInterferenceTestCase::DoRun() {
       ts + ds, &SpectrumInterferenceTestCase::RetrieveTestResult, this, &si);
 
   Simulator::Run();
-  // the above will return and after RetrieveTestResults have
-  // been called and after all signals have expired
   Simulator::Destroy();
 }
 
@@ -129,11 +93,6 @@ void SpectrumInterferenceTestCase::RetrieveTestResult(
   NS_TEST_ASSERT_MSG_EQ(si->EndRx(), m_rxCorrectKnownOutcome, "no message");
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Spectrum Interference TestSuite
- */
 class SpectrumInterferenceTestSuite : public TestSuite {
 public:
   SpectrumInterferenceTestSuite();
@@ -160,12 +119,10 @@ SpectrumInterferenceTestSuite::SpectrumInterferenceTestSuite()
 
   m = Create<SpectrumModel>(bands);
 
-  double b; // max deliverable bytes
+  double b;
 
-  const double e = 1e-5; // max tolerated relative error for
-                         // deliverable bytes
+  const double e = 1e-5;
 
-  // Power Spectral Density of the signal of interest  = [-46 -48] dBm;
   Ptr<SpectrumValue> s1 = Create<SpectrumValue>(m);
   (*s1)[0] = 1.255943215755e-15;
   (*s1)[1] = 7.204059965732e-16;
@@ -193,7 +150,6 @@ SpectrumInterferenceTestSuite::SpectrumInterferenceTestSuite()
                   s1, 0xffffffff, false, "sdBm  = [-46 -48]  tx bytes: 2^32-1"),
               TestCase::QUICK);
 
-  // Power Spectral Density of the signal of interest  =  [-63 -61] dBm;
   Ptr<SpectrumValue> s2 = Create<SpectrumValue>(m);
   (*s2)[0] = 2.505936168136e-17;
   (*s2)[1] = 3.610582885110e-17;
@@ -222,5 +178,4 @@ SpectrumInterferenceTestSuite::SpectrumInterferenceTestSuite()
               TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static SpectrumInterferenceTestSuite spectrumInterferenceTestSuite;

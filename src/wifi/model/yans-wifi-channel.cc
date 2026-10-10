@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage, <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "yans-wifi-channel.h"
 
@@ -86,8 +68,6 @@ void YansWifiChannel::Send(Ptr<YansWifiPhy> sender, Ptr<const WifiPpdu> ppdu,
   NS_ASSERT(senderMobility);
   for (auto i = m_phyList.begin(); i != m_phyList.end(); i++) {
     if (sender != (*i)) {
-      // For now don't account for inter channel interference nor channel
-      // bonding
       if ((*i)->GetChannelNumber() != sender->GetChannelNumber()) {
         continue;
       }
@@ -119,9 +99,6 @@ void YansWifiChannel::Send(Ptr<YansWifiPhy> sender, Ptr<const WifiPpdu> ppdu,
 void YansWifiChannel::Receive(Ptr<YansWifiPhy> phy, Ptr<const WifiPpdu> ppdu,
                               double rxPowerDbm) {
   NS_LOG_FUNCTION(phy << ppdu << rxPowerDbm);
-  // Do no further processing if signal is too weak
-  // Current implementation assumes constant RX power over the PPDU duration
-  // Compare received TX power per MHz to normalized RX sensitivity
   uint16_t txWidth = ppdu->GetTxChannelWidth();
   if ((rxPowerDbm + phy->GetRxGain()) <
       phy->GetRxSensitivity() + RatioToDb(txWidth / 20.0)) {
@@ -130,9 +107,7 @@ void YansWifiChannel::Receive(Ptr<YansWifiPhy> phy, Ptr<const WifiPpdu> ppdu,
     return;
   }
   RxPowerWattPerChannelBand rxPowerW;
-  rxPowerW.insert(
-      {{{0, 0}, {0, 0}},
-       (DbmToW(rxPowerDbm + phy->GetRxGain()))}); // dummy band for YANS
+  rxPowerW.insert({{{0, 0}, {0, 0}}, (DbmToW(rxPowerDbm + phy->GetRxGain()))});
   phy->StartReceivePreamble(ppdu, rxPowerW, ppdu->GetTxDuration());
 }
 

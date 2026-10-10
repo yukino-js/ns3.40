@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/double.h"
 #include "ns3/random-variable-stream.h"
@@ -40,26 +13,6 @@
 
 using namespace ns3;
 
-/**
- * \file
- * \ingroup rng-tests
- * Random number generators tests.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup rng-tests Random number generators tests
- */
-
-/**
- * \ingroup rng-tests
- *
- * Fill an array with increasing values, in the [start, end] range.
- * \param array The array to fill.
- * \param n The size of the array.
- * \param start The start value.
- * \param end The end value.
- */
 void FillHistoRangeUniformly(double *array, uint32_t n, double start,
                              double end) {
   double increment = (end - start) / (n - 1.);
@@ -71,28 +24,15 @@ void FillHistoRangeUniformly(double *array, uint32_t n, double start,
   }
 }
 
-/**
- * \ingroup core-tests
- *
- * Test case for uniform distribution random number generator.
- */
 class RngUniformTestCase : public TestCase {
 public:
-  /// Number of runs.
   static const uint32_t N_RUNS = 5;
-  /// Number of bins.
   static const uint32_t N_BINS = 50;
-  /// Number of measurements.
   static const uint32_t N_MEASUREMENTS = 1000000;
 
   RngUniformTestCase();
   ~RngUniformTestCase() override;
 
-  /**
-   * Run a chi-squared test on the results of the random number generator.
-   * \param u The random number generator.
-   * \return the chi-squared test result.
-   */
   double ChiSquaredTest(Ptr<UniformRandomVariable> u);
 
 private:
@@ -152,28 +92,15 @@ void RngUniformTestCase::DoRun() {
                         "Chi-squared statistic out of range");
 }
 
-/**
- * \ingroup rng-tests
- *
- * Test case for normal distribution random number generator.
- */
 class RngNormalTestCase : public TestCase {
 public:
-  /// Number of runs.
   static const uint32_t N_RUNS = 5;
-  /// Number of bins.
   static const uint32_t N_BINS = 50;
-  /// Number of measurements.
   static const uint32_t N_MEASUREMENTS = 1000000;
 
   RngNormalTestCase();
   ~RngNormalTestCase() override;
 
-  /**
-   * Run a chi-squared test on the results of the random number generator.
-   * \param n The random number generator.
-   * \return the chi-squared test result.
-   */
   double ChiSquaredTest(Ptr<NormalRandomVariable> n);
 
 private:
@@ -247,28 +174,15 @@ void RngNormalTestCase::DoRun() {
                         "Chi-squared statistic out of range");
 }
 
-/**
- * \ingroup rng-tests
- *
- * Test case for exponential distribution random number generator.
- */
 class RngExponentialTestCase : public TestCase {
 public:
-  /// Number of runs.
   static const uint32_t N_RUNS = 5;
-  /// Number of bins.
   static const uint32_t N_BINS = 50;
-  /// Number of measurements.
   static const uint32_t N_MEASUREMENTS = 1000000;
 
   RngExponentialTestCase();
   ~RngExponentialTestCase() override;
 
-  /**
-   * Run a chi-squared test on the results of the random number generator.
-   * \param n The random number generator.
-   * \return the chi-squared test result.
-   */
   double ChiSquaredTest(Ptr<ExponentialRandomVariable> n);
 
 private:
@@ -343,28 +257,15 @@ void RngExponentialTestCase::DoRun() {
                         "Chi-squared statistic out of range");
 }
 
-/**
- * \ingroup rng-tests
- *
- * Test case for pareto distribution random number generator.
- */
 class RngParetoTestCase : public TestCase {
 public:
-  /// Number of runs.
   static const uint32_t N_RUNS = 5;
-  /// Number of bins.
   static const uint32_t N_BINS = 50;
-  /// Number of measurements.
   static const uint32_t N_MEASUREMENTS = 1000000;
 
   RngParetoTestCase();
   ~RngParetoTestCase() override;
 
-  /**
-   * Run a chi-squared test on the results of the random number generator.
-   * \param p The random number generator.
-   * \return the chi-squared test result.
-   */
   double ChiSquaredTest(Ptr<ParetoRandomVariable> p);
 
 private:
@@ -389,8 +290,6 @@ double RngParetoTestCase::ChiSquaredTest(Ptr<ParetoRandomVariable> p) {
 
   double a = 1.5;
   double b = 0.33333333;
-
-  // mean is 1 with these values
 
   for (uint32_t i = 0; i < N_BINS; ++i) {
     expected[i] =
@@ -442,11 +341,6 @@ void RngParetoTestCase::DoRun() {
                         "Chi-squared statistic out of range");
 }
 
-/**
- * \ingroup rng-tests
- *
- * \brief The random number generators Test Suite.
- */
 class RngTestSuite : public TestSuite {
 public:
   RngTestSuite();
@@ -459,4 +353,4 @@ RngTestSuite::RngTestSuite() : TestSuite("random-number-generators", UNIT) {
   AddTestCase(new RngParetoTestCase, TestCase::QUICK);
 }
 
-static RngTestSuite g_rngTestSuite; //!< Static variable for test initialization
+static RngTestSuite g_rngTestSuite;

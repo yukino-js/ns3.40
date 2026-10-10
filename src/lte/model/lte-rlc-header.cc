@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-rlc-header.h"
 
@@ -53,7 +35,7 @@ SequenceNumber10 LteRlcHeader::GetSequenceNumber() const {
 void LteRlcHeader::PushExtensionBit(uint8_t extensionBit) {
   m_extensionBits.push_back(extensionBit);
   if (m_extensionBits.size() == 1) {
-    m_headerLength = 2; // Only fixed part
+    m_headerLength = 2;
   } else if (m_extensionBits.size() % 2) {
     m_headerLength += 1;
   } else {
@@ -154,7 +136,7 @@ void LteRlcHeader::Serialize(Buffer::Iterator start) const {
       it2++;
     } else {
       i.WriteU8(((oddE << 7) & 0x80) | ((oddLi >> 4) & 0x007F));
-      i.WriteU8(((oddLi << 4) & 0x00F0)); // Padding is implicit
+      i.WriteU8(((oddLi << 4) & 0x00F0));
     }
   }
 }

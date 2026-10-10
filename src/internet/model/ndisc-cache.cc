@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ndisc-cache.h"
 
@@ -135,7 +117,7 @@ void NdiscCache::Flush() {
   NS_LOG_FUNCTION(this);
 
   for (auto i = m_ndCache.begin(); i != m_ndCache.end(); i++) {
-    delete (*i).second; /* delete the pointer NdiscCache::Entry */
+    delete (*i).second;
   }
 
   m_ndCache.erase(m_ndCache.begin(), m_ndCache.end());
@@ -209,9 +191,6 @@ void NdiscCache::Entry::AddWaitingPacket(Ipv6PayloadHeaderPair p) {
   NS_LOG_FUNCTION(this << p.second << p.first);
 
   if (m_waiting.size() >= m_ndCache->GetUnresQlen()) {
-    /* we store only m_unresQlen packet => first packet in first packet remove
-     */
-    /** \todo report packet as 'dropped' */
     m_waiting.pop_front();
   }
   m_waiting.push_back(p);
@@ -219,7 +198,6 @@ void NdiscCache::Entry::AddWaitingPacket(Ipv6PayloadHeaderPair p) {
 
 void NdiscCache::Entry::ClearWaitingPacket() {
   NS_LOG_FUNCTION(this);
-  /** \todo report packets as 'dropped' */
   m_waiting.clear();
 }
 
@@ -232,7 +210,6 @@ void NdiscCache::Entry::FunctionRetransmitTimeout() {
   NS_LOG_FUNCTION(this);
   Ipv6Address addr;
 
-  /* determine source address */
   if (m_ipv6Address.IsLinkLocal()) {
     addr = m_ndCache->GetInterface()->GetLinkLocalAddress().GetAddress();
   } else if (!m_ipv6Address.IsAny()) {
@@ -240,9 +217,7 @@ void NdiscCache::Entry::FunctionRetransmitTimeout() {
                ->GetAddressMatchingDestination(m_ipv6Address)
                .GetAddress();
 
-    if (addr.IsAny()) /* maybe address has expired */
-    {
-      /* delete the entry */
+    if (addr.IsAny()) {
       m_ndCache->Remove(this);
       return;
     }
@@ -254,7 +229,6 @@ void NdiscCache::Entry::FunctionRetransmitTimeout() {
     m_ndCache->m_icmpv6->SendNS(
         addr, Ipv6Address::MakeSolicitedAddress(m_ipv6Address), m_ipv6Address,
         m_ndCache->GetDevice()->GetAddress());
-    /* arm the timer again */
     StartRetransmitTimer();
   } else {
     Ipv6PayloadHeaderPair malformedPacket = m_waiting.front();
@@ -267,7 +241,6 @@ void NdiscCache::Entry::FunctionRetransmitTimeout() {
     m_ndCache->m_icmpv6->SendErrorDestinationUnreachable(
         malformedPacket.first, addr, Icmpv6Header::ICMPV6_ADDR_UNREACHABLE);
 
-    /* delete the entry */
     m_ndCache->Remove(this);
   }
 }
@@ -284,14 +257,11 @@ void NdiscCache::Entry::FunctionDelayTimeout() {
     addr = m_ndCache->GetInterface()
                ->GetAddressMatchingDestination(m_ipv6Address)
                .GetAddress();
-    if (addr.IsAny()) /* maybe address has expired */
-    {
-      /* delete the entry */
+    if (addr.IsAny()) {
       m_ndCache->Remove(this);
       return;
     }
   } else {
-    /* should not happen */
     return;
   }
 
@@ -319,19 +289,14 @@ void NdiscCache::Entry::FunctionProbeTimeout() {
       addr = m_ndCache->GetInterface()
                  ->GetAddressMatchingDestination(m_ipv6Address)
                  .GetAddress();
-      if (addr.IsAny()) /* maybe address has expired */
-      {
-        /* delete the entry */
+      if (addr.IsAny()) {
         m_ndCache->Remove(this);
         return;
       }
     } else {
-      /* should not happen */
       return;
     }
 
-    /* icmpv6->SendNS (m_ndCache->GetInterface ()->GetLinkLocalAddress (),
-     * m_ipv6Address, m_ipv6Address, m_ndCache->GetDevice ()->GetAddress ()); */
     Ipv6PayloadHeaderPair p =
         m_ndCache->m_icmpv6->ForgeNS(addr, m_ipv6Address, m_ipv6Address,
                                      m_ndCache->GetDevice()->GetAddress());
@@ -339,10 +304,8 @@ void NdiscCache::Entry::FunctionProbeTimeout() {
     m_ndCache->GetDevice()->Send(p.first, this->GetMacAddress(),
                                  Ipv6L3Protocol::PROT_NUMBER);
 
-    /* arm the timer again */
     StartProbeTimer();
   } else {
-    /* delete the entry */
     m_ndCache->Remove(this);
   }
 }
@@ -572,4 +535,4 @@ std::ostream &operator<<(std::ostream &os, const NdiscCache::Entry &entry) {
   return os;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

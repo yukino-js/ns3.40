@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "rip.h"
 
@@ -196,12 +178,6 @@ Ptr<Ipv4Route> Rip::RouteOutput(Ptr<Packet> p, const Ipv4Header &header,
   Ptr<Ipv4Route> rtentry = nullptr;
 
   if (destination.IsMulticast()) {
-    // Note:  Multicast routes for outbound packets are stored in the
-    // normal unicast table.  An implication of this is that it is not
-    // possible to source multicast datagrams on multiple interfaces.
-    // This is a well-known property of sockets implementation on
-    // many Unix variants.
-    // So, we just log it and fall through to LookupStatic ()
     NS_LOG_LOGIC("RouteOutput (): Multicast destination");
   }
 
@@ -224,7 +200,6 @@ bool Rip::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
                        << header.GetDestination() << idev);
 
   NS_ASSERT(m_ipv4);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv4->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice(idev);
   Ipv4Address dst = header.GetDestination();
@@ -235,18 +210,13 @@ bool Rip::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
       lcb(p, header, iif);
       return true;
     } else {
-      // The local delivery callback is null.  This may be a multicast
-      // or broadcast packet, so return false so that another
-      // multicast routing protocol can handle it.  It should be possible
-      // to extend this to explicitly check whether it is a unicast
-      // packet, and invoke the error callback if so
       return false;
     }
   }
 
   if (dst.IsMulticast()) {
     NS_LOG_LOGIC("Multicast route not supported by RIP");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 
   if (header.GetDestination().IsBroadcast()) {
@@ -257,7 +227,6 @@ bool Rip::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
     return false;
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv4->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     if (!ecb.IsNull()) {
@@ -265,17 +234,16 @@ bool Rip::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
     }
     return true;
   }
-  // Next, try to find a route
   NS_LOG_LOGIC("Unicast destination");
   Ptr<Ipv4Route> rtentry = Lookup(header.GetDestination(), false);
 
   if (rtentry) {
     NS_LOG_LOGIC("Found unicast destination - calling unicast callback");
-    ucb(rtentry, p, header); // unicast forwarding callback
+    ucb(rtentry, p, header);
     return true;
   } else {
     NS_LOG_LOGIC("Did not find unicast destination - returning false");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 }
 
@@ -355,7 +323,6 @@ void Rip::NotifyInterfaceUp(uint32_t i) {
 void Rip::NotifyInterfaceDown(uint32_t interface) {
   NS_LOG_FUNCTION(this << interface);
 
-  /* remove all routes that are going through this interface */
   for (auto it = m_routes.begin(); it != m_routes.end(); it++) {
     if (it->first->GetInterface() == interface) {
       InvalidateRoute(it->first);
@@ -416,8 +383,6 @@ void Rip::NotifyRemoveAddress(uint32_t interface,
       address.GetLocal().CombineMask(address.GetMask());
   Ipv4Mask networkMask = address.GetMask();
 
-  // Remove all routes that are going through this interface
-  // which reference this network
   for (auto it = m_routes.begin(); it != m_routes.end(); it++) {
     if (it->first->GetInterface() == interface && it->first->IsNetwork() &&
         it->first->GetDestNetwork() == networkAddress &&
@@ -452,7 +417,6 @@ void Rip::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
   NS_LOG_FUNCTION(this << stream);
 
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -491,10 +455,8 @@ void Rip::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
         }
         *os << std::setw(6) << flags.str();
         *os << std::setw(7) << int(route->GetRouteMetric());
-        // Ref ct not implemented
         *os << "-"
             << "      ";
-        // Use not implemented
         *os << "-"
             << "   ";
         if (!Names::FindName(m_ipv4->GetNetDevice(route->GetInterface()))
@@ -508,7 +470,6 @@ void Rip::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
     }
   }
   *os << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 
@@ -546,7 +507,6 @@ Ptr<Ipv4Route> Rip::Lookup(Ipv4Address dst, bool setSource,
   Ptr<Ipv4Route> rtentry = nullptr;
   uint16_t longestMask = 0;
 
-  /* when sending on local multicast, there have to be interface specified */
   if (dst.IsLocalMulticast()) {
     NS_ASSERT_MSG(interface, "Try to send on local multicast address, and no "
                              "interface index is given!");
@@ -574,8 +534,6 @@ Ptr<Ipv4Route> Rip::Lookup(Ipv4Address dst, bool setSource,
         NS_LOG_LOGIC("Found global network route " << j << ", mask length "
                                                    << maskLen);
 
-        /* if interface is given, check the route will output on this interface
-         */
         if (!interface ||
             interface == m_ipv4->GetNetDevice(j->GetInterface())) {
           if (maskLen < longestMask) {
@@ -590,8 +548,7 @@ Ptr<Ipv4Route> Rip::Lookup(Ipv4Address dst, bool setSource,
           rtentry = Create<Ipv4Route>();
 
           if (setSource) {
-            if (route->GetDest().IsAny()) /* default route */
-            {
+            if (route->GetDest().IsAny()) {
               rtentry->SetSource(m_ipv4->SourceAddressSelection(
                   interfaceIdx, route->GetGateway()));
             } else {
@@ -741,17 +698,12 @@ void Rip::HandleRequests(RipHeader requestHdr, Ipv4Address senderAddress,
     return;
   }
 
-  // check if it's a request for the full table from a neighbor
   if (rtes.size() == 1) {
     if (rtes.begin()->GetPrefix() == Ipv4Address::GetAny() &&
         rtes.begin()->GetSubnetMask().GetPrefixLength() == 0 &&
         rtes.begin()->GetRouteMetric() == m_linkDown) {
-      // Output whole thing. Use Split Horizon
       if (m_interfaceExclusions.find(incomingInterface) ==
           m_interfaceExclusions.end()) {
-        // we use one of the sending sockets, as they're bound to the right
-        // interface and the local address might be used on different
-        // interfaces.
         Ptr<Socket> sendingSocket;
         for (auto iter = m_unicastSocketList.begin();
              iter != m_unicastSocketList.end(); iter++) {
@@ -833,8 +785,6 @@ void Rip::HandleRequests(RipHeader requestHdr, Ipv4Address senderAddress,
       }
     }
   } else {
-    // note: we got the request as a single packet, so no check is necessary for
-    // MTU limit
 
     Ptr<Packet> p = Create<Packet>();
     SocketIpTtlTag tag;
@@ -899,7 +849,6 @@ void Rip::HandleResponses(RipHeader hdr, Ipv4Address senderAddress,
 
   std::list<RipRte> rtes = hdr.GetRteList();
 
-  // validate the RTEs before processing
   for (auto iter = rtes.begin(); iter != rtes.end(); iter++) {
     if (iter->GetRouteMetric() == 0 || iter->GetRouteMetric() > m_linkDown) {
       NS_LOG_LOGIC("Ignoring an update message with malformed metric: "
@@ -1105,22 +1054,6 @@ void Rip::SendTriggeredRouteUpdate() {
     return;
   }
 
-  // DoSendRouteUpdate (false);
-
-  // note: The RFC states:
-  //     After a triggered
-  //     update is sent, a timer should be set for a random interval between 1
-  //     and 5 seconds.  If other changes that would trigger updates occur
-  //     before the timer expires, a single update is triggered when the timer
-  //     expires.  The timer is then reset to another random value between 1
-  //     and 5 seconds.  Triggered updates may be suppressed if a regular
-  //     update is due by the time the triggered update would be sent.
-  // Here we rely on this:
-  // When an update occurs (either Triggered or Periodic) the "IsChanged ()"
-  // route field will be cleared.
-  // Hence, the following Triggered Update will be fired, but will not send
-  // any route update.
-
   Time delay = Seconds(m_rng->GetValue(m_minTriggeredUpdateDelay.GetSeconds(),
                                        m_maxTriggeredUpdateDelay.GetSeconds()));
   m_nextTriggeredUpdate =
@@ -1208,10 +1141,6 @@ void Rip::AddDefaultRouteTo(Ipv4Address nextHop, uint32_t interface) {
   AddNetworkRouteTo(Ipv4Address("0.0.0.0"), Ipv4Mask::GetZero(), nextHop,
                     interface);
 }
-
-/*
- * RipRoutingTableEntry
- */
 
 RipRoutingTableEntry::RipRoutingTableEntry()
     : m_tag(0), m_metric(0), m_status(RIP_INVALID), m_changed(false) {}

@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011, 2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo  <marco.miozzo@cttc.es>,
- *         Nicola Baldo <nbaldo@cttc.es>
- *
- */
 #include "okumura-hata-propagation-loss-model.h"
 
 #include "ns3/double.h"
@@ -70,8 +49,6 @@ double OkumuraHataPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
   double loss = 0.0;
   double fmhz = m_frequency / 1e6;
   double log_fMhz = std::log10(fmhz);
-  // In the Okumura Hata literature, the distance is expressed in units of
-  // kilometers but other lengths are expressed in meters
   double distKm = a->GetDistanceFrom(b) / 1000.0;
 
   Vector aPosition = a->GetPosition();
@@ -87,8 +64,6 @@ double OkumuraHataPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
   double log_bHeight = 0.0;
 
   if (m_frequency <= 1.500e9) {
-    // standard Okumura Hata
-    // see eq. (4.4.1) in the COST 231 final report
 
     if (m_citySize == LargeCity) {
       if (fmhz < 200) {
@@ -111,8 +86,6 @@ double OkumuraHataPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
       loss += -4.70 * std::pow(log_fMhz, 2) + 18.33 * log_fMhz - 40.94;
     }
   } else {
-    // COST 231 Okumura model
-    // see eq. (4.4.3) in the COST 231 final report
 
     double C = 0.0;
 

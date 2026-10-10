@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "default-simulator-impl.h"
 
@@ -26,17 +8,8 @@
 
 #include <cmath>
 
-/**
- * \file
- * \ingroup simulator
- * ns3::DefaultSimulatorImpl implementation.
- */
-
 namespace ns3 {
 
-// Note:  Logging in this file is largely avoided due to the
-// number of calls that are made to these functions and the possibility
-// of causing recursions leading to stack overflow
 NS_LOG_COMPONENT_DEFINE("DefaultSimulatorImpl");
 
 NS_OBJECT_ENSURE_REGISTERED(DefaultSimulatorImpl);
@@ -101,7 +74,6 @@ void DefaultSimulatorImpl::SetScheduler(ObjectFactory schedulerFactory) {
   m_events = scheduler;
 }
 
-// System ID for non-distributed simulation is always zero
 uint32_t DefaultSimulatorImpl::GetSystemId() const { return 0; }
 
 void DefaultSimulatorImpl::ProcessOneEvent() {
@@ -133,7 +105,6 @@ void DefaultSimulatorImpl::ProcessEventsWithContext() {
     return;
   }
 
-  // swap queues
   EventsWithContext eventsWithContext;
   {
     std::unique_lock lock{m_eventsWithContextMutex};
@@ -156,7 +127,6 @@ void DefaultSimulatorImpl::ProcessEventsWithContext() {
 
 void DefaultSimulatorImpl::Run() {
   NS_LOG_FUNCTION(this);
-  // Set the current threadId as the main threadId
   m_mainThreadId = std::this_thread::get_id();
   ProcessEventsWithContext();
   m_stop = false;
@@ -165,8 +135,6 @@ void DefaultSimulatorImpl::Run() {
     ProcessOneEvent();
   }
 
-  // If the simulator stopped naturally by lack of events, make a
-  // consistency test to check that we didn't lose any events along the way.
   NS_ASSERT(!m_events->IsEmpty() || m_unscheduledEvents == 0);
 }
 
@@ -180,9 +148,6 @@ void DefaultSimulatorImpl::Stop(const Time &delay) {
   Simulator::Schedule(delay, &Simulator::Stop);
 }
 
-//
-// Schedule an event for a _relative_ time in the future.
-//
 EventId DefaultSimulatorImpl::Schedule(const Time &delay, EventImpl *event) {
   NS_LOG_FUNCTION(this << delay.GetTimeStep() << event);
   NS_ASSERT_MSG(m_mainThreadId == std::this_thread::get_id(),
@@ -221,7 +186,6 @@ void DefaultSimulatorImpl::ScheduleWithContext(uint32_t context,
   } else {
     EventWithContext ev;
     ev.context = context;
-    // Current time added in ProcessEventsWithContext()
     ev.timestamp = delay.GetTimeStep();
     ev.event = event;
     {
@@ -249,10 +213,7 @@ EventId DefaultSimulatorImpl::ScheduleDestroy(EventImpl *event) {
   return id;
 }
 
-Time DefaultSimulatorImpl::Now() const {
-  // Do not add function logging here, to avoid stack overflow
-  return TimeStep(m_currentTs);
-}
+Time DefaultSimulatorImpl::Now() const { return TimeStep(m_currentTs); }
 
 Time DefaultSimulatorImpl::GetDelayLeft(const EventId &id) const {
   if (IsExpired(id)) {
@@ -264,7 +225,6 @@ Time DefaultSimulatorImpl::GetDelayLeft(const EventId &id) const {
 
 void DefaultSimulatorImpl::Remove(const EventId &id) {
   if (id.GetUid() == EventId::UID::DESTROY) {
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         m_destroyEvents.erase(i);
@@ -283,7 +243,6 @@ void DefaultSimulatorImpl::Remove(const EventId &id) {
   event.key.m_uid = id.GetUid();
   m_events->Remove(event);
   event.impl->Cancel();
-  // whenever we remove an event from the event list, we have to unref it.
   event.impl->Unref();
 
   m_unscheduledEvents--;
@@ -300,7 +259,6 @@ bool DefaultSimulatorImpl::IsExpired(const EventId &id) const {
     if (id.PeekEventImpl() == nullptr || id.PeekEventImpl()->IsCancelled()) {
       return true;
     }
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         return false;

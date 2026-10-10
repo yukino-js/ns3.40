@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- */
 
 #include "ns3/config-store.h"
 #include "ns3/core-module.h"
@@ -27,7 +9,6 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-// #include "ns3/gtk-config-store.h"
 
 using namespace ns3;
 
@@ -49,11 +30,8 @@ int main(int argc, char *argv[]) {
   ConfigStore inputConfig;
   inputConfig.ConfigureDefaults();
 
-  // parse again so you can override default values from the command line
   cmd.Parse(argc, argv);
 
-  // Geometry of the scenario (in meters)
-  // Assume squared building
   double nodeHeight = 1.5;
   double roomHeight = 3;
   double roomLength = 8;
@@ -61,8 +39,6 @@ int main(int argc, char *argv[]) {
   uint32_t nEnb;
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
-  // lteHelper->EnableLogComponents ();
-  // LogComponentEnable ("BuildingsPropagationLossModel", LOG_LEVEL_ALL);
   if (nFloors == 0) {
     lteHelper->SetAttribute("PathlossModel",
                             StringValue("ns3::FriisPropagationLossModel"));
@@ -74,7 +50,6 @@ int main(int argc, char *argv[]) {
     nEnb = nFloors * nEnbPerFloor;
   }
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   std::vector<NodeContainer> ueNodes;
 
@@ -93,7 +68,6 @@ int main(int argc, char *argv[]) {
   Ptr<Building> building;
 
   if (nFloors == 0) {
-    // Position of eNBs
     uint32_t plantedEnb = 0;
     for (uint32_t row = 0; row < nRooms; row++) {
       for (uint32_t column = 0; column < nRooms && plantedEnb < nEnbPerFloor;
@@ -109,7 +83,6 @@ int main(int argc, char *argv[]) {
     mobility.Install(enbNodes);
     BuildingsHelper::Install(enbNodes);
 
-    // Position of UEs attached to eNB
     for (uint32_t i = 0; i < nEnb; i++) {
       Ptr<UniformRandomVariable> posX = CreateObject<UniformRandomVariable>();
       posX->SetAttribute("Min",
@@ -157,7 +130,6 @@ int main(int argc, char *argv[]) {
               enbNodes.Get(plantedEnb)->GetObject<MobilityModel>();
           mmEnb->SetPosition(v);
 
-          // Positioning UEs attached to eNB
           mobility.Install(ueNodes.at(plantedEnb));
           BuildingsHelper::Install(ueNodes.at(plantedEnb));
           for (uint32_t ue = 0; ue < nUe; ue++) {
@@ -171,7 +143,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   std::vector<NetDeviceContainer> ueDevs;
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
@@ -188,9 +159,6 @@ int main(int argc, char *argv[]) {
   lteHelper->EnableTraces();
 
   Simulator::Run();
-
-  /*GtkConfigStore config;
-  config.ConfigureAttributes ();*/
 
   Simulator::Destroy();
   return 0;

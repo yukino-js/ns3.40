@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Wireless Communications and Networking Group (WCNG),
- * University of Rochester, Rochester, NY, USA.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Cristiano Tapparello <cristiano.tapparello@rochester.edu>
- */
 
 #include "basic-energy-harvester.h"
 
@@ -98,10 +79,6 @@ Time BasicEnergyHarvester::GetHarvestedPowerUpdateInterval() const {
   return m_harvestedPowerUpdateInterval;
 }
 
-/*
- * Private functions start here.
- */
-
 void BasicEnergyHarvester::UpdateHarvestedPower() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG(Simulator::Now().As(Time::S)
@@ -110,11 +87,10 @@ void BasicEnergyHarvester::UpdateHarvestedPower() {
 
   Time duration = Simulator::Now() - m_lastHarvestingUpdateTime;
 
-  NS_ASSERT(duration.GetNanoSeconds() >= 0); // check if duration is valid
+  NS_ASSERT(duration.GetNanoSeconds() >= 0);
 
   double energyHarvested = 0.0;
 
-  // do not update if simulation has finished
   if (Simulator::IsFinished()) {
     NS_LOG_DEBUG("BasicEnergyHarvester: Simulation Finished.");
     return;
@@ -126,13 +102,10 @@ void BasicEnergyHarvester::UpdateHarvestedPower() {
 
   energyHarvested = duration.GetSeconds() * m_harvestedPower;
 
-  // update total energy harvested
   m_totalEnergyHarvestedJ += energyHarvested;
 
-  // notify energy source
   GetEnergySource()->UpdateEnergySource();
 
-  // update last harvesting time stamp
   m_lastHarvestingUpdateTime = Simulator::Now();
 
   m_energyHarvestingUpdateEvent =
@@ -145,7 +118,7 @@ void BasicEnergyHarvester::DoInitialize() {
 
   m_lastHarvestingUpdateTime = Simulator::Now();
 
-  UpdateHarvestedPower(); // start periodic harvesting update
+  UpdateHarvestedPower();
 }
 
 void BasicEnergyHarvester::DoDispose() { NS_LOG_FUNCTION(this); }

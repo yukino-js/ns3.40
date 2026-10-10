@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "eps-bearer.h"
 
@@ -112,17 +94,6 @@ double EpsBearer::GetPacketErrorLossRate() const {
 }
 
 const EpsBearer::BearerRequirementsMap &EpsBearer::GetRequirementsRel11() {
-  /* Needed to support GCC 4.9. Otherwise, use list constructors, for example:
-   * EpsBearer::BearerRequirementsMap
-   * EpsBearer::GetRequirementsRel15 ()
-   * {
-   *   return
-   *     {
-   *       { GBR_CONV_VOICE          , { 1,  20, 100, 1.0e-2,    0, 2000} },
-   *       ...
-   *     };
-   * }
-   */
   static EpsBearer::BearerRequirementsMap ret{
       {GBR_CONV_VOICE, std::make_tuple(1, 2, 100, 1.0e-2, 0, 0)},
       {GBR_CONV_VIDEO, std::make_tuple(1, 4, 150, 1.0e-3, 0, 0)},
@@ -138,8 +109,6 @@ const EpsBearer::BearerRequirementsMap &EpsBearer::GetRequirementsRel11() {
 }
 
 const EpsBearer::BearerRequirementsMap &EpsBearer::GetRequirementsRel15() {
-  // Needed to support GCC 4.9. Otherwise, use list constructors (see
-  // GetRequirementsRel10)
   static EpsBearer::BearerRequirementsMap ret{
       {GBR_CONV_VOICE, std::make_tuple(1, 20, 100, 1.0e-2, 0, 2000)},
       {GBR_CONV_VIDEO, std::make_tuple(1, 40, 150, 1.0e-3, 0, 2000)},
@@ -167,8 +136,6 @@ const EpsBearer::BearerRequirementsMap &EpsBearer::GetRequirementsRel15() {
 }
 
 const EpsBearer::BearerRequirementsMap &EpsBearer::GetRequirementsRel18() {
-  // Needed to support GCC 4.9. Otherwise, use list constructors (see
-  // GetRequirementsRel10)
   static EpsBearer::BearerRequirementsMap ret{
       {GBR_CONV_VOICE, std::make_tuple(1, 20, 100, 1.0e-2, 0, 2000)},
       {GBR_CONV_VIDEO, std::make_tuple(1, 40, 150, 1.0e-3, 0, 2000)},

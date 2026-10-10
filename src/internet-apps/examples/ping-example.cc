@@ -1,77 +1,4 @@
-/*
- * Copyright (c) 2022 Chandrakant Jena
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Chandrakant Jena <chandrakant.barcelona@gmail.com>
- */
 
-// Example to demonstrate the working of the Ping Application
-// Network topology:
-// A ------------------------------ B ------------------------------ C
-//             100 Mbps                           100 Mbps
-//               5 ms (one way)                     5 ms (one way)
-// IPv4 addresses:
-// 10.1.1.1    <->         10.1.1.2 / 10.1.2.1     <->         10.1.2.2
-//
-// IPv6 addresses:
-// 2001:1::200:ff:fe00:1
-//     <->    2001:1::200:ff:fe00:2 / 2001:1:0:1:200:ff:fe00:3
-//                                       <-> 2001:1:0:1:200:ff:fe00:4
-//
-// The topology has three nodes interconnected by two point-to-point links.
-// Each link has 5 ms one-way delay, for a round-trip propagation delay
-// of 20 ms.  The transmission rate on each link is 100 Mbps.  The routing
-// between links is enabled by ns-3's NixVector routing.
-//
-// By default, this program will send 5 pings from node A to node C using IPv6.
-// When using IPv6, the output will look like this:
-//
-// PING 2001:1:0:1:200:ff:fe00:4 - 56 bytes of data; 104 bytes including ICMP
-// and IPv6 headers. 64 bytes from (2001:1:0:1:200:ff:fe00:4): icmp_seq=0 ttl=63
-// time=20.033 ms 64 bytes from (2001:1:0:1:200:ff:fe00:4): icmp_seq=1 ttl=63
-// time=20.033 ms 64 bytes from (2001:1:0:1:200:ff:fe00:4): icmp_seq=2 ttl=63
-// time=20.033 ms 64 bytes from (2001:1:0:1:200:ff:fe00:4): icmp_seq=3 ttl=63
-// time=20.033 ms 64 bytes from (2001:1:0:1:200:ff:fe00:4): icmp_seq=4 ttl=63
-// time=20.033 ms
-//
-// --- 2001:1:0:1:200:ff:fe00:4 ping statistics ---
-// 5 packets transmitted, 5 received, 0% packet loss, time 4020ms
-// rtt min/avg/max/mdev = 20/20/20/0 ms
-//
-// When using IPv4, the output will look like this:
-//
-//   PING 10.1.2.2 - 56 bytes of data; 84 bytes including ICMP and IPv4 headers.
-//   64 bytes from (10.1.2.2): icmp_seq=0 ttl=63 time=20.027 ms
-//   64 bytes from (10.1.2.2): icmp_seq=1 ttl=63 time=20.027 ms
-//   64 bytes from (10.1.2.2): icmp_seq=2 ttl=63 time=20.027 ms
-//   64 bytes from (10.1.2.2): icmp_seq=3 ttl=63 time=20.027 ms
-//   64 bytes from (10.1.2.2): icmp_seq=4 ttl=63 time=20.027 ms
-//   --- 10.1.2.2 ping statistics ---
-//   5 packets transmitted, 5 received, 0% packet loss, time 4020ms
-//   rtt min/avg/max/mdev = 20/20/20/0 ms
-//
-// The example program will also produce four pcap traces (one for each
-// NetDevice in the scenario) that can be viewed using tcpdump or Wireshark.
-//
-// Other program options include options to change the destination and
-// source addresses, number of packets (count), packet size, interval,
-// and whether to enable logging (if logging is enabled in the build).
-//
-// The Ping application in this example starts at simulation time 1 and will
-// stop either at simulation time 50 or once 'Count' pings have been responded
-// to, whichever comes first.
 
 #include "ns3/core-module.h"
 #include "ns3/internet-apps-module.h"
@@ -182,18 +109,10 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer link2Devices;
   link2Devices = pointToPoint.Install(link2Nodes);
 
-  // The following block of code inserts an optional packet loss model
   Ptr<PointToPointNetDevice> p2pSender =
       DynamicCast<PointToPointNetDevice>(link1Devices.Get(0));
   Ptr<ReceiveListErrorModel> errorModel = CreateObject<ReceiveListErrorModel>();
   std::list<uint32_t> dropList;
-  // Enable one or more of the below lines to force specific packet losses
-  // dropList.push_back (0);
-  // dropList.push_back (1);
-  // dropList.push_back (2);
-  // dropList.push_back (3);
-  // dropList.push_back (4);
-  // etc. (other lines may be added)
   errorModel->SetList(dropList);
   p2pSender->SetReceiveErrorModel(errorModel);
 
@@ -231,7 +150,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Create Ping application and installing on node A
   PingHelper pingHelper(destination, source);
   pingHelper.SetAttribute("Interval", TimeValue(interPacketInterval));
   pingHelper.SetAttribute("Size", UintegerValue(size));

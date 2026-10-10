@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Charitha Sangaraju <charitha29193@gmail.com>
- *          Nandita G <gm.nandita@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -30,33 +9,19 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TcpLpTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the behaviour common to New Reno
- */
 class TcpLpToNewReno : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param cWnd Congestion window size
-   * \param segmentSize Segment size
-   * \param segmentsAcked Segments acked
-   * \param ssThresh Slow start threshold
-   * \param rtt RTT
-   * \param name Test case name
-   */
   TcpLpToNewReno(uint32_t cWnd, uint32_t segmentSize, uint32_t segmentsAcked,
                  uint32_t ssThresh, Time rtt, const std::string &name);
 
 private:
   void DoRun() override;
-  uint32_t m_cWnd;             //!< Congestion window size
-  uint32_t m_segmentSize;      //!< Segment size
-  uint32_t m_ssThresh;         //!< Slow start threshold
-  uint32_t m_segmentsAcked;    //!< Segments acked
-  Time m_rtt;                  //!< RTT
-  Ptr<TcpSocketState> m_state; //!< TCP socket state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_ssThresh;
+  uint32_t m_segmentsAcked;
+  Time m_rtt;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLpToNewReno::TcpLpToNewReno(uint32_t cWnd, uint32_t segmentSize,
@@ -93,21 +58,8 @@ void TcpLpToNewReno::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing TcpLp when cwd exceeds threshold
- */
 class TcpLpInferenceTest1 : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param cWnd Congestion window size
-   * \param segmentSize Segment size
-   * \param segmentsAcked Segments acked
-   * \param rtt RTT
-   * \param name Test case name
-   */
   TcpLpInferenceTest1(uint32_t cWnd, uint32_t segmentSize,
                       uint32_t segmentsAcked, Time rtt,
                       const std::string &name);
@@ -115,11 +67,11 @@ public:
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;             //!< Congestion window size
-  uint32_t m_segmentSize;      //!< Segment size
-  uint32_t m_segmentsAcked;    //!< Segments acked
-  Time m_rtt;                  //!< RTT
-  Ptr<TcpSocketState> m_state; //!< TCP socket state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  Time m_rtt;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLpInferenceTest1::TcpLpInferenceTest1(uint32_t cWnd, uint32_t segmentSize,
@@ -151,21 +103,8 @@ void TcpLpInferenceTest1::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing TcpLp when it is inference phase
- */
 class TcpLpInferenceTest2 : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param cWnd Congestion window size
-   * \param segmentSize Segment size
-   * \param segmentsAcked Segments acked
-   * \param rtt RTT
-   * \param name Test case name
-   */
   TcpLpInferenceTest2(uint32_t cWnd, uint32_t segmentSize,
                       uint32_t segmentsAcked, Time rtt,
                       const std::string &name);
@@ -173,11 +112,11 @@ public:
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;             //!< Congestion window size
-  uint32_t m_segmentSize;      //!< Segment size
-  uint32_t m_segmentsAcked;    //!< Segments acked
-  Time m_rtt;                  //!< RTT
-  Ptr<TcpSocketState> m_state; //!< TCP socket state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  Time m_rtt;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLpInferenceTest2::TcpLpInferenceTest2(uint32_t cWnd, uint32_t segmentSize,
@@ -213,11 +152,6 @@ void TcpLpInferenceTest2::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * Test the behaviour common to New Reno
- */
 class TcpLpTestSuite : public TestSuite {
 public:
   TcpLpTestSuite() : TestSuite("tcp-lp-test", UNIT) {
@@ -239,6 +173,6 @@ public:
   }
 };
 
-static TcpLpTestSuite g_tcplpTest; //!< static var for test initialization
+static TcpLpTestSuite g_tcplpTest;
 
 } // namespace ns3

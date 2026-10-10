@@ -1,41 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: George Riley <riley@ece.gatech.edu>
- *
- */
-
-/**
- * \file
- * \ingroup mpi
- *  Implementation of classes  ns3::LbtsMessage and
- * ns3::DistributedSimulatorImpl.
- */
 
 #include "distributed-simulator-impl.h"
 
@@ -73,11 +36,6 @@ uint32_t LbtsMessage::GetMyId() const { return m_myId; }
 
 bool LbtsMessage::IsFinished() const { return m_isFinished; }
 
-/**
- * Initialize m_lookAhead to maximum, it will be constrained by
- * user supplied time via BoundLookAhead and the
- * minimum latency network between ranks.
- */
 Time DistributedSimulatorImpl::m_lookAhead = Time::Max();
 
 TypeId DistributedSimulatorImpl::GetTypeId() {
@@ -94,7 +52,6 @@ DistributedSimulatorImpl::DistributedSimulatorImpl() {
   m_myId = MpiInterface::GetSystemId();
   m_systemCount = MpiInterface::GetSize();
 
-  // Allocate the LBTS message buffer
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds(0);
 
@@ -141,7 +98,6 @@ void DistributedSimulatorImpl::Destroy() {
 void DistributedSimulatorImpl::CalculateLookAhead() {
   NS_LOG_FUNCTION(this);
 
-  /* If running sequential simulation can ignore lookahead */
   if (MpiInterface::GetSize() <= 1) {
     m_lookAhead = Seconds(0);
   } else {
@@ -153,7 +109,6 @@ void DistributedSimulatorImpl::CalculateLookAhead() {
 
       for (uint32_t i = 0; i < (*iter)->GetNDevices(); ++i) {
         Ptr<NetDevice> localNetDevice = (*iter)->GetDevice(i);
-        // only works for p2p links currently
         if (!localNetDevice->IsPointToPoint()) {
           continue;
         }
@@ -162,7 +117,6 @@ void DistributedSimulatorImpl::CalculateLookAhead() {
           continue;
         }
 
-        // grab the adjacent node
         Ptr<Node> remoteNode;
         if (channel->GetDevice(0) == localNetDevice) {
           remoteNode = (channel->GetDevice(1))->GetNode();
@@ -170,14 +124,10 @@ void DistributedSimulatorImpl::CalculateLookAhead() {
           remoteNode = (channel->GetDevice(0))->GetNode();
         }
 
-        // if it's not remote, don't consider it
         if (remoteNode->GetSystemId() == MpiInterface::GetSystemId()) {
           continue;
         }
 
-        // compare delay on the channel with current value of
-        // m_lookAhead.  if delay on channel is smaller, make
-        // it the new lookAhead.
         TimeValue delay;
         channel->GetAttribute("Delay", delay);
 
@@ -188,28 +138,11 @@ void DistributedSimulatorImpl::CalculateLookAhead() {
     }
   }
 
-  // m_lookAhead is now set
   m_grantedTime = m_lookAhead;
 
-  /*
-   * Compute the maximum inter-task latency and use that value
-   * for tasks with no inter-task links.
-   *
-   * Special processing for edge cases.  For tasks that have no
-   * nodes need to determine a reasonable lookAhead value.  Infinity
-   * would work correctly but introduces a performance issue; tasks
-   * with an infinite lookAhead would execute all their events
-   * before doing an AllGather resulting in very bad load balance
-   * during the first time window.  Since all tasks participate in
-   * the AllGather it is desirable to have all the tasks advance in
-   * simulation time at a similar rate assuming roughly equal events
-   * per unit of simulation time in order to equalize the amount of
-   * work per time window.
-   */
   long sendbuf;
   long recvbuf;
 
-  /* Tasks with no inter-task links do not contribute to max */
   if (m_lookAhead == GetMaximumSimulationTime()) {
     sendbuf = 0;
   } else {
@@ -219,12 +152,6 @@ void DistributedSimulatorImpl::CalculateLookAhead() {
   MPI_Allreduce(&sendbuf, &recvbuf, 1, MPI_LONG, MPI_MAX,
                 MpiInterface::GetCommunicator());
 
-  /* For nodes that did not compute a lookahead use max from ranks
-   * that did compute a value.  An edge case occurs if all nodes have
-   * no inter-task links (max will be 0 in this case). Use infinity so all tasks
-   * will proceed without synchronization until a single AllGather
-   * occurs when all tasks have finished.
-   */
   if (m_lookAhead == GetMaximumSimulationTime() && recvbuf != 0) {
     m_lookAhead = Time(recvbuf);
     m_grantedTime = m_lookAhead;
@@ -281,8 +208,6 @@ bool DistributedSimulatorImpl::IsLocalFinished() const {
 }
 
 uint64_t DistributedSimulatorImpl::NextTs() const {
-  // If local MPI task is has no more events or stop was called
-  // next event time is infinity.
   if (IsLocalFinished()) {
     return GetMaximumSimulationTime().GetTimeStep();
   } else {
@@ -302,20 +227,10 @@ void DistributedSimulatorImpl::Run() {
   while (!m_globalFinished) {
     Time nextTime = Next();
 
-    // If local event is beyond grantedTime then need to synchronize
-    // with other tasks to determine new time window. If local task
-    // is finished then continue to participate in allgather
-    // synchronizations with other tasks until all tasks have
-    // completed.
     if (nextTime > m_grantedTime || IsLocalFinished()) {
-      // Can't process next event, calculate a new LBTS
-      // First receive any pending messages
       GrantedTimeWindowMpiInterface::ReceiveMessages();
-      // reset next time
       nextTime = Next();
-      // And check for send completes
       GrantedTimeWindowMpiInterface::TestSendComplete();
-      // Finally calculate the lbts
       LbtsMessage lMsg(GrantedTimeWindowMpiInterface::GetRxCount(),
                        GrantedTimeWindowMpiInterface::GetTxCount(), m_myId,
                        IsLocalFinished(), nextTime);
@@ -324,9 +239,6 @@ void DistributedSimulatorImpl::Run() {
                     sizeof(LbtsMessage), MPI_BYTE,
                     MpiInterface::GetCommunicator());
       Time smallestTime = m_pLBTS[0].GetSmallestTime();
-      // The totRx and totTx counts insure there are no transient
-      // messages;  If totRx != totTx, there are transients,
-      // so we don't update the granted time.
       uint32_t totRx = m_pLBTS[0].GetRxCount();
       uint32_t totTx = m_pLBTS[0].GetTxCount();
       m_globalFinished = m_pLBTS[0].IsFinished();
@@ -340,33 +252,22 @@ void DistributedSimulatorImpl::Run() {
         m_globalFinished &= m_pLBTS[i].IsFinished();
       }
 
-      // Global halting condition is all nodes have empty queue's and
-      // no messages are in-flight.
       m_globalFinished &= totRx == totTx;
 
       if (totRx == totTx) {
-        // If lookahead is infinite then granted time should be as well.
-        // Covers the edge case if all the tasks have no inter tasks
-        // links, prevents overflow of granted time.
         if (m_lookAhead == GetMaximumSimulationTime()) {
           m_grantedTime = GetMaximumSimulationTime();
         } else {
-          // Overflow is possible here if near end of representable time.
           m_grantedTime = smallestTime + m_lookAhead;
         }
       }
     }
 
-    // Execute next event if it is within the current time window.
-    // Local task may be completed.
-    if ((nextTime <= m_grantedTime) &&
-        (!IsLocalFinished())) { // Safe to process
+    if ((nextTime <= m_grantedTime) && (!IsLocalFinished())) {
       ProcessOneEvent();
     }
   }
 
-  // If the simulator stopped naturally by lack of events, make a
-  // consistency test to check that we didn't lose any events along the way.
   NS_ASSERT(!m_events->IsEmpty() || m_unscheduledEvents == 0);
 }
 
@@ -384,9 +285,6 @@ void DistributedSimulatorImpl::Stop(const Time &delay) {
   Simulator::Schedule(delay, &Simulator::Stop);
 }
 
-//
-// Schedule an event for a _relative_ time in the future.
-//
 EventId DistributedSimulatorImpl::Schedule(const Time &delay,
                                            EventImpl *event) {
   NS_LOG_FUNCTION(this << delay.GetTimeStep() << event);
@@ -448,7 +346,6 @@ Time DistributedSimulatorImpl::GetDelayLeft(const EventId &id) const {
 
 void DistributedSimulatorImpl::Remove(const EventId &id) {
   if (id.GetUid() == EventId::UID::DESTROY) {
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         m_destroyEvents.erase(i);
@@ -467,7 +364,6 @@ void DistributedSimulatorImpl::Remove(const EventId &id) {
   event.key.m_uid = id.GetUid();
   m_events->Remove(event);
   event.impl->Cancel();
-  // whenever we remove an event from the event list, we have to unref it.
   event.impl->Unref();
 
   m_unscheduledEvents--;
@@ -484,7 +380,6 @@ bool DistributedSimulatorImpl::IsExpired(const EventId &id) const {
     if (id.PeekEventImpl() == nullptr || id.PeekEventImpl()->IsCancelled()) {
       return true;
     }
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         return false;
@@ -498,8 +393,6 @@ bool DistributedSimulatorImpl::IsExpired(const EventId &id) const {
 }
 
 Time DistributedSimulatorImpl::GetMaximumSimulationTime() const {
-  /// \todo I am fairly certain other compilers use other non-standard
-  /// post-fixes to indicate 64 bit constants.
   return TimeStep(0x7fffffffffffffffLL);
 }
 

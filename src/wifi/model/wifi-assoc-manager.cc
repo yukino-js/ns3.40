@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2022 Universita' degli Studi di Napoli Federico II
-
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-assoc-manager.h"
 
@@ -54,8 +35,6 @@ bool WifiAssocManager::ApInfoCompare::operator()(
     return false;
   }
 
-  // the Compare method implemented by subclass may be such that the two ApInfo
-  // objects compare equal; in such a case, use the BSSID as tie breaker
   return lhs.m_bssid < rhs.m_bssid;
 }
 
@@ -78,8 +57,7 @@ TypeId WifiAssocManager::GetTypeId() {
 }
 
 WifiAssocManager::WifiAssocManager()
-    : m_scanParams(), // zero-initialization
-      m_apList(ApInfoCompare(*this)) {}
+    : m_scanParams(), m_apList(ApInfoCompare(*this)) {}
 
 WifiAssocManager::~WifiAssocManager() { NS_LOG_FUNCTION(this); }
 
@@ -105,7 +83,6 @@ bool WifiAssocManager::MatchScanParams(const StaWifiMac::ApInfo &apInfo) const {
   NS_LOG_FUNCTION(this << apInfo);
 
   if (!m_scanParams.ssid.IsBroadcast()) {
-    // we need to check if AP's advertised SSID matches the requested SSID
     Ssid apSsid;
     if (auto beacon = std::get_if<MgtBeaconHeader>(&apInfo.m_frame); beacon) {
       apSsid = beacon->Get<Ssid>().value();
@@ -121,7 +98,6 @@ bool WifiAssocManager::MatchScanParams(const StaWifiMac::ApInfo &apInfo) const {
     }
   }
 
-  // we need to check if the AP is operating on a requested channel
   auto channelMatch = [&apInfo](auto &&channel) {
     if (channel.number != 0 && channel.number != apInfo.m_channel.number) {
       return false;
@@ -150,12 +126,9 @@ void WifiAssocManager::StartScanning(WifiScanParams &&scanParams) {
   NS_LOG_FUNCTION(this);
   m_scanParams = std::move(scanParams);
 
-  // remove stored AP information not matching the scanning parameters or
-  // related to APs that are not reachable on an allowed link
   for (auto ap = m_apList.begin(); ap != m_apList.end();) {
     if (!MatchScanParams(*ap) ||
         (!m_allowedLinks.empty() && m_allowedLinks.count(ap->m_linkId) == 0)) {
-      // remove AP info from list
       m_apListIt.erase(ap->m_bssid);
       ap = m_apList.erase(ap);
     } else {
@@ -174,18 +147,11 @@ void WifiAssocManager::NotifyApInfo(const StaWifiMac::ApInfo &&apInfo) {
     return;
   }
 
-  // check if an ApInfo object with the same BSSID is already present in the
-  // sorted list of ApInfo objects. This is done by trying to insert the BSSID
-  // in the hash table (insertion fails if the BSSID is already present)
   auto [hashIt, hashInserted] = m_apListIt.insert({apInfo.m_bssid, {}});
   if (!hashInserted) {
-    // an element with the searched BSSID is already present in the hash table.
-    // Remove the corresponding ApInfo object from the sorted list.
     m_apList.erase(hashIt->second);
   }
-  // insert the ApInfo object
   auto [listIt, listInserted] = m_apList.insert(std::move(apInfo));
-  // update the hash table entry
   NS_ASSERT_MSG(listInserted,
                 "An entry (" << listIt->m_apAddr << ", " << listIt->m_bssid
                              << ", " << +listIt->m_linkId
@@ -225,8 +191,6 @@ bool WifiAssocManager::CanSetupMultiLink(OptMleConstRef &mle,
     return false;
   }
 
-  // Get the Multi-Link Element and the RNR element, if present,
-  // from Beacon or Probe Response
   if (auto beacon = std::get_if<MgtBeaconHeader>(&m_apList.begin()->m_frame);
       beacon) {
     mle = beacon->Get<MultiLinkElement>();
@@ -249,8 +213,6 @@ bool WifiAssocManager::CanSetupMultiLink(OptMleConstRef &mle,
     return false;
   }
 
-  // The Multi-Link Element must contain the MLD MAC Address subfield and the
-  // Link ID Info subfield
   if (!mle->get().HasLinkIdInfo()) {
     NS_LOG_DEBUG("No Link ID Info subfield in the Multi-Link Element");
     return false;
@@ -263,13 +225,6 @@ bool WifiAssocManager::CanSetupMultiLink(OptMleConstRef &mle,
     EnumValue negSupport;
     ehtConfig->GetAttributeFailSafe("TidToLinkMappingNegSupport", negSupport);
 
-    // A non-AP MLD that performs multi-link (re)setup on at least two links
-    // with an AP MLD that sets the TID-To-Link Mapping Negotiation Support
-    // subfield of the MLD Capabilities field of the Basic Multi-Link element to
-    // a nonzero value shall support TID-to-link mapping negotiation with the
-    // TID-To-Link Mapping Negotiation Support subfield of the MLD Capabilities
-    // field of the Basic Multi-Link element it transmits to at least 1.
-    // (Sec. 35.3.7.1.1 of 802.11be D3.1)
     if (mldCapabilities->tidToLinkMappingSupport > 0 && negSupport.Get() == 0) {
       NS_LOG_DEBUG(
           "AP MLD supports TID-to-Link Mapping negotiation, while we don't");
@@ -287,7 +242,6 @@ WifiAssocManager::GetNextAffiliatedAp(const ReducedNeighborReport &rnr,
 
   while (nbrApInfoId < rnr.GetNNbrApInfoFields()) {
     if (!rnr.HasMldParameters(nbrApInfoId)) {
-      // this Neighbor AP Info field is not suitable to setup a link
       nbrApInfoId++;
       continue;
     }
@@ -299,8 +253,6 @@ WifiAssocManager::GetNextAffiliatedAp(const ReducedNeighborReport &rnr,
     }
 
     if (tbttInfoFieldIndex < rnr.GetNTbttInformationFields(nbrApInfoId)) {
-      // this Neighbor AP Info field contains an AP affiliated to the
-      // same AP MLD as the reporting AP
       return RnrLinkInfo{nbrApInfoId, tbttInfoFieldIndex};
     }
     nbrApInfoId++;

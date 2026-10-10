@@ -1,17 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from gi.repository import Gtk
 
 try:
@@ -22,20 +8,12 @@ except ModuleNotFoundError:
 NODE_STATISTICS_MEMORY = 10
 
 
-## StatisticsCollector class
 class StatisticsCollector(object):
     """
     Collects interface statistics for all nodes.
     """
 
-    ## @var node_statistics
-    #  node statistics
-    ## @var visualizer
-    #  visualizer
-
-    ## NetDevStats class
     class NetDevStats(object):
-        ## class members
         __slots__ = [
             "rxPackets",
             "rxBytes",
@@ -53,7 +31,7 @@ class StatisticsCollector(object):
         @param self this object
         @param visualizer visualizer object
         """
-        self.node_statistics = {}  # nodeid -> list(raw statistics)
+        self.node_statistics = {}
         self.visualizer = visualizer
 
     def simulation_periodic_update(self, viz):
@@ -89,7 +67,7 @@ class StatisticsCollector(object):
         if len(raw_stats_list) < NODE_STATISTICS_MEMORY:
             return []
         assert len(raw_stats_list) == NODE_STATISTICS_MEMORY
-        tx_packets1 = []  # transmitted packets, one value per interface
+        tx_packets1 = []
         rx_packets1 = []
         tx_bytes1 = []
         rx_bytes1 = []
@@ -117,20 +95,7 @@ class StatisticsCollector(object):
         return retval
 
 
-## ShowInterfaceStatistics class
 class ShowInterfaceStatistics(InformationWindow):
-    ## @var win
-    #  window
-    ## @var visualizer
-    #  visualizer
-    ## @var statistics_collector
-    #  statistics collector
-    ## @var node_index
-    #  node index
-    ## @var viz_node
-    #  visualizer node
-    ## @var table_model
-    #  table model
     (
         COLUMN_INTERFACE,
         COLUMN_TX_PACKETS,

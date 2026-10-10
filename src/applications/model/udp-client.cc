@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDCAST
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Amine Ismail <amine.ismail@sophia.inria.fr>
- *                      <amine.ismail@udcast.com>
- */
 #include "udp-client.h"
 
 #include "seq-ts-header.h"
@@ -157,7 +138,7 @@ void UdpClient::StartApplication() {
         << Inet6SocketAddress::ConvertFrom(m_peerAddress).GetIpv6();
   }
   m_peerAddressString = peerAddressStringStream.str();
-#endif // NS3_LOG_ENABLE
+#endif
 
   m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
   m_socket->SetAllowBroadcast(true);
@@ -182,7 +163,6 @@ void UdpClient::Send() {
   NS_ABORT_IF(m_size < seqTs.GetSerializedSize());
   Ptr<Packet> p = Create<Packet>(m_size - seqTs.GetSerializedSize());
 
-  // Trace before adding header, for consistency with PacketSink
   m_txTrace(p);
   m_txTraceWithAddresses(p, from, to);
 
@@ -195,14 +175,14 @@ void UdpClient::Send() {
     NS_LOG_INFO("TraceDelay TX "
                 << m_size << " bytes to " << m_peerAddressString << " Uid: "
                 << p->GetUid() << " Time: " << (Simulator::Now()).As(Time::S));
-#endif // NS3_LOG_ENABLE
+#endif
   }
 #ifdef NS3_LOG_ENABLE
   else {
     NS_LOG_INFO("Error while sending " << m_size << " bytes to "
                                        << m_peerAddressString);
   }
-#endif // NS3_LOG_ENABLE
+#endif
 
   if (m_sent < m_count || m_count == 0) {
     m_sendEvent = Simulator::Schedule(m_interval, &UdpClient::Send, this);
@@ -211,4 +191,4 @@ void UdpClient::Send() {
 
 uint64_t UdpClient::GetTotalTx() const { return m_totalTx; }
 
-} // Namespace ns3
+} // namespace ns3

@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-spectrum-value-helper.h"
 
@@ -26,19 +7,8 @@
 #include <cmath>
 #include <map>
 
-// just needed to log a std::vector<int> properly...
 namespace std {
 
-/**
- * \brief Stream insertion operator.
- *
- * \note This function scope is strictly local, and can not be
- * used in other source files.
- *
- * \param [in] os The reference to the output stream.
- * \param [in] v The std::vector<int>.
- * \returns The reference to the output stream.
- */
 ostream &operator<<(ostream &os, const vector<int> &v) {
   auto it = v.begin();
   while (it != v.end()) {
@@ -55,26 +25,18 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LteSpectrumValueHelper");
 
-/**
- * Table 5.7.3-1 "E-UTRA channel numbers" from 3GPP TS 36.101
- * The table was converted to C syntax doing a cut & paste from TS 36.101 and
- * running the following filter: awk '{if ((NR % 7) == 1) printf("{"); printf
- * ("%s",$0); if ((NR % 7) == 0) printf("},\n"); else printf(", ");}' | sed 's/
- * – /, /g'
- */
 struct EutraChannelNumbers {
-  uint8_t band;       ///< band
-  double fDlLow;      ///<  DL low
-  uint32_t nOffsDl;   ///< number offset DL
-  uint32_t rangeNdl1; ///< range DL 1
-  uint32_t rangeNdl2; ///< range DL 2
-  double fUlLow;      ///< UL low
-  uint32_t nOffsUl;   ///< number offset UL
-  uint32_t rangeNul1; ///< range UL 1
-  uint32_t rangeNul2; ///< range UL 2
+  uint8_t band;
+  double fDlLow;
+  uint32_t nOffsDl;
+  uint32_t rangeNdl1;
+  uint32_t rangeNdl2;
+  double fUlLow;
+  uint32_t nOffsUl;
+  uint32_t rangeNul1;
+  uint32_t rangeNul2;
 };
 
-/// Eutra channel numbers
 static const EutraChannelNumbers g_eutraChannelNumbers[]{
     {1, 2110, 0, 0, 599, 1920, 18000, 18000, 18599},
     {2, 1930, 600, 600, 1199, 1850, 18600, 18600, 19199},
@@ -105,18 +67,14 @@ static const EutraChannelNumbers g_eutraChannelNumbers[]{
     {40, 2300, 38650, 38650, 39649, 2300, 38650, 38650, 39649},
 };
 
-/// number of EUTRA bands
 #define NUM_EUTRA_BANDS                                                        \
   (sizeof(g_eutraChannelNumbers) / sizeof(EutraChannelNumbers))
 
 double LteSpectrumValueHelper::GetCarrierFrequency(uint32_t earfcn) {
   NS_LOG_FUNCTION(earfcn);
   if (earfcn < 7000) {
-    // FDD downlink
     return GetDownlinkCarrierFrequency(earfcn);
   } else {
-    // either FDD uplink or TDD (for which uplink & downlink have same
-    // frequency)
     return GetUplinkCarrierFrequency(earfcn);
   }
 }
@@ -190,36 +148,21 @@ LteSpectrumValueHelper::GetChannelBandwidth(uint16_t transmissionBandwidth) {
   }
 }
 
-/// LteSpectrumModelId structure
 struct LteSpectrumModelId {
-  /**
-   * Constructor
-   *
-   * \param f earfcn
-   * \param b bandwidth
-   */
   LteSpectrumModelId(uint32_t f, uint8_t b);
-  uint32_t earfcn;    ///< EARFCN
-  uint16_t bandwidth; ///< bandwidth
+  uint32_t earfcn;
+  uint16_t bandwidth;
 };
 
 LteSpectrumModelId::LteSpectrumModelId(uint32_t f, uint8_t b)
     : earfcn(f), bandwidth(b) {}
 
-/**
- * Constructor
- *
- * \param a lhs
- * \param b rhs
- * \returns true if earfcn less than of if earfcn equal and bandwidth less than
- */
 bool operator<(const LteSpectrumModelId &a, const LteSpectrumModelId &b) {
   return ((a.earfcn < b.earfcn) ||
           ((a.earfcn == b.earfcn) && (a.bandwidth < b.bandwidth)));
 }
 
-static std::map<LteSpectrumModelId, Ptr<SpectrumModel>>
-    g_lteSpectrumModelMap; ///< LTE spectrum model map
+static std::map<LteSpectrumModelId, Ptr<SpectrumModel>> g_lteSpectrumModelMap;
 
 Ptr<SpectrumModel>
 LteSpectrumValueHelper::GetSpectrumModel(uint32_t earfcn,
@@ -261,7 +204,6 @@ Ptr<SpectrumValue> LteSpectrumValueHelper::CreateTxPowerSpectralDensity(
   Ptr<SpectrumModel> model = GetSpectrumModel(earfcn, txBandwidthConfiguration);
   Ptr<SpectrumValue> txPsd = Create<SpectrumValue>(model);
 
-  // powerTx is expressed in dBm. We must convert it into natural unit.
   double powerTxW = std::pow(10., (powerTx - 30) / 10);
 
   double txPowerDensity = (powerTxW / (txBandwidthConfiguration * 180000));
@@ -284,7 +226,6 @@ Ptr<SpectrumValue> LteSpectrumValueHelper::CreateTxPowerSpectralDensity(
   Ptr<SpectrumModel> model = GetSpectrumModel(earfcn, txBandwidthConfiguration);
   Ptr<SpectrumValue> txPsd = Create<SpectrumValue>(model);
 
-  // powerTx is expressed in dBm. We must convert it into natural unit.
   double basicPowerTxW = std::pow(10., (powerTx - 30) / 10);
 
   for (auto it = activeRbs.begin(); it != activeRbs.end(); it++) {
@@ -317,7 +258,6 @@ Ptr<SpectrumValue> LteSpectrumValueHelper::CreateUlTxPowerSpectralDensity(
   Ptr<SpectrumModel> model = GetSpectrumModel(earfcn, txBandwidthConfiguration);
   Ptr<SpectrumValue> txPsd = Create<SpectrumValue>(model);
 
-  // powerTx is expressed in dBm. We must convert it into natural unit.
   double powerTxW = std::pow(10., (powerTx - 30) / 10);
 
   double txPowerDensity = (powerTxW / (activeRbs.size() * 180000));
@@ -343,9 +283,7 @@ Ptr<SpectrumValue> LteSpectrumValueHelper::CreateNoisePowerSpectralDensity(
     double noiseFigureDb, Ptr<SpectrumModel> spectrumModel) {
   NS_LOG_FUNCTION(noiseFigureDb << spectrumModel);
 
-  // see "LTE - From theory to practice"
-  // Section 22.4.4.2 Thermal Noise and Receiver Noise Figure
-  const double kT_dBm_Hz = -174.0; // dBm/Hz
+  const double kT_dBm_Hz = -174.0;
   double kT_W_Hz = std::pow(10.0, (kT_dBm_Hz - 30) / 10.0);
   double noiseFigureLinear = std::pow(10.0, noiseFigureDb / 10.0);
   double noisePowerSpectralDensity = kT_W_Hz * noiseFigureLinear;

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2020 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Rediet <getachew.redieteab@orange.com>
- *          Sébastien Deronne <sebastien.deronne@gmail.com> (for logic ported
- * from wifi-phy)
- */
 
 #include "ht-phy.h"
 
@@ -34,25 +14,20 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("HtPhy");
 
-/*******************************************************
- *       HT PHY (IEEE 802.11-2016, clause 19)
- *******************************************************/
-
 // clang-format off
 
 const PhyEntity::PpduFormats HtPhy::m_htPpduFormats {
-    { WIFI_PREAMBLE_HT_MF, { WIFI_PPDU_FIELD_PREAMBLE,      // L-STF + L-LTF
-                             WIFI_PPDU_FIELD_NON_HT_HEADER, // L-SIG
-                             WIFI_PPDU_FIELD_HT_SIG,        // HT-SIG
-                             WIFI_PPDU_FIELD_TRAINING,      // HT-STF + HT-LTFs
+    { WIFI_PREAMBLE_HT_MF, { WIFI_PPDU_FIELD_PREAMBLE,
+                             WIFI_PPDU_FIELD_NON_HT_HEADER,
+                             WIFI_PPDU_FIELD_HT_SIG,
+                             WIFI_PPDU_FIELD_TRAINING,
                              WIFI_PPDU_FIELD_DATA } }
 };
 
 // clang-format on
 
-HtPhy::HtPhy(uint8_t maxNss /* = 1 */, bool buildModeList /* = true */)
-    : OfdmPhy(OFDM_PHY_DEFAULT, false) // don't add OFDM modes to list
-{
+HtPhy::HtPhy(uint8_t maxNss, bool buildModeList)
+    : OfdmPhy(OFDM_PHY_DEFAULT, false) {
   NS_LOG_FUNCTION(this << +maxNss << buildModeList);
   m_maxSupportedNss = maxNss;
   m_bssMembershipSelector = HT_PHY;
@@ -90,7 +65,6 @@ WifiMode HtPhy::GetMcs(uint8_t index) const {
     }
   }
 
-  // Should have returned if MCS found
   NS_ABORT_MSG("Unsupported MCS index " << +index << " for this PHY entity");
   return WifiMode();
 }
@@ -113,12 +87,10 @@ const PhyEntity::PpduFormats &HtPhy::GetPpduFormats() const {
 WifiMode HtPhy::GetSigMode(WifiPpduField field,
                            const WifiTxVector &txVector) const {
   switch (field) {
-  case WIFI_PPDU_FIELD_PREAMBLE: // consider non-HT header mode for preamble
-                                 // (useful for InterferenceHelper)
+  case WIFI_PPDU_FIELD_PREAMBLE:
   case WIFI_PPDU_FIELD_NON_HT_HEADER:
     return GetLSigMode();
-  case WIFI_PPDU_FIELD_TRAINING: // consider HT-SIG mode for training (useful
-                                 // for InterferenceHelper)
+  case WIFI_PPDU_FIELD_TRAINING:
   case WIFI_PPDU_FIELD_HT_SIG:
     return GetHtSigMode();
   default:
@@ -128,9 +100,7 @@ WifiMode HtPhy::GetSigMode(WifiPpduField field,
 
 WifiMode HtPhy::GetLSigMode() { return GetOfdmRate6Mbps(); }
 
-WifiMode HtPhy::GetHtSigMode() const {
-  return GetLSigMode(); // same number of data tones as OFDM (i.e. 48)
-}
+WifiMode HtPhy::GetHtSigMode() const { return GetLSigMode(); }
 
 uint8_t HtPhy::GetBssMembershipSelector() const {
   return m_bssMembershipSelector;
@@ -173,17 +143,12 @@ Time HtPhy::GetDuration(WifiPpduField field,
                         const WifiTxVector &txVector) const {
   switch (field) {
   case WIFI_PPDU_FIELD_PREAMBLE:
-    return MicroSeconds(16); // L-STF + L-LTF or HT-GF-STF + HT-LTF1
+    return MicroSeconds(16);
   case WIFI_PPDU_FIELD_NON_HT_HEADER:
     return GetLSigDuration(txVector.GetPreambleType());
   case WIFI_PPDU_FIELD_TRAINING: {
-    // We suppose here that STBC = 0.
-    // If STBC > 0, we need a different mapping between Nss and Nltf
-    //  (see IEEE 802.11-2016 , section 19.3.9.4.6 "HT-LTF definition").
     uint8_t nDataLtf = 8;
-    uint8_t nss =
-        txVector.GetNssMax(); // so as to cover also HE MU case (see
-                              // section 27.3.10.10 of IEEE P802.11ax/D4.0)
+    uint8_t nss = txVector.GetNssMax();
     if (nss < 3) {
       nDataLtf = nss;
     } else if (nss < 5) {
@@ -208,21 +173,17 @@ Time HtPhy::GetLSigDuration(WifiPreamble preamble) const {
 }
 
 Time HtPhy::GetTrainingDuration(const WifiTxVector &txVector, uint8_t nDataLtf,
-                                uint8_t nExtensionLtf /* = 0 */) const {
+                                uint8_t nExtensionLtf) const {
   NS_ABORT_MSG_IF(nDataLtf == 0 || nDataLtf > 4 || nExtensionLtf > 4 ||
                       (nDataLtf + nExtensionLtf) > 5,
                   "Unsupported combination of data ("
                       << +nDataLtf << ")  and extension (" << +nExtensionLtf
-                      << ")  LTFs numbers for HT"); // see IEEE 802.11-2016,
-                                                    // section 19.3.9.4.6
-                                                    // "HT-LTF definition"
+                      << ")  LTFs numbers for HT");
   Time duration = MicroSeconds(4) * (nDataLtf + nExtensionLtf);
-  return MicroSeconds(4) * (1 /* HT-STF */ + nDataLtf + nExtensionLtf);
+  return MicroSeconds(4) * (1 + nDataLtf + nExtensionLtf);
 }
 
-Time HtPhy::GetHtSigDuration() const {
-  return MicroSeconds(8); // HT-SIG
-}
+Time HtPhy::GetHtSigDuration() const { return MicroSeconds(8); }
 
 Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
                                WifiPhyBand band, MpduType mpdutype,
@@ -230,12 +191,8 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
                                double &totalAmpduNumSymbols,
                                uint16_t staId) const {
   WifiMode payloadMode = txVector.GetMode(staId);
-  uint8_t stbc = txVector.IsStbc()
-                     ? 2
-                     : 1; // corresponding to m_STBC in Nsym computation (see
-                          // IEEE 802.11-2016, equations (19-32) and (21-62))
+  uint8_t stbc = txVector.IsStbc() ? 2 : 1;
   uint8_t nes = GetNumberBccEncoders(txVector);
-  // TODO: Update station managers to consider GI capabilities
   Time symbolDuration = GetSymbolDuration(txVector);
 
   double numDataBitsPerSymbol = payloadMode.GetDataRate(txVector, staId) *
@@ -245,7 +202,6 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
   double numSymbols = 0;
   switch (mpdutype) {
   case FIRST_MPDU_IN_AGGREGATE: {
-    // First packet in an A-MPDU
     numSymbols = (stbc * (service + size * 8.0 + 6 * nes) /
                   (stbc * numDataBitsPerSymbol));
     if (incFlag) {
@@ -255,7 +211,6 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
     break;
   }
   case MIDDLE_MPDU_IN_AGGREGATE: {
-    // consecutive packets in an A-MPDU
     numSymbols = (stbc * size * 8.0) / (stbc * numDataBitsPerSymbol);
     if (incFlag) {
       totalAmpduSize += size;
@@ -264,7 +219,6 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
     break;
   }
   case LAST_MPDU_IN_AGGREGATE: {
-    // last packet in an A-MPDU
     uint32_t totalSize = totalAmpduSize + size;
     numSymbols = lrint(stbc * ceil((service + totalSize * 8.0 + 6 * nes) /
                                    (stbc * numDataBitsPerSymbol)));
@@ -278,10 +232,6 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
   }
   case NORMAL_MPDU:
   case SINGLE_MPDU: {
-    // Not an A-MPDU or single MPDU (i.e. the current payload contains both
-    // service and padding) The number of OFDM symbols in the data field when
-    // BCC encoding is used is given in equation 19-32 of the IEEE 802.11-2016
-    // standard.
     numSymbols = lrint(stbc * ceil((service + size * 8.0 + 6.0 * nes) /
                                    (stbc * numDataBitsPerSymbol)));
     break;
@@ -300,13 +250,6 @@ Time HtPhy::GetPayloadDuration(uint32_t size, const WifiTxVector &txVector,
 }
 
 uint8_t HtPhy::GetNumberBccEncoders(const WifiTxVector &txVector) const {
-  /**
-   * Add an encoder when crossing maxRatePerCoder frontier.
-   *
-   * The value of 320 Mbps and 350 Mbps for normal GI and short GI (resp.)
-   * were obtained by observing the rates for which Nes was incremented in
-   * tables 19-27 to 19-41 of IEEE 802.11-2016.
-   */
   double maxRatePerCoder = (txVector.GetGuardInterval() == 800) ? 320e6 : 350e6;
   return ceil(txVector.GetMode().GetDataRate(txVector) / maxRatePerCoder);
 }
@@ -333,10 +276,8 @@ PhyEntity::PhyFieldRxStatus HtPhy::DoEndReceiveField(WifiPpduField field,
   case WIFI_PPDU_FIELD_HT_SIG:
     return EndReceiveHtSig(event);
   case WIFI_PPDU_FIELD_TRAINING:
-    return PhyFieldRxStatus(
-        true); // always consider that training has been correctly received
+    return PhyFieldRxStatus(true);
   case WIFI_PPDU_FIELD_NON_HT_HEADER:
-  // no break so as to go to OfdmPhy for processing
   default:
     return OfdmPhy::DoEndReceiveField(field, event);
   }
@@ -366,7 +307,7 @@ PhyEntity::PhyFieldRxStatus HtPhy::EndReceiveHtSig(Ptr<Event> event) {
 bool HtPhy::IsAllConfigSupported(WifiPpduField field,
                                  Ptr<const WifiPpdu> ppdu) const {
   if (field == WIFI_PPDU_FIELD_NON_HT_HEADER) {
-    return true; // wait till reception of HT-SIG (or SIG-A) to make decision
+    return true;
   }
   return OfdmPhy::IsAllConfigSupported(field, ppdu);
 }
@@ -564,8 +505,7 @@ uint64_t HtPhy::CalculatePhyRate(WifiCodeRate codeRate, uint64_t dataRate) {
   return (dataRate / GetCodeRatio(codeRate));
 }
 
-uint64_t HtPhy::GetPhyRateFromTxVector(const WifiTxVector &txVector,
-                                       uint16_t /* staId */) {
+uint64_t HtPhy::GetPhyRateFromTxVector(const WifiTxVector &txVector, uint16_t) {
   return GetPhyRate(txVector.GetMode().GetMcsValue(),
                     txVector.GetChannelWidth(), txVector.GetGuardInterval(),
                     txVector.GetNss());
@@ -581,7 +521,7 @@ double HtPhy::GetCodeRatio(WifiCodeRate codeRate) {
 }
 
 uint64_t HtPhy::GetDataRateFromTxVector(const WifiTxVector &txVector,
-                                        uint16_t /* staId */) {
+                                        uint16_t) {
   return GetDataRate(txVector.GetMode().GetMcsValue(),
                      txVector.GetChannelWidth(), txVector.GetGuardInterval(),
                      txVector.GetNss());
@@ -676,7 +616,7 @@ uint64_t HtPhy::CalculateNonHtReferenceRate(WifiCodeRate codeRate,
   return dataRate;
 }
 
-bool HtPhy::IsAllowed(const WifiTxVector & /*txVector*/) { return true; }
+bool HtPhy::IsAllowed(const WifiTxVector &) { return true; }
 
 uint32_t HtPhy::GetMaxPsduSize() const { return 65535; }
 
@@ -690,9 +630,7 @@ HtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
   Time delayUntilCcaEnd =
       GetDelayUntilCcaEnd(ccaThresholdDbm, GetPrimaryBand(20));
   if (delayUntilCcaEnd.IsStrictlyPositive()) {
-    return std::make_pair(
-        delayUntilCcaEnd,
-        WIFI_CHANLIST_PRIMARY); // if Primary is busy, ignore CCA for Secondary
+    return std::make_pair(delayUntilCcaEnd, WIFI_CHANLIST_PRIMARY);
   }
   if (ppdu) {
     const uint16_t primaryWidth = 20;
@@ -705,10 +643,6 @@ HtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
             primaryWidth) +
         (primaryWidth / 2);
     if (ppdu->DoesOverlapChannel(p20MinFreq, p20MaxFreq)) {
-      /*
-       * PPDU occupies primary 20 MHz channel, hence we skip CCA sensitivity
-       * rules for signals not occupying the primary 20 MHz channel.
-       */
       return std::nullopt;
     }
   }
@@ -738,16 +672,13 @@ HtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
 
 namespace {
 
-/**
- * Constructor class for HT modes
- */
 class ConstructorHt {
 public:
   ConstructorHt() {
     ns3::HtPhy::InitializeModes();
     ns3::WifiPhy::AddStaticPhyEntity(ns3::WIFI_MOD_CLASS_HT,
-                                     ns3::Create<ns3::HtPhy>()); // dummy Nss
+                                     ns3::Create<ns3::HtPhy>());
   }
-} g_constructor_ht; ///< the constructor for HT modes
+} g_constructor_ht;
 
 } // namespace

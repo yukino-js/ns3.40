@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-test-rlc-am-transmitter.h"
 
@@ -30,14 +12,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteRlcAmTransmitterTest");
 
-/**
- * TestSuite 4.1.1 RLC AM: Only transmitter
- */
-
 LteRlcAmTransmitterTestSuite::LteRlcAmTransmitterTestSuite()
     : TestSuite("lte-rlc-am-transmitter", SYSTEM) {
-  // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  // LOG_LEVEL_ALL); LogComponentEnable ("LteRlcAmTransmitterTest", logLevel);
 
   AddTestCase(new LteRlcAmTransmitterOneSduTestCase("One SDU, one PDU"),
               TestCase::QUICK);
@@ -50,10 +26,6 @@ LteRlcAmTransmitterTestSuite::LteRlcAmTransmitterTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteRlcAmTransmitterTestSuite lteRlcAmTransmitterTestSuite;
 
 LteRlcAmTransmitterTestCase::LteRlcAmTransmitterTestCase(std::string name)
@@ -62,33 +34,21 @@ LteRlcAmTransmitterTestCase::LteRlcAmTransmitterTestCase(std::string name)
 LteRlcAmTransmitterTestCase::~LteRlcAmTransmitterTestCase() {}
 
 void LteRlcAmTransmitterTestCase::DoRun() {
-  // LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  // LOG_LEVEL_ALL); LogComponentEnable ("LteRlcAmTransmitterTest", logLevel);
-  // LogComponentEnable ("LteTestEntities", logLevel);
-  // LogComponentEnable ("LteRlc", logLevel);
-  // LogComponentEnable ("LteRlcAm", logLevel);
-  // LogComponentEnable ("LteRlcHeader", logLevel);
 
   uint16_t rnti = 1111;
   uint8_t lcid = 222;
 
   Packet::EnablePrinting();
 
-  // Create topology
-
-  // Create transmission PDCP test entity
   txPdcp = CreateObject<LteTestPdcp>();
 
-  // Create transmission RLC entity
   txRlc = CreateObject<LteRlcAm>();
   txRlc->SetRnti(rnti);
   txRlc->SetLcId(lcid);
 
-  // Create transmission MAC test entity
   txMac = CreateObject<LteTestMac>();
   txMac->SetRlcHeaderType(LteTestMac::AM_RLC_HEADER);
 
-  // Connect SAPs: PDCP (TX) <-> RLC (Tx) <-> MAC (Tx)
   txPdcp->SetLteRlcSapProvider(txRlc->GetLteRlcSapProvider());
   txRlc->SetLteRlcSapUser(txPdcp->GetLteRlcSapUser());
 
@@ -108,9 +68,6 @@ void LteRlcAmTransmitterTestCase::DoCheckDataReceived(
   NS_TEST_ASSERT_MSG_EQ(shouldReceived, txMac->GetDataReceived(), assertMsg);
 }
 
-/**
- * Test 4.1.1.1 One SDU, One PDU
- */
 LteRlcAmTransmitterOneSduTestCase::LteRlcAmTransmitterOneSduTestCase(
     std::string name)
     : LteRlcAmTransmitterTestCase(name) {}
@@ -118,14 +75,8 @@ LteRlcAmTransmitterOneSduTestCase::LteRlcAmTransmitterOneSduTestCase(
 LteRlcAmTransmitterOneSduTestCase::~LteRlcAmTransmitterOneSduTestCase() {}
 
 void LteRlcAmTransmitterOneSduTestCase::DoRun() {
-  // Create topology
   LteRlcAmTransmitterTestCase::DoRun();
 
-  //
-  // a) One SDU generates one PDU
-  //
-
-  // PDCP entity sends data
   txPdcp->SendData(Seconds(0.100), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
   txMac->SendTxOpportunity(Seconds(0.150), 30);
@@ -137,9 +88,6 @@ void LteRlcAmTransmitterOneSduTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * Test 4.1.1.2 Segmentation (One SDU => n PDUs)
- */
 LteRlcAmTransmitterSegmentationTestCase::
     LteRlcAmTransmitterSegmentationTestCase(std::string name)
     : LteRlcAmTransmitterTestCase(name) {}
@@ -148,17 +96,10 @@ LteRlcAmTransmitterSegmentationTestCase::
     ~LteRlcAmTransmitterSegmentationTestCase() {}
 
 void LteRlcAmTransmitterSegmentationTestCase::DoRun() {
-  // Create topology
   LteRlcAmTransmitterTestCase::DoRun();
 
-  //
-  // b) Segmentation: one SDU generates n PDUs
-  //
-
-  // PDCP entity sends data
   txPdcp->SendData(Seconds(0.100), "ABCDEFGHIJKLMNOPQRSTUVWXYZZ");
 
-  // MAC entity sends small TxOpp to RLC entity generating four segments
   txMac->SendTxOpportunity(Seconds(0.150), 12);
   CheckDataReceived(Seconds(0.200), "ABCDEFGH", "Segment #1 is not OK");
 
@@ -176,9 +117,6 @@ void LteRlcAmTransmitterSegmentationTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * Test 4.1.1.3 Concatenation (n SDUs => One PDU)
- */
 LteRlcAmTransmitterConcatenationTestCase::
     LteRlcAmTransmitterConcatenationTestCase(std::string name)
     : LteRlcAmTransmitterTestCase(name) {}
@@ -187,19 +125,11 @@ LteRlcAmTransmitterConcatenationTestCase::
     ~LteRlcAmTransmitterConcatenationTestCase() {}
 
 void LteRlcAmTransmitterConcatenationTestCase::DoRun() {
-  // Create topology
   LteRlcAmTransmitterTestCase::DoRun();
 
-  //
-  // c) Concatenation: n SDUs generate one PDU
-  //
-
-  // PDCP entity sends three data packets
   txPdcp->SendData(Seconds(0.100), "ABCDEFGH");
   txPdcp->SendData(Seconds(0.150), "IJKLMNOPQR");
   txPdcp->SendData(Seconds(0.200), "STUVWXYZ");
-
-  // MAC entity sends TxOpp to RLC entity generating only one concatenated PDU
 
   txMac->SendTxOpportunity(Seconds(0.250), 33);
   CheckDataReceived(Seconds(0.300), "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -210,9 +140,6 @@ void LteRlcAmTransmitterConcatenationTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * Test 4.1.1.4 Report Buffer Status (test primitive parameters)
- */
 LteRlcAmTransmitterReportBufferStatusTestCase::
     LteRlcAmTransmitterReportBufferStatusTestCase(std::string name)
     : LteRlcAmTransmitterTestCase(name) {}
@@ -221,37 +148,29 @@ LteRlcAmTransmitterReportBufferStatusTestCase::
     ~LteRlcAmTransmitterReportBufferStatusTestCase() {}
 
 void LteRlcAmTransmitterReportBufferStatusTestCase::DoRun() {
-  // Create topology
   LteRlcAmTransmitterTestCase::DoRun();
 
-  //
-  // d) Test the parameters of the ReportBufferStatus primitive
-  //
-
-  //   txMac->SendTxOpportunity (Seconds (0.1), (2+2) + (10+6));
-
-  // PDCP entity sends data
-  txPdcp->SendData(Seconds(0.100), "ABCDEFGHIJ"); // 10
-  txPdcp->SendData(Seconds(0.150), "KLMNOPQRS");  // 9
-  txPdcp->SendData(Seconds(0.200), "TUVWXYZ");    // 7
+  txPdcp->SendData(Seconds(0.100), "ABCDEFGHIJ");
+  txPdcp->SendData(Seconds(0.150), "KLMNOPQRS");
+  txPdcp->SendData(Seconds(0.200), "TUVWXYZ");
 
   txMac->SendTxOpportunity(Seconds(0.250), (4 + 2) + (10 + 6));
   CheckDataReceived(Seconds(0.300), "ABCDEFGHIJKLMNOP", "SDU #1 is not OK");
 
-  txPdcp->SendData(Seconds(0.350), "ABCDEFGH");     // 8
-  txPdcp->SendData(Seconds(0.400), "IJKLMNOPQRST"); // 12
-  txPdcp->SendData(Seconds(0.450), "UVWXYZ");       // 6
+  txPdcp->SendData(Seconds(0.350), "ABCDEFGH");
+  txPdcp->SendData(Seconds(0.400), "IJKLMNOPQRST");
+  txPdcp->SendData(Seconds(0.450), "UVWXYZ");
 
   txMac->SendTxOpportunity(Seconds(0.500), 4 + 3);
   CheckDataReceived(Seconds(0.550), "QRS", "SDU #2 is not OK");
 
-  txPdcp->SendData(Seconds(0.600), "ABCDEFGH");     // 8
-  txPdcp->SendData(Seconds(0.650), "IJKLMNOPQRST"); // 12
-  txPdcp->SendData(Seconds(0.700), "UVWXYZ");       // 6
+  txPdcp->SendData(Seconds(0.600), "ABCDEFGH");
+  txPdcp->SendData(Seconds(0.650), "IJKLMNOPQRST");
+  txPdcp->SendData(Seconds(0.700), "UVWXYZ");
 
-  txPdcp->SendData(Seconds(0.750), "ABCDEFGHIJ"); // 10
-  txPdcp->SendData(Seconds(0.800), "KLMNOPQRST"); // 10
-  txPdcp->SendData(Seconds(0.850), "UVWXYZ");     // 6
+  txPdcp->SendData(Seconds(0.750), "ABCDEFGHIJ");
+  txPdcp->SendData(Seconds(0.800), "KLMNOPQRST");
+  txPdcp->SendData(Seconds(0.850), "UVWXYZ");
 
   txMac->SendTxOpportunity(Seconds(0.900), 4 + 7);
   CheckDataReceived(Seconds(0.950), "TUVWXYZ", "SDU #3 is not OK");
@@ -259,9 +178,9 @@ void LteRlcAmTransmitterReportBufferStatusTestCase::DoRun() {
   txMac->SendTxOpportunity(Seconds(1.000), (4 + 2) + (8 + 2));
   CheckDataReceived(Seconds(1.050), "ABCDEFGHIJ", "SDU #4 is not OK");
 
-  txPdcp->SendData(Seconds(1.100), "ABCDEFGHIJ");  // 10
-  txPdcp->SendData(Seconds(1.150), "KLMNOPQRSTU"); // 11
-  txPdcp->SendData(Seconds(1.200), "VWXYZ");       // 5
+  txPdcp->SendData(Seconds(1.100), "ABCDEFGHIJ");
+  txPdcp->SendData(Seconds(1.150), "KLMNOPQRSTU");
+  txPdcp->SendData(Seconds(1.200), "VWXYZ");
 
   txMac->SendTxOpportunity(Seconds(1.250), 4 + 3);
   CheckDataReceived(Seconds(1.300), "KLM", "SDU #5 is not OK");

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Tom Henderson <thomas.r.henderson@boeing.com>
- */
 #include <ns3/log.h>
 #include <ns3/lr-wpan-mac-header.h>
 #include <ns3/lr-wpan-mac-trailer.h>
@@ -30,12 +12,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("lr-wpan-packet-test");
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan header and trailer Test
- */
 class LrWpanPacketTestCase : public TestCase {
 public:
   LrWpanPacketTestCase();
@@ -51,13 +27,11 @@ LrWpanPacketTestCase::LrWpanPacketTestCase()
 LrWpanPacketTestCase::~LrWpanPacketTestCase() {}
 
 void LrWpanPacketTestCase::DoRun() {
-  LrWpanMacHeader macHdr(LrWpanMacHeader::LRWPAN_MAC_BEACON,
-                         0);                         // sequence number set to 0
-  macHdr.SetSrcAddrMode(LrWpanMacHeader::SHORTADDR); // short addr
+  LrWpanMacHeader macHdr(LrWpanMacHeader::LRWPAN_MAC_BEACON, 0);
+  macHdr.SetSrcAddrMode(LrWpanMacHeader::SHORTADDR);
   macHdr.SetDstAddrMode(LrWpanMacHeader::NOADDR);
   macHdr.SetSecDisable();
   macHdr.SetNoPanIdComp();
-  // ... other setters
 
   uint16_t srcPanId = 100;
   Mac16Address srcWpanAddr("00:11");
@@ -65,7 +39,7 @@ void LrWpanPacketTestCase::DoRun() {
 
   LrWpanMacTrailer macTrailer;
 
-  Ptr<Packet> p = Create<Packet>(20); // 20 bytes of dummy data
+  Ptr<Packet> p = Create<Packet>(20);
   NS_TEST_ASSERT_MSG_EQ(p->GetSize(), 20,
                         "Packet created with unexpected size");
   p->AddHeader(macHdr);
@@ -77,7 +51,6 @@ void LrWpanPacketTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(p->GetSize(), 29,
                         "Packet wrong size after macTrailer addition");
 
-  // Test serialization and deserialization
   uint32_t size = p->GetSerializedSize();
   std::vector<uint8_t> buffer(size);
   p->Serialize(buffer.data(), size);
@@ -103,15 +76,8 @@ void LrWpanPacketTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       p2->GetSize(), 20,
       "Packet wrong size after removing headers and trailers");
-  // Compare macHdr with receivedMacHdr, macTrailer with receivedMacTrailer,...
 }
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan header and trailer TestSuite
- */
 class LrWpanPacketTestSuite : public TestSuite {
 public:
   LrWpanPacketTestSuite();
@@ -122,5 +88,4 @@ LrWpanPacketTestSuite::LrWpanPacketTestSuite()
   AddTestCase(new LrWpanPacketTestCase, TestCase::QUICK);
 }
 
-static LrWpanPacketTestSuite
-    g_lrWpanPacketTestSuite; //!< Static variable for test initialization
+static LrWpanPacketTestSuite g_lrWpanPacketTestSuite;

@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2016 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
@@ -27,24 +10,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpRttEstimationTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Check Rtt calculations
- *
- * First check is that, for each ACK, we have a valid estimation of the RTT.
- * The second check is that, when updating RTT history, we should consider
- * retransmission only segments which sequence number is lower than the highest
- * already transmitted.
- */
 class TcpRttEstimationTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param desc Test description.
-   * \param enableTs Enable TimeStamp option.
-   * \param pktCount Packet number.
-   */
   TcpRttEstimationTest(const std::string &desc, bool enableTs,
                        uint32_t pktCount);
 
@@ -64,11 +31,11 @@ protected:
   void ConfigureEnvironment() override;
 
 private:
-  bool m_enableTs;                 //!< Enable TimeStamp option
-  bool m_rttChanged;               //!< True if RTT has changed.
-  SequenceNumber32 m_highestTxSeq; //!< Highest sequence number sent.
-  uint32_t m_pktCount;             //!< Packet counter.
-  uint32_t m_dataCount;            //!< Data counter.
+  bool m_enableTs;
+  bool m_rttChanged;
+  SequenceNumber32 m_highestTxSeq;
+  uint32_t m_pktCount;
+  uint32_t m_dataCount;
 };
 
 TcpRttEstimationTest::TcpRttEstimationTest(const std::string &desc,
@@ -158,22 +125,8 @@ void TcpRttEstimationTest::FinalChecks() {
   NS_TEST_ASSERT_MSG_EQ(m_rttChanged, true, "Rtt was not updated");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Check Rtt calculations with packet losses.
- *
- * \see TcpRttEstimationTest
- */
 class TcpRttEstimationWithLossTest : public TcpRttEstimationTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param desc Test description.
-   * \param enableTs Enable TimeStamp option.
-   * \param pktCount Packet number.
-   * \param toDrop List of packet to drop.
-   */
   TcpRttEstimationWithLossTest(const std::string &desc, bool enableTs,
                                uint32_t pktCount, std::vector<uint32_t> toDrop);
 
@@ -181,7 +134,7 @@ protected:
   Ptr<ErrorModel> CreateReceiverErrorModel() override;
 
 private:
-  std::vector<uint32_t> m_toDrop; //!< Packets to drop.
+  std::vector<uint32_t> m_toDrop;
 };
 
 TcpRttEstimationWithLossTest::TcpRttEstimationWithLossTest(
@@ -199,11 +152,6 @@ Ptr<ErrorModel> TcpRttEstimationWithLossTest::CreateReceiverErrorModel() {
   return errorModel;
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP RTT estimation TestSuite
- */
 class TcpRttEstimationTestSuite : public TestSuite {
 public:
   TcpRttEstimationTestSuite() : TestSuite("tcp-rtt-estimation-test", UNIT) {
@@ -258,5 +206,4 @@ public:
   }
 };
 
-static TcpRttEstimationTestSuite
-    g_tcpRttEstimationTestSuite; //!< Static variable for test initialization
+static TcpRttEstimationTestSuite g_tcpRttEstimationTestSuite;

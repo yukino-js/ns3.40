@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2018 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Viyom Mittal <viyommittal@gmail.com>
- *         Vivek Jain <jain.vivek.anand@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/string.h"
@@ -31,31 +10,20 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpClassicRecoveryTestSuite");
 
-/**
- * \brief Classic Recovery algorithm test
- */
 class ClassicRecoveryTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param ssThresh Slow Start Threshold.
-   * \param dupAckCount Duplicate acknowledgement Threshold.
-   * \param name Test description.
-   */
   ClassicRecoveryTest(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                       uint32_t dupAckCount, const std::string &name);
 
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;        //!< Congestion window.
-  uint32_t m_segmentSize; //!< Segment size.
-  uint32_t m_ssThresh;    //!< Slow Start Threshold.
-  uint32_t m_dupAckCount; //!< Duplicate acknowledgement Threshold.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_ssThresh;
+  uint32_t m_dupAckCount;
 
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  Ptr<TcpSocketState> m_state;
 };
 
 ClassicRecoveryTest::ClassicRecoveryTest(uint32_t cWnd, uint32_t segmentSize,
@@ -105,11 +73,6 @@ void ClassicRecoveryTest::DoRun() {
                         "cWnd should be set to ssThresh on exiting recovery");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Classic Recovery TestSuite
- */
 class ClassicRecoveryTestSuite : public TestSuite {
 public:
   ClassicRecoveryTestSuite() : TestSuite("tcp-classic-recovery-test", UNIT) {
@@ -140,5 +103,4 @@ public:
   }
 };
 
-static ClassicRecoveryTestSuite
-    g_TcpClassicRecoveryTest; //!< Static variable for test initialization
+static ClassicRecoveryTestSuite g_TcpClassicRecoveryTest;

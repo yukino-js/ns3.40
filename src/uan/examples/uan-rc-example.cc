@@ -1,54 +1,4 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- */
 
-/**
- * \file uan-rc-example.cc
- * \ingroup UAN
- * This example uses UanMacRc and UanMacRcGw which combined form a system
- * using what is referred to as RC-MAC.  Details of RC-MAC will be published
- * soon.  In brief terms, RC-MAC is a dual channel protocol wherein the
- * available bandwidth is dynamically divided into two channels,
- * a reservation channel and a data channel.  The network is assumed
- * to consist of a single gateway node which services several
- * non-gateway nodes.
- *
- * Time is divided into cycles.  The non-gateway nodes transmit RTS packets
- * on the reservation channel in parallel to scheduled data transmissions
- * (scheduled in the previous cycle), and the gateway stores these requests
- * for the duration of the cycle.  At the start of the next cycle
- * the gateway node transmits a CTS which contains packet transmission times
- * for reserved packets as well as bandwidth allocation information
- *
- * This script deploys a single gateway node (current UanMacRc only supports
- * a single gateway) in the center of a region and then distributes
- * non-gateway nodes around the gateway with a uniformly distributed range
- * between each node and the gateway.
- *
- * The script supports two simulation types.  By default the gateway
- * dynamically determines the optimal parameter settings and
- * simulations are run with varying number of nodes (SimMin to SimMax as
- * set by the command line).  If DoNode=0 is given as a command line option
- * then the mac parameter "a" (approximate expected number of successful
- * RTS arrivals per cycle) is varied as the simulation parameter.
- *
- * For questions about this MAC protocol email "lentracy@gmail.com"
- */
 
 #include "uan-rc-example.h"
 
@@ -103,8 +53,6 @@ UanTxMode Experiment::CreateMode(uint32_t kass, uint32_t fc, bool upperblock,
   return mode;
 }
 
-// Creates m_numRates different modes each dividing m_totalRate Hz (assumes 1
-// bit per hz) centered at frequency fc
 void Experiment::CreateDualModes(uint32_t fc) {
   for (uint32_t i = 1; i < m_numRates + 1; i++) {
     m_controlModes.AppendMode(CreateMode(i, fc, false, "control "));

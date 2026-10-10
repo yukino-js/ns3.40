@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-// End-to-end tests for Ipv4 static routing
 
 #include "ns3/boolean.h"
 #include "ns3/config.h"
@@ -51,42 +22,22 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 StaticRouting /32 Test
- */
 class Ipv4StaticRoutingSlash32TestCase : public TestCase {
 public:
   Ipv4StaticRoutingSlash32TestCase();
   ~Ipv4StaticRoutingSlash32TestCase() override;
 
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
 private:
   void DoRun() override;
 };
 
-// Add some help text to this case to describe what it is intended to test
 Ipv4StaticRoutingSlash32TestCase::Ipv4StaticRoutingSlash32TestCase()
     : TestCase("Slash 32 static routing example") {}
 
@@ -116,10 +67,6 @@ void Ipv4StaticRoutingSlash32TestCase::SendData(Ptr<Socket> socket,
   Simulator::Run();
 }
 
-// Test program for this 3-router scenario, using static routing
-//
-// (a.a.a.a/32)A<--x.x.x.0/30-->B<--y.y.y.0/30-->C(c.c.c.c/32)
-//
 void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   Ptr<Node> nA = CreateObject<Node>();
   Ptr<Node> nB = CreateObject<Node>();
@@ -130,7 +77,6 @@ void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   InternetStackHelper internet;
   internet.Install(c);
 
-  // simple links
   NodeContainer nAnB = NodeContainer(nA, nB);
   NodeContainer nBnC = NodeContainer(nB, nC);
 
@@ -147,7 +93,6 @@ void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   deviceC->SetAddress(Mac48Address::Allocate());
   nC->AddDevice(deviceC);
 
-  // Later, we add IP addresses.
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer iAiB = ipv4.Assign(dAdB);
@@ -175,20 +120,15 @@ void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   ipv4C->SetUp(ifIndexC);
 
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
-  // Create static routes from A to C
   Ptr<Ipv4StaticRouting> staticRoutingA =
       ipv4RoutingHelper.GetStaticRouting(ipv4A);
-  // The ifIndex for this outbound route is 1; the first p2p link added
   staticRoutingA->AddHostRouteTo(Ipv4Address("192.168.1.1"),
                                  Ipv4Address("10.1.1.2"), 1);
   Ptr<Ipv4StaticRouting> staticRoutingB =
       ipv4RoutingHelper.GetStaticRouting(ipv4B);
-  // The ifIndex we want on node B is 2; 0 corresponds to loopback, and 1 to the
-  // first point to point link
   staticRoutingB->AddHostRouteTo(Ipv4Address("192.168.1.1"),
                                  Ipv4Address("10.1.1.6"), 2);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = nC->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -201,9 +141,6 @@ void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "192.168.1.1");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 123,
                         "Static routing with /32 did not deliver all packets.");
@@ -211,11 +148,6 @@ void Ipv4StaticRoutingSlash32TestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 StaticRouting /32 TestSuite
- */
 class Ipv4StaticRoutingTestSuite : public TestSuite {
 public:
   Ipv4StaticRoutingTestSuite();
@@ -226,5 +158,4 @@ Ipv4StaticRoutingTestSuite::Ipv4StaticRoutingTestSuite()
   AddTestCase(new Ipv4StaticRoutingSlash32TestCase, TestCase::QUICK);
 }
 
-static Ipv4StaticRoutingTestSuite
-    ipv4StaticRoutingTestSuite; //!< Static variable for test initialization
+static Ipv4StaticRoutingTestSuite ipv4StaticRoutingTestSuite;

@@ -1,59 +1,4 @@
-/*
- * Copyright © 2011 Marcos Talau
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marcos Talau (talau@users.sourceforge.net)
- *
- * Thanks to: Duy Nguyen<duy@soe.ucsc.edu> by RED efforts in NS3
- *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright (c) 1990-1997 Regents of the University of California.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor of the Laboratory may be used
- *    to endorse or promote products derived from this software without
- *    specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
 
-/*
- * PORT NOTE: This code was ported from ns-2 (queue/red.cc).  Almost all
- * comments have also been ported from NS-2
- */
 
 #include "red-queue-disc.h"
 
@@ -296,7 +241,6 @@ bool RedQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
 
   uint32_t nQueued = GetInternalQueue(0)->GetCurrentSize().GetValue();
 
-  // simulate number of packets arrival during idle period
   uint32_t m = 0;
 
   if (m_idle == 1) {
@@ -330,12 +274,6 @@ bool RedQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
       NS_LOG_DEBUG("adding DROP FORCED MARK");
       dropType = DTYPE_FORCED;
     } else if (m_old == 0) {
-      /*
-       * The average queue size has just crossed the
-       * threshold from below to above m_minTh, or
-       * from above m_minTh with an empty queue to
-       * above m_minTh with a nonempty queue.
-       */
       m_count = 1;
       m_countBytes = item->GetSize();
       m_old = 1;
@@ -344,7 +282,6 @@ bool RedQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
       dropType = DTYPE_UNFORCED;
     }
   } else {
-    // No packets are being dropped
     m_vProb = 0.0;
     m_old = 0;
   }
@@ -371,21 +308,12 @@ bool RedQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
 
   bool retval = GetInternalQueue(0)->Enqueue(item);
 
-  // If Queue::Enqueue fails, QueueDisc::DropBeforeEnqueue is called by the
-  // internal queue because QueueDisc::AddInternalQueue sets the trace callback
-
   NS_LOG_LOGIC("Number packets " << GetInternalQueue(0)->GetNPackets());
   NS_LOG_LOGIC("Number bytes " << GetInternalQueue(0)->GetNBytes());
 
   return retval;
 }
 
-/*
- * Note: if the link bandwidth changes in the course of the
- * simulation, the bandwidth-dependent RED parameters do not change.
- * This should be fixed, but it would require some extra parameters,
- * and didn't seem worth the trouble...
- */
 void RedQueueDisc::InitializeParams() {
   NS_LOG_FUNCTION(this);
   NS_LOG_INFO("Initializing RED params.");
@@ -394,25 +322,20 @@ void RedQueueDisc::InitializeParams() {
   m_ptc = m_linkBandwidth.GetBitRate() / (8.0 * m_meanPktSize);
 
   if (m_isARED) {
-    // Set m_minTh, m_maxTh and m_qW to zero for automatic setting
     m_minTh = 0;
     m_maxTh = 0;
     m_qW = 0;
 
-    // Turn on m_isAdaptMaxP to adapt m_curMaxP
     m_isAdaptMaxP = true;
   }
 
   if (m_isFengAdaptive) {
-    // Initialize m_fengStatus
     m_fengStatus = Above;
   }
 
   if (m_minTh == 0 && m_maxTh == 0) {
     m_minTh = 5.0;
 
-    // set m_minTh to max(m_minTh, targetqueue/2.0) [Ref:
-    // http://www.icir.org/floyd/papers/adaptiveRed.pdf]
     double targetqueue = m_targetDelay.GetSeconds() * m_ptc;
 
     if (m_minTh < targetqueue / 2.0) {
@@ -422,8 +345,6 @@ void RedQueueDisc::InitializeParams() {
       m_minTh = m_minTh * m_meanPktSize;
     }
 
-    // set m_maxTh to three times m_minTh [Ref:
-    // http://www.icir.org/floyd/papers/adaptiveRed.pdf]
     m_maxTh = 3 * m_minTh;
   }
 
@@ -449,19 +370,6 @@ void RedQueueDisc::InitializeParams() {
   }
   m_idleTime = NanoSeconds(0);
 
-  /*
-   * If m_qW=0, set it to a reasonable value of 1-exp(-1/C)
-   * This corresponds to choosing m_qW to be of that value for
-   * which the packet time constant -1/ln(1-m)qW) per default RTT
-   * of 100ms is an order of magnitude more than the link capacity, C.
-   *
-   * If m_qW=-1, then the queue weight is set to be a function of
-   * the bandwidth and the link propagation delay.  In particular,
-   * the default RTT is assumed to be three times the link delay and
-   * transmission delay, if this gives a default RTT greater than 100 ms.
-   *
-   * If m_qW=-2, set it to a reasonable value of 1-exp(-10/C).
-   */
   if (m_qW == 0.0) {
     m_qW = 1.0 - std::exp(-1.0 / m_ptc);
   } else if (m_qW == -1.0) {
@@ -477,10 +385,6 @@ void RedQueueDisc::InitializeParams() {
 
   if (m_bottom == 0) {
     m_bottom = 0.01;
-    // Set bottom to at most 1/W, where W is the delay-bandwidth
-    // product in packets for a connection.
-    // So W = m_linkBandwidth.GetBitRate () / (8.0 * m_meanPktSize *
-    // m_rtt.GetSeconds())
     double bottom1 = (8.0 * m_meanPktSize * m_rtt.GetSeconds()) /
                      m_linkBandwidth.GetBitRate();
     if (bottom1 < m_bottom) {
@@ -497,9 +401,6 @@ void RedQueueDisc::InitializeParams() {
                << "; v_b " << m_vB << "; m_vC " << m_vC << "; m_vD " << m_vD);
 }
 
-// Updating m_curMaxP, following the pseudocode
-// from: A Self-Configuring RED Gateway, INFOCOMM '99.
-// They recommend m_a = 3, and m_b = 2.
 void RedQueueDisc::UpdateMaxPFeng(double newAve) {
   NS_LOG_FUNCTION(this << newAve);
 
@@ -514,19 +415,15 @@ void RedQueueDisc::UpdateMaxPFeng(double newAve) {
   }
 }
 
-// Update m_curMaxP to keep the average queue length within the target range.
 void RedQueueDisc::UpdateMaxP(double newAve) {
   NS_LOG_FUNCTION(this << newAve);
 
   Time now = Simulator::Now();
   double m_part = 0.4 * (m_maxTh - m_minTh);
-  // AIMD rule to keep target Q~1/2(m_minTh + m_maxTh)
   if (newAve < m_minTh + m_part && m_curMaxP > m_bottom) {
-    // we should increase the average queue size, so decrease m_curMaxP
     m_curMaxP = m_curMaxP * m_beta;
     m_lastSet = now;
   } else if (newAve > m_maxTh - m_part && m_top > m_curMaxP) {
-    // we should decrease the average queue size, so increase m_curMaxP
     double alpha = m_alpha;
     if (alpha > 0.25 * m_curMaxP) {
       alpha = 0.25 * m_curMaxP;
@@ -536,7 +433,6 @@ void RedQueueDisc::UpdateMaxP(double newAve) {
   }
 }
 
-// Compute the average queue size
 double RedQueueDisc::Estimator(uint32_t nQueued, uint32_t m, double qAvg,
                                double qW) {
   NS_LOG_FUNCTION(this << nQueued << m << qAvg << qW);
@@ -548,31 +444,23 @@ double RedQueueDisc::Estimator(uint32_t nQueued, uint32_t m, double qAvg,
   if (m_isAdaptMaxP && now > m_lastSet + m_interval) {
     UpdateMaxP(newAve);
   } else if (m_isFengAdaptive) {
-    UpdateMaxPFeng(newAve); // Update m_curMaxP in MIMD fashion.
+    UpdateMaxPFeng(newAve);
   }
 
   return newAve;
 }
 
-// Check if packet p needs to be dropped due to probability mark
 uint32_t RedQueueDisc::DropEarly(Ptr<QueueDiscItem> item, uint32_t qSize) {
   NS_LOG_FUNCTION(this << item << qSize);
 
   double prob1 = CalculatePNew();
   m_vProb = ModifyP(prob1, item->GetSize());
 
-  // Drop probability is computed, pick random number and act
   if (m_cautious == 1) {
-    /*
-     * Don't drop/mark if the instantaneous queue is much below the average.
-     * For experimental purposes only.
-     * pkts: the number of packets arriving in 50 ms
-     */
     double pkts = m_ptc * 0.05;
     double fraction = std::pow((1 - m_qW), pkts);
 
     if ((double)qSize < fraction * m_qAvg) {
-      // Queue could have been empty for 0.05 seconds
       return 0;
     }
   }
@@ -580,12 +468,6 @@ uint32_t RedQueueDisc::DropEarly(Ptr<QueueDiscItem> item, uint32_t qSize) {
   double u = m_uv->GetValue();
 
   if (m_cautious == 2) {
-    /*
-     * Decrease the drop probability if the instantaneous
-     * queue is much below the average.
-     * For experimental purposes only.
-     * pkts: the number of packets arriving in 50 ms
-     */
     double pkts = m_ptc * 0.05;
     double fraction = std::pow((1 - m_qW), pkts);
     double ratio = qSize / (fraction * m_qAvg);
@@ -598,39 +480,24 @@ uint32_t RedQueueDisc::DropEarly(Ptr<QueueDiscItem> item, uint32_t qSize) {
   if (u <= m_vProb) {
     NS_LOG_LOGIC("u <= m_vProb; u " << u << "; m_vProb " << m_vProb);
 
-    // DROP or MARK
     m_count = 0;
     m_countBytes = 0;
-    /// \todo Implement set bit to mark
 
-    return 1; // drop
+    return 1;
   }
 
-  return 0; // no drop/mark
+  return 0;
 }
 
-// Returns a probability using these function parameters for the DropEarly
-// function
 double RedQueueDisc::CalculatePNew() {
   NS_LOG_FUNCTION(this);
   double p;
 
   if (m_isGentle && m_qAvg >= m_maxTh) {
-    // p ranges from m_curMaxP to 1 as the average queue
-    // size ranges from m_maxTh to twice m_maxTh
     p = m_vC * m_qAvg + m_vD;
   } else if (!m_isGentle && m_qAvg >= m_maxTh) {
-    /*
-     * OLD: p continues to range linearly above m_curMaxP as
-     * the average queue size ranges above m_maxTh.
-     * NEW: p is set to 1.0
-     */
     p = 1.0;
   } else {
-    /*
-     * p ranges from 0 to m_curMaxP as the average queue size ranges from
-     * m_minTh to m_maxTh
-     */
     p = m_vA * m_qAvg + m_vB;
 
     if (m_isNonlinear) {
@@ -647,8 +514,6 @@ double RedQueueDisc::CalculatePNew() {
   return p;
 }
 
-// Returns a probability using these function parameters for the DropEarly
-// function
 double RedQueueDisc::ModifyP(double p, uint32_t size) {
   NS_LOG_FUNCTION(this << p << size);
   auto count1 = (double)m_count;
@@ -734,7 +599,6 @@ bool RedQueueDisc::CheckConfig() {
   }
 
   if (GetNInternalQueues() == 0) {
-    // add a DropTail queue
     AddInternalQueue(CreateObjectWithAttributes<DropTailQueue<QueueDiscItem>>(
         "MaxSize", QueueSizeValue(GetMaxSize())));
   }

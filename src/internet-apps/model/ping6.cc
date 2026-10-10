@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ping6.h"
 
@@ -150,9 +132,6 @@ void Ping6::Send() {
   Ptr<Ipv6> ipv6 = GetNode()->GetObject<Ipv6>();
 
   if (m_ifIndex > 0) {
-    /* hack to have ifIndex in Ipv6RawSocketImpl
-     * maybe add a SetIfIndex in Ipv6RawSocketImpl directly
-     */
     for (uint32_t i = 0;
          i < GetNode()->GetObject<Ipv6>()->GetNAddresses(m_ifIndex); i++) {
       Ipv6InterfaceAddress srcIa;
@@ -187,14 +166,9 @@ void Ping6::Send() {
   req.SetSeq(m_seq);
   m_seq++;
 
-  /* we do not calculate pseudo header checksum here, because we are not sure
-   * about source IPv6 address. Checksum is calculated in Ipv6RawSocketImpl.
-   */
-
   p->AddHeader(req);
   m_socket->Bind(Inet6SocketAddress(src, 0));
 
-  /* use Loose Routing (routing type 0) */
   if (!m_routers.empty()) {
     Ipv6ExtensionLooseRoutingHeader routingHeader;
     routingHeader.SetNextHeader(Ipv6Header::IPV6_ICMPV6);
@@ -272,4 +246,4 @@ void Ping6::HandleRead(Ptr<Socket> socket) {
   }
 }
 
-} /* namespace ns3 */
+} // namespace ns3

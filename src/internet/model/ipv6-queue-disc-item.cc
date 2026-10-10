@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ipv6-queue-disc-item.h"
 
@@ -103,13 +87,11 @@ uint32_t Ipv6QueueDiscItem::Hash(uint32_t perturbation) const {
   uint16_t srcPort = 0;
   uint16_t destPort = 0;
 
-  if (prot == 6) // TCP
-  {
+  if (prot == 6) {
     GetPacket()->PeekHeader(tcpHdr);
     srcPort = tcpHdr.GetSourcePort();
     destPort = tcpHdr.GetDestinationPort();
-  } else if (prot == 17) // UDP
-  {
+  } else if (prot == 17) {
     GetPacket()->PeekHeader(udpHdr);
     srcPort = udpHdr.GetSourcePort();
     destPort = udpHdr.GetDestinationPort();
@@ -119,7 +101,6 @@ uint32_t Ipv6QueueDiscItem::Hash(uint32_t perturbation) const {
                 "computation");
   }
 
-  /* serialize the 5-tuple and the perturbation in buf */
   uint8_t buf[41];
   src.Serialize(buf);
   dest.Serialize(buf + 16);
@@ -133,8 +114,6 @@ uint32_t Ipv6QueueDiscItem::Hash(uint32_t perturbation) const {
   buf[39] = (perturbation >> 8) & 0xff;
   buf[40] = perturbation & 0xff;
 
-  // Linux calculates jhash2 (jenkins hash), we calculate murmur3 because it is
-  // already available in ns-3
   uint32_t hash = Hash32((char *)buf, 41);
 
   NS_LOG_DEBUG("Found Ipv6 packet; hash of the five tuple " << hash);

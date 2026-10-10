@@ -1,23 +1,3 @@
-/*
- *  Copyright (c) 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- *
- */
 #include "ns3/cs-parameters.h"
 #include "ns3/ipcs-classifier-record.h"
 #include "ns3/log.h"
@@ -30,12 +10,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the wimax tlv implementation.
- */
 class Ns3WimaxCsParamTlvTestCase : public TestCase {
 public:
   Ns3WimaxCsParamTlvTestCase();
@@ -102,12 +76,6 @@ void Ns3WimaxCsParamTlvTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the service flow tlv implementation.
- */
 class Ns3WimaxSfTlvTestCase : public TestCase {
 public:
   Ns3WimaxSfTlvTestCase();
@@ -172,12 +140,6 @@ void Ns3WimaxSfTlvTestCase::DoRun() {
                         "The sfRecv had the wrong traffic priority.");
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax Tlv Test Suite
- */
 class Ns3WimaxTlvTestSuite : public TestSuite {
 public:
   Ns3WimaxTlvTestSuite();
@@ -188,4 +150,4 @@ Ns3WimaxTlvTestSuite::Ns3WimaxTlvTestSuite() : TestSuite("wimax-tlv", UNIT) {
   AddTestCase(new Ns3WimaxSfTlvTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxTlvTestSuite ns3WimaxTlvTestSuite; ///< the test suite
+static Ns3WimaxTlvTestSuite ns3WimaxTlvTestSuite;

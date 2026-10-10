@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt>
- */
 
 #include "ns3/olsr-header.h"
 #include "ns3/olsr-repositories.h"
@@ -24,12 +6,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check Emf olsr time conversion
- */
 class OlsrEmfTestCase : public TestCase {
 public:
   OlsrEmfTestCase();
@@ -48,12 +24,6 @@ void OlsrEmfTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check Mid olsr messages
- */
 class OlsrMidTestCase : public TestCase {
 public:
   OlsrMidTestCase();
@@ -72,7 +42,6 @@ void OlsrMidTestCase::DoRun() {
     olsr::MessageHeader msg2;
     olsr::MessageHeader::Mid &mid2 = msg2.GetMid();
 
-    // MID message #1
     {
       std::vector<Ipv4Address> &addresses = mid1.interfaceAddresses;
       addresses.clear();
@@ -85,7 +54,6 @@ void OlsrMidTestCase::DoRun() {
     msg1.SetVTime(Seconds(9));
     msg1.SetMessageSequenceNumber(7);
 
-    // MID message #2
     {
       std::vector<Ipv4Address> &addresses = mid2.interfaceAddresses;
       addresses.clear();
@@ -99,12 +67,10 @@ void OlsrMidTestCase::DoRun() {
     msg2.SetMessageType(olsr::MessageHeader::MID_MESSAGE);
     msg2.SetMessageSequenceNumber(7);
 
-    // Build an OLSR packet header
     hdr.SetPacketLength(hdr.GetSerializedSize() + msg1.GetSerializedSize() +
                         msg2.GetSerializedSize());
     hdr.SetPacketSequenceNumber(123);
 
-    // Now add all the headers in the correct order
     packet.AddHeader(msg2);
     packet.AddHeader(msg1);
     packet.AddHeader(hdr);
@@ -137,7 +103,6 @@ void OlsrMidTestCase::DoRun() {
       NS_TEST_ASSERT_MSG_EQ((sizeLeft > 0), true, "208");
     }
     {
-      // now read the second message
       olsr::MessageHeader msg2;
 
       packet.RemoveHeader(msg2);
@@ -161,12 +126,6 @@ void OlsrMidTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check Hello olsr messages
- */
 class OlsrHelloTestCase : public TestCase {
 public:
   OlsrHelloTestCase();
@@ -224,12 +183,6 @@ void OlsrHelloTestCase::DoRun() {
                         "All bytes in packet were not read");
 }
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check Tc olsr messages
- */
 class OlsrTcTestCase : public TestCase {
 public:
   OlsrTcTestCase();
@@ -263,12 +216,6 @@ void OlsrTcTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(packet.GetSize(), 0, "404");
 }
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check Hna olsr messages
- */
 class OlsrHnaTestCase : public TestCase {
 public:
   OlsrHnaTestCase();
@@ -308,12 +255,6 @@ void OlsrHnaTestCase::DoRun() {
                         "All bytes in packet were not read");
 }
 
-/**
- * \ingroup olsr-test
- * \ingroup tests
- *
- * Check olsr header messages
- */
 class OlsrTestSuite : public TestSuite {
 public:
   OlsrTestSuite();
@@ -327,5 +268,4 @@ OlsrTestSuite::OlsrTestSuite() : TestSuite("routing-olsr-header", UNIT) {
   AddTestCase(new OlsrEmfTestCase(), TestCase::QUICK);
 }
 
-static OlsrTestSuite
-    g_olsrTestSuite; //!< Static variable for test initialization
+static OlsrTestSuite g_olsrTestSuite;

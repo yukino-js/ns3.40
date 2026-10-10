@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2011 Yufei Cheng
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Yufei Cheng   <yfcheng@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "dsr-fs-header.h"
 
@@ -171,7 +141,7 @@ void DsrOptionField::AddDsrOption(const DsrOptionHeader &option) {
   NS_LOG_LOGIC("need " << pad << " bytes padding");
   switch (pad) {
   case 0:
-    break; // no padding needed
+    break;
   case 1:
     AddDsrOption(DsrOptionPad1Header());
     break;
@@ -220,7 +190,6 @@ void DsrRoutingHeader::Print(std::ostream &os) const {
 }
 
 uint32_t DsrRoutingHeader::GetSerializedSize() const {
-  // 8 bytes is the DsrFsHeader length
   return 8 + DsrOptionField::GetSerializedSize();
 }
 
@@ -250,5 +219,5 @@ uint32_t DsrRoutingHeader::Deserialize(Buffer::Iterator start) {
   return GetSerializedSize();
 }
 
-} /* namespace dsr */
-} /* namespace ns3 */
+} // namespace dsr
+} // namespace ns3

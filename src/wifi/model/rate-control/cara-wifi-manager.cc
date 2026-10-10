@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2004,2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Federico Maguolo <maguolof@dei.unipd.it>
- */
 
 #include "cara-wifi-manager.h"
 
@@ -28,17 +10,11 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("CaraWifiManager");
 
-/**
- * \brief hold per-remote-station state for CARA Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the CARA Wifi manager
- */
 struct CaraWifiRemoteStation : public WifiRemoteStation {
-  uint32_t m_timer;   ///< timer count
-  uint32_t m_success; ///< success count
-  uint32_t m_failed;  ///< failed count
-  uint8_t m_rate;     ///< rate in bps
+  uint32_t m_timer;
+  uint32_t m_success;
+  uint32_t m_failed;
+  uint8_t m_rate;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(CaraWifiManager);
@@ -198,8 +174,6 @@ WifiTxVector CaraWifiManager::DoGetDataTxVector(WifiRemoteStation *st,
 WifiTxVector CaraWifiManager::DoGetRtsTxVector(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
   auto station = static_cast<CaraWifiRemoteStation *>(st);
-  /// \todo we could/should implement the Arf algorithm for
-  /// RTS only by picking a single rate within the BasicRateSet.
   uint16_t channelWidth = GetChannelWidth(station);
   if (channelWidth > 20 && channelWidth != 22) {
     channelWidth = 20;

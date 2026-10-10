@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:
- *  Tom Henderson <thomas.r.henderson@boeing.com>
- *  Tommaso Pecorella <tommaso.pecorella@unifi.it>
- *  Margherita Filippetti <morag87@gmail.com>
- */
 #include "lr-wpan-net-device.h"
 
 #include "lr-wpan-csmaca.h"
@@ -94,7 +73,6 @@ void LrWpanNetDevice::DoDispose() {
   m_mac = nullptr;
   m_csmaca = nullptr;
   m_node = nullptr;
-  // chain up.
   NetDevice::DoDispose();
 }
 
@@ -165,10 +143,7 @@ void LrWpanNetDevice::SetChannel(Ptr<SpectrumChannel> channel) {
   CompleteConfig();
 }
 
-Ptr<LrWpanMac> LrWpanNetDevice::GetMac() const {
-  // NS_LOG_FUNCTION (this);
-  return m_mac;
-}
+Ptr<LrWpanMac> LrWpanNetDevice::GetMac() const { return m_mac; }
 
 Ptr<LrWpanPhy> LrWpanNetDevice::GetPhy() const {
   NS_LOG_FUNCTION(this);
@@ -267,12 +242,6 @@ bool LrWpanNetDevice::SetMtu(const uint16_t mtu) {
 
 uint16_t LrWpanNetDevice::GetMtu() const {
   NS_LOG_FUNCTION(this);
-  // Maximum payload size is: max psdu - frame control - seqno - addressing -
-  // security - fcs
-  //                        = 127      - 2             - 1     - (2+2+2+2)  - 0
-  //                        - 2 = 114
-  // assuming no security and addressing with only 16 bit addresses without pan
-  // id compression.
   return 114;
 }
 
@@ -331,11 +300,6 @@ bool LrWpanNetDevice::IsPointToPoint() const {
 
 bool LrWpanNetDevice::Send(Ptr<Packet> packet, const Address &dest,
                            uint16_t protocolNumber) {
-  // This method basically assumes an 802.3-compliant device, but a raw
-  // 802.15.4 device does not have an ethertype, and requires specific
-  // McpsDataRequest parameters.
-  // For further study:  how to support these methods somehow, such as
-  // inventing a fake ethertype and packet tag for McpsDataRequest
   NS_LOG_FUNCTION(this << packet << dest << protocolNumber);
 
   if (packet->GetSize() > GetMtu()) {
@@ -357,8 +321,6 @@ bool LrWpanNetDevice::Send(Ptr<Packet> packet, const Address &dest,
   m_mcpsDataRequestParams.m_dstAddrMode = SHORT_ADDR;
   m_mcpsDataRequestParams.m_dstPanId = m_mac->GetPanId();
   m_mcpsDataRequestParams.m_srcAddrMode = SHORT_ADDR;
-  // Using ACK requests for broadcast destinations is ok here. They are disabled
-  // by the MAC.
   if (m_useAcks) {
     m_mcpsDataRequestParams.m_txOptions = TX_OPTION_ACK;
   }
@@ -370,8 +332,6 @@ bool LrWpanNetDevice::Send(Ptr<Packet> packet, const Address &dest,
 bool LrWpanNetDevice::SendFrom(Ptr<Packet> packet, const Address &source,
                                const Address &dest, uint16_t protocolNumber) {
   NS_ABORT_MSG("Unsupported");
-  // TODO: To support SendFrom, the MACs McpsDataRequest has to use the provided
-  // source address, instead of to local one.
   return false;
 }
 
@@ -397,18 +357,12 @@ void LrWpanNetDevice::SetReceiveCallback(ReceiveCallback cb) {
 }
 
 void LrWpanNetDevice::SetPromiscReceiveCallback(PromiscReceiveCallback cb) {
-  // This method basically assumes an 802.3-compliant device, but a raw
-  // 802.15.4 device does not have an ethertype, and requires specific
-  // McpsDataIndication parameters.
-  // For further study:  how to support these methods somehow, such as
-  // inventing a fake ethertype and packet tag for McpsDataRequest
   NS_LOG_WARN("Unsupported; use LrWpan MAC APIs instead");
 }
 
 void LrWpanNetDevice::McpsDataIndication(McpsDataIndicationParams params,
                                          Ptr<Packet> pkt) {
   NS_LOG_FUNCTION(this);
-  // TODO: Use the PromiscReceiveCallback if the MAC is in promiscuous mode.
 
   if (params.m_dstAddrMode == SHORT_ADDR) {
     m_receiveCallback(
@@ -433,11 +387,9 @@ LrWpanNetDevice::BuildPseudoMacAddress(uint16_t panId,
 
   if (m_pseudoMacMode == RFC4944) {
     buf[0] = panId >> 8;
-    // Make sure the U/L bit is set
     buf[0] |= 0x02;
     buf[1] = panId & 0xff;
   } else {
-    // Make sure the U/L bit is set
     buf[0] = 0x02;
     buf[1] = 0x00;
   }

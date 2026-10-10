@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2018 Caliola Engineering, LLC.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jared Dulmage <jared.dulmage@caliola.com>
- */
 
 #include <ns3/double.h>
 #include <ns3/integer.h>
@@ -36,38 +18,18 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("PairTestSuite");
 
-/**
- * \file
- * \ingroup pair-tests
- * Pairs tests.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup pair-tests Pairs tests
- */
-
-/**
- * \ingroup pair-tests
- *
- * Object holding pairs of values.
- */
 class PairObject : public Object {
 public:
   PairObject();
   ~PairObject() override;
 
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
 
   friend std::ostream &operator<<(std::ostream &os, const PairObject &obj);
 
 private:
-  std::pair<std::string, std::string> m_stringPair; //!< A string pair.
-  std::pair<double, int> m_doubleIntPair;           //!< A pair of double, int.
+  std::pair<std::string, std::string> m_stringPair;
+  std::pair<double, int> m_doubleIntPair;
 };
 
 PairObject::PairObject() {}
@@ -88,8 +50,6 @@ TypeId PairObject::GetTypeId() {
                             MakeStringChecker(), MakeStringChecker()))
           .AddAttribute(
               "DoubleIntPair", "Pair: double int",
-              // the container value container differs from the underlying
-              // object
               PairValue<DoubleValue, IntegerValue>(),
               MakePairAccessor<DoubleValue, IntegerValue>(
                   &PairObject::m_doubleIntPair),
@@ -98,24 +58,12 @@ TypeId PairObject::GetTypeId() {
   return tid;
 }
 
-/**
- * \brief Stream insertion operator.
- *
- * \param [in] os The reference to the output stream.
- * \param [in] obj The PairObject.
- * \returns The reference to the output stream.
- */
 std::ostream &operator<<(std::ostream &os, const PairObject &obj) {
   os << "StringPair = { " << obj.m_stringPair << " } ";
   os << "DoubleIntPair = { " << obj.m_doubleIntPair << " }";
   return os;
 }
 
-/**
- * \ingroup pair-tests
- *
- * Pair test - Test instantiation, initialization, access.
- */
 class PairValueTestCase : public TestCase {
 public:
   PairValueTestCase();
@@ -149,11 +97,6 @@ void PairValueTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup pair-tests
- *
- * Pair test - test setting through attribute interface.
- */
 class PairValueSettingsTestCase : public TestCase {
 public:
   PairValueSettingsTestCase();
@@ -180,11 +123,6 @@ void PairValueSettingsTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ((oss.str()), (ref.str()), "Pairs not correctly set");
 }
 
-/**
- * \ingroup pair-tests
- *
- * \brief The pair-value Test Suite.
- */
 class PairValueTestSuite : public TestSuite {
 public:
   PairValueTestSuite();
@@ -196,5 +134,4 @@ PairValueTestSuite::PairValueTestSuite()
   AddTestCase(new PairValueSettingsTestCase(), TestCase::QUICK);
 }
 
-static PairValueTestSuite
-    g_pairValueTestSuite; //!< Static variable for test initialization
+static PairValueTestSuite g_pairValueTestSuite;

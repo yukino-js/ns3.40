@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "ie-dot11s-prep.h"
 
@@ -25,9 +7,6 @@
 
 namespace ns3 {
 namespace dot11s {
-/********************************
- * IePrep
- *******************************/
 IePrep::~IePrep() {}
 
 IePrep::IePrep()
@@ -124,15 +103,7 @@ uint16_t IePrep::DeserializeInformationField(Buffer::Iterator start,
 }
 
 uint16_t IePrep::GetInformationFieldSize() const {
-  uint32_t retval = 1    // Flags
-                    + 1  // Hopcount
-                    + 1  // Ttl
-                    + 6  // Dest address
-                    + 4  // Dest seqno
-                    + 4  // Lifetime
-                    + 4  // metric
-                    + 6  // Originator address
-                    + 4; // Originator seqno
+  uint32_t retval = 1 + 1 + 1 + 6 + 4 + 4 + 4 + 6 + 4;
   return retval;
 }
 

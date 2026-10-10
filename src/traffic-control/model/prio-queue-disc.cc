@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:  Stefano Avallone <stavallo@unina.it>
- */
 
 #include "prio-queue-disc.h"
 
@@ -114,9 +96,6 @@ bool PrioQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   NS_ASSERT_MSG(band < GetNQueueDiscClasses(), "Selected band out of range");
   bool retval = GetQueueDiscClass(band)->GetQueueDisc()->Enqueue(item);
 
-  // If Queue::Enqueue fails, QueueDisc::Drop is called by the child queue disc
-  // because QueueDisc::AddQueueDiscClass sets the drop callback
-
   NS_LOG_LOGIC("Number packets band "
                << band << ": "
                << GetQueueDiscClass(band)->GetQueueDisc()->GetNPackets());
@@ -170,7 +149,6 @@ bool PrioQueueDisc::CheckConfig() {
   }
 
   if (GetNQueueDiscClasses() == 0) {
-    // create 3 fifo queue discs
     ObjectFactory factory;
     factory.SetTypeId("ns3::FifoQueueDisc");
     for (uint8_t i = 0; i < 2; i++) {

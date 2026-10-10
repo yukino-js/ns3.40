@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011,2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/constant-position-mobility-model.h>
 #include <ns3/double.h>
@@ -31,25 +11,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("OkumuraHataPropagationLossModelTest");
 
-/**
- * \ingroup propagation-tests
- *
- * \brief OkumuraHataPropagationLossModel Test Case
- */
 class OkumuraHataPropagationLossModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param freq carrier frequency in Hz
-   * \param dist 2D distance between UT and BS in meters
-   * \param hb height of BS in meters
-   * \param hm height of UT in meters
-   * \param env environment type
-   * \param city city type
-   * \param refValue reference loss value
-   * \param name TestCase name
-   */
   OkumuraHataPropagationLossModelTestCase(double freq, double dist, double hb,
                                           double hm, EnvironmentType env,
                                           CitySize city, double refValue,
@@ -59,20 +22,15 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Create a MobilityModel
-   * \param index mobility model index
-   * \return a new MobilityModel
-   */
   Ptr<MobilityModel> CreateMobilityModel(uint16_t index);
 
-  double m_freq;         //!< carrier frequency in Hz
-  double m_dist;         //!< 2D distance between UT and BS in meters
-  double m_hb;           //!< height of BS in meters
-  double m_hm;           //!< height of UT in meters
-  EnvironmentType m_env; //!< environment type
-  CitySize m_city;       //!< city type
-  double m_lossRef;      //!< reference loss
+  double m_freq;
+  double m_dist;
+  double m_hb;
+  double m_hm;
+  EnvironmentType m_env;
+  CitySize m_city;
+  double m_lossRef;
 };
 
 OkumuraHataPropagationLossModelTestCase::
@@ -109,17 +67,6 @@ void OkumuraHataPropagationLossModelTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ_TOL(loss, m_lossRef, 0.1, "Wrong loss!");
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief OkumuraHataPropagationLossModel TestSuite
- *
- * This TestSuite tests the following cases:
- *   - UrbanEnvironment - Large City (original OH and COST231 OH)
- *   - UrbanEnvironment - Small City (original OH and COST231 OH)
- *   - SubUrbanEnvironment (original OH only)
- *   - OpenAreasEnvironment (original OH only)
- */
 class OkumuraHataPropagationLossModelTestSuite : public TestSuite {
 public:
   OkumuraHataPropagationLossModelTestSuite();
@@ -129,10 +76,8 @@ OkumuraHataPropagationLossModelTestSuite::
     OkumuraHataPropagationLossModelTestSuite()
     : TestSuite("okumura-hata", SYSTEM) {
   LogComponentEnable("OkumuraHataPropagationLossModelTest", LOG_LEVEL_ALL);
-  // reference values obtained with the octave scripts in
-  // src/propagation/test/reference/
 
-  double freq = 869e6; // this will use the original OH model
+  double freq = 869e6;
   AddTestCase(new OkumuraHataPropagationLossModelTestCase(
                   freq, 2000, 30, 1, UrbanEnvironment, LargeCity, 137.93,
                   "original OH Urban Large city"),
@@ -150,7 +95,7 @@ OkumuraHataPropagationLossModelTestSuite::
                   "original OH OpenAreas"),
               TestCase::QUICK);
 
-  freq = 2.1140e9; // this will use the extended COST231 OH model
+  freq = 2.1140e9;
   AddTestCase(new OkumuraHataPropagationLossModelTestCase(
                   freq, 2000, 30, 1, UrbanEnvironment, LargeCity, 148.55,
                   "COST231 OH Urban Large city"),
@@ -161,5 +106,4 @@ OkumuraHataPropagationLossModelTestSuite::
               TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static OkumuraHataPropagationLossModelTestSuite g_okumuraHataTestSuite;

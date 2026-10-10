@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- */
 
 #include "lte-stats-calculator.h"
 
@@ -33,13 +15,9 @@ NS_LOG_COMPONENT_DEFINE("LteStatsCalculator");
 NS_OBJECT_ENSURE_REGISTERED(LteStatsCalculator);
 
 LteStatsCalculator::LteStatsCalculator()
-    : m_dlOutputFilename(""), m_ulOutputFilename("") {
-  // Nothing to do here
-}
+    : m_dlOutputFilename(""), m_ulOutputFilename("") {}
 
-LteStatsCalculator::~LteStatsCalculator() {
-  // Nothing to do here
-}
+LteStatsCalculator::~LteStatsCalculator() {}
 
 TypeId LteStatsCalculator::GetTypeId() {
   static TypeId tid = TypeId("ns3::LteStatsCalculator")
@@ -93,11 +71,7 @@ uint16_t LteStatsCalculator::GetCellIdPath(std::string path) {
 
 uint64_t LteStatsCalculator::FindImsiFromEnbRlcPath(std::string path) {
   NS_LOG_FUNCTION(path);
-  // Sample path input:
-  // /NodeList/#NodeId/DeviceList/#DeviceId/LteEnbRrc/UeMap/#C-RNTI/DataRadioBearerMap/#LCID/LteRlc/RxPDU
 
-  // We retrieve the UeManager associated to the C-RNTI and perform the IMSI
-  // lookup
   std::string ueMapPath = path.substr(0, path.find("/DataRadioBearerMap"));
   Config::MatchContainer match = Config::LookupMatches(ueMapPath);
 
@@ -109,15 +83,12 @@ uint64_t LteStatsCalculator::FindImsiFromEnbRlcPath(std::string path) {
   } else {
     NS_FATAL_ERROR("Lookup " << ueMapPath << " got no matches");
   }
-  return 0; // Silence compiler warning about lack of return value
+  return 0;
 }
 
 uint64_t LteStatsCalculator::FindImsiFromUePhy(std::string path) {
   NS_LOG_FUNCTION(path);
-  // Sample path input:
-  // /NodeList/#NodeId/DeviceList/#DeviceId/LteUePhy
 
-  // We retrieve the UeInfo associated to the C-RNTI and perform the IMSI lookup
   std::string ueRlcPath = path.substr(0, path.find("/LteUePhy"));
   ueRlcPath += "/LteUeRrc";
   Config::MatchContainer match = Config::LookupMatches(ueRlcPath);
@@ -133,10 +104,7 @@ uint64_t LteStatsCalculator::FindImsiFromUePhy(std::string path) {
 
 uint64_t LteStatsCalculator::FindImsiFromLteNetDevice(std::string path) {
   NS_LOG_FUNCTION(path);
-  // Sample path input:
-  // /NodeList/#NodeId/DeviceList/#DeviceId/
 
-  // We retrieve the Imsi associated to the LteUeNetDevice
   Config::MatchContainer match = Config::LookupMatches(path);
 
   if (match.GetN() != 0) {
@@ -148,15 +116,12 @@ uint64_t LteStatsCalculator::FindImsiFromLteNetDevice(std::string path) {
   } else {
     NS_FATAL_ERROR("Lookup " << path << " got no matches");
   }
-  return 0; // Silence compiler warning about lack of return value
+  return 0;
 }
 
 uint16_t LteStatsCalculator::FindCellIdFromEnbRlcPath(std::string path) {
   NS_LOG_FUNCTION(path);
-  // Sample path input:
-  // /NodeList/#NodeId/DeviceList/#DeviceId/LteEnbRrc/UeMap/#C-RNTI/DataRadioBearerMap/#LCID/LteRlc/RxPDU
 
-  // We retrieve the CellId associated to the Enb
   std::string enbNetDevicePath = path.substr(0, path.find("/LteEnbRrc"));
   Config::MatchContainer match = Config::LookupMatches(enbNetDevicePath);
   if (match.GetN() != 0) {
@@ -168,14 +133,13 @@ uint16_t LteStatsCalculator::FindCellIdFromEnbRlcPath(std::string path) {
   } else {
     NS_FATAL_ERROR("Lookup " << enbNetDevicePath << " got no matches");
   }
-  return 0; // Silence compiler warning about lack of return value
+  return 0;
 }
 
 uint64_t LteStatsCalculator::FindImsiFromEnbMac(std::string path,
                                                 uint16_t rnti) {
   NS_LOG_FUNCTION(path << rnti);
 
-  // /NodeList/#NodeId/DeviceList/#DeviceId/LteEnbMac/DlScheduling
   std::ostringstream oss;
   std::string p = path.substr(0, path.find("/LteEnbMac"));
   oss << rnti;
@@ -188,7 +152,6 @@ uint64_t LteStatsCalculator::FindImsiFromEnbMac(std::string path,
 uint16_t LteStatsCalculator::FindCellIdFromEnbMac(std::string path,
                                                   uint16_t rnti) {
   NS_LOG_FUNCTION(path << rnti);
-  // /NodeList/#NodeId/DeviceList/#DeviceId/LteEnbMac/DlScheduling
   std::ostringstream oss;
   std::string p = path.substr(0, path.find("/LteEnbMac"));
   oss << rnti;
@@ -203,7 +166,6 @@ uint64_t LteStatsCalculator::FindImsiForEnb(std::string path, uint16_t rnti) {
   NS_LOG_FUNCTION(path << rnti);
   uint64_t imsi = 0;
   if (path.find("/DlPhyTransmission")) {
-    // /NodeList/0/DeviceList/0/LteEnbPhy/DlPhyTransmission/LteEnbRrc/UeMap/1
     std::ostringstream oss;
     std::string p = path.substr(0, path.find("/LteEnbPhy"));
     oss << rnti;
@@ -228,7 +190,6 @@ uint64_t LteStatsCalculator::FindImsiForUe(std::string path, uint16_t rnti) {
     imsi = FindImsiFromLteNetDevice(p);
     NS_LOG_LOGIC("FindImsiForUe[Tx]: " << path << ", " << rnti << ", " << imsi);
   } else if (path.find("/DlPhyReception")) {
-    // /NodeList/0/DeviceList/0/LteEnbPhy/LteSpectrumPhy
     std::ostringstream oss;
     std::string p = path.substr(0, path.find("/LteEnbPhy"));
     oss << rnti;

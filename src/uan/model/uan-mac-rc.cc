@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- */
 
 #include "uan-mac-rc.h"
 
@@ -94,7 +76,7 @@ void Reservation::AddTimestamp(Time t) { m_timestamp.push_back(t); }
 
 void Reservation::IncrementRetry() { m_retryNo++; }
 
-void Reservation::SetTransmitted(bool /* t */) { m_transmitted = true; }
+void Reservation::SetTransmitted(bool) { m_transmitted = true; }
 
 uint32_t UanMacRc::m_cntrlSends = 0;
 
@@ -240,8 +222,7 @@ void UanMacRc::AttachPhy(Ptr<UanPhy> phy) {
   m_phy->SetReceiveOkCallback(MakeCallback(&UanMacRc::ReceiveOkFromPhy, this));
 }
 
-void UanMacRc::ReceiveOkFromPhy(Ptr<Packet> pkt, double /* sinr */,
-                                UanTxMode mode) {
+void UanMacRc::ReceiveOkFromPhy(Ptr<Packet> pkt, double, UanTxMode mode) {
   UanHeaderCommon ch;
   pkt->RemoveHeader(ch);
   if (ch.GetDest() == Mac8Address::ConvertFrom(GetAddress()) ||
@@ -262,8 +243,6 @@ void UanMacRc::ReceiveOkFromPhy(Ptr<Packet> pkt, double /* sinr */,
     }
     break;
   case TYPE_RTS:
-    // Currently don't respond to RTS packets at non-gateway nodes
-    // (Code assumes single network neighborhood)
     break;
   case TYPE_CTS: {
     uint32_t ctsBytes = ch.GetSerializedSize() + pkt->GetSize();
@@ -305,7 +284,6 @@ void UanMacRc::ReceiveOkFromPhy(Ptr<Packet> pkt, double /* sinr */,
     }
   } break;
   case TYPE_GWPING:
-    // Do not respond to GWPINGS at non-gateway nodes
     break;
   case TYPE_ACK:
     m_rtsBlocked = true;
@@ -578,7 +556,6 @@ void UanMacRc::SendRts() {
       Simulator::Schedule(Seconds(timeout), &UanMacRc::RtsTimeout, this);
 }
 
-// We assume here that packet types are known at detection.
 bool UanMacRc::IsPhy1Ok() {
   Ptr<UanPhyDual> phyDual = m_phy->GetObject<UanPhyDual>();
 

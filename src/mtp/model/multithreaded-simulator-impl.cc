@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "multithreaded-simulator-impl.h"
 
@@ -125,7 +112,6 @@ EventId MultithreadedSimulatorImpl::ScheduleDestroy(EventImpl *event) {
 
 void MultithreadedSimulatorImpl::Remove(const EventId &id) {
   if (id.GetUid() == EventId::DESTROY) {
-    // destroy events.
     for (std::list<EventId>::iterator i = m_destroyEvents.begin();
          i != m_destroyEvents.end(); i++) {
       if (*i == id) {
@@ -146,7 +132,6 @@ void MultithreadedSimulatorImpl::Cancel(const EventId &id) {
 
 bool MultithreadedSimulatorImpl::IsExpired(const EventId &id) const {
   if (id.GetUid() == EventId::DESTROY) {
-    // destroy events.
     if (id.PeekEventImpl() == nullptr || id.PeekEventImpl()->IsCancelled()) {
       return true;
     }
@@ -164,7 +149,6 @@ bool MultithreadedSimulatorImpl::IsExpired(const EventId &id) const {
 
 void MultithreadedSimulatorImpl::Run() {
   NS_LOG_FUNCTION(this);
-  // auto partition
   if (m_partition) {
     Partition();
   }
@@ -172,7 +156,6 @@ void MultithreadedSimulatorImpl::Run() {
 }
 
 Time MultithreadedSimulatorImpl::Now(void) const {
-  // Do not add function logging here, to avoid stack overflow
   return MtpInterface::GetSystem()->Now();
 }
 
@@ -221,7 +204,6 @@ void MultithreadedSimulatorImpl::Partition() {
   bool *visited = new bool[nodes.GetN()]{false};
   std::queue<Ptr<Node>> q;
 
-  // if m_minLookahead is not set, calculate the median of delay for every link
   if (m_minLookahead == TimeStep(0)) {
     std::vector<Time> delays;
     for (NodeContainer::Iterator it = nodes.Begin(); it != nodes.End(); it++) {
@@ -232,7 +214,6 @@ void MultithreadedSimulatorImpl::Partition() {
         if (!channel) {
           continue;
         }
-        // cut-off p2p links for partition
         if (localNetDevice->IsPointToPoint()) {
           TimeValue delay;
           channel->GetAttribute("Delay", delay);
@@ -252,18 +233,15 @@ void MultithreadedSimulatorImpl::Partition() {
     NS_LOG_INFO("Min lookahead is set to " << m_minLookahead);
   }
 
-  // perform a BFS on the whole network topo to assign each node a systemId
   for (NodeContainer::Iterator it = nodes.Begin(); it != nodes.End(); it++) {
     Ptr<Node> node = *it;
     if (!visited[node->GetId()]) {
       q.push(node);
       systemId++;
       while (!q.empty()) {
-        // pop from BFS queue
         node = q.front();
         q.pop();
         visited[node->GetId()] = true;
-        // assign this node the current systemId
         node->SetSystemId(systemId);
         NS_LOG_INFO("node " << node->GetId() << " is set to system "
                             << systemId);
@@ -274,19 +252,15 @@ void MultithreadedSimulatorImpl::Partition() {
           if (!channel) {
             continue;
           }
-          // cut-off p2p links for partition
           if (localNetDevice->IsPointToPoint()) {
             TimeValue delay;
             channel->GetAttribute("Delay", delay);
-            // if delay is below threshold, do not cut-off
             if (delay.Get() >= m_minLookahead) {
               continue;
             }
           }
-          // grab the adjacent nodes
           for (uint32_t j = 0; j < channel->GetNDevices(); j++) {
             Ptr<Node> remote = channel->GetDevice(j)->GetNode();
-            // if it's not visited, add it to the current partition
             if (!visited[remote->GetId()]) {
               q.push(remote);
             }
@@ -297,30 +271,23 @@ void MultithreadedSimulatorImpl::Partition() {
   }
   delete[] visited;
 
-  // after the partition, we finally know the system count (# of LPs)
   const uint32_t systemCount = systemId;
   const uint32_t threadCount = std::min(m_maxThreads, systemCount);
   NS_LOG_INFO("Partition done! " << systemCount << " systems share "
                                  << threadCount << " threads");
 
-  // create new LPs
   const Ptr<Scheduler> events = MtpInterface::GetSystem()->GetPendingEvents();
   MtpInterface::Disable();
   MtpInterface::Enable(threadCount, systemCount);
 
-  // set scheduler
   ObjectFactory schedulerFactory;
   schedulerFactory.SetTypeId(m_schedulerTypeId);
   for (uint32_t i = 0; i <= systemCount; i++) {
     MtpInterface::GetSystem(i)->SetScheduler(schedulerFactory);
   }
 
-  // transfer events to new LPs
   while (!events->IsEmpty()) {
     Scheduler::Event ev = events->RemoveNext();
-    // invoke initialization events (at time 0) by their insertion order
-    // since changing the execution order of these events may cause error,
-    // they have to be invoked now rather than parallelly executed
     if (ev.key.m_ts == 0) {
       MtpInterface::GetSystem(
           ev.key.m_context == Simulator::NO_CONTEXT

@@ -1,20 +1,3 @@
-/*
- *   Copyright (c) 2020 University of Padova, Dep. of Information Engineering,
- * SIGNET lab.
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2 as
- *   published by the Free Software Foundation;
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program; if not, write to the Free Software
- *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "uniform-planar-array.h"
 
@@ -149,8 +132,6 @@ std::pair<double, double>
 UniformPlanarArray::GetElementFieldPattern(Angles a) const {
   NS_LOG_FUNCTION(this << a);
 
-  // convert the theta and phi angles from GCS to LCS using eq. 7.1-7 and 7.1-8
-  // in 3GPP TR 38.901 NOTE we assume a fixed slant angle of 0 degrees
   double cosIncl = cos(a.GetInclination());
   double sinIncl = sin(a.GetInclination());
   double cosAzim = cos(a.GetAzimuth() - m_alpha);
@@ -162,25 +143,15 @@ UniformPlanarArray::GetElementFieldPattern(Angles a) const {
   Angles aPrime(phiPrime, thetaPrime);
   NS_LOG_DEBUG(a << " -> " << aPrime);
 
-  // compute the antenna element field patterns using eq. 7.3-4 and 7.3-5 in
-  // 3GPP TR 38.901, using the configured polarization slant angle (m_polSlant)
-  // NOTE: the slant angle (assumed to be 0) differs from the polarization slant
-  // angle (m_polSlant, given by the attribute), in 3GPP TR 38.901
   double aPrimeDb = m_antennaElement->GetGainDb(aPrime);
-  double fieldThetaPrime =
-      pow(10, aPrimeDb / 20) * m_cosPolSlant; // convert to linear magnitude
-  double fieldPhiPrime =
-      pow(10, aPrimeDb / 20) * m_sinPolSlant; // convert to linear magnitude
+  double fieldThetaPrime = pow(10, aPrimeDb / 20) * m_cosPolSlant;
+  double fieldPhiPrime = pow(10, aPrimeDb / 20) * m_sinPolSlant;
 
-  // compute psi using eq. 7.1-15 in 3GPP TR 38.901, assuming that the slant
-  // angle (gamma) is 0
   double psi = std::arg(
       std::complex<double>(m_cosBeta * sinIncl - m_sinBeta * cosIncl * cosAzim,
                            m_sinBeta * sinAzim));
   NS_LOG_DEBUG("psi " << psi);
 
-  // convert the antenna element field pattern to GCS using eq. 7.1-11
-  // in 3GPP TR 38.901
   double fieldTheta = cos(psi) * fieldThetaPrime - sin(psi) * fieldPhiPrime;
   double fieldPhi = sin(psi) * fieldThetaPrime + cos(psi) * fieldPhiPrime;
   NS_LOG_DEBUG(RadiansToDegrees(a.GetAzimuth())
@@ -193,15 +164,10 @@ UniformPlanarArray::GetElementFieldPattern(Angles a) const {
 Vector UniformPlanarArray::GetElementLocation(uint64_t index) const {
   NS_LOG_FUNCTION(this << index);
 
-  // compute the element coordinates in the LCS
-  // assume the left bottom corner is (0,0,0), and the rectangular antenna array
-  // is on the y-z plane.
   double xPrime = 0;
   double yPrime = m_disH * (index % m_numColumns);
   double zPrime = m_disV * floor(index / m_numColumns);
 
-  // convert the coordinates to the GCS using the rotation matrix 7.1-4 in 3GPP
-  // TR 38.901
   Vector loc;
   loc.x = m_cosAlpha * m_cosBeta * xPrime - m_sinAlpha * yPrime +
           m_cosAlpha * m_sinBeta * zPrime;
@@ -215,4 +181,4 @@ size_t UniformPlanarArray::GetNumberOfElements() const {
   return m_numRows * m_numColumns;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

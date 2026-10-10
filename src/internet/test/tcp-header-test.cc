@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #define __STDC_LIMIT_MACROS
 #include "ns3/buffer.h"
@@ -39,17 +22,8 @@ using namespace ns3;
 #define GET_RANDOM_UINT6(RandomVariable)                                       \
   static_cast<uint8_t>(RandomVariable->GetInteger(0, UINT8_MAX >> 2))
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP header Get/Set test.
- */
 class TcpHeaderGetSetTestCase : public TestCase {
 public:
-  /**
-   * Constructor.
-   * \param name Test description.
-   */
   TcpHeaderGetSetTestCase(std::string name);
 
 protected:
@@ -62,13 +36,13 @@ TcpHeaderGetSetTestCase::TcpHeaderGetSetTestCase(std::string name)
     : TestCase(name) {}
 
 void TcpHeaderGetSetTestCase::DoRun() {
-  uint16_t sourcePort;             // Source port
-  uint16_t destinationPort;        // Destination port
-  SequenceNumber32 sequenceNumber; // Sequence number
-  SequenceNumber32 ackNumber;      // ACK number
-  uint8_t flags;                   // Flags (really a uint6_t)
-  uint16_t windowSize;             // Window size
-  uint16_t urgentPointer;          // Urgent pointer
+  uint16_t sourcePort;
+  uint16_t destinationPort;
+  SequenceNumber32 sequenceNumber;
+  SequenceNumber32 ackNumber;
+  uint8_t flags;
+  uint16_t windowSize;
+  uint16_t urgentPointer;
   TcpHeader header;
   Buffer buffer;
 
@@ -141,34 +115,16 @@ void TcpHeaderGetSetTestCase::DoRun() {
 
 void TcpHeaderGetSetTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP header with RFC793 Options test.
- */
 class TcpHeaderWithRFC793OptionTestCase : public TestCase {
 public:
-  /**
-   * Constructor.
-   * \param name Test description.
-   */
   TcpHeaderWithRFC793OptionTestCase(std::string name);
 
 private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Check an header with only one kind of option.
-   */
   void OneOptionAtTime();
-  /**
-   * \brief Check an header for the correct padding.
-   */
   void CheckNoPadding();
-  /**
-   * \brief Check the correct header deserialization.
-   */
   void CheckCorrectDeserialize();
 };
 
@@ -233,7 +189,6 @@ void TcpHeaderWithRFC793OptionTestCase::CheckNoPadding() {
     NS_TEST_ASSERT_MSG_EQ(header.GetSerializedSize(), buffer.GetSize(),
                           "Header not correctly serialized");
 
-    // Inserted 4 byte NOP, no padding should be present
     Buffer::Iterator i = buffer.Begin();
     i.Next(20);
 
@@ -292,8 +247,6 @@ void TcpHeaderWithRFC793OptionTestCase::OneOptionAtTime() {
     NS_TEST_ASSERT_MSG_EQ(header.GetSerializedSize(), buffer.GetSize(),
                           "Header not correctly serialized");
 
-    // Inserted only 1 byte NOP, and so implementation should pad; so
-    // the other 3 bytes should be END, PAD, PAD (n.b. PAD is same as END)
     Buffer::Iterator i = buffer.Begin();
     i.Next(20);
 
@@ -340,17 +293,8 @@ void TcpHeaderWithRFC793OptionTestCase::OneOptionAtTime() {
 
 void TcpHeaderWithRFC793OptionTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP header Flags to String test.
- */
 class TcpHeaderFlagsToString : public TestCase {
 public:
-  /**
-   * Constructor.
-   * \param name Test description.
-   */
   TcpHeaderFlagsToString(std::string name);
 
 private:
@@ -417,11 +361,6 @@ void TcpHeaderFlagsToString::DoRun() {
                         "str " << str << " does not equal target " << target);
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP header TestSuite
- */
 class TcpHeaderTestSuite : public TestSuite {
 public:
   TcpHeaderTestSuite() : TestSuite("tcp-header", UNIT) {
@@ -435,5 +374,4 @@ public:
   }
 };
 
-static TcpHeaderTestSuite
-    g_TcpHeaderTestSuite; //!< Static variable for test initialization
+static TcpHeaderTestSuite g_TcpHeaderTestSuite;

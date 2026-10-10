@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #define NS_LOG_APPEND_CONTEXT                                                  \
   {                                                                            \
@@ -150,14 +133,6 @@ void TcpCubic::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
       HystartReset(tcb);
     }
 
-    // In Linux, the QUICKACK socket option enables the receiver to send
-    // immediate acks initially (during slow start) and then transition
-    // to delayed acks.  ns-3 does not implement QUICKACK, and if ack
-    // counting instead of byte counting is used during slow start window
-    // growth, when TcpSocket::DelAckCount==2, then the slow start will
-    // not reach as large of an initial window as in Linux.  Therefore,
-    // we can approximate the effect of QUICKACK by making this slow
-    // start phase perform Appropriate Byte Counting (RFC 3465)
     tcb->m_cWnd += segmentsAcked * tcb->m_segmentSize;
     segmentsAcked = 0;
 
@@ -169,11 +144,6 @@ void TcpCubic::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
     m_cWndCnt += segmentsAcked;
     uint32_t cnt = Update(tcb);
 
-    /* According to RFC 6356 even once the new cwnd is
-     * calculated you must compare this to the number of ACKs received since
-     * the last cwnd update. If not enough ACKs have been received then cwnd
-     * cannot be updated.
-     */
     if (m_cWndCnt >= cnt) {
       tcb->m_cWnd += tcb->m_segmentSize;
       m_cWndCnt -= cnt;
@@ -196,7 +166,7 @@ uint32_t TcpCubic::Update(Ptr<TcpSocketState> tcb) {
   uint32_t segCwnd = tcb->GetCwndInSegments();
 
   if (m_epochStart == Time::Min()) {
-    m_epochStart = Simulator::Now(); // record the beginning of an epoch
+    m_epochStart = Simulator::Now();
 
     if (m_lastMaxCwnd <= segCwnd) {
       NS_LOG_DEBUG("lastMaxCwnd <= m_cWnd. K=0 and origin=" << segCwnd);
@@ -212,8 +182,7 @@ uint32_t TcpCubic::Update(Ptr<TcpSocketState> tcb) {
 
   t = Simulator::Now() + m_delayMin - m_epochStart;
 
-  if (t.GetSeconds() < m_bicK) /* t - K */
-  {
+  if (t.GetSeconds() < m_bicK) {
     offs = m_bicK - t.GetSeconds();
     NS_LOG_DEBUG("t=" << t.GetSeconds() << " <k: offs=" << offs);
   } else {
@@ -221,26 +190,18 @@ uint32_t TcpCubic::Update(Ptr<TcpSocketState> tcb) {
     NS_LOG_DEBUG("t=" << t.GetSeconds() << " >= k: offs=" << offs);
   }
 
-  /* Constant value taken from Experimental Evaluation of Cubic Tcp, available
-   * at eprints.nuim.ie/1716/1/Hamiltonpfldnet2007_cubic_final.pdf */
   delta = m_c * std::pow(offs, 3);
 
   NS_LOG_DEBUG("delta: " << delta);
 
   if (t.GetSeconds() < m_bicK) {
-    // below origin
     bicTarget = m_bicOriginPoint - delta;
     NS_LOG_DEBUG("t < k: Bic Target: " << bicTarget);
   } else {
-    // above origin
     bicTarget = m_bicOriginPoint + delta;
     NS_LOG_DEBUG("t >= k: Bic Target: " << bicTarget);
   }
 
-  // Next the window target is converted into a cnt or count value. CUBIC will
-  // wait until enough new ACKs have arrived that a counter meets or exceeds
-  // this cnt value. This is how the CUBIC implementation simulates growing
-  // cwnd by values other than 1 segment size.
   if (bicTarget > segCwnd) {
     cnt = segCwnd / (bicTarget - segCwnd);
     NS_LOG_DEBUG("target>cwnd. cnt=" << cnt);
@@ -252,8 +213,6 @@ uint32_t TcpCubic::Update(Ptr<TcpSocketState> tcb) {
     cnt = m_cntClamp;
   }
 
-  // The maximum rate of cwnd increase CUBIC allows is 1 packet per
-  // 2 packets ACKed, meaning cwnd grows at 1.5x per RTT.
   return std::max(cnt, 2U);
 }
 
@@ -261,18 +220,15 @@ void TcpCubic::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
                          const Time &rtt) {
   NS_LOG_FUNCTION(this << tcb << segmentsAcked << rtt);
 
-  /* Discard delay samples right after fast recovery */
   if (m_epochStart != Time::Min() &&
       (Simulator::Now() - m_epochStart) < m_cubicDelta) {
     return;
   }
 
-  /* first time call or link delay decreases */
   if (m_delayMin == Time::Min() || m_delayMin > rtt) {
     m_delayMin = rtt;
   }
 
-  /* hystart triggers when cwnd is larger than some threshold */
   if (m_hystart && tcb->m_cWnd <= tcb->m_ssThresh &&
       tcb->m_cWnd >= m_hystartLowWindow * tcb->m_segmentSize) {
     HystartUpdate(tcb, rtt);
@@ -285,7 +241,6 @@ void TcpCubic::HystartUpdate(Ptr<TcpSocketState> tcb, const Time &delay) {
   if (!m_found) {
     Time now = Simulator::Now();
 
-    /* first detection parameter - ack-train detection */
     if ((now - m_lastAck) <= m_hystartAckDelta) {
       m_lastAck = now;
 
@@ -297,7 +252,6 @@ void TcpCubic::HystartUpdate(Ptr<TcpSocketState> tcb, const Time &delay) {
       }
     }
 
-    /* obtain the minimum delay of more than sampling packets */
     if (m_sampleCnt < m_hystartMinSamples) {
       if (m_currRtt == Time::Min() || m_currRtt > delay) {
         m_currRtt = delay;
@@ -311,10 +265,6 @@ void TcpCubic::HystartUpdate(Ptr<TcpSocketState> tcb, const Time &delay) {
       }
     }
 
-    /*
-     * Either one of two conditions are met,
-     * we exit from slow start immediately.
-     */
     if (m_found) {
       NS_LOG_DEBUG("Exit from SS, immediately :-)");
       tcb->m_ssThresh = tcb->m_cWnd;
@@ -343,16 +293,14 @@ uint32_t TcpCubic::GetSsThresh(Ptr<const TcpSocketState> tcb,
   NS_LOG_DEBUG("Loss at cWnd=" << segCwnd << " segments in flight="
                                << bytesInFlight / tcb->m_segmentSize);
 
-  /* Wmax and fast convergence */
   if (segCwnd < m_lastMaxCwnd && m_fastConvergence) {
-    m_lastMaxCwnd = (segCwnd * (1 + m_beta)) / 2; // Section 4.6 in RFC 8312
+    m_lastMaxCwnd = (segCwnd * (1 + m_beta)) / 2;
   } else {
     m_lastMaxCwnd = segCwnd;
   }
 
-  m_epochStart = Time::Min(); // end of epoch
+  m_epochStart = Time::Min();
 
-  /* Formula taken from the Linux kernel */
   uint32_t ssThresh = std::max(static_cast<uint32_t>(segCwnd * m_beta), 2U) *
                       tcb->m_segmentSize;
 

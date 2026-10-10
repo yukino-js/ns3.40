@@ -1,43 +1,4 @@
-/*
- * Copyright (c) 2012 University of Washington, 2012 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alina Quereilhac <alina.quereilhac@inria.fr>
- *
- */
 
-//
-//        node 0                          node 1
-//  +----------------+              +----------------+
-//  |    ns-3 TCP    |              |    ns-3 TCP    |
-//  +----------------+              +----------------+
-//  |    10.1.1.1    |              |    10.1.1.2    |
-//  +----------------+  socketpair  +----------------+
-//  |  fd-net-device |--------------|  fd-net-device |
-//  +----------------+              +----------------+
-//
-// This example is aimed at measuring the thoughput of the FdNetDevice
-// in a pure simulation. For this purpose two FdNetDevices, attached to
-// different nodes but in a same simulation, are connected using a socket pair.
-// TCP traffic is sent at a saturating data rate. Then the thoughput can
-// be obtained from the generated .pcap files.
-//
-// Steps to run the experiment:
-//
-// $ ./ns3 run "fd2fd-onoff"
-//
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -57,7 +18,7 @@ int main(int argc, char *argv[]) {
   cmd.Parse(argc, argv);
 
   uint16_t sinkPort = 8000;
-  uint32_t packetSize = 10000; // bytes
+  uint32_t packetSize = 10000;
   std::string dataRate("1000Mb/s");
 
   GlobalValue::Bind("SimulatorImplementationType",
@@ -99,7 +60,6 @@ int main(int argc, char *argv[]) {
   Ipv4Address serverIp = interfaces.GetAddress(1);
   Ptr<Node> serverNode = nodes.Get(1);
 
-  // server
   Address sinkLocalAddress(InetSocketAddress(serverIp, sinkPort));
   PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
   ApplicationContainer sinkApp = sinkHelper.Install(serverNode);
@@ -107,7 +67,6 @@ int main(int argc, char *argv[]) {
   sinkApp.Stop(Seconds(40.0));
   fd.EnablePcap("rt-fd2fd-onoff-server", serverDevice);
 
-  // client
   AddressValue serverAddress(InetSocketAddress(serverIp, sinkPort));
   OnOffHelper onoff("ns3::TcpSocketFactory", Address());
   onoff.SetAttribute("Remote", serverAddress);

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Rediet <getachew.redieteab@orange.com>
- */
 
 #include "wifi-ppdu.h"
 
@@ -29,8 +11,7 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("WifiPpdu");
 
 WifiPpdu::WifiPpdu(Ptr<const WifiPsdu> psdu, const WifiTxVector &txVector,
-                   const WifiPhyOperatingChannel &channel,
-                   uint64_t uid /* = UINT64_MAX */)
+                   const WifiPhyOperatingChannel &channel, uint64_t uid)
     : m_preamble(txVector.GetPreambleType()),
       m_modulation(txVector.IsValid() ? txVector.GetModulationClass()
                                       : WIFI_MOD_CLASS_UNKNOWN),
@@ -84,7 +65,7 @@ WifiTxVector WifiPpdu::DoGetTxVector() const {
   NS_FATAL_ERROR(
       "This method should not be called for the base WifiPpdu class. Use the "
       "overloaded version in the amendment-specific PPDU subclasses instead!");
-  return WifiTxVector(); // should be overloaded
+  return WifiTxVector();
 }
 
 void WifiPpdu::ResetTxVector() const {
@@ -119,35 +100,6 @@ bool WifiPpdu::DoesOverlapChannel(uint16_t minFreq, uint16_t maxFreq) const {
   NS_LOG_FUNCTION(this << m_txCenterFreq << minFreq << maxFreq);
   uint16_t minTxFreq = m_txCenterFreq - m_txChannelWidth / 2;
   uint16_t maxTxFreq = m_txCenterFreq + m_txChannelWidth / 2;
-  /**
-   * The PPDU does not overlap the channel in two cases.
-   *
-   * First non-overlapping case:
-   *
-   *                                        ┌─────────┐
-   *                                PPDU    │ Nominal │
-   *                                        │  Band   │
-   *                                        └─────────┘
-   *                                   minTxFreq   maxTxFreq
-   *
-   *       minFreq                       maxFreq
-   *         ┌──────────────────────────────┐
-   *         │           Channel            │
-   *         └──────────────────────────────┘
-   *
-   * Second non-overlapping case:
-   *
-   *         ┌─────────┐
-   * PPDU    │ Nominal │
-   *         │  Band   │
-   *         └─────────┘
-   *    minTxFreq   maxTxFreq
-   *
-   *                 minFreq                       maxFreq
-   *                   ┌──────────────────────────────┐
-   *                   │           Channel            │
-   *                   └──────────────────────────────┘
-   */
   return minTxFreq < maxFreq && maxTxFreq > minFreq;
 }
 
@@ -163,7 +115,7 @@ Time WifiPpdu::GetTxDuration() const {
   NS_FATAL_ERROR(
       "This method should not be called for the base WifiPpdu class. Use the "
       "overloaded version in the amendment-specific PPDU subclasses instead!");
-  return MicroSeconds(0); // should be overloaded
+  return MicroSeconds(0);
 }
 
 void WifiPpdu::Print(std::ostream &os) const {

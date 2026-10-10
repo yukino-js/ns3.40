@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pasquale Imputato <p.imputato@gmail.com>
- *          Stefano Avallone <stefano.avallone@unina.it>
- *
- * This code is a port of the dynamic queue limits library implemented
- * in the Linux kernel by
- * Author: Tom Herbert <therbert@google.com>
- */
 
 #include "dynamic-queue-limits.h"
 
@@ -29,7 +6,6 @@
 #include "ns3/string.h"
 #include "ns3/uinteger.h"
 
-// Set some static maximums
 static const uint32_t UINTMAX = std::numeric_limits<uint32_t>::max();
 static const uint32_t DQL_MAX_OBJECT = UINTMAX / 16;
 static const uint32_t DQL_MAX_LIMIT = (UINTMAX / 2) - DQL_MAX_OBJECT;
@@ -73,7 +49,6 @@ DynamicQueueLimits::~DynamicQueueLimits() { NS_LOG_FUNCTION(this); }
 
 void DynamicQueueLimits::Reset() {
   NS_LOG_FUNCTION(this);
-  // Reset all dynamic values
   m_limit = 0;
   m_numQueued = 0;
   m_numCompleted = 0;
@@ -97,7 +72,6 @@ void DynamicQueueLimits::Completed(uint32_t count) {
 
   numQueued = m_numQueued;
 
-  // Can't complete more than what's in queue
   NS_ASSERT(count <= numQueued - m_numCompleted);
 
   completed = m_numCompleted + count;
@@ -109,51 +83,14 @@ void DynamicQueueLimits::Completed(uint32_t count) {
 
   if ((ovlimit && !inprogress) || (m_prevOvlimit && allPrevCompleted)) {
     NS_LOG_DEBUG("Queue starved, increase limit");
-    /*
-     * Queue considered starved if:
-     *   - The queue was over-limit in the last interval,
-     *     and there is no more data in the queue.
-     *  OR
-     *   - The queue was over-limit in the previous interval and
-     *     when enqueuing it was possible that all queued data
-     *     had been consumed.  This covers the case when queue
-     *     may have becomes starved between completion processing
-     *     running and next time enqueue was scheduled.
-     *
-     *     When queue is starved increase the limit by the amount
-     *     of bytes both sent and completed in the last interval,
-     *     plus any previous over-limit.
-     */
     limit += Posdiff(completed, m_prevNumQueued) + m_prevOvlimit;
     m_slackStartTime = Simulator::Now();
     m_lowestSlack = UINTMAX;
   } else if (inprogress && prevInprogress && !allPrevCompleted) {
     NS_LOG_DEBUG("Queue not starved, check decrease limit");
-    /*
-     * Queue was not starved, check if the limit can be decreased.
-     * A decrease is only considered if the queue has been busy in
-     * the whole interval (the check above).
-     *
-     * If there is slack, the amount of execess data queued above
-     * the the amount needed to prevent starvation, the queue limit
-     * can be decreased.  To avoid hysteresis we consider the
-     * minimum amount of slack found over several iterations of the
-     * completion routine.
-     */
     uint32_t slack;
     uint32_t slackLastObjs;
 
-    /*
-     * Slack is the maximum of
-     *   - The queue limit plus previous over-limit minus twice
-     *     the number of objects completed.  Note that two times
-     *     number of completed bytes is a basis for an upper bound
-     *     of the limit.
-     *   - Portion of objects in the last queuing operation that
-     *     was not part of non-zero previous over-limit.  That is
-     *     "round down" by non-overlimit portion of the last
-     *     queueing operation.
-     */
     slack = Posdiff(limit + m_prevOvlimit, 2 * (completed - m_numCompleted));
     slackLastObjs =
         m_prevOvlimit ? Posdiff(m_prevLastObjCnt, m_prevOvlimit) : 0;
@@ -171,7 +108,6 @@ void DynamicQueueLimits::Completed(uint32_t count) {
     }
   }
 
-  // Enforce bounds on limit
   limit = std::min((uint32_t)std::max(limit, m_minLimit), m_maxLimit);
 
   if (limit != m_limit) {

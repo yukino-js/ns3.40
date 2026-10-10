@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009, 2010 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "ns3/ap-wifi-mac.h"
 #include "ns3/boolean.h"
@@ -44,45 +26,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Packet Buffering Case A
- *
- * This simple test verifies the correctness of buffering for packets received
- * under block ack. In order to completely understand this example is important
- * to cite section 9.10.3 in IEEE802.11 standard:
- *
- * "[...] The sequence number space is considered divided into two parts, one of
- * which is “old” and one of which is “new” by means of a boundary created by
- * adding half the sequence number range to the current start of receive window
- * (modulo 2^12)."
- */
-//-------------------------------------------------------------------------------------
-
-/* ----- = old packets
- * +++++ = new packets
- *
- *  CASE A: startSeq < endSeq
- *                        -  -   +
- *  initial buffer state: 0 16 56000
- *
- *
- *    0                            4095
- *    |------|++++++++++++++++|-----|
- *           ^                ^
- *           | startSeq       | endSeq = 4000
- *
- *  first received packet's sequence control = 64016 (seqNum = 4001, fragNum =
- * 0) - second received packet's sequence control = 63984 (seqNum = 3999,
- * fragNum = 0) + 4001 is older seq number so this packet should be inserted at
- * the buffer's begin. 3999 is previous element of older of new packets: it
- * should be inserted at the end of buffer.
- *
- *  expected buffer state: 64016 0 16 56000 63984
- *
- */
 class PacketBufferingCaseA : public TestCase {
 public:
   PacketBufferingCaseA();
@@ -90,7 +33,7 @@ public:
 
 private:
   void DoRun() override;
-  std::list<uint16_t> m_expectedBuffer; ///< expected test buffer
+  std::list<uint16_t> m_expectedBuffer;
 };
 
 PacketBufferingCaseA::PacketBufferingCaseA()
@@ -117,10 +60,8 @@ void PacketBufferingCaseA::DoRun() {
   uint16_t receivedSeq = 4001 * 16;
   uint32_t mappedSeq =
       QosUtilsMapSeqControlToUniqueInteger(receivedSeq, endSeq);
-  /* cycle to right position for this packet */
   for (i = m_buffer.begin(); i != m_buffer.end(); i++) {
     if (QosUtilsMapSeqControlToUniqueInteger((*i), endSeq) >= mappedSeq) {
-      // position found
       break;
     }
   }
@@ -128,10 +69,8 @@ void PacketBufferingCaseA::DoRun() {
 
   receivedSeq = 3999 * 16;
   mappedSeq = QosUtilsMapSeqControlToUniqueInteger(receivedSeq, endSeq);
-  /* cycle to right position for this packet */
   for (i = m_buffer.begin(); i != m_buffer.end(); i++) {
     if (QosUtilsMapSeqControlToUniqueInteger((*i), endSeq) >= mappedSeq) {
-      // position found
       break;
     }
   }
@@ -143,35 +82,6 @@ void PacketBufferingCaseA::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Packet Buffering Case B
- *
- * ----- = old packets
- * +++++ = new packets
- *
- *  CASE B: startSeq > endSeq
- *                         -    +    +
- *  initial buffer state: 256 64000 16
- *
- *
- *    0                            4095
- *    |++++++|----------------|++++++|
- *           ^                ^
- *           | endSeq = 10    | startSeq
- *
- *  first received packet's sequence control = 240 (seqNum = 15, fragNum = 0)  -
- *  second received packet's sequence control = 241 (seqNum = 15, fragNum = 1) -
- *  third received packet's sequence control = 64800 (seqNum = 4050, fragNum =
- * 0) + 240 is an old packet should be inserted at the buffer's begin. 241 is an
- * old packet: second segment of the above packet. 4050 is a new packet: it
- * should be inserted between 64000 and 16.
- *
- *  expected buffer state: 240 241 256 64000 64800 16
- *
- */
 class PacketBufferingCaseB : public TestCase {
 public:
   PacketBufferingCaseB();
@@ -179,7 +89,7 @@ public:
 
 private:
   void DoRun() override;
-  std::list<uint16_t> m_expectedBuffer; ///< expected test buffer
+  std::list<uint16_t> m_expectedBuffer;
 };
 
 PacketBufferingCaseB::PacketBufferingCaseB()
@@ -207,10 +117,8 @@ void PacketBufferingCaseB::DoRun() {
   uint16_t receivedSeq = 15 * 16;
   uint32_t mappedSeq =
       QosUtilsMapSeqControlToUniqueInteger(receivedSeq, endSeq);
-  /* cycle to right position for this packet */
   for (i = m_buffer.begin(); i != m_buffer.end(); i++) {
     if (QosUtilsMapSeqControlToUniqueInteger((*i), endSeq) >= mappedSeq) {
-      // position found
       break;
     }
   }
@@ -218,10 +126,8 @@ void PacketBufferingCaseB::DoRun() {
 
   receivedSeq = 15 * 16 + 1;
   mappedSeq = QosUtilsMapSeqControlToUniqueInteger(receivedSeq, endSeq);
-  /* cycle to right position for this packet */
   for (i = m_buffer.begin(); i != m_buffer.end(); i++) {
     if (QosUtilsMapSeqControlToUniqueInteger((*i), endSeq) >= mappedSeq) {
-      // position found
       break;
     }
   }
@@ -229,10 +135,8 @@ void PacketBufferingCaseB::DoRun() {
 
   receivedSeq = 4050 * 16;
   mappedSeq = QosUtilsMapSeqControlToUniqueInteger(receivedSeq, endSeq);
-  /* cycle to right position for this packet */
   for (i = m_buffer.begin(); i != m_buffer.end(); i++) {
     if (QosUtilsMapSeqControlToUniqueInteger((*i), endSeq) >= mappedSeq) {
-      // position found
       break;
     }
   }
@@ -244,12 +148,6 @@ void PacketBufferingCaseB::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for the originator block ack window
- */
 class OriginatorBlockAckWindowTest : public TestCase {
 public:
   OriginatorBlockAckWindowTest();
@@ -274,13 +172,11 @@ void OriginatorBlockAckWindowTest::DoRun() {
                         "Incorrect window size");
   NS_TEST_EXPECT_MSG_EQ(agreement.m_txWindow.GetWinStart(), startingSeq,
                         "Incorrect winStart");
-  // check that all the elements in the window are cleared
   for (uint16_t i = 0; i < winSize; i++) {
     NS_TEST_EXPECT_MSG_EQ(agreement.m_txWindow.At(i), false,
                           "Not all flags are cleared after initialization");
   }
 
-  // Notify the acknowledgment of 5 packets
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_QOSDATA);
   Ptr<WifiMpdu> mpdu = Create<WifiMpdu>(Create<Packet>(), hdr);
@@ -300,13 +196,6 @@ void OriginatorBlockAckWindowTest::DoRun() {
   mpdu->GetHeader().SetSequenceNumber(++seqNumber %= SEQNO_SPACE_SIZE);
   agreement.NotifyAckedMpdu(mpdu);
 
-  // the current window must look like this:
-  //
-  // |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-  //            ^
-  //            |
-  //           HEAD
-
   startingSeq = (seqNumber + 1) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(agreement.GetStartingSequence(), startingSeq,
                         "Incorrect starting sequence after 5 acknowledgments");
@@ -315,8 +204,6 @@ void OriginatorBlockAckWindowTest::DoRun() {
                           "Not all flags are cleared after 5 acknowledgments");
   }
 
-  // the next MPDU is not acknowledged, hence the window is blocked while the
-  // subsequent 4 MPDUs are acknowledged
   ++seqNumber %= SEQNO_SPACE_SIZE;
   mpdu->GetHeader().SetSequenceNumber(++seqNumber %= SEQNO_SPACE_SIZE);
   agreement.NotifyAckedMpdu(mpdu);
@@ -329,13 +216,6 @@ void OriginatorBlockAckWindowTest::DoRun() {
 
   mpdu->GetHeader().SetSequenceNumber(++seqNumber %= SEQNO_SPACE_SIZE);
   agreement.NotifyAckedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |0|0|0|0|0|0|1|1|1|1|0|0|0|0|0|0|
-  //            ^
-  //            |
-  //           HEAD
 
   NS_TEST_EXPECT_MSG_EQ(
       agreement.GetStartingSequence(), startingSeq,
@@ -355,17 +235,8 @@ void OriginatorBlockAckWindowTest::DoRun() {
                           "Incorrect flag after 1 unacknowledged MPDU");
   }
 
-  // the missing MPDU is now acknowledged; the window moves forward and the
-  // starting sequence number is the one of the first unacknowledged MPDU
   mpdu->GetHeader().SetSequenceNumber(startingSeq);
   agreement.NotifyAckedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-  //                      ^
-  //                      |
-  //                     HEAD
 
   startingSeq = (seqNumber + 1) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(
@@ -377,8 +248,6 @@ void OriginatorBlockAckWindowTest::DoRun() {
         "Not all flags are cleared after acknowledgment of missing MPDU");
   }
 
-  // Now, create a hole of 3 MPDUs before 4 acknowledged MPDUs, another hole of
-  // 2 MPDUs before 3 acknowledged MPDUs
   seqNumber = (seqNumber + 4) % SEQNO_SPACE_SIZE;
   mpdu->GetHeader().SetSequenceNumber(seqNumber);
   agreement.NotifyAckedMpdu(mpdu);
@@ -401,13 +270,6 @@ void OriginatorBlockAckWindowTest::DoRun() {
 
   mpdu->GetHeader().SetSequenceNumber(++seqNumber %= SEQNO_SPACE_SIZE);
   agreement.NotifyAckedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |1|0|0|1|1|1|0|0|0|0|0|0|0|1|1|1|
-  //                      ^
-  //                      |
-  //                     HEAD
 
   NS_TEST_EXPECT_MSG_EQ(
       agreement.GetStartingSequence(), startingSeq,
@@ -441,18 +303,9 @@ void OriginatorBlockAckWindowTest::DoRun() {
                           "Incorrect flag after 3 unacknowledged MPDUs");
   }
 
-  // the transmission of an MPDU beyond the current window (by 2 positions) is
-  // notified, hence the window moves forward 2 positions
   seqNumber = (agreement.m_txWindow.GetWinEnd() + 2) % SEQNO_SPACE_SIZE;
   mpdu->GetHeader().SetSequenceNumber(seqNumber);
   agreement.NotifyTransmittedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |1|0|0|1|1|1|0|0|0|0|0|0|0|1|1|1|
-  //                          ^
-  //                          |
-  //                         HEAD
 
   startingSeq = (startingSeq + 2) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(agreement.GetStartingSequence(), startingSeq,
@@ -494,18 +347,9 @@ void OriginatorBlockAckWindowTest::DoRun() {
         "Incorrect flag after transmitting an MPDU beyond the current window");
   }
 
-  // another MPDU is transmitted beyond the current window. Now, the window
-  // advances until the first unacknowledged MPDU
   seqNumber = (agreement.m_txWindow.GetWinEnd() + 1) % SEQNO_SPACE_SIZE;
   mpdu->GetHeader().SetSequenceNumber(seqNumber);
   agreement.NotifyTransmittedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |0|0|0|1|1|1|0|0|0|0|0|0|0|0|0|0|
-  //    ^
-  //    |
-  //   HEAD
 
   startingSeq = (startingSeq + 5) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(agreement.GetStartingSequence(), startingSeq,
@@ -532,19 +376,9 @@ void OriginatorBlockAckWindowTest::DoRun() {
                           "beyond the current window");
   }
 
-  // the MPDU next to winStart is discarded, hence the window advances to make
-  // it an old packet. Since the subsequent MPDUs have been acknowledged, the
-  // window advances further.
   seqNumber = (startingSeq + 1) % SEQNO_SPACE_SIZE;
   mpdu->GetHeader().SetSequenceNumber(seqNumber);
   agreement.NotifyDiscardedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-  //              ^
-  //              |
-  //             HEAD
 
   startingSeq = (startingSeq + 5) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(agreement.GetStartingSequence(), startingSeq,
@@ -554,20 +388,10 @@ void OriginatorBlockAckWindowTest::DoRun() {
                           "Incorrect flag after discarding an MPDU");
   }
 
-  // Finally, check that the window correctly advances when the MPDU with the
-  // starting sequence number is acknowledged after being the only
-  // unacknowledged MPDU
   for (uint16_t i = 1; i < winSize; i++) {
     mpdu->GetHeader().SetSequenceNumber((startingSeq + i) % SEQNO_SPACE_SIZE);
     agreement.NotifyAckedMpdu(mpdu);
   }
-
-  // the current window must look like this:
-  //
-  // |1|1|1|1|1|1|0|1|1|1|1|1|1|1|1|1|
-  //              ^
-  //              |
-  //             HEAD
 
   NS_TEST_EXPECT_MSG_EQ(
       agreement.GetStartingSequence(), startingSeq,
@@ -581,16 +405,8 @@ void OriginatorBlockAckWindowTest::DoRun() {
         "Incorrect flag after acknowledging all but the first MPDU");
   }
 
-  // acknowledge the first MPDU
   mpdu->GetHeader().SetSequenceNumber(startingSeq % SEQNO_SPACE_SIZE);
   agreement.NotifyAckedMpdu(mpdu);
-
-  // the current window must look like this:
-  //
-  // |0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|0|
-  //              ^
-  //              |
-  //             HEAD
 
   startingSeq = (startingSeq + winSize) % SEQNO_SPACE_SIZE;
   NS_TEST_EXPECT_MSG_EQ(
@@ -602,19 +418,13 @@ void OriginatorBlockAckWindowTest::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for block ack header
- */
 class CtrlBAckResponseHeaderTest : public TestCase {
 public:
   CtrlBAckResponseHeaderTest();
 
 private:
   void DoRun() override;
-  CtrlBAckResponseHeader m_blockAckHdr; ///< block ack header
+  CtrlBAckResponseHeader m_blockAckHdr;
 };
 
 CtrlBAckResponseHeaderTest::CtrlBAckResponseHeaderTest()
@@ -623,8 +433,6 @@ CtrlBAckResponseHeaderTest::CtrlBAckResponseHeaderTest()
 void CtrlBAckResponseHeaderTest::DoRun() {
   m_blockAckHdr.SetType(BlockAckType::COMPRESSED);
 
-  // Case 1: startSeq < endSeq
-  //           179        242
   m_blockAckHdr.SetStartingSequence(179);
   for (uint16_t i = 179; i < 220; i++) {
     m_blockAckHdr.SetReceivedPacket(i);
@@ -674,8 +482,6 @@ void CtrlBAckResponseHeaderTest::DoRun() {
 
   m_blockAckHdr.ResetBitmap();
 
-  // Case 2: startSeq > endSeq
-  //           4090       58
   m_blockAckHdr.SetStartingSequence(4090);
   for (uint16_t i = 4090; i != 10; i = (i + 1) % 4096) {
     m_blockAckHdr.SetReceivedPacket(i);
@@ -728,35 +534,18 @@ void CtrlBAckResponseHeaderTest::DoRun() {
                         "error in compressed bitmap");
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for recipient reordering buffer operations
- */
 class BlockAckRecipientBufferTest : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   * \param ssn the Starting Sequence Number used to initialize WinStartB
-   */
   BlockAckRecipientBufferTest(uint16_t ssn);
   ~BlockAckRecipientBufferTest() override;
 
   void DoRun() override;
 
-  /**
-   * Keep track of MPDUs received on the given link that are forwarded up.
-   *
-   * \param mpdu an MPDU that is forwarded up
-   * \param linkId the ID of the given link
-   */
   void ForwardUp(Ptr<const WifiMpdu> mpdu, uint8_t linkId);
 
 private:
-  uint16_t m_ssn; //!< the Starting Sequence Number used to initialize WinStartB
-  std::list<Ptr<const WifiMpdu>>
-      m_fwup; //!< list of MPDUs that have been forwarded up
+  uint16_t m_ssn;
+  std::list<Ptr<const WifiMpdu>> m_fwup;
 };
 
 BlockAckRecipientBufferTest::BlockAckRecipientBufferTest(uint16_t ssn)
@@ -776,10 +565,8 @@ void BlockAckRecipientBufferTest::DoRun() {
   rxMiddle->SetForwardCallback(
       MakeCallback(&BlockAckRecipientBufferTest::ForwardUp, this));
 
-  RecipientBlockAckAgreement agreement(
-      Mac48Address::Allocate() /* originator */, true /* amsduSupported */,
-      0 /* tid */, 10 /* bufferSize */, 0 /* timeout */, m_ssn,
-      true /* htSupported */);
+  RecipientBlockAckAgreement agreement(Mac48Address::Allocate(), true, 0, 10, 0,
+                                       m_ssn, true);
   agreement.SetMacRxMiddle(rxMiddle);
 
   WifiMacHeader hdr;
@@ -787,11 +574,9 @@ void BlockAckRecipientBufferTest::DoRun() {
   hdr.SetAddr1(Mac48Address::Allocate());
   hdr.SetQosTid(0);
 
-  // Notify the reception of an MPDU with SN = SSN.
   hdr.SetSequenceNumber(m_ssn);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // This MPDU is forwarded up and WinStartB is set to SSN + 1.
   NS_TEST_ASSERT_MSG_EQ(m_fwup.size(), 1,
                         "MPDU with SN=SSN must have been forwarded up");
   NS_TEST_ASSERT_MSG_EQ(m_fwup.front()->GetHeader().GetSequenceNumber(), m_ssn,
@@ -799,11 +584,6 @@ void BlockAckRecipientBufferTest::DoRun() {
 
   m_fwup.clear();
 
-  // Notify the reception of MPDUs with SN = SSN + {4, 2, 5, 3, 10, 7}
-  // Recipient buffer:   | |X|X|X|X| |X| | |X|
-  //                      ^
-  //                      |
-  //                   SSN + 1
   hdr.SetSequenceNumber((m_ssn + 4) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
   hdr.SetSequenceNumber((m_ssn + 2) % SEQNO_SPACE_SIZE);
@@ -817,36 +597,24 @@ void BlockAckRecipientBufferTest::DoRun() {
   hdr.SetSequenceNumber((m_ssn + 7) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // No MPDU is forwarded up because the one with SN = SSN + 1 is missing
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of an "old" MPDU (SN = SSN)
   hdr.SetSequenceNumber(m_ssn);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // No MPDU is forwarded up
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of a duplicate MPDU (SN = SSN + 2)
   hdr.SetSequenceNumber((m_ssn + 2) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(10), hdr));
 
-  // No MPDU is forwarded up
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of an MPDU with SN = SSN + 1
-  // Recipient buffer:   |X|X|X|X|X| |X| | |X|
-  //                      ^
-  //                      |
-  //                   SSN + 1
   hdr.SetSequenceNumber((m_ssn + 1) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // All the MPDUs with SN = SSN + {1, 2, 3, 4, 5} must have been forwarded up
-  // in order
   NS_TEST_ASSERT_MSG_EQ(m_fwup.size(), 5,
                         "5 MPDUs must have been forwarded up");
 
@@ -877,17 +645,9 @@ void BlockAckRecipientBufferTest::DoRun() {
                         "The MPDU forwarded up is not the expected one");
   m_fwup.pop_front();
 
-  // Recipient buffer:   | |X| | |X| | | | | |
-  //                      ^                 ^
-  //                      |                 |
-  //                   SSN + 6           SSN + 15
-  // Notify the reception of an MPDU beyond the current window (SN = SSN + 17)
   hdr.SetSequenceNumber((m_ssn + 17) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // WinStartB is set to SSN + 8 (so that WinEndB = SSN + 17). The MPDU with
-  // SN = SSN + 7 is forwarded up, irrespective of the missed reception of the
-  // MPDU with SN = SSN + 6
   NS_TEST_ASSERT_MSG_EQ(m_fwup.size(), 1,
                         "One MPDU must have been forwarded up");
 
@@ -896,44 +656,26 @@ void BlockAckRecipientBufferTest::DoRun() {
                         "The MPDU forwarded up is not the expected one");
   m_fwup.pop_front();
 
-  // Recipient buffer:   | | |X| | | | | | |X|
-  //                      ^                 ^
-  //                      |                 |
-  //                   SSN + 8           SSN + 17
-  // Notify the reception of a BlockAckReq with SSN = SSN + 7
   agreement.NotifyReceivedBar((m_ssn + 7) % SEQNO_SPACE_SIZE);
 
-  // No MPDU is forwarded up
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of a BlockAckReq with SSN = SSN + 8
   agreement.NotifyReceivedBar((m_ssn + 8) % SEQNO_SPACE_SIZE);
 
-  // No MPDU is forwarded up
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of MPDUs with SN = SSN + {9, 11}
-  // Recipient buffer:   | |X|X|X| | | | | |X|
-  //                      ^                 ^
-  //                      |                 |
-  //                   SSN + 8           SSN + 17
   hdr.SetSequenceNumber((m_ssn + 9) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
   hdr.SetSequenceNumber((m_ssn + 11) % SEQNO_SPACE_SIZE);
   agreement.NotifyReceivedMpdu(Create<WifiMpdu>(Create<Packet>(), hdr));
 
-  // No MPDU is forwarded up because the one with SN = SSN + 8 is missing
   NS_TEST_ASSERT_MSG_EQ(m_fwup.empty(), true,
                         "No MPDU must have been forwarded up");
 
-  // Notify the reception of a BlockAckReq with SSN = SSN + 10
   agreement.NotifyReceivedBar((m_ssn + 10) % SEQNO_SPACE_SIZE);
 
-  // Forward up buffered MPDUs with SN < SSN + 10 (the MPDU with SN = SSN + 9)
-  // and then buffered MPDUs with SN >= SSN + 10 until a hole is found (MPDUs
-  // with SN = SSN + 10 and SN = SSN + 11)
   NS_TEST_ASSERT_MSG_EQ(m_fwup.size(), 3,
                         "3 MPDUs must have been forwarded up");
 
@@ -956,12 +698,6 @@ void BlockAckRecipientBufferTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for Multi-STA block ack header
- */
 class MultiStaCtrlBAckResponseHeaderTest : public TestCase {
 public:
   MultiStaCtrlBAckResponseHeaderTest();
@@ -974,13 +710,11 @@ MultiStaCtrlBAckResponseHeaderTest::MultiStaCtrlBAckResponseHeaderTest()
     : TestCase("Check the correctness of Multi-STA block ack") {}
 
 void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
-  // Create a Multi-STA Block Ack with 6 Per AID TID Info subfields
   BlockAckType baType(BlockAckType::MULTI_STA, {0, 4, 8, 16, 32, 8});
 
   CtrlBAckResponseHeader blockAck;
   blockAck.SetType(baType);
 
-  /* 1st Per AID TID Info subfield */
   uint16_t aid1 = 100;
   bool ackType1 = true;
   uint8_t tid1 = 1;
@@ -989,7 +723,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetAckType(ackType1, 0);
   blockAck.SetTidInfo(tid1, 0);
 
-  /* 2nd Per AID TID Info subfield */
   uint16_t aid2 = 200;
   bool ackType2 = false;
   uint8_t tid2 = 2;
@@ -999,21 +732,16 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetAckType(ackType2, 1);
   blockAck.SetTidInfo(tid2, 1);
   blockAck.SetStartingSequence(startSeq2, 1);
-  // 1st byte of the bitmap: 01010101
   for (uint16_t i = startSeq2; i < startSeq2 + 8; i += 2) {
     blockAck.SetReceivedPacket(i, 1);
   }
-  // 2nd byte of the bitmap: 10101010
   for (uint16_t i = startSeq2 + 9; i < startSeq2 + 16; i += 2) {
     blockAck.SetReceivedPacket(i, 1);
   }
-  // 3rd byte of the bitmap: 00000000
-  // 4th byte of the bitmap: 11111111
   for (uint16_t i = startSeq2 + 24; i < startSeq2 + 32; i++) {
     blockAck.SetReceivedPacket(i, 1);
   }
 
-  /* 3rd Per AID TID Info subfield */
   uint16_t aid3 = 300;
   bool ackType3 = false;
   uint8_t tid3 = 3;
@@ -1023,34 +751,25 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetAckType(ackType3, 2);
   blockAck.SetTidInfo(tid3, 2);
   blockAck.SetStartingSequence(startSeq3, 2);
-  // 1st byte of the bitmap: 01010101
   for (uint16_t i = startSeq3; i < startSeq3 + 8; i += 2) {
     blockAck.SetReceivedPacket(i, 2);
   }
-  // 2nd byte of the bitmap: 10101010
   for (uint16_t i = startSeq3 + 9; i < startSeq3 + 16; i += 2) {
     blockAck.SetReceivedPacket(i, 2);
   }
-  // 3rd byte of the bitmap: 00000000
-  // 4th byte of the bitmap: 11111111
   for (uint16_t i = startSeq3 + 24; i < startSeq3 + 32; i++) {
     blockAck.SetReceivedPacket(i, 2);
   }
-  // 5th byte of the bitmap: 00001111
   for (uint16_t i = startSeq3 + 32; i < startSeq3 + 36; i++) {
     blockAck.SetReceivedPacket(i, 2);
   }
-  // 6th byte of the bitmap: 11110000
   for (uint16_t i = startSeq3 + 44; i < startSeq3 + 48; i++) {
     blockAck.SetReceivedPacket(i, 2);
   }
-  // 7th byte of the bitmap: 00000000
-  // 8th byte of the bitmap: 11111111
   for (uint16_t i = startSeq3 + 56; i < startSeq3 + 64; i++) {
     blockAck.SetReceivedPacket(i, 2);
   }
 
-  /* 4th Per AID TID Info subfield */
   uint16_t aid4 = 400;
   bool ackType4 = false;
   uint8_t tid4 = 4;
@@ -1060,54 +779,37 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetAckType(ackType4, 3);
   blockAck.SetTidInfo(tid4, 3);
   blockAck.SetStartingSequence(startSeq4, 3);
-  // 1st byte of the bitmap: 01010101
   for (uint16_t i = startSeq4; i < startSeq4 + 8; i += 2) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 2nd byte of the bitmap: 10101010
   for (uint16_t i = startSeq4 + 9; i < startSeq4 + 16; i += 2) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 3rd byte of the bitmap: 00000000
-  // 4th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 24; i < startSeq4 + 32; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 5th byte of the bitmap: 00001111
   for (uint16_t i = startSeq4 + 32; i < startSeq4 + 36; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 6th byte of the bitmap: 11110000
   for (uint16_t i = startSeq4 + 44; i < startSeq4 + 48; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 7th byte of the bitmap: 00000000
-  // 8th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 56; i < startSeq4 + 64; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 9th byte of the bitmap: 00000000
-  // 10th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 72; i < startSeq4 + 80; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 11th byte of the bitmap: 00000000
-  // 12th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 88; i < startSeq4 + 96; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 13th byte of the bitmap: 00000000
-  // 14th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 104; i < startSeq4 + 112; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
-  // 15th byte of the bitmap: 00000000
-  // 16th byte of the bitmap: 11111111
   for (uint16_t i = startSeq4 + 120; i < startSeq4 + 128; i++) {
     blockAck.SetReceivedPacket(i, 3);
   }
 
-  /* 5th Per AID TID Info subfield */
   uint16_t aid5 = 500;
   bool ackType5 = false;
   uint8_t tid5 = 5;
@@ -1117,94 +819,61 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetAckType(ackType5, 4);
   blockAck.SetTidInfo(tid5, 4);
   blockAck.SetStartingSequence(startSeq5, 4);
-  // 1st byte of the bitmap: 01010101
   for (int i = startSeq5; i < startSeq5 + 8; i += 2) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 2nd byte of the bitmap: 10101010
   for (int i = startSeq5 + 9; i < startSeq5 + 16; i += 2) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 3rd byte of the bitmap: 00000000
-  // 4th byte of the bitmap: 11111111
   for (int i = startSeq5 + 24; i < startSeq5 + 32; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 5th byte of the bitmap: 00001111
   for (int i = startSeq5 + 32; i < startSeq5 + 36; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 6th byte of the bitmap: 11110000
   for (int i = startSeq5 + 44; i < startSeq5 + 48; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 7th byte of the bitmap: 00000000
-  // 8th byte of the bitmap: 11111111
   for (int i = startSeq5 + 56; i < startSeq5 + 64; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 9th byte of the bitmap: 00000000
-  // 10th byte of the bitmap: 11111111
   for (int i = startSeq5 + 72; i < startSeq5 + 80; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 11th byte of the bitmap: 00000000
-  // 12th byte of the bitmap: 11111111
   for (int i = startSeq5 + 88; i < startSeq5 + 96; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 13th byte of the bitmap: 00000000
-  // 14th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 104) % 4096; i < (startSeq5 + 112) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 15th byte of the bitmap: 00000000
-  // 16th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 120) % 4096; i < (startSeq5 + 128) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 17th byte of the bitmap: 00000000
-  // 18th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 136) % 4096; i < (startSeq5 + 144) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 19th byte of the bitmap: 00000000
-  // 20th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 152) % 4096; i < (startSeq5 + 160) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 21th byte of the bitmap: 00000000
-  // 22th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 168) % 4096; i < (startSeq5 + 176) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 23th byte of the bitmap: 00000000
-  // 24th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 184) % 4096; i < (startSeq5 + 192) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 25th byte of the bitmap: 00000000
-  // 26th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 200) % 4096; i < (startSeq5 + 208) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 27th byte of the bitmap: 00000000
-  // 28th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 216) % 4096; i < (startSeq5 + 224) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 29th byte of the bitmap: 00000000
-  // 30th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 232) % 4096; i < (startSeq5 + 240) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
-  // 31th byte of the bitmap: 00000000
-  // 32th byte of the bitmap: 11111111
   for (int i = (startSeq5 + 248) % 4096; i < (startSeq5 + 256) % 4096; i++) {
     blockAck.SetReceivedPacket(i, 4);
   }
 
-  /* 6th Per AID TID Info subfield */
   uint16_t aid6 = 2045;
   bool ackType6 = true;
   uint8_t tid6 = 6;
@@ -1215,15 +884,12 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   blockAck.SetTidInfo(tid6, 5);
   blockAck.SetUnassociatedStaAddress(address6, 5);
 
-  // Serialize the header
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(blockAck);
 
-  // Deserialize the header
   CtrlBAckResponseHeader blockAckCopy;
   packet->RemoveHeader(blockAckCopy);
 
-  // Check that the header has been correctly deserialized
   BlockAckType baTypeCopy = blockAckCopy.GetType();
 
   NS_TEST_EXPECT_MSG_EQ(baTypeCopy.m_variant, BlockAckType::MULTI_STA,
@@ -1243,7 +909,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(baTypeCopy.m_bitmapLen[5], 8,
                         "Different length for the sixth bitmap");
 
-  /* Check 1st Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(0), aid1,
       "Different AID for the first Per AID TID Info subfield");
@@ -1254,7 +919,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
       blockAckCopy.GetTidInfo(0), tid1,
       "Different TID for the first Per AID TID Info subfield");
 
-  /* Check 2nd Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(1), aid2,
       "Different AID for the second Per AID TID Info subfield");
@@ -1285,7 +949,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
                         "Error in the 4th byte of the bitmap for the second "
                         "Per AID TID Info subfield");
 
-  /* Check 3rd Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(2), aid3,
       "Different AID for the third Per AID TID Info subfield");
@@ -1328,7 +991,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
                         "Error in the 8th byte of the bitmap for the third Per "
                         "AID TID Info subfield");
 
-  /* Check 4th Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(3), aid4,
       "Different AID for the fourth Per AID TID Info subfield");
@@ -1395,7 +1057,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
                         "Error in the 16th byte of the bitmap for the fourth "
                         "Per AID TID Info subfield");
 
-  /* Check 5th Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(4), aid5,
       "Different AID for the fifth Per AID TID Info subfield");
@@ -1510,7 +1171,6 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
                         "Error in the 32th byte of the bitmap for the fifth "
                         "Per AID TID Info subfield");
 
-  /* Check 6th Per AID TID Info subfield */
   NS_TEST_EXPECT_MSG_EQ(
       blockAckCopy.GetAid11(5), aid6,
       "Different AID for the sixth Per AID TID Info subfield");
@@ -1525,109 +1185,28 @@ void MultiStaCtrlBAckResponseHeaderTest::DoRun() {
                         "AID TID Info subfield");
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for Block Ack Policy with aggregation disabled
- *
- * This test aims to check the Block Ack policy when A-MPDU aggregation is
- * disabled. In this case, a QoS station can transmit multiple QoS data frames
- * before requesting a Block Ack through a Block Ack Request frame. If the AC is
- * granted a non-null TXOP limit, MPDUs can be separated by a SIFS.
- *
- * In this test, an HT STA sends 14 packets to an HT AP. The ack policy selector
- * is configured so that a Block Ack is requested once 8 (= 0.125 * 64) MPDUs
- * are sent in addition to the MPDU having the starting sequence number. The
- * block ack threshold is set to 2, hence a block ack agreement is established
- * when there are at least two packets in the EDCA queue.
- *
- * When the TXOP limit is null:
- * - the first packet is sent with Normal Ack policy because the BA agreement
- * has not been established yet (there are no queued packets when the first one
- * arrives);
- * - packets from the 2nd to the 10th are sent with Block Ack policy (and hence
- *   are not immediately acknowledged);
- * - after the 10th packet, a Block Ack Request is sent, followed by a Block
- * Ack;
- * - the remaining 4 packets are sent with Block Ack policy (and hence
- *   are not immediately acknowledged);
- * - the last packet is followed by a Block Ack Request because there are no
- * more packets in the EDCA queue and hence a response is needed independently
- * of the number of outstanding MPDUs.
- *
- * When the TXOP is not null (and long enough to include the transmission of all
- * packets):
- * - the first packet is sent with Normal Ack policy because the BA agreement
- * has not been established yet (there are no queued packets when the first one
- * arrives);
- * - the second packet is sent with Normal Ack Policy because the first packet
- * sent in a TXOP shall request an immediate response and no previous MPDUs have
- * to be acknowledged;
- * - packets from the 3rd to the 11th are sent with Block Ack policy (and hence
- *   are not immediately acknowledged);
- * - after the 11th packet, a Block Ack Request is sent, followed by a Block
- * Ack;
- * - the remaining 3 packets are sent with Block Ack policy (and hence
- *   are not immediately acknowledged);
- * - the last packet is followed by a Block Ack Request because there are no
- * more packets in the EDCA queue and hence a response is needed independently
- * of the number of outstanding MPDUs.
- */
 class BlockAckAggregationDisabledTest : public TestCase {
-  /**
-   * Keeps the maximum duration among all TXOPs
-   */
   struct TxopDurationTracer {
-    /**
-     * Callback for the TxopTrace trace
-     * \param startTime TXOP start time
-     * \param duration TXOP duration
-     * \param linkId the ID of the link
-     */
     void Trace(Time startTime, Time duration, uint8_t linkId);
-    Time m_max{Seconds(0)}; ///< max TXOP duration
+    Time m_max{Seconds(0)};
   };
 
 public:
-  /**
-   * \brief Constructor
-   * \param txop true for non-null TXOP limit
-   */
   BlockAckAggregationDisabledTest(bool txop);
   ~BlockAckAggregationDisabledTest() override;
 
   void DoRun() override;
 
 private:
-  bool m_txop;           ///< true for non-null TXOP limit
-  uint32_t m_received;   ///< received packets
-  uint16_t m_txTotal;    ///< transmitted data packets
-  uint16_t m_txSinceBar; ///< packets transmitted since the agreement was
-                         ///< established or the last block ack was received
-  uint16_t m_nBar;       ///< transmitted BlockAckReq frames
-  uint16_t m_nBa;        ///< received BlockAck frames
+  bool m_txop;
+  uint32_t m_received;
+  uint16_t m_txTotal;
+  uint16_t m_txSinceBar;
+  uint16_t m_nBar;
+  uint16_t m_nBa;
 
-  /**
-   * Function to trace packets received by the server application
-   * \param context the context
-   * \param p the packet
-   * \param adr the address
-   */
   void L7Receive(std::string context, Ptr<const Packet> p, const Address &adr);
-  /**
-   * Callback invoked when PHY transmits a packet
-   * \param context the context
-   * \param p the packet
-   * \param power the tx power
-   */
   void Transmit(std::string context, Ptr<const Packet> p, double power);
-  /**
-   * Callback invoked when PHY receives a packet
-   * \param context the context
-   * \param p the packet
-   * \param rxPowersW the received power per channel band in watts
-   */
   void Receive(std::string context, Ptr<const Packet> p,
                RxPowerWattPerChannelBand rxPowersW);
 };
@@ -1719,7 +1298,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
   Ssid ssid = Ssid("ns-3-ssid");
   mac.SetType("ns3::StaWifiMac", "BE_MaxAmsduSize", UintegerValue(0),
               "BE_MaxAmpduSize", UintegerValue(0), "Ssid", SsidValue(ssid),
-              /* setting blockack threshold for sta's BE queue */
               "BE_BlockAckThreshold", UintegerValue(2), "ActiveProbing",
               BooleanValue(false));
 
@@ -1748,7 +1326,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
   Ptr<WifiNetDevice> ap_device = DynamicCast<WifiNetDevice>(apDevices.Get(0));
   Ptr<WifiNetDevice> sta_device = DynamicCast<WifiNetDevice>(staDevices.Get(0));
 
-  // Disable A-MPDU aggregation
   sta_device->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(0));
   TxopDurationTracer txopTracer;
 
@@ -1758,7 +1335,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
     ptr.Get<QosTxop>()->TraceConnectWithoutContext(
         "TxopTrace", MakeCallback(&TxopDurationTracer::Trace, &txopTracer));
 
-    // set the TXOP limit on BE AC
     ap_device->GetMac()->GetAttribute("BE_Txop", ptr);
     ptr.Get<QosTxop>()->SetTxopLimit(MicroSeconds(4800));
   }
@@ -1768,13 +1344,10 @@ void BlockAckAggregationDisabledTest::DoRun() {
   socket.SetPhysicalAddress(ap_device->GetAddress());
   socket.SetProtocol(1);
 
-  // give packet socket powers to nodes.
   PacketSocketHelper packetSocket;
   packetSocket.Install(wifiStaNode);
   packetSocket.Install(wifiApNode);
 
-  // the first client application generates a single packet, which is sent
-  // with the normal ack policy because there are no other packets queued
   Ptr<PacketSocketClient> client1 = CreateObject<PacketSocketClient>();
   client1->SetAttribute("PacketSize", UintegerValue(1400));
   client1->SetAttribute("MaxPackets", UintegerValue(1));
@@ -1784,10 +1357,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
   client1->SetStartTime(Seconds(1));
   client1->SetStopTime(Seconds(3.0));
 
-  // the second client application generates 13 packets. Even if when the first
-  // packet is queued the queue is empty, the first packet is not transmitted
-  // immediately, but the EDCAF waits for the next slot boundary. At that time,
-  // other packets have been queued, hence a BA agreement is established first.
   Ptr<PacketSocketClient> client2 = CreateObject<PacketSocketClient>();
   client2->SetAttribute("PacketSize", UintegerValue(1400));
   client2->SetAttribute("MaxPackets", UintegerValue(13));
@@ -1818,9 +1387,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
 
   Simulator::Destroy();
 
-  // The client applications generate 14 packets, so we expect that the wifi PHY
-  // layer transmits 14 MPDUs, the server application receives 14 packets, and
-  // two BARs are transmitted.
   NS_TEST_EXPECT_MSG_EQ(m_txTotal, 14,
                         "Unexpected number of transmitted packets");
   NS_TEST_EXPECT_MSG_EQ(m_received, 14,
@@ -1835,12 +1401,6 @@ void BlockAckAggregationDisabledTest::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Block Ack Test Suite
- */
 class BlockAckTestSuite : public TestSuite {
 public:
   BlockAckTestSuite();
@@ -1858,4 +1418,4 @@ BlockAckTestSuite::BlockAckTestSuite() : TestSuite("wifi-block-ack", UNIT) {
   AddTestCase(new BlockAckAggregationDisabledTest(true), TestCase::QUICK);
 }
 
-static BlockAckTestSuite g_blockAckTestSuite; ///< the test suite
+static BlockAckTestSuite g_blockAckTestSuite;

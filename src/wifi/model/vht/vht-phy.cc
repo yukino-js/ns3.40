@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2020 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Rediet <getachew.redieteab@orange.com>
- *          Sébastien Deronne <sebastien.deronne@gmail.com> (for logic ported
- * from wifi-phy)
- */
 
 #include "vht-phy.h"
 
@@ -28,7 +8,7 @@
 #include "ns3/interference-helper.h"
 #include "ns3/log.h"
 #include "ns3/wifi-net-device.h"
-#include "ns3/wifi-phy.h" //only used for static mode constructor
+#include "ns3/wifi-phy.h"
 #include "ns3/wifi-psdu.h"
 #include "ns3/wifi-utils.h"
 
@@ -36,46 +16,38 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("VhtPhy");
 
-/*******************************************************
- *       VHT PHY (IEEE 802.11-2016, clause 21)
- *******************************************************/
-
 // clang-format off
 
 const PhyEntity::PpduFormats VhtPhy::m_vhtPpduFormats {
-    { WIFI_PREAMBLE_VHT_SU, { WIFI_PPDU_FIELD_PREAMBLE,      // L-STF + L-LTF
-                              WIFI_PPDU_FIELD_NON_HT_HEADER, // L-SIG
-                              WIFI_PPDU_FIELD_SIG_A,         // VHT-SIG-A
-                              WIFI_PPDU_FIELD_TRAINING,      // VHT-STF + VHT-LTFs
+    { WIFI_PREAMBLE_VHT_SU, { WIFI_PPDU_FIELD_PREAMBLE,
+                              WIFI_PPDU_FIELD_NON_HT_HEADER,
+                              WIFI_PPDU_FIELD_SIG_A,
+                              WIFI_PPDU_FIELD_TRAINING,
                               WIFI_PPDU_FIELD_DATA } },
-    { WIFI_PREAMBLE_VHT_MU, { WIFI_PPDU_FIELD_PREAMBLE,      // L-STF + L-LTF
-                              WIFI_PPDU_FIELD_NON_HT_HEADER, // L-SIG
-                              WIFI_PPDU_FIELD_SIG_A,         // VHT-SIG-A
-                              WIFI_PPDU_FIELD_TRAINING,      // VHT-STF + VHT-LTFs
-                              WIFI_PPDU_FIELD_SIG_B,         // VHT-SIG-B
+    { WIFI_PREAMBLE_VHT_MU, { WIFI_PPDU_FIELD_PREAMBLE,
+                              WIFI_PPDU_FIELD_NON_HT_HEADER,
+                              WIFI_PPDU_FIELD_SIG_A,
+                              WIFI_PPDU_FIELD_TRAINING,
+                              WIFI_PPDU_FIELD_SIG_B,
                               WIFI_PPDU_FIELD_DATA } }
 };
 
 const VhtPhy::NesExceptionMap VhtPhy::m_exceptionsMap {
-                    /* {BW,Nss,MCS} Nes */
-    { std::make_tuple ( 80, 7, 2),  3 }, // instead of 2
-    { std::make_tuple ( 80, 7, 7),  6 }, // instead of 4
-    { std::make_tuple ( 80, 7, 8),  6 }, // instead of 5
-    { std::make_tuple ( 80, 8, 7),  6 }, // instead of 5
-    { std::make_tuple (160, 4, 7),  6 }, // instead of 5
-    { std::make_tuple (160, 5, 8),  8 }, // instead of 7
-    { std::make_tuple (160, 6, 7),  8 }, // instead of 7
-    { std::make_tuple (160, 7, 3),  4 }, // instead of 3
-    { std::make_tuple (160, 7, 4),  6 }, // instead of 5
-    { std::make_tuple (160, 7, 5),  7 }, // instead of 6
-    { std::make_tuple (160, 7, 7),  9 }, // instead of 8
-    { std::make_tuple (160, 7, 8), 12 }, // instead of 9
-    { std::make_tuple (160, 7, 9), 12 }, // instead of 10
+    { std::make_tuple ( 80, 7, 2),  3 },
+    { std::make_tuple ( 80, 7, 7),  6 },
+    { std::make_tuple ( 80, 7, 8),  6 },
+    { std::make_tuple ( 80, 8, 7),  6 },
+    { std::make_tuple (160, 4, 7),  6 },
+    { std::make_tuple (160, 5, 8),  8 },
+    { std::make_tuple (160, 6, 7),  8 },
+    { std::make_tuple (160, 7, 3),  4 },
+    { std::make_tuple (160, 7, 4),  6 },
+    { std::make_tuple (160, 7, 5),  7 },
+    { std::make_tuple (160, 7, 7),  9 },
+    { std::make_tuple (160, 7, 8), 12 },
+    { std::make_tuple (160, 7, 9), 12 },
 };
 
-/**
- * \brief map a given channel list type to the corresponding scaling factor in dBm
- */
 const std::map<WifiChannelListType, double> channelTypeToScalingFactorDbm {
     {WIFI_CHANLIST_PRIMARY, 0.0},
     {WIFI_CHANLIST_SECONDARY, 0.0},
@@ -83,9 +55,6 @@ const std::map<WifiChannelListType, double> channelTypeToScalingFactorDbm {
     {WIFI_CHANLIST_SECONDARY80, 6.0},
 };
 
-/**
- * \brief map a given secondary channel width to its channel list type
- */
 const std::map<uint16_t, WifiChannelListType> secondaryChannels {
     {20, WIFI_CHANLIST_SECONDARY},
     {40, WIFI_CHANLIST_SECONDARY40},
@@ -94,9 +63,7 @@ const std::map<uint16_t, WifiChannelListType> secondaryChannels {
 
 // clang-format on
 
-VhtPhy::VhtPhy(bool buildModeList /* = true */)
-    : HtPhy(1, false) // don't add HT modes to list
-{
+VhtPhy::VhtPhy(bool buildModeList) : HtPhy(1, false) {
   NS_LOG_FUNCTION(this << buildModeList);
   m_bssMembershipSelector = VHT_PHY;
   m_maxMcsIndexPerSs = 9;
@@ -125,8 +92,7 @@ const PhyEntity::PpduFormats &VhtPhy::GetPpduFormats() const {
 WifiMode VhtPhy::GetSigMode(WifiPpduField field,
                             const WifiTxVector &txVector) const {
   switch (field) {
-  case WIFI_PPDU_FIELD_TRAINING: // consider SIG-A mode for training (useful for
-                                 // InterferenceHelper)
+  case WIFI_PPDU_FIELD_TRAINING:
   case WIFI_PPDU_FIELD_SIG_A:
     return GetSigAMode();
   case WIFI_PPDU_FIELD_SIG_B:
@@ -142,9 +108,7 @@ WifiMode VhtPhy::GetHtSigMode() const {
   return WifiMode();
 }
 
-WifiMode VhtPhy::GetSigAMode() const {
-  return GetLSigMode(); // same number of data tones as OFDM (i.e. 48)
-}
+WifiMode VhtPhy::GetSigAMode() const { return GetLSigMode(); }
 
 WifiMode VhtPhy::GetSigBMode(const WifiTxVector &txVector) const {
   NS_ABORT_MSG_IF(txVector.GetPreambleType() != WIFI_PREAMBLE_VHT_MU,
@@ -164,46 +128,30 @@ Time VhtPhy::GetDuration(WifiPpduField field,
   }
 }
 
-Time VhtPhy::GetLSigDuration(WifiPreamble /* preamble */) const {
-  return MicroSeconds(4); // L-SIG
-}
+Time VhtPhy::GetLSigDuration(WifiPreamble) const { return MicroSeconds(4); }
 
-Time VhtPhy::GetHtSigDuration() const {
-  return MicroSeconds(0); // no HT-SIG
-}
+Time VhtPhy::GetHtSigDuration() const { return MicroSeconds(0); }
 
 Time VhtPhy::GetTrainingDuration(const WifiTxVector &txVector, uint8_t nDataLtf,
-                                 uint8_t nExtensionLtf /* = 0 */) const {
+                                 uint8_t nExtensionLtf) const {
   NS_ABORT_MSG_IF(nDataLtf > 8,
                   "Unsupported number of LTFs " << +nDataLtf << " for VHT");
   NS_ABORT_MSG_IF(nExtensionLtf > 0, "No extension LTFs expected for VHT");
-  return MicroSeconds(4 + 4 * nDataLtf); // VHT-STF + VHT-LTFs
+  return MicroSeconds(4 + 4 * nDataLtf);
 }
 
-Time VhtPhy::GetSigADuration(WifiPreamble /* preamble */) const {
-  return MicroSeconds(8); // VHT-SIG-A (first and second symbol)
-}
+Time VhtPhy::GetSigADuration(WifiPreamble) const { return MicroSeconds(8); }
 
 Time VhtPhy::GetSigBDuration(const WifiTxVector &txVector) const {
-  return (txVector.GetPreambleType() == WIFI_PREAMBLE_VHT_MU)
-             ? MicroSeconds(4)
-             : MicroSeconds(0); // HE-SIG-B only for MU
+  return (txVector.GetPreambleType() == WIFI_PREAMBLE_VHT_MU) ? MicroSeconds(4)
+                                                              : MicroSeconds(0);
 }
 
 uint8_t VhtPhy::GetNumberBccEncoders(const WifiTxVector &txVector) const {
   WifiMode payloadMode = txVector.GetMode();
-  /**
-   * General rule: add an encoder when crossing maxRatePerCoder frontier
-   *
-   * The value of 540 Mbps and 600 Mbps for normal GI and short GI (resp.)
-   * were obtained by observing the rates for which Nes was incremented in
-   * tables 21-30 to 21-61 of IEEE 802.11-2016. These values are the last values
-   * before changing encoders.
-   */
   double maxRatePerCoder = (txVector.GetGuardInterval() == 800) ? 540e6 : 600e6;
   uint8_t nes = ceil(payloadMode.GetDataRate(txVector) / maxRatePerCoder);
 
-  // Handle exceptions to the rule
   auto iter = m_exceptionsMap.find(std::make_tuple(txVector.GetChannelWidth(),
                                                    txVector.GetNss(),
                                                    payloadMode.GetMcsValue()));
@@ -274,15 +222,14 @@ PhyEntity::PhyFieldRxStatus VhtPhy::ProcessSig(Ptr<Event> event,
   NS_LOG_FUNCTION(this << *event << status << field);
   NS_ASSERT(event->GetPpdu()->GetTxVector().GetPreambleType() >=
             WIFI_PREAMBLE_VHT_SU);
-  // TODO see if something should be done here once MU-MIMO is supported
-  return status; // nothing special for VHT
+  return status;
 }
 
 bool VhtPhy::IsAllConfigSupported(WifiPpduField field,
                                   Ptr<const WifiPpdu> ppdu) const {
   if (ppdu->GetType() == WIFI_PPDU_TYPE_DL_MU &&
       field == WIFI_PPDU_FIELD_SIG_A) {
-    return IsChannelWidthSupported(ppdu); // perform the full check after SIG-B
+    return IsChannelWidthSupported(ppdu);
   }
   return HtPhy::IsAllConfigSupported(field, ppdu);
 }
@@ -375,14 +322,14 @@ uint64_t VhtPhy::GetPhyRate(uint8_t mcsValue, uint16_t channelWidth,
 }
 
 uint64_t VhtPhy::GetPhyRateFromTxVector(const WifiTxVector &txVector,
-                                        uint16_t /* staId */) {
+                                        uint16_t) {
   return GetPhyRate(txVector.GetMode().GetMcsValue(),
                     txVector.GetChannelWidth(), txVector.GetGuardInterval(),
                     txVector.GetNss());
 }
 
 uint64_t VhtPhy::GetDataRateFromTxVector(const WifiTxVector &txVector,
-                                         uint16_t /* staId */) {
+                                         uint16_t) {
   return GetDataRate(txVector.GetMode().GetMcsValue(),
                      txVector.GetChannelWidth(), txVector.GetGuardInterval(),
                      txVector.GetNss());
@@ -462,8 +409,6 @@ double VhtPhy::GetCcaThreshold(const Ptr<const WifiPpdu> ppdu,
     const uint16_t ppduBw = ppdu->GetTxVector().GetChannelWidth();
     switch (channelType) {
     case WIFI_CHANLIST_PRIMARY: {
-      // Start of a PPDU for which its power measured within the primary 20 MHz
-      // channel is at or above the CCA sensitivity threshold.
       return m_wifiPhy->GetCcaSensitivityThreshold();
     }
     case WIFI_CHANLIST_SECONDARY:
@@ -506,9 +451,7 @@ VhtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
   Time delayUntilCcaEnd =
       GetDelayUntilCcaEnd(ccaThresholdDbm, GetPrimaryBand(20));
   if (delayUntilCcaEnd.IsStrictlyPositive()) {
-    return std::make_pair(
-        delayUntilCcaEnd,
-        WIFI_CHANLIST_PRIMARY); // if Primary is busy, ignore CCA for Secondary
+    return std::make_pair(delayUntilCcaEnd, WIFI_CHANLIST_PRIMARY);
   }
 
   if (ppdu) {
@@ -522,10 +465,6 @@ VhtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
             primaryWidth) +
         (primaryWidth / 2);
     if (ppdu->DoesOverlapChannel(p20MinFreq, p20MaxFreq)) {
-      /*
-       * PPDU occupies primary 20 MHz channel, hence we skip CCA sensitivity
-       * rules for signals not occupying the primary 20 MHz channel.
-       */
       return std::nullopt;
     }
   }
@@ -572,9 +511,6 @@ VhtPhy::GetCcaIndication(const Ptr<const WifiPpdu> ppdu) {
 
 namespace {
 
-/**
- * Constructor class for VHT modes
- */
 class ConstructorVht {
 public:
   ConstructorVht() {
@@ -582,6 +518,6 @@ public:
     ns3::WifiPhy::AddStaticPhyEntity(ns3::WIFI_MOD_CLASS_VHT,
                                      ns3::Create<ns3::VhtPhy>());
   }
-} g_constructor_vht; ///< the constructor for VHT modes
+} g_constructor_vht;
 
 } // namespace

@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2013 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-general-test.h"
 
@@ -29,26 +12,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WScalingTestSuite");
 
-// TODO: Check the buffer size and scaling option value
-/**
- * \ingroup internet-test
- *
- * \brief TCP Window Scaling enabling Test.
- */
 class WScalingTestCase : public TcpGeneralTest {
 public:
-  /**
-   * Window Scaling configuration.
-   */
   enum Configuration { DISABLED, ENABLED_SENDER, ENABLED_RECEIVER, ENABLED };
 
-  /**
-   * \brief Constructor.
-   * \param conf Test configuration.
-   * \param maxRcvBufferSize Maximum receiver buffer size.
-   * \param maxSndBufferSize Maximum sender buffer size.
-   * \param name Test description.
-   */
   WScalingTestCase(WScalingTestCase::Configuration conf,
                    uint32_t maxRcvBufferSize, uint32_t maxSndBufferSize,
                    std::string name);
@@ -60,9 +27,9 @@ protected:
   void Tx(const Ptr<const Packet> p, const TcpHeader &h,
           SocketWho who) override;
 
-  Configuration m_configuration; //!< Test configuration.
-  uint32_t m_maxRcvBufferSize;   //!< Maximum receiver buffer size.
-  uint32_t m_maxSndBufferSize;   //!< Maximum sender buffer size.
+  Configuration m_configuration;
+  uint32_t m_maxRcvBufferSize;
+  uint32_t m_maxSndBufferSize;
 };
 
 WScalingTestCase::WScalingTestCase(WScalingTestCase::Configuration conf,
@@ -178,11 +145,6 @@ void WScalingTestCase::Tx(const Ptr<const Packet> p, const TcpHeader &h,
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Window Scaling TestSuite.
- */
 class TcpWScalingTestSuite : public TestSuite {
 public:
   TcpWScalingTestSuite() : TestSuite("tcp-wscaling", UNIT) {
@@ -220,5 +182,4 @@ public:
   }
 };
 
-static TcpWScalingTestSuite
-    g_tcpWScalingTestSuite; //!< Static variable for test initialization
+static TcpWScalingTestSuite g_tcpWScalingTestSuite;

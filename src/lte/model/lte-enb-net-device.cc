@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- * Author: Marco Miozzo <mmiozzo@cttc.es> : Update to FF API Architecture
- * Author: Nicola Baldo <nbaldo@cttc.es>  : Integrated with new RRC and MAC
- * architecture Author: Danilo Abrignani <danilo.abrignani@unibo.it> :
- * Integrated with new architecture - GSoC 2015 - Carrier Aggregation
- */
 
 #include "lte-enb-net-device.h"
 
@@ -166,8 +144,6 @@ void LteEnbNetDevice::DoDispose() {
   }
   m_componentCarrierManager->Dispose();
   m_componentCarrierManager = nullptr;
-  // ComponentCarrierEnb::DoDispose() will call DoDispose
-  // of its PHY, MAC, FFR and scheduler instance
   for (uint32_t i = 0; i < m_ccMap.size(); i++) {
     m_ccMap.at(i)->Dispose();
     m_ccMap.at(i) = nullptr;
@@ -270,7 +246,7 @@ uint32_t LteEnbNetDevice::GetCsgId() const { return m_csgId; }
 void LteEnbNetDevice::SetCsgId(uint32_t csgId) {
   NS_LOG_FUNCTION(this << csgId);
   m_csgId = csgId;
-  UpdateConfig(); // propagate the change to RRC level
+  UpdateConfig();
 }
 
 bool LteEnbNetDevice::GetCsgIndication() const { return m_csgIndication; }
@@ -278,7 +254,7 @@ bool LteEnbNetDevice::GetCsgIndication() const { return m_csgIndication; }
 void LteEnbNetDevice::SetCsgIndication(bool csgIndication) {
   NS_LOG_FUNCTION(this << csgIndication);
   m_csgIndication = csgIndication;
-  UpdateConfig(); // propagate the change to RRC level
+  UpdateConfig();
 }
 
 std::map<uint8_t, Ptr<ComponentCarrierBaseStation>>
@@ -327,7 +303,6 @@ void LteEnbNetDevice::UpdateConfig() {
   if (m_isConstructed) {
     if (!m_isConfigured) {
       NS_LOG_LOGIC(this << " Configure cell " << m_cellId);
-      // we have to make sure that this function is called only once
       NS_ASSERT(!m_ccMap.empty());
       m_rrc->ConfigureCell(m_ccMap);
       m_isConfigured = true;
@@ -338,10 +313,6 @@ void LteEnbNetDevice::UpdateConfig() {
                       << m_csgIndication);
     m_rrc->SetCsgId(m_csgId, m_csgIndication);
   } else {
-    /*
-     * Lower layers are not ready yet, so do nothing now and expect
-     * ``DoInitialize`` to re-invoke this function.
-     */
   }
 }
 

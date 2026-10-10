@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2019 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/buildings-channel-condition-model.h"
@@ -29,44 +12,22 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("BuildingsChannelConditionModelsTest");
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * Test case for the class BuildingsChannelConditionModel. It checks if the
- * channel condition is correctly determined when a building is deployed in the
- * scenario
- */
 class BuildingsChannelConditionModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   BuildingsChannelConditionModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~BuildingsChannelConditionModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA; //!< the position of the first node
-    Vector m_positionB; //!< the position of the second node
-    ChannelCondition::LosConditionValue
-        m_losCond; //!< the correct channel condition
+    Vector m_positionA;
+    Vector m_positionB;
+    ChannelCondition::LosConditionValue m_losCond;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
+  TestVectors<TestVector> m_testVectors;
 };
 
 BuildingsChannelConditionModelTestCase::BuildingsChannelConditionModelTestCase()
@@ -99,7 +60,6 @@ void BuildingsChannelConditionModelTestCase::DoRun() {
   testVector.m_losCond = ChannelCondition::LosConditionValue::LOS;
   m_testVectors.Add(testVector);
 
-  // Deploy nodes and building and get the channel condition
   NodeContainer nodes;
   nodes.Create(2);
 
@@ -142,11 +102,6 @@ void BuildingsChannelConditionModelTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup building-test
- * \ingroup tests
- * Test suite for the buildings channel condition model
- */
 class BuildingsChannelConditionModelsTestSuite : public TestSuite {
 public:
   BuildingsChannelConditionModelsTestSuite();
@@ -158,6 +113,5 @@ BuildingsChannelConditionModelsTestSuite::
   AddTestCase(new BuildingsChannelConditionModelTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static BuildingsChannelConditionModelsTestSuite
     BuildingsChannelConditionModelsTestSuite;

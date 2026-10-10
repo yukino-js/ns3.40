@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #include "tcp-bic.h"
 
 #include "ns3/log.h"
@@ -94,11 +77,6 @@ void TcpBic::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
     m_cWndCnt += segmentsAcked;
     uint32_t cnt = Update(tcb);
 
-    /* According to the BIC paper and RFC 6356 even once the new cwnd is
-     * calculated you must compare this to the number of ACKs received since
-     * the last cwnd update. If not enough ACKs have been received then cwnd
-     * cannot be updated.
-     */
     if (m_cWndCnt > cnt) {
       tcb->m_cWnd += tcb->m_segmentSize;
       m_cWndCnt = 0;
@@ -120,7 +98,7 @@ uint32_t TcpBic::Update(Ptr<TcpSocketState> tcb) {
   m_lastCwnd = segCwnd;
 
   if (m_epochStart == Time::Min()) {
-    m_epochStart = Simulator::Now(); /* record the beginning of an epoch */
+    m_epochStart = Simulator::Now();
   }
 
   if (segCwnd < m_lowWnd) {
@@ -135,20 +113,14 @@ uint32_t TcpBic::Update(Ptr<TcpSocketState> tcb) {
     NS_LOG_INFO("cWnd = " << segCwnd << " under lastMax, " << m_lastMaxCwnd
                           << " and dist=" << dist);
     if (dist > m_maxIncr) {
-      /* Linear increase */
       cnt = segCwnd / m_maxIncr;
       NS_LOG_INFO("Linear increase (maxIncr=" << m_maxIncr << "), cnt=" << cnt);
     } else if (dist <= 1) {
-      /* smoothed binary search increase: when our window is really
-       * close to the last maximum, we parameterize in m_smoothPart the number
-       * of RTT needed to reach that window.
-       */
       cnt = (segCwnd * m_smoothPart) / m_b;
 
       NS_LOG_INFO("Binary search increase (smoothPart=" << m_smoothPart
                                                         << "), cnt=" << cnt);
     } else {
-      /* binary search increase */
       cnt = static_cast<uint32_t>(segCwnd / dist);
 
       NS_LOG_INFO("Binary search increase, cnt=" << cnt);
@@ -156,29 +128,21 @@ uint32_t TcpBic::Update(Ptr<TcpSocketState> tcb) {
   } else {
     NS_LOG_INFO("cWnd = " << segCwnd << " above last max, " << m_lastMaxCwnd);
     if (segCwnd < m_lastMaxCwnd + m_b) {
-      /* slow start AMD linear increase */
       cnt = (segCwnd * m_smoothPart) / m_b;
       NS_LOG_INFO("Slow start AMD, cnt=" << cnt);
     } else if (segCwnd < m_lastMaxCwnd + m_maxIncr * (m_b - 1)) {
-      /* slow start */
       cnt = (segCwnd * (m_b - 1)) / (segCwnd - m_lastMaxCwnd);
 
       NS_LOG_INFO("Slow start, cnt=" << cnt);
     } else {
-      /* linear increase */
       cnt = segCwnd / m_maxIncr;
 
       NS_LOG_INFO("Linear, cnt=" << cnt);
     }
   }
 
-  /* if in slow start or link utilization is very low. Code taken from Linux
-   * kernel, not sure of the source they take it. Usually, it is not reached,
-   * since if m_lastMaxCwnd is 0, we are (hopefully) in slow start.
-   */
   if (m_lastMaxCwnd == 0) {
-    if (cnt > 20) /* increase cwnd 5% per RTT */
-    {
+    if (cnt > 20) {
       cnt = 20;
     }
   }
@@ -201,7 +165,6 @@ uint32_t TcpBic::GetSsThresh(Ptr<const TcpSocketState> tcb,
 
   m_epochStart = Time::Min();
 
-  /* Wmax and fast convergence */
   if (segCwnd < m_lastMaxCwnd && m_fastConvergence) {
     NS_LOG_INFO("Fast Convergence. Last max cwnd: "
                 << m_lastMaxCwnd << " updated to "

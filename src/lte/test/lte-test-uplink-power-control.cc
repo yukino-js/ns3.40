@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-test-uplink-power-control.h"
 
@@ -48,15 +29,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteUplinkPowerControlTest");
 
-/**
- * TestSuite
- */
-
 LteUplinkPowerControlTestSuite::LteUplinkPowerControlTestSuite()
     : TestSuite("lte-uplink-power-control", SYSTEM) {
-  //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  //  LOG_LEVEL_DEBUG); LogComponentEnable ("LteUplinkPowerControlTest",
-  //  logLevel);
   NS_LOG_INFO("Creating LteUplinkPowerControlTestSuite");
 
   AddTestCase(new LteUplinkOpenLoopPowerControlTestCase("OpenLoopTest1"),
@@ -69,15 +43,8 @@ LteUplinkPowerControlTestSuite::LteUplinkPowerControlTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteUplinkPowerControlTestSuite lteUplinkPowerControlTestSuite;
 
-/**
- * TestCase Data
- */
 void PuschTxPowerNofitication(LteUplinkPowerControlTestCase *testcase,
                               uint16_t cellId, uint16_t rnti, double txPower) {
   testcase->PuschTxPowerTrace(cellId, rnti, txPower);
@@ -135,7 +102,6 @@ void LteUplinkPowerControlTestCase::PuschTxPowerTrace(uint16_t cellId,
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("PuschTxPower : CellId: " << cellId << " RNTI: " << rnti
                                          << " PuschTxPower: " << txPower);
-  // wait because of RSRP filtering
   if ((Simulator::Now() - m_teleportTime) < MilliSeconds(50)) {
     return;
   }
@@ -149,7 +115,6 @@ void LteUplinkPowerControlTestCase::PucchTxPowerTrace(uint16_t cellId,
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("PucchTxPower : CellId: " << cellId << " RNTI: " << rnti
                                          << " PuschTxPower: " << txPower);
-  // wait because of RSRP filtering
   if ((Simulator::Now() - m_teleportTime) < MilliSeconds(50)) {
     return;
   }
@@ -164,7 +129,6 @@ void LteUplinkPowerControlTestCase::SrsTxPowerTrace(uint16_t cellId,
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("SrsTxPower : CellId: " << cellId << " RNTI: " << rnti
                                        << " PuschTxPower: " << txPower);
-  // wait because of RSRP filtering
   if ((Simulator::Now() - m_teleportTime) < MilliSeconds(50)) {
     return;
   }
@@ -205,24 +169,16 @@ void LteUplinkOpenLoopPowerControlTestCase::DoRun() {
   uint16_t bandwidth = 25;
   double d1 = 0;
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  /*   the topology is the following:
-   *
-   *   eNB1-------------------------UE
-   *                  d1
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // eNB1
-  positionAlloc->Add(Vector(d1, 0.0, 0.0));  // UE1
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1, 0.0, 0.0));
 
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -230,7 +186,6 @@ void LteUplinkOpenLoopPowerControlTestCase::DoRun() {
   mobility.Install(allNodes);
   m_ueMobility = ueNodes.Get(0)->GetObject<MobilityModel>();
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
@@ -252,15 +207,12 @@ void LteUplinkOpenLoopPowerControlTestCase::DoRun() {
   m_ueUpc->TraceConnectWithoutContext(
       "ReportSrsTxPower", MakeBoundCallback(&SrsTxPowerNofitication, this));
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate a data radio bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
 
-  // Changing UE position
   Simulator::Schedule(MilliSeconds(0),
                       &LteUplinkPowerControlTestCase::TeleportUe, this, 0, 0,
                       -40, -40, -40);
@@ -333,24 +285,16 @@ void LteUplinkClosedLoopPowerControlAbsoluteModeTestCase::DoRun() {
   uint16_t bandwidth = 25;
   double d1 = 100;
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  /*   the topology is the following:
-   *
-   *   eNB1-------------------------UE
-   *                  d1
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // eNB1
-  positionAlloc->Add(Vector(d1, 0.0, 0.0));  // UE1
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1, 0.0, 0.0));
 
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -358,7 +302,6 @@ void LteUplinkClosedLoopPowerControlAbsoluteModeTestCase::DoRun() {
   mobility.Install(allNodes);
   m_ueMobility = ueNodes.Get(0)->GetObject<MobilityModel>();
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
@@ -380,10 +323,8 @@ void LteUplinkClosedLoopPowerControlAbsoluteModeTestCase::DoRun() {
   m_ueUpc->TraceConnectWithoutContext(
       "ReportSrsTxPower", MakeBoundCallback(&SrsTxPowerNofitication, this));
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate a data radio bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
@@ -393,7 +334,6 @@ void LteUplinkClosedLoopPowerControlAbsoluteModeTestCase::DoRun() {
   m_ffrSimple = DynamicCast<LteFfrSimple>(tmp.GetObject());
   m_accumulatedMode = false;
 
-  // Changing TPC value
   Simulator::Schedule(MilliSeconds(0),
                       &LteUplinkPowerControlTestCase::SetTpcConfiguration, this,
                       1, 0, 1.9539, 1.9539, 4.9539);
@@ -458,24 +398,16 @@ void LteUplinkClosedLoopPowerControlAccumulatedModeTestCase::DoRun() {
   uint16_t bandwidth = 25;
   double d1 = 10;
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  /*   the topology is the following:
-   *
-   *   eNB1-------------------------UE
-   *                  d1
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // eNB1
-  positionAlloc->Add(Vector(d1, 0.0, 0.0));  // UE1
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1, 0.0, 0.0));
 
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -483,7 +415,6 @@ void LteUplinkClosedLoopPowerControlAccumulatedModeTestCase::DoRun() {
   mobility.Install(allNodes);
   m_ueMobility = ueNodes.Get(0)->GetObject<MobilityModel>();
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
@@ -505,10 +436,8 @@ void LteUplinkClosedLoopPowerControlAccumulatedModeTestCase::DoRun() {
   m_ueUpc->TraceConnectWithoutContext(
       "ReportSrsTxPower", MakeBoundCallback(&SrsTxPowerNofitication, this));
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate a data radio bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
@@ -518,7 +447,6 @@ void LteUplinkClosedLoopPowerControlAccumulatedModeTestCase::DoRun() {
   m_ffrSimple = DynamicCast<LteFfrSimple>(tmp.GetObject());
   m_accumulatedMode = true;
 
-  // Changing TPC value
   Simulator::Schedule(MilliSeconds(0),
                       &LteUplinkPowerControlTestCase::SetTpcConfiguration, this,
                       1, 0, -17.0461, -17.0461, -14.0461);

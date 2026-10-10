@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- *         Andrea Sacco <andrea.sacco85@gmail.com>
- */
 
 #include "uan-phy-gen.h"
 
@@ -48,7 +29,6 @@ NS_OBJECT_ENSURE_REGISTERED(UanPhyCalcSinrFhFsk);
 NS_OBJECT_ENSURE_REGISTERED(UanPhyPerUmodem);
 NS_OBJECT_ENSURE_REGISTERED(UanPhyPerCommonModes);
 
-/*************** UanPhyCalcSinrDefault definition *****************/
 UanPhyCalcSinrDefault::UanPhyCalcSinrDefault() {}
 
 UanPhyCalcSinrDefault::~UanPhyCalcSinrDefault() {}
@@ -69,7 +49,7 @@ double UanPhyCalcSinrDefault::CalcSinrDb(
     NS_LOG_WARN("Calculating SINR for unsupported modulation type");
   }
 
-  double intKp = -DbToKp(rxPowerDb); // This packet is in the arrivalList
+  double intKp = -DbToKp(rxPowerDb);
   auto it = arrivalList.begin();
   for (; it != arrivalList.end(); it++) {
     intKp += DbToKp(it->GetRxPowerDb());
@@ -85,7 +65,6 @@ double UanPhyCalcSinrDefault::CalcSinrDb(
   return rxPowerDb - totalIntDb;
 }
 
-/*************** UanPhyCalcSinrFhFsk definition *****************/
 UanPhyCalcSinrFhFsk::UanPhyCalcSinrFhFsk() {}
 
 UanPhyCalcSinrFhFsk::~UanPhyCalcSinrFhFsk() {}
@@ -117,66 +96,43 @@ double UanPhyCalcSinrFhFsk::CalcSinrDb(
   Time clearingTime = (m_hops - 1.0) * ts;
   double csp = pdp.SumTapsFromMaxNc(Time(), ts);
 
-  // Get maximum arrival offset
   double maxAmp = -1;
   Time maxTapDelay(0);
   auto pit = pdp.GetBegin();
   for (; pit != pdp.GetEnd(); pit++) {
     if (std::abs(pit->GetAmp()) > maxAmp) {
       maxAmp = std::abs(pit->GetAmp());
-      // Modified in order to subtract delay of first tap (maxTapDelay appears
-      // to be used later in code as delay from first reception, not from TX
-      // time)
       maxTapDelay = pit->GetDelay() - pdp.GetTap(0).GetDelay();
     }
   }
 
   double effRxPowerDb = rxPowerDb + KpToDb(csp);
-  // It appears to be just the first elements of the sum in Parrish paper,
-  //  "System Design Considerations for Undersea Networks: Link and Multiple
-  //  Access Protocols", eq. 14
-  double isiUpa = DbToKp(rxPowerDb) *
-                  pdp.SumTapsFromMaxNc(ts + clearingTime, ts); // added DpToKp()
+  double isiUpa =
+      DbToKp(rxPowerDb) * pdp.SumTapsFromMaxNc(ts + clearingTime, ts);
   auto it = arrivalList.begin();
   double intKp = -DbToKp(effRxPowerDb);
   for (; it != arrivalList.end(); it++) {
     UanPdp intPdp = it->GetPdp();
     Time tDelta = Abs(arrTime + maxTapDelay - it->GetArrivalTime());
-    // We want tDelta in terms of a single symbol (i.e. if tDelta = 7.3
-    // symbol+clearing times, the offset in terms of the arriving symbol power
-    // is 0.3 symbol+clearing times.
 
     tDelta = Rem(tDelta, ts + clearingTime);
 
-    // Align to pktRx
     if (arrTime + maxTapDelay > it->GetArrivalTime()) {
       tDelta = ts + clearingTime - tDelta;
     }
 
     double intPower = 0.0;
-    if (tDelta < ts) // Case where there is overlap of a symbol due to
-                     // interferer arriving just after desired signal
-    {
-      // Appears to be just the first two elements of the sum in Parrish paper,
-      // eq. 14
+    if (tDelta < ts) {
       intPower += intPdp.SumTapsNc(Time(), ts - tDelta);
       intPower += intPdp.SumTapsNc(ts - tDelta + clearingTime,
                                    2 * ts - tDelta + clearingTime);
-    } else // Account for case where there's overlap of a symbol due to
-           // interferer arriving with a tDelta of a symbol + clearing time
-           // later
-    {
-      // Appears to be just the first two elements of the sum in Parrish paper,
-      // eq. 14
+    } else {
       Time start = ts + clearingTime - tDelta;
-      Time end =
-          /*start +*/ ts; // Should only sum over portion of ts that overlaps,
-                          // not entire ts
+      Time end = ts;
       intPower += intPdp.SumTapsNc(start, end);
 
       start = start + ts + clearingTime;
-      // Should only sum over portion of ts that overlaps, not entire ts
-      end = end + ts + clearingTime; // start + Seconds (ts);
+      end = end + ts + clearingTime;
       intPower += intPdp.SumTapsNc(start, end);
     }
     intKp += DbToKp(it->GetRxPowerDb()) * intPower;
@@ -192,7 +148,6 @@ double UanPhyCalcSinrFhFsk::CalcSinrDb(
   return effRxPowerDb - totalIntDb;
 }
 
-/*************** UanPhyPerGenDefault definition *****************/
 UanPhyPerGenDefault::UanPhyPerGenDefault() {}
 
 UanPhyPerGenDefault::~UanPhyPerGenDefault() {}
@@ -210,8 +165,6 @@ TypeId UanPhyPerGenDefault::GetTypeId() {
   return tid;
 }
 
-// Default PER calculation simply compares SINR to a threshold which is
-// configurable via an attribute.
 double UanPhyPerGenDefault::CalcPer(Ptr<Packet> pkt, double sinrDb,
                                     UanTxMode mode) {
   if (sinrDb >= m_thresh) {
@@ -221,7 +174,6 @@ double UanPhyPerGenDefault::CalcPer(Ptr<Packet> pkt, double sinrDb,
   }
 }
 
-/*************** UanPhyPerCommonModes definition *****************/
 UanPhyPerCommonModes::UanPhyPerCommonModes() : UanPhyPer() {}
 
 UanPhyPerCommonModes::~UanPhyPerCommonModes() {}
@@ -246,13 +198,11 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
   switch (mode.GetModType()) {
   case UanTxMode::PSK:
     switch (mode.GetConstellationSize()) {
-    case 2: // BPSK
-    {
+    case 2: {
       BER = 0.5 * erfc(sqrt(EbNo));
       break;
     }
-    case 4: // QPSK, half BPSK EbNo
-    {
+    case 4: {
       BER = 0.5 * erfc(sqrt(0.5 * EbNo));
       break;
     }
@@ -264,16 +214,11 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
     }
     break;
 
-  // taken from Ronell B. Sicat, "Bit Error Probability Computations for M-ary
-  // Quadrature Amplitude Modulation", EE 242 Digital Communications and
-  // Codings, 2009
   case UanTxMode::QAM: {
-    // generic EbNo
     EbNo *= mode.GetDataRateBps() / mode.GetBandwidthHz();
 
     auto M = (double)mode.GetConstellationSize();
 
-    // standard squared quantized QAM, even number of bits per symbol supported
     int log2sqrtM = (int)::std::log2(sqrt(M));
 
     double log2M = ::std::log2(M);
@@ -289,7 +234,6 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
 
     BER = 0.0;
 
-    // Eq (75)
     for (int k = 0; k < log2sqrtM; k++) {
       int sum_items =
           (int)((1.0 - ::std::pow(2.0, (-1.0) * (double)k)) * ::std::sqrt(M) -
@@ -301,7 +245,6 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
 
       double PbK = 0;
 
-      // Eq (74)
       for (int j = 0; j < sum_items; ++j) {
         PbK += ::std::pow(-1.0, (double)j * pow2k / sqrtM) *
                (pow2k - ::std::floor((double)(j * pow2k / sqrtM) - 0.5)) *
@@ -335,7 +278,7 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
     }
     break;
 
-  default: // OTHER and error
+  default:
     NS_FATAL_ERROR("Mode " << mode.GetModType() << " not supported");
     break;
   }
@@ -347,7 +290,6 @@ double UanPhyPerCommonModes::CalcPer(Ptr<Packet> pkt, double sinrDb,
   return PER;
 }
 
-/*************** UanPhyPerUmodem definition *****************/
 UanPhyPerUmodem::UanPhyPerUmodem() {}
 
 UanPhyPerUmodem::~UanPhyPerUmodem() {}
@@ -381,7 +323,6 @@ double UanPhyPerUmodem::CalcPer(Ptr<Packet> pkt, double sinr, UanTxMode mode) {
   double Bd[] = {33,        281,        2179,        15035LLU,    105166LLU,
                  692330LLU, 4580007LLU, 29692894LLU, 190453145LLU};
 
-  // double Rc = 1.0 / 2.0;
   double ebno = std::pow(10.0, sinr / 10.0);
   double perror = 1.0 / (2.0 + ebno);
   double P[9];
@@ -410,7 +351,6 @@ double UanPhyPerUmodem::CalcPer(Ptr<Packet> pkt, double sinr, UanTxMode mode) {
     Pb = Pb + Bd[r] * P[r];
   }
 
-  // cout << "Pb = " << Pb << endl;
   uint32_t bits = pkt->GetSize() * 8;
 
   double Ppacket = 1;
@@ -427,7 +367,6 @@ double UanPhyPerUmodem::CalcPer(Ptr<Packet> pkt, double sinr, UanTxMode mode) {
   }
 }
 
-/*************** UanPhyGen definition *****************/
 UanPhyGen::UanPhyGen()
     : UanPhy(), m_state(IDLE), m_channel(nullptr), m_transducer(nullptr),
       m_device(nullptr), m_mac(nullptr), m_txPwrDb(0), m_rxThreshDb(0),
@@ -481,12 +420,10 @@ void UanPhyGen::DoDispose() {
 UanModesList UanPhyGen::GetDefaultModes() {
   UanModesList l;
 
-  // micromodem only
   l.AppendMode(UanTxModeFactory::CreateMode(UanTxMode::FSK, 80, 80, 22000, 4000,
                                             13, "FH-FSK"));
   l.AppendMode(UanTxModeFactory::CreateMode(UanTxMode::PSK, 200, 200, 22000,
                                             4000, 4, "QPSK"));
-  // micromodem2
   l.AppendMode(UanTxModeFactory::CreateMode(UanTxMode::PSK, 5000, 5000, 25000,
                                             5000, 4, "QPSK"));
 
@@ -646,10 +583,10 @@ void UanPhyGen::StartRxPacket(Ptr<Packet> pkt, double rxPowerDb,
   switch (m_state) {
   case DISABLED:
     NS_LOG_DEBUG("Energy depleted, node cannot receive any packet. Dropping.");
-    NotifyRxDrop(pkt); // traced source netanim
+    NotifyRxDrop(pkt);
     return;
   case TX:
-    NotifyRxDrop(pkt); // traced source netanim
+    NotifyRxDrop(pkt);
     NS_ASSERT(false);
     break;
   case RX: {
@@ -660,7 +597,7 @@ void UanPhyGen::StartRxPacket(Ptr<Packet> pkt, double rxPowerDb,
     NS_LOG_DEBUG("PHY " << m_mac->GetAddress()
                         << ": Starting RX in RX mode.  SINR of pktRx = "
                         << m_minRxSinrDb);
-    NotifyRxBegin(pkt); // traced source netanim
+    NotifyRxBegin(pkt);
   } break;
 
   case CCABUSY:
@@ -684,7 +621,7 @@ void UanPhyGen::StartRxPacket(Ptr<Packet> pkt, double rxPowerDb,
     if (newsinr > m_rxThreshDb) {
       m_state = RX;
       UpdatePowerConsumption(RX);
-      NotifyRxBegin(pkt); // traced source netanim
+      NotifyRxBegin(pkt);
       m_rxRecvPwrDb = rxPowerDb;
       m_minRxSinrDb = newsinr;
       m_pktRx = pkt;
@@ -700,7 +637,7 @@ void UanPhyGen::StartRxPacket(Ptr<Packet> pkt, double rxPowerDb,
   } break;
   case SLEEP:
     NS_LOG_DEBUG("Sleep mode. Dropping packet.");
-    NotifyRxDrop(pkt); // traced source netanim
+    NotifyRxDrop(pkt);
     break;
   }
 
@@ -711,8 +648,7 @@ void UanPhyGen::StartRxPacket(Ptr<Packet> pkt, double rxPowerDb,
   }
 }
 
-void UanPhyGen::RxEndEvent(Ptr<Packet> pkt, double /* rxPowerDb */,
-                           UanTxMode txMode) {
+void UanPhyGen::RxEndEvent(Ptr<Packet> pkt, double, UanTxMode txMode) {
   if (pkt != m_pktRx) {
     return;
   }
@@ -720,11 +656,11 @@ void UanPhyGen::RxEndEvent(Ptr<Packet> pkt, double /* rxPowerDb */,
   if (m_state == DISABLED || m_state == SLEEP) {
     NS_LOG_DEBUG("Sleep mode or dead. Dropping packet");
     m_pktRx = nullptr;
-    NotifyRxDrop(pkt); // traced source netanim
+    NotifyRxDrop(pkt);
     return;
   }
 
-  NotifyRxEnd(pkt); // traced source netanim
+  NotifyRxEnd(pkt);
   if (GetInterferenceDb((Ptr<Packet>)nullptr) > m_ccaThreshDb) {
     m_state = CCABUSY;
     NotifyListenersCcaStart();
@@ -821,9 +757,7 @@ int64_t UanPhyGen::AssignStreams(int64_t stream) {
   return 1;
 }
 
-void UanPhyGen::NotifyTransStartTx(Ptr<Packet> /* packet */,
-                                   double /* txPowerDb */,
-                                   UanTxMode /* txMode */) {
+void UanPhyGen::NotifyTransStartTx(Ptr<Packet>, double, UanTxMode) {
   if (m_pktRx) {
     m_minRxSinrDb = -1e30;
   }

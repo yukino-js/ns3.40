@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2004,2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "arf-wifi-manager.h"
 
@@ -28,20 +10,14 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("ArfWifiManager");
 
-/**
- * \brief hold per-remote-station state for ARF Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the ARF Wifi manager
- */
 struct ArfWifiRemoteStation : public WifiRemoteStation {
-  uint32_t m_timer;            ///< timer value
-  uint32_t m_success;          ///< success count
-  uint32_t m_failed;           ///< failed count
-  bool m_recovery;             ///< recovery
-  uint32_t m_timerTimeout;     ///< timer timeout
-  uint32_t m_successThreshold; ///< success threshold
-  uint8_t m_rate;              ///< rate
+  uint32_t m_timer;
+  uint32_t m_success;
+  uint32_t m_failed;
+  bool m_recovery;
+  uint32_t m_timerTimeout;
+  uint32_t m_successThreshold;
+  uint8_t m_rate;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(ArfWifiManager);
@@ -113,17 +89,6 @@ void ArfWifiManager::DoReportRtsFailed(WifiRemoteStation *station) {
   NS_LOG_FUNCTION(this << station);
 }
 
-/**
- * It is important to realize that "recovery" mode starts after failure of
- * the first transmission after a rate increase and ends at the first successful
- * transmission. Specifically, recovery mode transcends retransmissions
- * boundaries. Fundamentally, ARF handles each data transmission independently,
- * whether it is the initial transmission of a packet or the retransmission of a
- * packet. The fundamental reason for this is that there is a backoff between
- * each data transmission, be it an initial transmission or a retransmission.
- *
- * \param st the station that we failed to send Data
- */
 void ArfWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
   auto station = static_cast<ArfWifiRemoteStation *>(st);
@@ -134,7 +99,6 @@ void ArfWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
   if (station->m_recovery) {
     NS_ASSERT(station->m_failed >= 1);
     if (station->m_failed == 1) {
-      // need recovery fallback
       if (station->m_rate != 0) {
         station->m_rate--;
       }
@@ -143,7 +107,6 @@ void ArfWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
   } else {
     NS_ASSERT(station->m_failed >= 1);
     if (((station->m_failed - 1) % 2) == 1) {
-      // need normal fallback
       if (station->m_rate != 0) {
         station->m_rate--;
       }
@@ -220,8 +183,6 @@ WifiTxVector ArfWifiManager::DoGetDataTxVector(WifiRemoteStation *st,
 
 WifiTxVector ArfWifiManager::DoGetRtsTxVector(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
-  /// \todo we could/should implement the ARF algorithm for
-  /// RTS only by picking a single rate within the BasicRateSet.
   auto station = static_cast<ArfWifiRemoteStation *>(st);
   uint16_t channelWidth = GetChannelWidth(station);
   if (channelWidth > 20 && channelWidth != 22) {

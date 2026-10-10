@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -34,23 +16,16 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This is a simple example in order to show how to configure an IEEE 802.11n
-// Wi-Fi network with multiple TOS. It outputs the aggregated UDP throughput,
-// which depends on the number of stations, the HT MCS value (0 to 7), the
-// channel width (20 or 40 MHz) and the guard interval (long or short). The user
-// can also specify the distance between the access point and the stations (in
-// meters), and can specify whether RTS/CTS is used or not.
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiMultiTos");
 
 int main(int argc, char *argv[]) {
   uint32_t nWifi = 4;
-  double simulationTime = 10; // seconds
-  double distance = 1.0;      // meters
+  double simulationTime = 10;
+  double distance = 1.0;
   uint16_t mcs = 7;
-  uint8_t channelWidth = 20; // MHz
+  uint8_t channelWidth = 20;
   bool useShortGuardInterval = false;
   bool useRts = false;
 
@@ -99,17 +74,14 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer apDevice;
   apDevice = wifi.Install(phy, mac, wifiApNode);
 
-  // Set channel width
   Config::Set(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelSettings",
       StringValue("{0, " + std::to_string(channelWidth) + ", BAND_2_4GHZ, 0}"));
 
-  // Set guard interval
   Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/"
               "ShortGuardIntervalSupported",
               BooleanValue(useShortGuardInterval));
 
-  // mobility
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -122,7 +94,6 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNode);
   mobility.Install(wifiStaNodes);
 
-  // Internet stack
   InternetStackHelper stack;
   stack.Install(wifiApNode);
   stack.Install(wifiStaNodes);
@@ -135,11 +106,9 @@ int main(int argc, char *argv[]) {
   staNodeInterfaces = address.Assign(staDevices);
   apNodeInterface = address.Assign(apDevice);
 
-  // Setting applications
   ApplicationContainer sourceApplications;
   ApplicationContainer sinkApplications;
-  std::vector<uint8_t> tosValues = {0x70, 0x28, 0xb8,
-                                    0xc0}; // AC_BE, AC_BK, AC_VI, AC_VO
+  std::vector<uint8_t> tosValues = {0x70, 0x28, 0xb8, 0xc0};
   uint32_t portNumber = 9;
   for (uint32_t index = 0; index < nWifi; ++index) {
     for (uint8_t tosValue : tosValues) {
@@ -153,7 +122,7 @@ int main(int argc, char *argv[]) {
       onOffHelper.SetAttribute(
           "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
       onOffHelper.SetAttribute("DataRate", DataRateValue(50000000 / nWifi));
-      onOffHelper.SetAttribute("PacketSize", UintegerValue(1472)); // bytes
+      onOffHelper.SetAttribute("PacketSize", UintegerValue(1472));
       sourceApplications.Add(onOffHelper.Install(wifiStaNodes.Get(index)));
       PacketSinkHelper packetSinkHelper("ns3::UdpSocketFactory", sinkSocket);
       sinkApplications.Add(packetSinkHelper.Install(wifiApNode.Get(0)));
@@ -174,8 +143,7 @@ int main(int argc, char *argv[]) {
   for (uint32_t index = 0; index < sinkApplications.GetN(); ++index) {
     uint64_t totalPacketsThrough =
         DynamicCast<PacketSink>(sinkApplications.Get(index))->GetTotalRx();
-    throughput +=
-        ((totalPacketsThrough * 8) / (simulationTime * 1000000.0)); // Mbit/s
+    throughput += ((totalPacketsThrough * 8) / (simulationTime * 1000000.0));
   }
 
   Simulator::Destroy();

@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "mpi-test-fixtures.h"
 
@@ -41,29 +14,6 @@
 #include "ns3/yans-wifi-helper.h"
 
 #include <iomanip>
-
-/**
- * \file
- * \ingroup mpi
- *
- * Distributed version of third.cc from the tutorial.
- *
- *  Default Network Topology
- *
- * (same as third.cc from tutorial)
- * Distributed simulation, split across the p2p link
- *                          |
- *                 Rank 0   |   Rank 1
- * -------------------------|----------------------------
- *   Wifi 10.1.3.0
- *                 AP
- *  *    *    *    *
- *  |    |    |    |    10.1.1.0
- * n5   n6   n7   n0 -------------- n1   n2   n3   n4
- *                   point-to-point  |    |    |    |
- *                                   ================
- *                                    LAN 10.1.2.0
- */
 
 using namespace ns3;
 
@@ -88,9 +38,6 @@ int main(int argc, char *argv[]) {
 
   cmd.Parse(argc, argv);
 
-  // The underlying restriction of 18 is due to the grid position
-  // allocator's configuration; the grid layout will exceed the
-  // bounding box if more than 18 nodes are provided.
   if (nWifi > 18) {
     std::cout << "nWifi should be 18 or less; otherwise grid layout exceeds "
                  "the bounding box"
@@ -107,11 +54,9 @@ int main(int argc, char *argv[]) {
         (LogLevel)(LOG_LEVEL_INFO | LOG_PREFIX_NODE | LOG_PREFIX_TIME));
   }
 
-  // Sequential fallback values
   uint32_t systemId = 0;
   uint32_t systemCount = 1;
 
-  // Distributed simulation setup; by default use granted time window algorithm.
   if (nullmsg) {
     GlobalValue::Bind("SimulatorImplementationType",
                       StringValue("ns3::NullMessageSimulatorImpl"));
@@ -127,22 +72,17 @@ int main(int argc, char *argv[]) {
   systemId = MpiInterface::GetSystemId();
   systemCount = MpiInterface::GetSize();
 
-  // Check for valid distributed parameters.
-  // Must have 2 and only 2 Logical Processors (LPs)
   if (systemCount != 2) {
     std::cout << "This simulation requires 2 and only 2 logical processors."
               << std::endl;
     return 1;
   }
 
-  // System id of Wifi side
   uint32_t systemWifi = 0;
 
-  // System id of CSMA side
   uint32_t systemCsma = systemCount - 1;
 
   NodeContainer p2pNodes;
-  // Create each end of the P2P link on a separate system (rank)
   Ptr<Node> p2pNode1 = CreateObject<Node>(systemWifi);
   Ptr<Node> p2pNode2 = CreateObject<Node>(systemCsma);
   p2pNodes.Add(p2pNode1);
@@ -157,7 +97,6 @@ int main(int argc, char *argv[]) {
 
   NodeContainer csmaNodes;
   csmaNodes.Add(p2pNodes.Get(1));
-  // Create the csma nodes on one system (rank)
   csmaNodes.Create(nCsma, systemCsma);
 
   CsmaHelper csma;
@@ -168,7 +107,6 @@ int main(int argc, char *argv[]) {
   csmaDevices = csma.Install(csmaNodes);
 
   NodeContainer wifiStaNodes;
-  // Create the wifi nodes on the other system (rank)
   wifiStaNodes.Create(nWifi, systemWifi);
   NodeContainer wifiApNode = p2pNodes.Get(0);
 
@@ -223,9 +161,6 @@ int main(int argc, char *argv[]) {
   address.Assign(staDevices);
   address.Assign(apDevices);
 
-  // If this rank is systemCsma,
-  // it should contain the server application,
-  // since it is on one of the csma nodes
   if (systemId == systemCsma) {
     UdpEchoServerHelper echoServer(9);
 
@@ -239,9 +174,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // If this rank is systemWifi
-  // it should contain the client application,
-  // since it is on one of the wifi nodes
   if (systemId == systemWifi) {
     UdpEchoClientHelper echoClient(csmaInterfaces.GetAddress(nCsma), 9);
     echoClient.SetAttribute("MaxPackets", UintegerValue(1));
@@ -264,17 +196,11 @@ int main(int argc, char *argv[]) {
   Simulator::Stop(Seconds(10.0));
 
   if (tracing) {
-    // Depending on the system Id (rank), the pcap information
-    // traced will be different.  For example, the ethernet pcap
-    // will be empty for rank0, since these nodes are placed on
-    // on rank 1.  All ethernet traffic will take place on rank 1.
-    // Similar differences are seen in the p2p and wireless pcaps.
     if (systemId == systemCsma) {
       pointToPoint.EnablePcapAll("third-distributed-csma");
       phy.EnablePcap("third-distributed-csma", apDevices.Get(0));
       csma.EnablePcap("third-distributed-csma", csmaDevices.Get(0), true);
-    } else // systemWifi
-    {
+    } else {
       pointToPoint.EnablePcapAll("third-distributed-wifi");
       phy.EnablePcap("third-distributed-wifi", apDevices.Get(0));
       csma.EnablePcap("third-distributed-wifi", csmaDevices.Get(0), true);
@@ -288,7 +214,6 @@ int main(int argc, char *argv[]) {
     SinkTracer::Verify(2);
   }
 
-  // Exit the MPI execution environment
   MpiInterface::Disable();
 
   return 0;

@@ -1,36 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
-
-// Test program for this 3-router scenario, using static routing
-//
-// (a.a.a.a/32)A<--x.x.x.0/30-->B<--y.y.y.0/30-->C(c.c.c.c/32)
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -50,8 +18,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("StaticRoutingSlash32Test");
 
 int main(int argc, char *argv[]) {
-  // Allow the user to override any of the defaults and the above
-  // DefaultValue::Bind ()s at run-time, via command-line arguments
   CommandLine cmd(__FILE__);
   cmd.Parse(argc, argv);
 
@@ -64,11 +30,9 @@ int main(int argc, char *argv[]) {
   InternetStackHelper internet;
   internet.Install(c);
 
-  // Point-to-point links
   NodeContainer nAnB = NodeContainer(nA, nB);
   NodeContainer nBnC = NodeContainer(nB, nC);
 
-  // We create the channels first without any IP addressing information
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
   p2p.SetChannelAttribute("Delay", StringValue("2ms"));
@@ -86,7 +50,6 @@ int main(int argc, char *argv[]) {
   nC->AddDevice(deviceC);
   deviceC->SetQueue(CreateObject<DropTailQueue<Packet>>());
 
-  // Later, we add IP addresses.
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.252");
   Ipv4InterfaceContainer iAiB = ipv4.Assign(dAdB);
@@ -114,21 +77,15 @@ int main(int argc, char *argv[]) {
   ipv4C->SetUp(ifIndexC);
 
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
-  // Create static routes from A to C
   Ptr<Ipv4StaticRouting> staticRoutingA =
       ipv4RoutingHelper.GetStaticRouting(ipv4A);
-  // The ifIndex for this outbound route is 1; the first p2p link added
   staticRoutingA->AddHostRouteTo(Ipv4Address("192.168.1.1"),
                                  Ipv4Address("10.1.1.2"), 1);
   Ptr<Ipv4StaticRouting> staticRoutingB =
       ipv4RoutingHelper.GetStaticRouting(ipv4B);
-  // The ifIndex we want on node B is 2; 0 corresponds to loopback, and 1 to the
-  // first point to point link
   staticRoutingB->AddHostRouteTo(Ipv4Address("192.168.1.1"),
                                  Ipv4Address("10.1.1.6"), 2);
-  // Create the OnOff application to send UDP datagrams of size
-  // 210 bytes at a rate of 448 Kb/s
-  uint16_t port = 9; // Discard port (RFC 863)
+  uint16_t port = 9;
   OnOffHelper onoff("ns3::UdpSocketFactory",
                     Address(InetSocketAddress(ifInAddrC.GetLocal(), port)));
   onoff.SetConstantRate(DataRate(6000));
@@ -136,7 +93,6 @@ int main(int argc, char *argv[]) {
   apps.Start(Seconds(1.0));
   apps.Stop(Seconds(10.0));
 
-  // Create a packet sink to receive these packets
   PacketSinkHelper sink(
       "ns3::UdpSocketFactory",
       Address(InetSocketAddress(Ipv4Address::GetAny(), port)));

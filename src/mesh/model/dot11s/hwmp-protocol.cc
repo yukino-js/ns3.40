@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "hwmp-protocol.h"
 
@@ -205,19 +187,17 @@ void HwmpProtocol::DoDispose() {
 bool HwmpProtocol::RequestRoute(
     uint32_t sourceIface, const Mac48Address source,
     const Mac48Address destination, Ptr<const Packet> constPacket,
-    uint16_t protocolType, // ethrnet 'Protocol' field
+    uint16_t protocolType,
     MeshL2RoutingProtocol::RouteReplyCallback routeReply) {
   NS_LOG_FUNCTION(this << sourceIface << source << destination << constPacket
                        << protocolType);
   Ptr<Packet> packet = constPacket->Copy();
   HwmpTag tag;
   if (sourceIface == GetMeshPoint()->GetIfIndex()) {
-    // packet from level 3
     if (packet->PeekPacketTag(tag)) {
       NS_FATAL_ERROR("HWMP tag has come with a packet from upper layer. This "
                      "must not occur...");
     }
-    // Filling TAG:
     if (destination == Mac48Address::GetBroadcast()) {
       tag.SetSeqno(m_dataSeqno++);
     }
@@ -236,7 +216,6 @@ bool HwmpProtocol::RequestRoute(
   if (destination == Mac48Address::GetBroadcast()) {
     m_stats.txBroadcast++;
     m_stats.txBytes += packet->GetSize();
-    // channel IDs where we have already sent broadcast:
     std::vector<uint16_t> channels;
     for (auto plugin = m_interfaces.begin(); plugin != m_interfaces.end();
          plugin++) {
@@ -254,10 +233,6 @@ bool HwmpProtocol::RequestRoute(
           GetBroadcastReceivers(plugin->first);
       for (auto i = receivers.begin(); i != receivers.end(); i++) {
         Ptr<Packet> packetCopy = packet->Copy();
-        //
-        // 64-bit Intel valgrind complains about tag.SetAddress (*i).  It
-        // likes this just fine.
-        //
         Mac48Address address = *i;
         tag.SetAddress(address);
         packetCopy->AddPacketTag(tag);
@@ -303,25 +278,17 @@ bool HwmpProtocol::ForwardUnicast(uint32_t sourceIface,
   HwmpTag tag;
   tag.SetAddress(result.retransmitter);
   tag.SetTtl(ttl);
-  // seqno and metric is not used;
   packet->AddPacketTag(tag);
   if (result.retransmitter != Mac48Address::GetBroadcast()) {
-    // reply immediately:
     routeReply(true, packet, source, destination, protocolType, result.ifIndex);
     m_stats.txUnicast++;
     m_stats.txBytes += packet->GetSize();
     return true;
   }
   if (sourceIface != GetMeshPoint()->GetIfIndex()) {
-    // Start path error procedure:
     NS_LOG_DEBUG("Must Send PERR");
     result = m_rtable->LookupReactiveExpired(destination);
     NS_LOG_DEBUG("Path error " << result.retransmitter);
-    // 1.  Lookup expired reactive path. If exists - start path error
-    //     procedure towards a next hop of this path
-    // 2.  If there was no reactive path, we lookup expired proactive
-    //     path. If exist - start path error procedure towards path to
-    //     root
     if (result.retransmitter == Mac48Address::GetBroadcast()) {
       NS_LOG_DEBUG("Path error, lookup expired proactive path");
       result = m_rtable->LookupProactiveExpired();
@@ -335,7 +302,6 @@ bool HwmpProtocol::ForwardUnicast(uint32_t sourceIface,
     m_stats.totalDropped++;
     return false;
   }
-  // Request a destination:
   result = m_rtable->LookupReactiveExpired(destination);
   if (ShouldSendPreq(destination)) {
     uint32_t originator_seqno = GetNextHwmpSeqno();
@@ -371,7 +337,6 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
                                uint32_t metric) {
   NS_LOG_FUNCTION(this << from << interface << fromMp << metric);
   preq.IncrementMetric(metric);
-  // acceptance cretirea:
   auto i = m_hwmpSeqnoMetricDatabase.find(preq.GetOriginatorAddress());
   bool freshInfo(true);
   if (i != m_hwmpSeqnoMetricDatabase.end()) {
@@ -391,7 +356,6 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
                        << ", preq:" << preq);
   std::vector<Ptr<DestinationAddressUnit>> destinations =
       preq.GetDestinationList();
-  // Add reactive path to originator:
   if ((freshInfo) ||
       ((m_rtable->LookupReactive(preq.GetOriginatorAddress()).retransmitter ==
         Mac48Address::GetBroadcast()) ||
@@ -400,7 +364,6 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
     m_rtable->AddReactivePath(
         preq.GetOriginatorAddress(), from, interface, preq.GetMetric(),
         MicroSeconds(preq.GetLifetime() * 1024), preq.GetOriginatorSeqNumber());
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Add Reactive";
     rChange.destination = preq.GetOriginatorAddress();
@@ -418,7 +381,6 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
     m_rtable->AddReactivePath(fromMp, from, interface, metric,
                               MicroSeconds(preq.GetLifetime() * 1024),
                               preq.GetOriginatorSeqNumber());
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Add Reactive";
     rChange.destination = fromMp;
@@ -432,14 +394,8 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
   }
   for (auto i = destinations.begin(); i != destinations.end(); i++) {
     if ((*i)->GetDestinationAddress() == Mac48Address::GetBroadcast()) {
-      // only proactive PREQ contains destination
-      // address as broadcast! Proactive preq MUST
-      // have destination count equal to 1 and
-      // per destination flags DO and RF
       NS_ASSERT(preq.GetDestCount() == 1);
       NS_ASSERT(((*i)->IsDo()) && ((*i)->IsRf()));
-      // Add proactive path only if it is the better then existed
-      // before
       if (((m_rtable->LookupProactive()).retransmitter ==
            Mac48Address::GetBroadcast()) ||
           ((m_rtable->LookupProactive()).metric > preq.GetMetric())) {
@@ -447,7 +403,6 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
                                    preq.GetOriginatorAddress(), from, interface,
                                    MicroSeconds(preq.GetLifetime() * 1024),
                                    preq.GetOriginatorSeqNumber());
-        // Notify trace source of routing change
         RouteChange rChange;
         rChange.type = "Add Proactive";
         rChange.destination = preq.GetOriginatorAddress();
@@ -476,12 +431,10 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
       preq.DelDestinationAddressElement((*i)->GetDestinationAddress());
       continue;
     }
-    // check if can answer:
     HwmpRtable::LookupResult result =
         m_rtable->LookupReactive((*i)->GetDestinationAddress());
     if ((!((*i)->IsDo())) &&
         (result.retransmitter != Mac48Address::GetBroadcast())) {
-      // have a valid information and can answer
       uint32_t lifetime = result.lifetime.GetMicroSeconds() / 1024;
       if ((lifetime > 0) &&
           ((int32_t)(result.seqnum - (*i)->GetDestSeqNumber()) >= 0)) {
@@ -491,7 +444,7 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
         m_rtable->AddPrecursor((*i)->GetDestinationAddress(), interface, from,
                                MicroSeconds(preq.GetLifetime() * 1024));
         if ((*i)->IsRf()) {
-          (*i)->SetFlags(true, false, (*i)->IsUsn()); // DO = 1, RF = 0
+          (*i)->SetFlags(true, false, (*i)->IsUsn());
         } else {
           preq.DelDestinationAddressElement((*i)->GetDestinationAddress());
           continue;
@@ -499,11 +452,9 @@ void HwmpProtocol::ReceivePreq(IePreq preq, Mac48Address from,
       }
     }
   }
-  // check if must retransmit:
   if (preq.GetDestCount() == 0) {
     return;
   }
-  // Forward PREQ to all interfaces:
   NS_LOG_DEBUG("I am " << GetAddress() << "retransmitting PREQ:" << preq);
   for (auto i = m_interfaces.begin(); i != m_interfaces.end(); i++) {
     Time forwardingDelay = GetMeshPoint()->GetForwardingDelay();
@@ -519,7 +470,6 @@ void HwmpProtocol::ReceivePrep(IePrep prep, Mac48Address from,
                                uint32_t metric) {
   NS_LOG_FUNCTION(this << from << interface << fromMp << metric);
   prep.IncrementMetric(metric);
-  // acceptance cretirea:
   auto i = m_hwmpSeqnoMetricDatabase.find(prep.GetOriginatorAddress());
   bool freshInfo(true);
   uint32_t sequence = prep.GetDestinationSeqNumber();
@@ -533,15 +483,11 @@ void HwmpProtocol::ReceivePrep(IePrep prep, Mac48Address from,
   }
   m_hwmpSeqnoMetricDatabase[prep.GetOriginatorAddress()] =
       std::make_pair(sequence, prep.GetMetric());
-  // update routing info
-  // Now add a path to destination and add precursor to source
   NS_LOG_DEBUG("I am " << GetAddress() << ", received prep from "
                        << prep.GetOriginatorAddress()
                        << ", receiver was:" << from);
   HwmpRtable::LookupResult result =
       m_rtable->LookupReactive(prep.GetDestinationAddress());
-  // Add a reactive path only if seqno is fresher or it improves the
-  // metric
   if ((freshInfo) ||
       (((m_rtable->LookupReactive(prep.GetOriginatorAddress())).retransmitter ==
         Mac48Address::GetBroadcast()) ||
@@ -550,7 +496,6 @@ void HwmpProtocol::ReceivePrep(IePrep prep, Mac48Address from,
     m_rtable->AddReactivePath(
         prep.GetOriginatorAddress(), from, interface, prep.GetMetric(),
         MicroSeconds(prep.GetLifetime() * 1024), sequence);
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Add Reactive";
     rChange.destination = prep.GetOriginatorAddress();
@@ -574,7 +519,6 @@ void HwmpProtocol::ReceivePrep(IePrep prep, Mac48Address from,
     m_rtable->AddReactivePath(fromMp, from, interface, metric,
                               MicroSeconds(prep.GetLifetime() * 1024),
                               sequence);
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Add Reactive";
     rChange.destination = fromMp;
@@ -594,7 +538,6 @@ void HwmpProtocol::ReceivePrep(IePrep prep, Mac48Address from,
   if (result.retransmitter == Mac48Address::GetBroadcast()) {
     return;
   }
-  // Forward PREP
   auto prep_sender = m_interfaces.find(result.ifIndex);
   NS_ASSERT(prep_sender != m_interfaces.end());
   Time forwardingDelay = GetMeshPoint()->GetForwardingDelay();
@@ -608,7 +551,6 @@ void HwmpProtocol::ReceivePerr(std::vector<FailedDestination> destinations,
                                Mac48Address from, uint32_t interface,
                                Mac48Address fromMp) {
   NS_LOG_FUNCTION(this << from << interface << fromMp);
-  // Acceptance cretirea:
   NS_LOG_DEBUG("I am " << GetAddress() << ", received PERR from " << from);
   std::vector<FailedDestination> retval;
   HwmpRtable::LookupResult result;
@@ -649,7 +591,6 @@ bool HwmpProtocol::Install(Ptr<MeshPointDevice> mp) {
   m_mp = mp;
   std::vector<Ptr<NetDevice>> interfaces = mp->GetInterfaces();
   for (auto i = interfaces.begin(); i != interfaces.end(); i++) {
-    // Checking for compatible net device
     Ptr<WifiNetDevice> wifiNetDev = (*i)->GetObject<WifiNetDevice>();
     if (!wifiNetDev) {
       return false;
@@ -659,21 +600,18 @@ bool HwmpProtocol::Install(Ptr<MeshPointDevice> mp) {
     if (!mac) {
       return false;
     }
-    // Installing plugins:
     Ptr<HwmpProtocolMac> hwmpMac =
         Create<HwmpProtocolMac>(wifiNetDev->GetIfIndex(), this);
     m_interfaces[wifiNetDev->GetIfIndex()] = hwmpMac;
     mac->InstallPlugin(hwmpMac);
-    // Installing airtime link metric:
     Ptr<AirtimeLinkMetricCalculator> metric =
         CreateObject<AirtimeLinkMetricCalculator>();
     mac->SetLinkMetricCallback(
         MakeCallback(&AirtimeLinkMetricCalculator::CalculateMetric, metric));
   }
   mp->SetRoutingProtocol(this);
-  // Mesh point aggregates all installed protocols
   mp->AggregateObject(this);
-  m_address = Mac48Address::ConvertFrom(mp->GetAddress()); // address;
+  m_address = Mac48Address::ConvertFrom(mp->GetAddress());
   return true;
 }
 
@@ -720,7 +658,6 @@ HwmpProtocol::PathError
 HwmpProtocol::MakePathError(std::vector<FailedDestination> destinations) {
   NS_LOG_FUNCTION(this);
   PathError retval;
-  // HwmpRtable increments a sequence number as written in 11B.9.7.2
   retval.receivers = GetPerrReceivers(destinations);
   if (retval.receivers.empty()) {
     return retval;
@@ -729,7 +666,6 @@ HwmpProtocol::MakePathError(std::vector<FailedDestination> destinations) {
   for (unsigned int i = 0; i < destinations.size(); i++) {
     retval.destinations.push_back(destinations[i]);
     m_rtable->DeleteReactivePath(destinations[i].destination);
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Delete Reactive";
     rChange.destination = destinations[i].destination;
@@ -777,14 +713,12 @@ HwmpProtocol::GetPerrReceivers(std::vector<FailedDestination> failedDest) {
     HwmpRtable::PrecursorList precursors =
         m_rtable->GetPrecursors(failedDest[i].destination);
     m_rtable->DeleteReactivePath(failedDest[i].destination);
-    // Notify trace source of routing change
     RouteChange rChange;
     rChange.type = "Delete Reactive";
     rChange.destination = failedDest[i].destination;
     rChange.seqnum = failedDest[i].seqnum;
     m_routeChangeTraceSource(rChange);
     m_rtable->DeleteProactivePath(failedDest[i].destination);
-    // Notify trace source of routing change
     RouteChange rChangePro;
     rChangePro.type = "Delete Proactive";
     rChangePro.destination = failedDest[i].destination;
@@ -794,7 +728,6 @@ HwmpProtocol::GetPerrReceivers(std::vector<FailedDestination> failedDest) {
       retval.push_back(precursors[j]);
     }
   }
-  // Check if we have duplicates in retval and precursors:
   for (unsigned int i = 0; i < retval.size(); i++) {
     for (unsigned int j = i + 1; j < retval.size(); j++) {
       if (retval[i].second == retval[j].second) {
@@ -876,10 +809,8 @@ void HwmpProtocol::ReactivePathResolved(Mac48Address dst) {
 
   HwmpRtable::LookupResult result = m_rtable->LookupReactive(dst);
   NS_ASSERT(result.retransmitter != Mac48Address::GetBroadcast());
-  // Send all packets stored for this destination
   QueuedPacket packet = DequeueFirstPacketByDst(dst);
   while (packet.pkt) {
-    // set RA tag for retransmitter:
     HwmpTag tag;
     packet.pkt->RemovePacketTag(tag);
     tag.SetAddress(result.retransmitter);
@@ -895,12 +826,10 @@ void HwmpProtocol::ReactivePathResolved(Mac48Address dst) {
 
 void HwmpProtocol::ProactivePathResolved() {
   NS_LOG_FUNCTION(this);
-  // send all packets to root
   HwmpRtable::LookupResult result = m_rtable->LookupProactive();
   NS_ASSERT(result.retransmitter != Mac48Address::GetBroadcast());
   QueuedPacket packet = DequeueFirstPacket();
   while (packet.pkt) {
-    // set RA tag for retransmitter:
     HwmpTag tag;
     if (!packet.pkt->RemovePacketTag(tag)) {
       NS_FATAL_ERROR("HWMP tag must be present at this point");
@@ -943,7 +872,6 @@ void HwmpProtocol::RetryPathDiscovery(Mac48Address dst, uint8_t numOfRetry) {
   }
   if (numOfRetry > m_dot11MeshHWMPmaxPREQretries) {
     QueuedPacket packet = DequeueFirstPacketByDst(dst);
-    // purge queue and delete entry from retryDatabase
     while (packet.pkt) {
       m_stats.totalDropped++;
       packet.reply(false, packet.pkt, packet.src, packet.dst, packet.protocol,
@@ -967,7 +895,6 @@ void HwmpProtocol::RetryPathDiscovery(Mac48Address dst, uint8_t numOfRetry) {
       &HwmpProtocol::RetryPathDiscovery, this, dst, numOfRetry);
 }
 
-// Proactive PREQ routines:
 void HwmpProtocol::SetRoot() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("ROOT IS: " << m_address);
@@ -982,12 +909,9 @@ void HwmpProtocol::UnsetRoot() {
 void HwmpProtocol::SendProactivePreq() {
   NS_LOG_FUNCTION(this);
   IePreq preq;
-  // By default: must answer
   preq.SetHopcount(0);
   preq.SetTTL(m_maxTtl);
   preq.SetLifetime(m_dot11MeshHWMPactiveRootTimeout.GetMicroSeconds() / 1024);
-  //\attention: do not forget to set originator address, sequence
-  // number and preq ID in HWMP-MAC plugin
   preq.AddDestinationAddressElement(true, true, Mac48Address::GetBroadcast(),
                                     0);
   preq.SetOriginatorAddress(GetAddress());
@@ -1035,7 +959,6 @@ uint8_t HwmpProtocol::GetUnicastPerrThreshold() const {
 
 Mac48Address HwmpProtocol::GetAddress() { return m_address; }
 
-// Statistics:
 HwmpProtocol::Statistics::Statistics()
     : txUnicast(0), txBroadcast(0), txBytes(0), droppedTtl(0), totalQueued(0),
       totalDropped(0), initiatedPreq(0), initiatedPrep(0), initiatedPerr(0) {}

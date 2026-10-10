@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA
- *               2009 TELEMATICS LAB, Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro <g.piro@poliba.it>
- */
 
 #include "bs-scheduler-rtps.h"
 
@@ -60,8 +41,6 @@ BSSchedulerRtps::BSSchedulerRtps()
 BSSchedulerRtps::BSSchedulerRtps(Ptr<BaseStationNetDevice> bs)
     : m_downlinkBursts(
           new std::list<std::pair<OfdmDlMapIe *, Ptr<PacketBurst>>>()) {
-  // m_downlinkBursts is filled by AddDownlinkBurst and emptied by
-  // wimax-bs-net-device::sendBurst and wimax-ss-net-device::sendBurst
   SetBs(bs);
 }
 
@@ -108,20 +87,6 @@ void BSSchedulerRtps::AddDownlinkBurst(Ptr<const WimaxConnection> connection,
   m_downlinkBursts->emplace_back(dlMapIe, burst);
 }
 
-/**
- * \brief A DownLink Scheduler for rtPS Flows
- *
- * The DL Scheduler assigns the available bandwidth in the following order:
- * - IR Connections
- * - Broadcast Connections
- * - Basic and Primary Connections
- * - UGS Connections
- * - rtPS Connections
- * - nrtPS Connections
- * - BE Connections
- * All rtPS flows that have packets in the queue can transmit at least one
- * packet, according to the available bandwidth.
- */
 void BSSchedulerRtps::Schedule() {
   uint32_t availableSymbols = GetBs()->GetNrDlSymbols();
 
@@ -172,7 +137,6 @@ BSSchedulerRtps::CreateUgsBurst(ServiceFlow *serviceFlow,
   Ptr<PacketBurst> burst = Create<PacketBurst>();
   uint32_t nrSymbolsRequired = 0;
 
-  // serviceFlow->CleanUpQueue ();
   Ptr<WimaxConnection> connection = serviceFlow->GetConnection();
   while (serviceFlow->HasPackets()) {
     uint32_t FirstPacketSize =
@@ -265,7 +229,6 @@ void BSSchedulerRtps::BSSchedulerInitialRangingConnection(
     nrSymbolsRequired =
         GetBs()->GetPhy()->GetNrSymbols(packet->GetSize(), modulationType);
 
-    // PIRO: check for fragmentation
     if (availableSymbols < nrSymbolsRequired &&
         !CheckForFragmentation(connection, availableSymbols, modulationType)) {
       break;
@@ -319,7 +282,6 @@ void BSSchedulerRtps::BSSchedulerBasicConnection(uint32_t &availableSymbols) {
       nrSymbolsRequired =
           GetBs()->GetPhy()->GetNrSymbols(packet->GetSize(), modulationType);
 
-      // PIRO: check for fragmentation
       if (availableSymbols < nrSymbolsRequired &&
           !CheckForFragmentation(connection, availableSymbols,
                                  modulationType)) {
@@ -376,7 +338,6 @@ void BSSchedulerRtps::BSSchedulerPrimaryConnection(uint32_t &availableSymbols) {
       nrSymbolsRequired =
           GetBs()->GetPhy()->GetNrSymbols(packet->GetSize(), modulationType);
 
-      // PIRO: check for fragmentation
       if (availableSymbols < nrSymbolsRequired &&
           !CheckForFragmentation(connection, availableSymbols,
                                  modulationType)) {
@@ -423,8 +384,6 @@ void BSSchedulerRtps::BSSchedulerUGSConnection(uint32_t &availableSymbols) {
       ServiceFlow::SF_TYPE_UGS);
   for (auto iter = serviceFlows.begin(); iter != serviceFlows.end(); ++iter) {
     serviceFlowRecord = (*iter)->GetRecord();
-    // if latency would exceed in case grant is allocated in next frame then
-    // allocate in current frame
     if ((*iter)->HasPackets() &&
         ((currentTime - serviceFlowRecord->GetDlTimeStamp()) +
          GetBs()->GetPhy()->GetFrameDuration()) >
@@ -444,7 +403,6 @@ void BSSchedulerRtps::BSSchedulerUGSConnection(uint32_t &availableSymbols) {
       nrSymbolsRequired =
           connection->GetServiceFlow()->GetRecord()->GetGrantSize();
 
-      // Packet fragmentation for UGS connections has not been implemented yet!
       if (availableSymbols > nrSymbolsRequired) {
         availableSymbols -= nrSymbolsRequired;
         burst = CreateUgsBurst(connection->GetServiceFlow(), modulationType,
@@ -488,8 +446,6 @@ void BSSchedulerRtps::BSSchedulerRTPSConnection(uint32_t &availableSymbols) {
   nbConnection = 0;
   for (auto iter2 = serviceFlows.begin(); iter2 != serviceFlows.end();
        ++iter2) {
-    // DL RTPS Scheduler works for all rtPS connection that have packets to
-    // transmitt!!!
     serviceFlowRecord = (*iter2)->GetRecord();
 
     if ((*iter2)->HasPackets()) {
@@ -526,7 +482,6 @@ void BSSchedulerRtps::BSSchedulerRTPSConnection(uint32_t &availableSymbols) {
 
   NS_LOG_INFO("\t\ttotSymbolsRequired = " << totSymbolsRequired);
 
-  // Channel Saturation
   while (totSymbolsRequired > availableSymbols) {
     NS_LOG_INFO(
         "\tDL Channel Saturation: totSymbolsRequired > availableSymbols_rtPS");
@@ -544,7 +499,6 @@ void BSSchedulerRtps::BSSchedulerRTPSConnection(uint32_t &availableSymbols) {
     NS_LOG_INFO("\t\ttotSymbolsRequired = " << totSymbolsRequired);
   }
 
-  // Downlink Bandwidth Allocation
   for (int i = 0; i < nbConnection; i++) {
     packet = rtPSConnection[i]->GetQueue()->Peek(hdr);
     uint32_t symbolsForPacketTransmission = 0;
@@ -558,7 +512,6 @@ void BSSchedulerRtps::BSSchedulerRTPSConnection(uint32_t &availableSymbols) {
               MacHeaderType::HEADER_TYPE_GENERIC),
           modulationType_[i]);
 
-      // PIRO: check for fragmentation
       if (symbolsForPacketTransmission > symbolsRequired[i] &&
           !CheckForFragmentation(rtPSConnection[i], symbolsRequired[i],
                                  modulationType_[i])) {

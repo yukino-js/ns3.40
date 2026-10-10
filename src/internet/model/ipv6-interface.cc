@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-interface.h"
 
@@ -71,17 +53,14 @@ void Ipv6Interface::DoSetup() {
     return;
   }
 
-  /* set up link-local address */
-  if (!DynamicCast<LoopbackNetDevice>(
-          m_device)) /* no autoconf for ip6-localhost */
-  {
+  if (!DynamicCast<LoopbackNetDevice>(m_device)) {
     Address addr = GetDevice()->GetAddress();
     Ipv6InterfaceAddress ifaddr = Ipv6InterfaceAddress(
         Ipv6Address::MakeAutoconfiguredLinkLocalAddress(addr), Ipv6Prefix(64));
     AddAddress(ifaddr);
     m_linkLocalAddress = ifaddr;
   } else {
-    return; /* no NDISC cache for ip6-localhost */
+    return;
   }
   int32_t interfaceId =
       m_node->GetObject<Ipv6>()->GetInterfaceForDevice(m_device);
@@ -165,7 +144,6 @@ bool Ipv6Interface::AddAddress(Ipv6InterfaceAddress iface) {
   NS_LOG_FUNCTION(this << iface);
   Ipv6Address addr = iface.GetAddress();
 
-  /* DAD handling */
   if (!addr.IsAny()) {
     for (auto it = m_addresses.begin(); it != m_addresses.end(); ++it) {
       if (it->first.GetAddress() == addr) {
@@ -181,7 +159,6 @@ bool Ipv6Interface::AddAddress(Ipv6InterfaceAddress iface) {
     }
 
     if (!addr.IsAny() || !addr.IsLocalhost()) {
-      /* DAD handling */
 
       int32_t interfaceId =
           m_node->GetObject<Ipv6>()->GetInterfaceForDevice(m_device);
@@ -206,19 +183,16 @@ bool Ipv6Interface::AddAddress(Ipv6InterfaceAddress iface) {
     return true;
   }
 
-  /* bad address */
   return false;
 }
 
 Ipv6InterfaceAddress Ipv6Interface::GetLinkLocalAddress() const {
-  /* IPv6 interface has always at least one IPv6 link-local address */
   NS_LOG_FUNCTION(this);
 
   return m_linkLocalAddress;
 }
 
 bool Ipv6Interface::IsSolicitedMulticastAddress(Ipv6Address address) const {
-  /* IPv6 interface has always at least one IPv6 Solicited Multicast address */
   NS_LOG_FUNCTION(this << address);
 
   for (auto it = m_addresses.begin(); it != m_addresses.end(); ++it) {
@@ -245,7 +219,7 @@ Ipv6InterfaceAddress Ipv6Interface::GetAddress(uint32_t index) const {
     NS_FATAL_ERROR("index " << index << " out of bounds");
   }
   Ipv6InterfaceAddress addr;
-  return addr; /* quiet compiler */
+  return addr;
 }
 
 uint32_t Ipv6Interface::GetNAddresses() const {
@@ -276,7 +250,7 @@ Ipv6InterfaceAddress Ipv6Interface::RemoveAddress(uint32_t index) {
   }
   NS_FATAL_ERROR("Address " << index << " not found");
   Ipv6InterfaceAddress addr;
-  return addr; /* quiet compiler */
+  return addr;
 }
 
 Ipv6InterfaceAddress Ipv6Interface::RemoveAddress(Ipv6Address address) {
@@ -312,9 +286,8 @@ Ipv6Interface::GetAddressMatchingDestination(Ipv6Address dst) {
     }
   }
 
-  /*  NS_ASSERT_MSG (false, "Not matching address."); */
   Ipv6InterfaceAddress ret;
-  return ret; /* quiet compiler */
+  return ret;
 }
 
 void Ipv6Interface::Send(Ptr<Packet> p, const Ipv6Header &hdr,
@@ -327,12 +300,7 @@ void Ipv6Interface::Send(Ptr<Packet> p, const Ipv6Header &hdr,
 
   Ptr<Ipv6L3Protocol> ipv6 = m_node->GetObject<Ipv6L3Protocol>();
 
-  /* check if destination is localhost (::1), if yes we don't pass through
-   * traffic control layer */
   if (DynamicCast<LoopbackNetDevice>(m_device)) {
-    /** \todo additional checks needed here (such as whether multicast
-     * goes to loopback)?
-     */
     p->AddHeader(hdr);
     m_device->Send(p, m_device->GetBroadcast(), Ipv6L3Protocol::PROT_NUMBER);
     return;
@@ -340,7 +308,6 @@ void Ipv6Interface::Send(Ptr<Packet> p, const Ipv6Header &hdr,
 
   NS_ASSERT(m_tc);
 
-  /* check if destination is for one of our interface */
   for (auto it = m_addresses.begin(); it != m_addresses.end(); ++it) {
     if (dest == it->first.GetAddress()) {
       p->AddHeader(hdr);
@@ -351,7 +318,6 @@ void Ipv6Interface::Send(Ptr<Packet> p, const Ipv6Header &hdr,
     }
   }
 
-  /* other address */
   if (m_device->NeedsArp()) {
     NS_LOG_LOGIC("Needs NDISC " << dest);
 
@@ -444,7 +410,6 @@ void Ipv6Interface::SetState(Ipv6Address address,
       return;
     }
   }
-  /* not found, maybe address has expired */
 }
 
 void Ipv6Interface::SetNsDadUid(Ipv6Address address, uint32_t uid) {
@@ -456,7 +421,6 @@ void Ipv6Interface::SetNsDadUid(Ipv6Address address, uint32_t uid) {
       return;
     }
   }
-  /* not found, maybe address has expired */
 }
 
 Ptr<NdiscCache> Ipv6Interface::GetNdiscCache() const {
@@ -478,4 +442,4 @@ void Ipv6Interface::AddAddressCallback(
   m_addAddressCallback = addAddressCallback;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

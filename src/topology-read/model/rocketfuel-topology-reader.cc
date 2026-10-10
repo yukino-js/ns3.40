@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hajime Tazaki (tazaki@sfc.wide.ad.jp)
- */
 
 #include "rocketfuel-topology-reader.h"
 
@@ -28,12 +10,6 @@
 #include <iostream>
 #include <regex>
 #include <string>
-
-/**
- * \file
- * \ingroup topology
- * ns3::RocketfuelTopologyReader implementation.
- */
 
 namespace ns3 {
 
@@ -57,19 +33,11 @@ RocketfuelTopologyReader::RocketfuelTopologyReader() {
 
 RocketfuelTopologyReader::~RocketfuelTopologyReader() { NS_LOG_FUNCTION(this); }
 
-/* uid @loc [+] [bb] (num_neigh) [&ext] -> <nuid-1> <nuid-2> ... {-euid} ...
- * =name[!] rn */
-
-/// Start of a line
 #define START "^"
-/// End of a line
 #define END "$"
-/// One or more spaces
 #define SPACE "[ \t]+"
-/// Zero or more spaces
 #define MAYSPACE "[ \t]*"
 
-/// Regex expression matching a MAP line
 #define ROCKETFUEL_MAPS_LINE                                                   \
   START "(-*[0-9]+)" SPACE "(@[?A-Za-z0-9,+-]+)" SPACE "(\\+)*" MAYSPACE       \
         "(bb)*" MAYSPACE "\\(([0-9]+)\\)" SPACE "(&[0-9]+)*" MAYSPACE          \
@@ -77,38 +45,17 @@ RocketfuelTopologyReader::~RocketfuelTopologyReader() { NS_LOG_FUNCTION(this); }
         "(\\{-[0-9\\{\\} \t-]+\\})*" SPACE "=([A-Za-z0-9.!-]+)" SPACE          \
         "r([0-9])" MAYSPACE END
 
-/// Regex expression matching a WEIGHT line
 #define ROCKETFUEL_WEIGHTS_LINE                                                \
   START "([^ \t]+)" SPACE "([^ \t]+)" SPACE "([0-9.]+)" MAYSPACE END
 
-/**
- * Build a Regex object for RocketFuel topology maps file type
- * \return a static regex object for maps file type
- */
 static const std::regex rocketfuel_maps_regex(ROCKETFUEL_MAPS_LINE);
 
-/**
- * Build a Regex object for RocketFuel topology weights file type
- * \return a static regex object for weights file type
- */
 static const std::regex rocketfuel_weights_regex(ROCKETFUEL_WEIGHTS_LINE);
 
-/**
- * \brief Print node info
- * \param uid node ID
- * \param loc node location
- * \param dns is a DNS node ?
- * \param bb is a BB node ?
- * \param neighListSize size of neighbor list
- * \param name node name
- * \param radius node radius
- */
 static inline void
 PrintNodeInfo(std::string &uid, std::string &loc, bool dns, bool bb,
               std::vector<std::string>::size_type neighListSize,
               std::string &name, int radius) {
-  /* uid @loc [+] [bb] (num_neigh) [&ext] -> <nuid-1> <nuid-2> ... {-euid} ...
-   * =name[!] rn */
   NS_LOG_INFO("Load Node[" << uid << "]: location: " << loc << " dns: " << dns
                            << " bb: " << bb << " neighbors: " << neighListSize
                            << "("
@@ -150,16 +97,12 @@ NodeContainer RocketfuelTopologyReader::GenerateFromMapsFile(
     num_neigh = num_neigh_s;
   }
 
-  /* neighbors */
   if (!argv[6].empty()) {
-    // Each line contains a list <.*>[ |\t]<.*>[ |\t]<.*>[ |\t]
-    // First remove < and >
     std::string temp;
     std::regex replace_regex("[<|>]");
     std::regex_replace(std::back_inserter(temp), argv[6].begin(), argv[6].end(),
                        replace_regex, "");
 
-    // Then split list
     std::regex split_regex("[ |\t]");
     std::sregex_token_iterator first{temp.begin(), temp.end(), split_regex, -1};
     std::sregex_token_iterator last;
@@ -171,12 +114,9 @@ NodeContainer RocketfuelTopologyReader::GenerateFromMapsFile(
                 << " != size of neighbors list = " << neigh_list.size());
   }
 
-  /* externs */
   if (!argv[7].empty()) {
-    // euid = argv[7];
   }
 
-  /* name */
   if (!argv[8].empty()) {
     name = argv[8];
   }
@@ -188,7 +128,6 @@ NodeContainer RocketfuelTopologyReader::GenerateFromMapsFile(
 
   PrintNodeInfo(uid, loc, dns, bb, neigh_list.size(), name, radius);
 
-  // Create node and link
   if (!uid.empty()) {
     if (!m_nodeMap[uid]) {
       Ptr<Node> tmpNode = CreateObject<Node>();
@@ -228,8 +167,6 @@ NodeContainer RocketfuelTopologyReader::GenerateFromMapsFile(
 
 NodeContainer RocketfuelTopologyReader::GenerateFromWeightsFile(
     const std::vector<std::string> &argv) {
-  /* uid @loc [+] [bb] (num_neigh) [&ext] -> <nuid-1> <nuid-2> ... {-euid} ...
-   * =name[!] rn */
   std::string sname;
   std::string tname;
   std::string::size_type endptr;
@@ -237,14 +174,13 @@ NodeContainer RocketfuelTopologyReader::GenerateFromWeightsFile(
 
   sname = argv[0];
   tname = argv[1];
-  std::stod(argv[2], &endptr); // weight
+  std::stod(argv[2], &endptr);
 
   if (argv[2].size() != endptr) {
     NS_LOG_WARN("invalid weight: " << argv[2]);
     return nodes;
   }
 
-  // Create node and link
   if (!sname.empty() && !tname.empty()) {
     if (!m_nodeMap[sname]) {
       Ptr<Node> tmpNode = CreateObject<Node>();
@@ -290,13 +226,11 @@ NodeContainer RocketfuelTopologyReader::GenerateFromWeightsFile(
 
 RocketfuelTopologyReader::RF_FileType
 RocketfuelTopologyReader::GetFileType(const std::string &line) {
-  // Check whether Maps file or not
   std::smatch matches;
   if (std::regex_match(line, matches, rocketfuel_maps_regex)) {
     return RF_MAPS;
   }
 
-  // Check whether Weights file or not
   if (std::regex_match(line, matches, rocketfuel_weights_regex)) {
     return RF_WEIGHTS;
   }
@@ -377,4 +311,4 @@ NodeContainer RocketfuelTopologyReader::Read() {
   return nodes;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

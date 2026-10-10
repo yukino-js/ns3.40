@@ -1,45 +1,11 @@
-/*
- * Copyright (c) 2019 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathew Bielejeski <bielejeski1@llnl.gov>
- */
 
 #include "ns3/core-module.h"
 #include "ns3/length.h"
 
 #include <iostream>
 
-/**
- * \defgroup length-examples Demonstrates usage of the ns3::Length class
- * \ingroup core-examples
- * \ingroup length
- */
-
-/**
- * \file
- * \ingroup length-examples
- * Demonstrates usage of the ns3::Length class
- */
-
 using namespace ns3;
 
-/**
- * \ingroup length-examples
- * \brief Demonstrates the use of ns3::Length constructors.
- */
 void Constructors() {
   double input = 5;
   Length::Quantity quantity(input, Length::Unit::Meter);
@@ -60,15 +26,9 @@ void Constructors() {
             << "\nLength (\"5 meters\") = " << Length("5 meters") << std::endl;
 }
 
-/**
- * \ingroup length-examples
- * \brief Demonstrates the use of ns3::Length conversions.
- */
 void Conversions() {
-  // construct length using value and unit
   Length moonDistance(3.84402e8, Length::Unit::Meter);
 
-  // Demonstrate conversion to various units
   std::cout << "\n"
             << "Conversions:\n"
             << "Distance to moon = " << moonDistance << "\n"
@@ -78,14 +38,9 @@ void Conversions() {
             << std::endl;
 }
 
-/**
- * \ingroup length-examples
- * \brief Demonstrates the use of ns3::Length arithmetic operators.
- */
 void ArithmeticOperators() {
   double scale = 10;
 
-  // construct lengths using helper functions
   Length oneMeter = Meters(1);
   Length twoMeter = Meters(2);
 
@@ -103,10 +58,6 @@ void ArithmeticOperators() {
             << (oneMeter / scale) << std::endl;
 }
 
-/**
- * \ingroup length-examples
- * \brief Demonstrates the use of ns3::Length equality operators.
- */
 void EqualityOperators() {
   Length oneMeter = Meters(1);
   Length twoMeter = Meters(2);
@@ -138,12 +89,7 @@ void EqualityOperators() {
   // NOLINTEND(misc-redundant-expression)
 }
 
-/**
- * \ingroup length-examples
- * \brief Demonstrates the use of ns3::Length multiplications and divisions.
- */
 void DivAndMod() {
-  // construct length using helper function
   Length totalLen = Feet(20);
   Length pieceLen = Feet(3);
   Length remainder;

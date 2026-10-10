@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- * Copyright (c) 2013 Budiarto Herman
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Original work authors (from lte-enb-rrc.cc):
- * - Nicola Baldo <nbaldo@cttc.es>
- * - Marco Miozzo <mmiozzo@cttc.es>
- * - Manuel Requena <manuel.requena@cttc.es>
- *
- * Converted to handover algorithm interface by:
- * - Budiarto Herman <budiarto.herman@magister.fi>
- */
 
 #include "a2-a4-rsrq-handover-algorithm.h"
 
@@ -36,10 +11,6 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("A2A4RsrqHandoverAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(A2A4RsrqHandoverAlgorithm);
-
-///////////////////////////////////////////
-// Handover Management SAP forwarder
-///////////////////////////////////////////
 
 A2A4RsrqHandoverAlgorithm::A2A4RsrqHandoverAlgorithm()
     : m_servingCellThreshold(30), m_neighbourCellOffset(1),
@@ -114,7 +85,7 @@ void A2A4RsrqHandoverAlgorithm::DoInitialize() {
   LteRrcSap::ReportConfigEutra reportConfigA4;
   reportConfigA4.eventId = LteRrcSap::ReportConfigEutra::EVENT_A4;
   reportConfigA4.threshold1.choice = LteRrcSap::ThresholdEutra::THRESHOLD_RSRQ;
-  reportConfigA4.threshold1.range = 0; // intentionally very low threshold
+  reportConfigA4.threshold1.range = 0;
   reportConfigA4.triggerQuantity = LteRrcSap::ReportConfigEutra::RSRQ;
   reportConfigA4.reportInterval = LteRrcSap::ReportConfigEutra::MS480;
   m_a4MeasIds = m_handoverManagementSapUser->AddUeMeasReportConfigForHandover(
@@ -156,8 +127,7 @@ void A2A4RsrqHandoverAlgorithm::DoReportUeMeas(
   } else {
     NS_LOG_WARN("Ignoring measId " << (uint16_t)measResults.measId);
   }
-
-} // end of DoReportUeMeas
+}
 
 void A2A4RsrqHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
                                                  uint8_t servingCellRsrq) {
@@ -169,7 +139,6 @@ void A2A4RsrqHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
     NS_LOG_WARN("Skipping handover evaluation for RNTI "
                 << rnti << " because neighbour cells information is not found");
   } else {
-    // Find the best neighbour cell (eNB)
     NS_LOG_LOGIC("Number of neighbour cells = " << it1->second.size());
     uint16_t bestNeighbourCellId = 0;
     uint8_t bestNeighbourRsrq = 0;
@@ -181,7 +150,6 @@ void A2A4RsrqHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
       }
     }
 
-    // Trigger Handover, if needed
     if (bestNeighbourCellId > 0) {
       NS_LOG_LOGIC("Best neighbour cellId " << bestNeighbourCellId);
 
@@ -190,23 +158,14 @@ void A2A4RsrqHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         NS_LOG_LOGIC("target cell RSRQ " << (uint16_t)bestNeighbourRsrq);
         NS_LOG_LOGIC("serving cell RSRQ " << (uint16_t)servingCellRsrq);
 
-        // Inform eNodeB RRC about handover
         m_handoverManagementSapUser->TriggerHandover(rnti, bestNeighbourCellId);
       }
     }
-
-  } // end of else of if (it1 == m_neighbourCellMeasures.end ())
-
-} // end of EvaluateMeasurementReport
+  }
+}
 
 bool A2A4RsrqHandoverAlgorithm::IsValidNeighbour(uint16_t cellId) {
   NS_LOG_FUNCTION(this << cellId);
-
-  /**
-   * \todo In the future, this function can be expanded to validate whether the
-   *       neighbour cell is a valid target cell, e.g., taking into account the
-   *       NRT in ANR and whether it is a CSG cell with closed access.
-   */
 
   return true;
 }
@@ -218,7 +177,6 @@ void A2A4RsrqHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
   auto it1 = m_neighbourCellMeasures.find(rnti);
 
   if (it1 == m_neighbourCellMeasures.end()) {
-    // insert a new UE entry
     MeasurementRow_t row;
     auto ret = m_neighbourCellMeasures.insert(
         std::pair<uint16_t, MeasurementRow_t>(rnti, row));
@@ -236,14 +194,12 @@ void A2A4RsrqHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
     neighbourCellMeasures->m_rsrp = 0;
     neighbourCellMeasures->m_rsrq = rsrq;
   } else {
-    // insert a new cell entry
     neighbourCellMeasures = Create<UeMeasure>();
     neighbourCellMeasures->m_cellId = cellId;
     neighbourCellMeasures->m_rsrp = 0;
     neighbourCellMeasures->m_rsrq = rsrq;
     it1->second[cellId] = neighbourCellMeasures;
   }
+}
 
-} // end of UpdateNeighbourMeasurements
-
-} // end of namespace ns3
+} // namespace ns3

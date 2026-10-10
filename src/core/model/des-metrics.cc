@@ -1,46 +1,20 @@
-/*
- * Copyright (c) 2016 LLNL
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
-/**
- * @file
- * @ingroup simulator
- * ns3::DesMetrics implementation.
- */
 
 #include "des-metrics.h"
 
 #include "simulator.h"
 #include "system-path.h"
 
-#include <ctime> // time_t, time()
+#include <ctime>
 #include <sstream>
 #include <string>
 
 namespace ns3 {
 
-/* static */
-std::string DesMetrics::m_outputDir; // = "";
+std::string DesMetrics::m_outputDir;
 
-void DesMetrics::Initialize(std::vector<std::string> args,
-                            std::string outDir /* = "" */) {
+void DesMetrics::Initialize(std::vector<std::string> args, std::string outDir) {
   if (m_initialized) {
-    // Running multiple tests, so close the previous output file
     Close();
   }
 
@@ -62,7 +36,7 @@ void DesMetrics::Initialize(std::vector<std::string> args,
   time_t current_time;
   time(&current_time);
   const char *date = ctime(&current_time);
-  std::string capture_date(date, 24); // discard trailing newline from ctime
+  std::string capture_date(date, 24);
 
   m_os.open(jsonFile);
   m_os << "{" << std::endl;
@@ -103,7 +77,6 @@ void DesMetrics::TraceWithContext(uint32_t context, const Time &now,
   }
 
   uint32_t sendCtx = Simulator::GetContext();
-  // Force to signed so we can show NoContext as '-1'
   int32_t send = (sendCtx != Simulator::NO_CONTEXT) ? (int32_t)sendCtx : -1;
   int32_t recv = (context != Simulator::NO_CONTEXT) ? (int32_t)context : -1;
 
@@ -121,7 +94,7 @@ void DesMetrics::TraceWithContext(uint32_t context, const Time &now,
 DesMetrics::~DesMetrics() { Close(); }
 
 void DesMetrics::Close() {
-  m_os << std::endl; // Finish the last event line
+  m_os << std::endl;
 
   m_os << " ]" << std::endl;
   m_os << "}" << std::endl;

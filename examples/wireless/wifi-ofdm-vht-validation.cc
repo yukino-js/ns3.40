@@ -1,40 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
-
-// This example is used to validate Nist, Yans and Table-based error rate models
-// for VHT rates.
-//
-// It outputs plots of the Frame Success Rate versus the Signal-to-noise ratio
-// for Nist, Yans and Table-based error rate models and for every VHT MCS value
-// (MCS 9 is not included since it is forbidden for 20 MHz channels).
 
 #include "ns3/command-line.h"
 #include "ns3/gnuplot.h"
@@ -90,21 +54,18 @@ int main(int argc, char *argv[]) {
       double ps =
           yans->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (ps < 0.0 || ps > 1.0) {
-        // error
         exit(1);
       }
       yansdataset.Add(snrDb, ps);
 
       ps = nist->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (ps < 0.0 || ps > 1.0) {
-        // error
         exit(1);
       }
       nistdataset.Add(snrDb, ps);
 
       ps = table->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (ps < 0.0 || ps > 1.0) {
-        // error
         exit(1);
       }
       tabledataset.Add(snrDb, ps);

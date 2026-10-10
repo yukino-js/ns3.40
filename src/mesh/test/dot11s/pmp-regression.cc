@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 #include "pmp-regression.h"
 
 #include "ns3/double.h"
@@ -36,7 +18,6 @@
 
 using namespace ns3;
 
-/// Unique PCAP file name prefix
 const char *const PREFIX = "pmp-regression-test";
 
 PeerManagementProtocolRegressionTest::PeerManagementProtocolRegressionTest()
@@ -65,36 +46,29 @@ void PeerManagementProtocolRegressionTest::CreateNodes() {
   m_nodes = new NodeContainer;
   m_nodes->Create(2);
   MobilityHelper mobility;
-  mobility.SetPositionAllocator("ns3::GridPositionAllocator", "MinX",
-                                DoubleValue(0.0), "MinY", DoubleValue(0.0),
-                                "DeltaX", DoubleValue(1 /*meter*/), "DeltaY",
-                                DoubleValue(0), "GridWidth", UintegerValue(2),
-                                "LayoutType", StringValue("RowFirst"));
+  mobility.SetPositionAllocator(
+      "ns3::GridPositionAllocator", "MinX", DoubleValue(0.0), "MinY",
+      DoubleValue(0.0), "DeltaX", DoubleValue(1), "DeltaY", DoubleValue(0),
+      "GridWidth", UintegerValue(2), "LayoutType", StringValue("RowFirst"));
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(*m_nodes);
 }
 
 void PeerManagementProtocolRegressionTest::CreateDevices() {
   int64_t streamsUsed = 0;
-  // 1. setup WiFi
   YansWifiPhyHelper wifiPhy;
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   Ptr<YansWifiChannel> chan = wifiChannel.Create();
   wifiPhy.SetChannel(chan);
-  // 2. setup mesh
   MeshHelper mesh = MeshHelper::Default();
   mesh.SetStackInstaller("ns3::Dot11sStack");
   mesh.SetMacType("RandomStart", TimeValue(Seconds(0.1)));
   mesh.SetNumberOfInterfaces(1);
   NetDeviceContainer meshDevices = mesh.Install(wifiPhy, *m_nodes);
-  // Two devices, 10 streams per device (one for mac, one for phy,
-  // two for plugins, five for regular mac wifi DCF, and one for
-  // MeshPointDevice)
   streamsUsed += mesh.AssignStreams(meshDevices, 0);
   NS_TEST_ASSERT_MSG_EQ(streamsUsed, (meshDevices.GetN() * 10),
                         "Stream assignment mismatch");
   streamsUsed += wifiChannel.AssignStreams(chan, streamsUsed);
-  // 3. write PCAP if needed
   wifiPhy.EnablePcapAll(CreateTempDirFilename(PREFIX));
 }
 

@@ -1,50 +1,19 @@
-/*
- * Copyright (c) 2020 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Rohan Patidar <rpatidar@uw.edu>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- *          Sian Jin <sianjin@uw.edu>
- */
 
-// This file contains table data for the TableBasedErrorRateModel.  For more
-// information on the source of this data, see wifi module documentation.
 
 #ifndef ERROR_RATE_TABLES_H
 #define ERROR_RATE_TABLES_H
 
 namespace ns3 {
 
-const uint16_t ERROR_TABLE_BCC_SMALL_FRAME_SIZE =
-    32; //!< reference size (bytes) of small frames for BCC
-const uint16_t ERROR_TABLE_BCC_LARGE_FRAME_SIZE =
-    1458; //!< reference size (bytes) of large frames for BCC
-const uint16_t ERROR_TABLE_LDPC_FRAME_SIZE =
-    1458; //!< reference size (bytes) for LDPC
-const uint8_t ERROR_TABLE_BCC_MAX_NUM_MCS =
-    10; //!< maximum number of MCSs for BCC
-const uint8_t ERROR_TABLE_LDPC_MAX_NUM_MCS =
-    12; //!< maximum number of MCSs for LDPC
+const uint16_t ERROR_TABLE_BCC_SMALL_FRAME_SIZE = 32;
+const uint16_t ERROR_TABLE_BCC_LARGE_FRAME_SIZE = 1458;
+const uint16_t ERROR_TABLE_LDPC_FRAME_SIZE = 1458;
+const uint8_t ERROR_TABLE_BCC_MAX_NUM_MCS = 10;
+const uint8_t ERROR_TABLE_LDPC_MAX_NUM_MCS = 12;
 
-/// Table of SNR (dB) and PER pairs
-typedef std::vector<std::pair<double /* SNR (dB) */, double /* PER */>>
-    SnrPerTable;
+typedef std::vector<std::pair<double, double>> SnrPerTable;
 
-/// AWGN error table for BCC with reference size of 32 bytes
 static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
-    // MCS-0
     {
         {-3.50000, 1.00000},
         {-3.00000, 0.99500},
@@ -60,7 +29,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {2.00000, 0.00009},
         {2.50000, 0.00000},
     },
-    // MCS-1
     {
         {-0.50000, 1.00000},
         {0.00000, 0.99210},
@@ -76,7 +44,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {5.00000, 0.00003},
         {5.50000, 0.00000},
     },
-    // MCS-2
     {
         {2.00000, 1.00000},
         {2.50000, 0.99400},
@@ -92,7 +59,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {7.50000, 0.00008},
         {8.00000, 0.00000},
     },
-    // MCS-3
     {
         {4.00000, 1.00000},
         {4.50000, 0.99900},
@@ -111,7 +77,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {11.00000, 0.00003},
         {11.50000, 0.00000},
     },
-    // MCS-4
     {
         {8.00000, 1.00000},
         {8.50000, 0.99900},
@@ -128,7 +93,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {14.00000, 0.00009},
         {14.50000, 0.00000},
     },
-    // MCS-5
     {
         {11.50000, 1.00000},
         {12.00000, 0.99800},
@@ -148,7 +112,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {19.00000, 0.00002},
         {19.50000, 0.00000},
     },
-    // MCS-6
     {
         {13.00000, 1.00000},
         {13.50000, 0.99010},
@@ -167,7 +130,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {20.00000, 0.00002},
         {20.50000, 0.00000},
     },
-    // MCS-7
     {
         {14.00000, 1.00000},
         {14.50000, 0.99700},
@@ -187,7 +149,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {21.50000, 0.00004},
         {22.00000, 0.00000},
     },
-    // MCS-8
     {
         {17.50000, 1.00000},
         {18.00000, 0.99600},
@@ -208,7 +169,6 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {25.50000, 0.00004},
         {26.00000, 0.00000},
     },
-    // MCS-9
     {
         {19.00000, 1.00000},
         {19.50000, 0.99800},
@@ -231,9 +191,7 @@ static const SnrPerTable AwgnErrorTableBcc32[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
     },
 };
 
-/// AWGN error table for BCC with reference size of 1458 bytes
 static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
-    // MCS-0
     {
         {-1.00000, 1.00000},
         {-0.50000, 0.99400},
@@ -246,7 +204,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {3.00000, 0.00001},
         {3.50000, 0.00000},
     },
-    // MCS-1
     {
         {2.00000, 1.00000},
         {2.50000, 0.99700},
@@ -258,7 +215,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {5.50000, 0.00023},
         {6.00000, 0.00000},
     },
-    // MCS-2
     {
         {4.50000, 1.00000},
         {5.00000, 0.99800},
@@ -271,7 +227,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {8.50000, 0.00004},
         {9.00000, 0.00000},
     },
-    // MCS-3
     {
         {7.50000, 1.00000},
         {8.00000, 0.99400},
@@ -285,7 +240,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {12.00000, 0.00005},
         {12.50000, 0.00000},
     },
-    // MCS-4
     {
         {11.00000, 1.00000},
         {11.50000, 0.92690},
@@ -298,7 +252,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {15.00000, 0.00010},
         {15.50000, 0.00000},
     },
-    // MCS-5
     {
         {14.50000, 1.00000},
         {15.00000, 0.99900},
@@ -314,7 +267,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {20.00000, 0.00002},
         {20.50000, 0.00000},
     },
-    // MCS-6
     {
         {16.00000, 1.00000},
         {16.50000, 0.99500},
@@ -329,7 +281,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {21.00000, 0.00002},
         {21.50000, 0.00000},
     },
-    // MCS-7
     {
         {17.50000, 1.00000},
         {18.00000, 0.97850},
@@ -344,7 +295,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {22.50000, 0.00001},
         {23.00000, 0.00000},
     },
-    // MCS-8
     {
         {21.00000, 1.00000},
         {21.50000, 0.99800},
@@ -360,7 +310,6 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
         {26.50000, 0.00007},
         {27.00000, 0.00000},
     },
-    // MCS-9
     {
         {22.50000, 1.00000},
         {23.00000, 0.99900},
@@ -379,10 +328,8 @@ static const SnrPerTable AwgnErrorTableBcc1458[ERROR_TABLE_BCC_MAX_NUM_MCS] = {
     },
 };
 
-/// AWGN error table for LDPC with reference size of 1458 bytes
 static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
     {
-        // MCS-0
         {
             {-1.50000, 1.00000},
             {-1.25000, 0.97950},
@@ -395,7 +342,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {0.50000, 0.00004},
             {0.75000, 0.00000},
         },
-        // MCS-1
         {
             {1.50000, 1.00000},
             {1.75000, 0.97470},
@@ -408,7 +354,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {3.50000, 0.00003},
             {3.75000, 0.00000},
         },
-        // MCS-2
         {
             {4.00000, 1.00000},
             {4.25000, 0.98720},
@@ -420,7 +365,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {5.75000, 0.00003},
             {6.00000, 0.00000},
         },
-        // MCS-3
         {
             {6.75000, 1.00000},
             {7.00000, 0.99800},
@@ -435,7 +379,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {9.25000, 0.00002},
             {9.50000, 0.00000},
         },
-        // MCS-4
         {{10.00000, 1.00000},
          {10.25000, 0.99310},
          {10.50000, 0.70890},
@@ -446,7 +389,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
          {11.75000, 0.00016},
          {12.00000, 0.00003},
          {12.25000, 0.00000}},
-        // MCS-5
         {
             {14.00000, 1.00000},
             {14.25000, 0.99700},
@@ -460,7 +402,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {16.25000, 0.00005},
             {16.50000, 0.00000},
         },
-        // MCS-6
         {
             {15.50000, 1.00000},
             {15.75000, 0.98140},
@@ -474,7 +415,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {17.75000, 0.00003},
             {18.00000, 0.00000},
         },
-        // MCS-7
         {
             {17.00000, 1.00000},
             {17.25000, 0.97750},
@@ -488,7 +428,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {19.25000, 0.00003},
             {19.50000, 0.00000},
         },
-        // MCS-8
         {
             {20.50000, 1.00000},
             {20.75000, 0.99500},
@@ -504,7 +443,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {23.25000, 0.00001},
             {23.50000, 0.00000},
         },
-        // MCS-9
         {
             {22.25000, 1.00000},
             {22.50000, 0.99900},
@@ -519,7 +457,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {24.75000, 0.00004},
             {25.00000, 0.00000},
         },
-        // MCS-10
         {
             {25.75000, 1.00000},
             {26.00000, 0.94970},
@@ -534,7 +471,6 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
             {28.25000, 0.00002},
             {28.50000, 0.00000},
         },
-        // MCS-11
         {
             {27.75000, 1.00000},
             {28.00000, 0.94880},
@@ -553,4 +489,4 @@ static const SnrPerTable AwgnErrorTableLdpc1458[ERROR_TABLE_LDPC_MAX_NUM_MCS] =
 
 } // namespace ns3
 
-#endif /* ERROR_RATE_TABLES_H */
+#endif

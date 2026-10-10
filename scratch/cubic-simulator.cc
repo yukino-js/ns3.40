@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -29,15 +16,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("CubicSimulator");
-
-// ============================================================================
-// 实验目标：CUBIC + RED/ECN（Classic ECN / RFC3168）对照组
-// CUBIC 在收到 ECE 时会执行一次类似丢包的 cwnd 缩减（MD 到 0.7 * cwnd）。
-// 用它和 DCTCP 对比可以看出：
-//   * Classic ECN 在稳态下依旧表现出“锯齿”cwnd
-//   * DCTCP 则是平滑的、基于 mark 比例的 cwnd 控制
-// 拓扑和 DCTCP/BBR 版本完全一致，便于横向比较。
-// ============================================================================
 
 static void QueueLengthTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                               uint32_t newVal) {
@@ -100,15 +78,12 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("simTime", "Simulation time (s)", simTime);
   cmd.Parse(argc, argv);
 
-  //! CUBIC
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      TypeIdValue(TcpCubic::GetTypeId()));
 
-  //! Classic ECN（RFC3168）
   Config::SetDefault("ns3::TcpSocketBase::UseEcn",
                      StringValue(useEcn ? "On" : "Off"));
 
-  //! RED
   Config::SetDefault("ns3::RedQueueDisc::UseEcn", BooleanValue(useEcn));
   Config::SetDefault("ns3::RedQueueDisc::UseHardDrop", BooleanValue(false));
   Config::SetDefault("ns3::RedQueueDisc::MeanPktSize", UintegerValue(1500));

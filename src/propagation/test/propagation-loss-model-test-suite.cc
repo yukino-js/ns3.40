@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2009 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/config.h"
@@ -28,21 +12,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("PropagationLossModelsTest");
 
-// ===========================================================================
-// This is a simple test to validate propagation loss models of ns-3 wifi.
-// See the chapter in the ns-3 testing and validation guide for more detail
-// ===========================================================================
-
-/**
- * \ingroup propagation
- * \defgroup propagation-test Propagation module tests
- */
-
-/**
- * \ingroup propagation-tests
- *
- * \brief FriisPropagationLossModel Test
- */
 class FriisPropagationLossModelTestCase : public TestCase {
 public:
   FriisPropagationLossModelTestCase();
@@ -51,15 +20,13 @@ public:
 private:
   void DoRun() override;
 
-  /// Test vector
   struct TestVector {
-    Vector m_position;  //!< Test node position
-    double m_pt;        //!< Tx power [dBm]
-    double m_pr;        //!< Rx power [W]
-    double m_tolerance; //!< Tolerance
+    Vector m_position;
+    double m_pt;
+    double m_pr;
+    double m_tolerance;
   };
 
-  /// Test vectors
   TestVectors<TestVector> m_testVectors;
 };
 
@@ -72,30 +39,15 @@ FriisPropagationLossModelTestCase::FriisPropagationLossModelTestCase()
 FriisPropagationLossModelTestCase::~FriisPropagationLossModelTestCase() {}
 
 void FriisPropagationLossModelTestCase::DoRun() {
-  // The ns-3 testing manual gives more background on the values selected
-  // for this test.  First, set a few defaults.
 
-  // the test vectors have been determined for a wavelength of 0.125 m
-  // which corresponds to a frequency of 2398339664.0 Hz in the vacuum
   Config::SetDefault("ns3::FriisPropagationLossModel::Frequency",
                      DoubleValue(2398339664.0));
   Config::SetDefault("ns3::FriisPropagationLossModel::SystemLoss",
                      DoubleValue(1.0));
 
-  // Select a reference transmit power
-  // Pt = 10^(17.0206/10)/10^3 = .05035702 W
   double txPowerW = 0.05035702;
   double txPowerdBm = 10 * std::log10(txPowerW) + 30;
 
-  //
-  // We want to test the propagation loss model calculations at a few chosen
-  // distances and compare the results to those we have manually calculated
-  // according to the model documentation.  The model reference specifies,
-  // for instance, that the received power at 100m according to the provided
-  // input power will be 4.98265e-10 W.  Since this value specifies the power
-  // to 1e-15 significance, we test the ns-3 calculated value for agreement
-  // within 5e-16.
-  //
   TestVector testVector;
 
   testVector.m_position = Vector(100, 0, 0);
@@ -122,8 +74,6 @@ void FriisPropagationLossModelTestCase::DoRun() {
   testVector.m_tolerance = 5e-18;
   m_testVectors.Add(testVector);
 
-  // Now, check that the received power values are expected
-
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   a->SetPosition(Vector(0, 0, 0));
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
@@ -140,13 +90,6 @@ void FriisPropagationLossModelTestCase::DoRun() {
   }
 }
 
-// Added for Two-Ray Ground Model - tomhewer@mac.com
-
-/**
- * \ingroup propagation-tests
- *
- * \brief TwoRayGroundPropagationLossModel Test
- */
 class TwoRayGroundPropagationLossModelTestCase : public TestCase {
 public:
   TwoRayGroundPropagationLossModelTestCase();
@@ -155,15 +98,13 @@ public:
 private:
   void DoRun() override;
 
-  /// Test vector
   struct TestVector {
-    Vector m_position;  //!< Test node position
-    double m_pt;        //!< Tx power [dBm]
-    double m_pr;        //!< Rx power [W]
-    double m_tolerance; //!< Tolerance
+    Vector m_position;
+    double m_pt;
+    double m_pr;
+    double m_tolerance;
   };
 
-  /// Test vectors
   TestVectors<TestVector> m_testVectors;
 };
 
@@ -178,42 +119,24 @@ TwoRayGroundPropagationLossModelTestCase::
     ~TwoRayGroundPropagationLossModelTestCase() {}
 
 void TwoRayGroundPropagationLossModelTestCase::DoRun() {
-  // the test vectors have been determined for a wavelength of 0.125 m
-  // which corresponds to a frequency of 2398339664.0 Hz in the vacuum
   Config::SetDefault("ns3::TwoRayGroundPropagationLossModel::Frequency",
                      DoubleValue(2398339664.0));
   Config::SetDefault("ns3::TwoRayGroundPropagationLossModel::SystemLoss",
                      DoubleValue(1.0));
 
-  // set antenna height to 1.5m above z coordinate
   Config::SetDefault("ns3::TwoRayGroundPropagationLossModel::HeightAboveZ",
                      DoubleValue(1.5));
 
-  // Select a reference transmit power of 17.0206 dBm
-  // Pt = 10^(17.0206/10)/10^3 = .05035702 W
   double txPowerW = 0.05035702;
   double txPowerdBm = 10 * std::log10(txPowerW) + 30;
 
-  //
-  // As with the Friis tests above, we want to test the propagation loss
-  // model calculations at a few chosen distances and compare the results
-  // to those we can manually calculate. Let us test the ns-3 calculated
-  // value for agreement to be within 5e-16, as above.
-  //
   TestVector testVector;
-
-  // Below the Crossover distance use Friis so this test should be the same as
-  // that above Crossover = (4 * PI * TxAntennaHeight * RxAntennaHeight) /
-  // Lamdba Crossover = (4 * PI * 1.5 * 1.5) / 0.125 = 226.1946m
 
   testVector.m_position = Vector(100, 0, 0);
   testVector.m_pt = txPowerdBm;
   testVector.m_pr = 4.98265e-10;
   testVector.m_tolerance = 5e-16;
   m_testVectors.Add(testVector);
-
-  // These values are above the crossover distance and therefore use the Two Ray
-  // calculation
 
   testVector.m_position = Vector(500, 0, 0);
   testVector.m_pt = txPowerdBm;
@@ -233,33 +156,23 @@ void TwoRayGroundPropagationLossModelTestCase::DoRun() {
   testVector.m_tolerance = 5e-16;
   m_testVectors.Add(testVector);
 
-  // Repeat the tests for non-zero z coordinates
-
-  // Pr = (0.05035702 * (1.5*1.5) * (2.5*2.5)) / (500*500*500*500)
-  // = 1.13303295e-11 dCross = (4 * pi * 1.5 * 2.5) / 0.125 = 376.99m
   testVector.m_position = Vector(500, 0, 1);
   testVector.m_pt = txPowerdBm;
   testVector.m_pr = 1.13303295e-11;
   testVector.m_tolerance = 5e-16;
   m_testVectors.Add(testVector);
 
-  // Pr = (0.05035702 * (1.5*1.5) * (5.5*5.5)) / (1000*1000*1000*1000)
-  // = 3.42742467375e-12 dCross = (4 * pi * 1.5 * 5.5) / 0.125 = 829.38m
   testVector.m_position = Vector(1000, 0, 4);
   testVector.m_pt = txPowerdBm;
   testVector.m_pr = 3.42742467375e-12;
   testVector.m_tolerance = 5e-16;
   m_testVectors.Add(testVector);
 
-  // Pr = (0.05035702 * (1.5*1.5) * (11.5*11.5)) / (2000*2000*2000*2000)
-  // = 9.36522547734e-13 dCross = (4 * pi * 1.5 * 11.5) / 0.125 = 1734.15m
   testVector.m_position = Vector(2000, 0, 10);
   testVector.m_pt = txPowerdBm;
   testVector.m_pr = 9.36522547734e-13;
   testVector.m_tolerance = 5e-16;
   m_testVectors.Add(testVector);
-
-  // Now, check that the received power values are expected
 
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   a->SetPosition(Vector(0, 0, 0));
@@ -277,11 +190,6 @@ void TwoRayGroundPropagationLossModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief LogDistancePropagationLossModel Test
- */
 class LogDistancePropagationLossModelTestCase : public TestCase {
 public:
   LogDistancePropagationLossModelTestCase();
@@ -290,15 +198,13 @@ public:
 private:
   void DoRun() override;
 
-  /// Test vector
   struct TestVector {
-    Vector m_position;  //!< Test node position
-    double m_pt;        //!< Tx power [dBm]
-    double m_pr;        //!< Rx power [W]
-    double m_tolerance; //!< Tolerance
+    Vector m_position;
+    double m_pt;
+    double m_pr;
+    double m_tolerance;
   };
 
-  /// Test vectors
   TestVectors<TestVector> m_testVectors;
 };
 
@@ -313,23 +219,14 @@ LogDistancePropagationLossModelTestCase::
     ~LogDistancePropagationLossModelTestCase() {}
 
 void LogDistancePropagationLossModelTestCase::DoRun() {
-  // reference loss at 2.4 GHz is 40.045997
   Config::SetDefault("ns3::LogDistancePropagationLossModel::ReferenceLoss",
                      DoubleValue(40.045997));
   Config::SetDefault("ns3::LogDistancePropagationLossModel::Exponent",
                      DoubleValue(3));
 
-  // Select a reference transmit power
-  // Pt = 10^(17.0206/10)/10^3 = .05035702 W
   double txPowerW = 0.05035702;
   double txPowerdBm = 10 * std::log10(txPowerW) + 30;
 
-  //
-  // We want to test the propagation loss model calculations at a few chosen
-  // distances and compare the results to those we have manually calculated
-  // according to the model documentation.  The following "TestVector" objects
-  // will drive the test.
-  //
   TestVector testVector;
 
   testVector.m_position = Vector(10, 0, 0);
@@ -372,11 +269,6 @@ void LogDistancePropagationLossModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief MatrixPropagationLossModel Test
- */
 class MatrixPropagationLossModelTestCase : public TestCase {
 public:
   MatrixPropagationLossModelTestCase();
@@ -398,14 +290,10 @@ void MatrixPropagationLossModelTestCase::DoRun() {
   }
 
   MatrixPropagationLossModel loss;
-  // no loss by default
   loss.SetDefaultLoss(0);
-  // -10 dB for 0 -> 1 and 1 -> 0
   loss.SetLoss(m[0], m[1], 10);
-  // -30 dB from 0 to 2 and -100 dB from 2 to 0
-  loss.SetLoss(m[0], m[2], 30, /*symmetric = */ false);
-  loss.SetLoss(m[2], m[0], 100, /*symmetric = */ false);
-  // default from 1 to 2
+  loss.SetLoss(m[0], m[2], 30, false);
+  loss.SetLoss(m[2], m[0], 100, false);
 
   NS_TEST_ASSERT_MSG_EQ(loss.CalcRxPower(0, m[0], m[1]), -10,
                         "Loss 0 -> 1 incorrect");
@@ -423,11 +311,6 @@ void MatrixPropagationLossModelTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief RangePropagationLossModel Test
- */
 class RangePropagationLossModelTestCase : public TestCase {
 public:
   RangePropagationLossModelTestCase();
@@ -448,7 +331,7 @@ void RangePropagationLossModelTestCase::DoRun() {
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   a->SetPosition(Vector(0, 0, 0));
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
-  b->SetPosition(Vector(127.1, 0, 0)); // within range
+  b->SetPosition(Vector(127.1, 0, 0));
 
   Ptr<RangePropagationLossModel> lossModel =
       CreateObject<RangePropagationLossModel>();
@@ -458,25 +341,13 @@ void RangePropagationLossModelTestCase::DoRun() {
   double resultdBm = lossModel->CalcRxPower(txPwrdBm, a, b);
   NS_TEST_EXPECT_MSG_EQ_TOL(resultdBm, txPwrdBm, tolerance,
                             "Got unexpected rcv power");
-  b->SetPosition(Vector(127.25, 0, 0)); // beyond range
+  b->SetPosition(Vector(127.25, 0, 0));
   resultdBm = lossModel->CalcRxPower(txPwrdBm, a, b);
   NS_TEST_EXPECT_MSG_EQ_TOL(resultdBm, -1000.0, tolerance,
                             "Got unexpected rcv power");
   Simulator::Destroy();
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief Propagation models TestSuite
- *
- * This TestSuite tests the following models:
- *   - FriisPropagationLossModel
- *   - TwoRayGroundPropagationLossModel
- *   - LogDistancePropagationLossModel
- *   - MatrixPropagationLossModel
- *   - RangePropagationLossModel
- */
 class PropagationLossModelsTestSuite : public TestSuite {
 public:
   PropagationLossModelsTestSuite();
@@ -491,5 +362,4 @@ PropagationLossModelsTestSuite::PropagationLossModelsTestSuite()
   AddTestCase(new RangePropagationLossModelTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static PropagationLossModelsTestSuite g_propagationLossModelsTestSuite;

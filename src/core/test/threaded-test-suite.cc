@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Claudio Freire <claudio-daniel.freire@inria.fr>
- */
 #include "ns3/calendar-scheduler.h"
 #include "ns3/config.h"
 #include "ns3/heap-scheduler.h"
@@ -25,92 +7,40 @@
 #include "ns3/string.h"
 #include "ns3/test.h"
 
-#include <chrono> // seconds, milliseconds
+#include <chrono>
 #include <ctime>
 #include <list>
-#include <thread> // sleep_for
+#include <thread>
 #include <utility>
 
 using namespace ns3;
 
-/// Maximum number of threads.
 constexpr int MAXTHREADS = 64;
 
-/**
- * \file
- * \ingroup threaded-tests
- * Threaded events test suite
- */
-
-/**
- * \ingroup core-tests
- * \defgroup threaded-tests Threaded events tests
- */
-
-/**
- * \ingroup threaded-tests
- *
- * \brief Check threaded event handling with various thread number, schedulers,
- * and  simulator types.
- */
 class ThreadedSimulatorEventsTestCase : public TestCase {
 public:
-  /**
-   * Constructor.
-   *
-   * \param schedulerFactory The scheduler factory.
-   * \param simulatorType The simulator type.
-   * \param threads The number of threads.
-   */
   ThreadedSimulatorEventsTestCase(ObjectFactory schedulerFactory,
                                   const std::string &simulatorType,
                                   unsigned int threads);
-  /**
-   * Event A
-   * \param a The Event parameter.
-   */
   void EventA(int a);
-  /**
-   * Event B
-   * \param b The Event parameter.
-   */
   void EventB(int b);
-  /**
-   * Event C
-   * \param c The Event parameter.
-   */
   void EventC(int c);
-  /**
-   * Event D
-   * \param d The Event parameter.
-   */
   void EventD(int d);
-  /**
-   * No-op function, records the thread that called it.
-   * \param threadno The thread number.
-   */
   void DoNothing(unsigned int threadno);
-  /**
-   * Schedule a thread.
-   * \param context The context.
-   */
   static void SchedulingThread(
       std::pair<ThreadedSimulatorEventsTestCase *, unsigned int> context);
-  /**
-   * End the thread execution.
-   */
   void End();
-  uint64_t m_a;           //!< The value incremented when EventA is called.
-  uint64_t m_b;           //!< The value incremented when EventB is called.
-  uint64_t m_c;           //!< The value incremented when EventC is called.
-  uint64_t m_d;           //!< The value incremented when EventD is called.
-  unsigned int m_threads; //!< The number of threads.
-  bool m_threadWaiting[MAXTHREADS];    //!< Threads waiting to be scheduled.
-  bool m_stop;                         //!< Stop variable.
-  ObjectFactory m_schedulerFactory;    //!< Scheduler factory.
-  std::string m_simulatorType;         //!< Simulator type.
-  std::string m_error;                 //!< Error condition.
-  std::list<std::thread> m_threadlist; //!< Thread list.
+  uint64_t m_a;
+  uint64_t m_b;
+  uint64_t m_c;
+  uint64_t m_d;
+  unsigned int m_threads;
+  bool m_threadWaiting[MAXTHREADS];
+  bool m_stop;
+  ObjectFactory m_schedulerFactory;
+  std::string m_simulatorType;
+  std::string m_error;
+  std::list<std::thread> m_threadlist;
 
 private:
   void DoSetup() override;
@@ -244,11 +174,6 @@ void ThreadedSimulatorEventsTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(m_a, m_d, "Bad scheduling");
 }
 
-/**
- * \ingroup threaded-tests
- *
- * \brief The threaded simulator Test Suite.
- */
 class ThreadedSimulatorTestSuite : public TestSuite {
 public:
   ThreadedSimulatorTestSuite() : TestSuite("threaded-simulator") {
@@ -278,5 +203,4 @@ public:
   }
 };
 
-/// Static variable for test initialization.
 static ThreadedSimulatorTestSuite g_threadedSimulatorTestSuite;

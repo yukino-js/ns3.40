@@ -1,35 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: George F. Riley<riley@ece.gatech.edu>
- */
-
-// Implement an object to create a dumbbell topology.
 
 #include "point-to-point-dumbbell.h"
 
@@ -51,22 +20,17 @@ NS_LOG_COMPONENT_DEFINE("PointToPointDumbbellHelper");
 PointToPointDumbbellHelper::PointToPointDumbbellHelper(
     uint32_t nLeftLeaf, PointToPointHelper leftHelper, uint32_t nRightLeaf,
     PointToPointHelper rightHelper, PointToPointHelper bottleneckHelper) {
-  // Create the bottleneck routers
   m_routers.Create(2);
-  // Create the leaf nodes
   m_leftLeaf.Create(nLeftLeaf);
   m_rightLeaf.Create(nRightLeaf);
 
-  // Add the link connecting routers
   m_routerDevices = bottleneckHelper.Install(m_routers);
-  // Add the left side links
   for (uint32_t i = 0; i < nLeftLeaf; ++i) {
     NetDeviceContainer c =
         leftHelper.Install(m_routers.Get(0), m_leftLeaf.Get(i));
     m_leftRouterDevices.Add(c.Get(0));
     m_leftLeafDevices.Add(c.Get(1));
   }
-  // Add the right side links
   for (uint32_t i = 0; i < nRightLeaf; ++i) {
     NetDeviceContainer c =
         rightHelper.Install(m_routers.Get(1), m_rightLeaf.Get(i));
@@ -77,23 +41,19 @@ PointToPointDumbbellHelper::PointToPointDumbbellHelper(
 
 PointToPointDumbbellHelper::~PointToPointDumbbellHelper() {}
 
-Ptr<Node> PointToPointDumbbellHelper::GetLeft()
-    const { // Get the left side bottleneck router
+Ptr<Node> PointToPointDumbbellHelper::GetLeft() const {
   return m_routers.Get(0);
 }
 
-Ptr<Node> PointToPointDumbbellHelper::GetLeft(
-    uint32_t i) const { // Get the i'th left side leaf
+Ptr<Node> PointToPointDumbbellHelper::GetLeft(uint32_t i) const {
   return m_leftLeaf.Get(i);
 }
 
-Ptr<Node> PointToPointDumbbellHelper::GetRight()
-    const { // Get the right side bottleneck router
+Ptr<Node> PointToPointDumbbellHelper::GetRight() const {
   return m_routers.Get(1);
 }
 
-Ptr<Node> PointToPointDumbbellHelper::GetRight(
-    uint32_t i) const { // Get the i'th right side leaf
+Ptr<Node> PointToPointDumbbellHelper::GetRight(uint32_t i) const {
   return m_rightLeaf.Get(i);
 }
 
@@ -113,13 +73,11 @@ Ipv6Address PointToPointDumbbellHelper::GetRightIpv6Address(uint32_t i) const {
   return m_rightLeafInterfaces6.GetAddress(i, 1);
 }
 
-uint32_t
-PointToPointDumbbellHelper::LeftCount() const { // Number of left side nodes
+uint32_t PointToPointDumbbellHelper::LeftCount() const {
   return m_leftLeaf.GetN();
 }
 
-uint32_t
-PointToPointDumbbellHelper::RightCount() const { // Number of right side nodes
+uint32_t PointToPointDumbbellHelper::RightCount() const {
   return m_rightLeaf.GetN();
 }
 
@@ -132,9 +90,7 @@ void PointToPointDumbbellHelper::InstallStack(InternetStackHelper stack) {
 void PointToPointDumbbellHelper::AssignIpv4Addresses(
     Ipv4AddressHelper leftIp, Ipv4AddressHelper rightIp,
     Ipv4AddressHelper routerIp) {
-  // Assign the router network
   m_routerInterfaces = routerIp.Assign(m_routerDevices);
-  // Assign to left side
   for (uint32_t i = 0; i < LeftCount(); ++i) {
     NetDeviceContainer ndc;
     ndc.Add(m_leftLeafDevices.Get(i));
@@ -144,7 +100,6 @@ void PointToPointDumbbellHelper::AssignIpv4Addresses(
     m_leftRouterInterfaces.Add(ifc.Get(1));
     leftIp.NewNetwork();
   }
-  // Assign to right side
   for (uint32_t i = 0; i < RightCount(); ++i) {
     NetDeviceContainer ndc;
     ndc.Add(m_rightLeafDevices.Get(i));
@@ -158,7 +113,6 @@ void PointToPointDumbbellHelper::AssignIpv4Addresses(
 
 void PointToPointDumbbellHelper::AssignIpv6Addresses(Ipv6Address addrBase,
                                                      Ipv6Prefix prefix) {
-  // Assign the router network
   Ipv6AddressGenerator::Init(addrBase, prefix);
   Ipv6Address v6network;
   Ipv6AddressHelper addressHelper;
@@ -168,7 +122,6 @@ void PointToPointDumbbellHelper::AssignIpv6Addresses(Ipv6Address addrBase,
   m_routerInterfaces6 = addressHelper.Assign(m_routerDevices);
   Ipv6AddressGenerator::NextNetwork(prefix);
 
-  // Assign to left side
   for (uint32_t i = 0; i < LeftCount(); ++i) {
     v6network = Ipv6AddressGenerator::GetNetwork(prefix);
     addressHelper.SetBase(v6network, prefix);
@@ -183,7 +136,6 @@ void PointToPointDumbbellHelper::AssignIpv6Addresses(Ipv6Address addrBase,
     m_leftRouterInterfaces6.Add((*it).first, (*it).second);
     Ipv6AddressGenerator::NextNetwork(prefix);
   }
-  // Assign to right side
   for (uint32_t i = 0; i < RightCount(); ++i) {
     v6network = Ipv6AddressGenerator::GetNetwork(prefix);
     addressHelper.SetBase(v6network, prefix);
@@ -200,12 +152,8 @@ void PointToPointDumbbellHelper::AssignIpv6Addresses(Ipv6Address addrBase,
   }
 }
 
-void PointToPointDumbbellHelper::BoundingBox(
-    double ulx,
-    double uly, // Upper left x/y
-    double lrx,
-    double lry) const // Lower right x/y
-{
+void PointToPointDumbbellHelper::BoundingBox(double ulx, double uly, double lrx,
+                                             double lry) const {
   double xDist;
   double yDist;
   if (lrx > ulx) {
@@ -223,7 +171,6 @@ void PointToPointDumbbellHelper::BoundingBox(
   double thetaL = M_PI / (LeftCount() + 1.0);
   double thetaR = M_PI / (RightCount() + 1.0);
 
-  // Place the left router
   Ptr<Node> lr = GetLeft();
   Ptr<ConstantPositionMobilityModel> loc =
       lr->GetObject<ConstantPositionMobilityModel>();
@@ -234,22 +181,18 @@ void PointToPointDumbbellHelper::BoundingBox(
   Vector lrl(ulx + xAdder, uly + yDist / 2.0, 0);
   loc->SetPosition(lrl);
 
-  // Place the right router
   Ptr<Node> rr = GetRight();
   loc = rr->GetObject<ConstantPositionMobilityModel>();
   if (!loc) {
     loc = CreateObject<ConstantPositionMobilityModel>();
     rr->AggregateObject(loc);
   }
-  Vector rrl(ulx + xAdder * 2, uly + yDist / 2.0, 0); // Right router location
+  Vector rrl(ulx + xAdder * 2, uly + yDist / 2.0, 0);
   loc->SetPosition(rrl);
 
-  // Place the left leaf nodes
   double theta = -M_PI_2 + thetaL;
   for (uint32_t l = 0; l < LeftCount(); ++l) {
-    // Make them in a circular pattern to make all line lengths the same
-    // Special case when theta = 0, to be sure we get a straight line
-    if ((LeftCount() % 2) == 1) { // Count is odd, see if we are in middle
+    if ((LeftCount() % 2) == 1) {
       if (l == (LeftCount() / 2)) {
         theta = 0.0;
       }
@@ -261,23 +204,19 @@ void PointToPointDumbbellHelper::BoundingBox(
       ln->AggregateObject(loc);
     }
     Vector lnl(lrl.x - std::cos(theta) * xAdder,
-               lrl.y + std::sin(theta) * xAdder,
-               0); // Left Node Location
-    // Insure did not exceed bounding box
+               lrl.y + std::sin(theta) * xAdder, 0);
     if (lnl.y < uly) {
-      lnl.y = uly; // Set to upper left y
+      lnl.y = uly;
     }
     if (lnl.y > lry) {
-      lnl.y = lry; // Set to lower right y
+      lnl.y = lry;
     }
     loc->SetPosition(lnl);
     theta += thetaL;
   }
-  // Place the right nodes
   theta = -M_PI_2 + thetaR;
   for (uint32_t r = 0; r < RightCount(); ++r) {
-    // Special case when theta = 0, to be sure we get a straight line
-    if ((RightCount() % 2) == 1) { // Count is odd, see if we are in middle
+    if ((RightCount() % 2) == 1) {
       if (r == (RightCount() / 2)) {
         theta = 0.0;
       }
@@ -288,14 +227,13 @@ void PointToPointDumbbellHelper::BoundingBox(
       loc = CreateObject<ConstantPositionMobilityModel>();
       rn->AggregateObject(loc);
     }
-    Vector rnl(rrl.x + std::cos(theta) * xAdder, // Right node location
+    Vector rnl(rrl.x + std::cos(theta) * xAdder,
                rrl.y + std::sin(theta) * xAdder, 0);
-    // Insure did not exceed bounding box
     if (rnl.y < uly) {
-      rnl.y = uly; // Set to upper left y
+      rnl.y = uly;
     }
     if (rnl.y > lry) {
-      rnl.y = lry; // Set to lower right y
+      rnl.y = lry;
     }
     loc->SetPosition(rnl);
     theta += thetaR;

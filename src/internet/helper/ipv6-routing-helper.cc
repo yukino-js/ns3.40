@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ipv6-routing-helper.h"
 
@@ -89,9 +71,9 @@ void Ipv6RoutingHelper::PrintEvery(Time printInterval, Ptr<Node> node,
   }
 }
 
-void Ipv6RoutingHelper::PrintNeighborCacheAllAt(
-    Time printTime, Ptr<OutputStreamWrapper> stream,
-    Time::Unit unit /* = Time::S */) {
+void Ipv6RoutingHelper::PrintNeighborCacheAllAt(Time printTime,
+                                                Ptr<OutputStreamWrapper> stream,
+                                                Time::Unit unit) {
   for (uint32_t i = 0; i < NodeList::GetNNodes(); i++) {
     Ptr<Node> node = NodeList::GetNode(i);
     Simulator::Schedule(printTime, &Ipv6RoutingHelper::PrintNdiscCache, node,
@@ -100,8 +82,7 @@ void Ipv6RoutingHelper::PrintNeighborCacheAllAt(
 }
 
 void Ipv6RoutingHelper::PrintNeighborCacheAllEvery(
-    Time printInterval, Ptr<OutputStreamWrapper> stream,
-    Time::Unit unit /* = Time::S */) {
+    Time printInterval, Ptr<OutputStreamWrapper> stream, Time::Unit unit) {
   for (uint32_t i = 0; i < NodeList::GetNNodes(); i++) {
     Ptr<Node> node = NodeList::GetNode(i);
     Simulator::Schedule(printInterval, &Ipv6RoutingHelper::PrintNdiscCacheEvery,
@@ -111,21 +92,22 @@ void Ipv6RoutingHelper::PrintNeighborCacheAllEvery(
 
 void Ipv6RoutingHelper::PrintNeighborCacheAt(Time printTime, Ptr<Node> node,
                                              Ptr<OutputStreamWrapper> stream,
-                                             Time::Unit unit /* = Time::S */) {
+                                             Time::Unit unit) {
   Simulator::Schedule(printTime, &Ipv6RoutingHelper::PrintNdiscCache, node,
                       stream, unit);
 }
 
-void Ipv6RoutingHelper::PrintNeighborCacheEvery(
-    Time printInterval, Ptr<Node> node, Ptr<OutputStreamWrapper> stream,
-    Time::Unit unit /* = Time::S */) {
+void Ipv6RoutingHelper::PrintNeighborCacheEvery(Time printInterval,
+                                                Ptr<Node> node,
+                                                Ptr<OutputStreamWrapper> stream,
+                                                Time::Unit unit) {
   Simulator::Schedule(printInterval, &Ipv6RoutingHelper::PrintNdiscCacheEvery,
                       printInterval, node, stream, unit);
 }
 
 void Ipv6RoutingHelper::PrintNdiscCache(Ptr<Node> node,
                                         Ptr<OutputStreamWrapper> stream,
-                                        Time::Unit unit /* = Time::S */) {
+                                        Time::Unit unit) {
   Ptr<Ipv6L3Protocol> ipv6 = node->GetObject<Ipv6L3Protocol>();
   if (ipv6) {
     std::ostream *os = stream->GetStream();
@@ -150,7 +132,7 @@ void Ipv6RoutingHelper::PrintNdiscCache(Ptr<Node> node,
 
 void Ipv6RoutingHelper::PrintNdiscCacheEvery(Time printInterval, Ptr<Node> node,
                                              Ptr<OutputStreamWrapper> stream,
-                                             Time::Unit unit /* = Time::S */) {
+                                             Time::Unit unit) {
   Ptr<Ipv6L3Protocol> ipv6 = node->GetObject<Ipv6L3Protocol>();
   if (ipv6) {
     std::ostream *os = stream->GetStream();

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/constant-position-mobility-model.h"
@@ -31,48 +13,32 @@
 
 using namespace ns3;
 
-/// PsrExperiment
 class PsrExperiment {
 public:
-  /// Input structure
   struct Input {
     Input();
-    double distance;      ///< distance
-    std::string txMode;   ///< transmit mode
-    uint8_t txPowerLevel; ///< transmit power level
-    uint32_t packetSize;  ///< packet size
-    uint32_t nPackets;    ///< number of packets
+    double distance;
+    std::string txMode;
+    uint8_t txPowerLevel;
+    uint32_t packetSize;
+    uint32_t nPackets;
   };
 
-  /// Output structure
   struct Output {
-    uint32_t received; ///< received
+    uint32_t received;
   };
 
   PsrExperiment();
 
-  /**
-   * Run function
-   * \param input the PSR experiment
-   * \returns the PSR experiment output
-   */
   PsrExperiment::Output Run(PsrExperiment::Input input);
 
 private:
-  /// Send function
   void Send();
-  /**
-   * Send receive function
-   * \param psdu the PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector the wifi transmit vector
-   * \param statusPerMpdu reception status per MPDU
-   */
   void Receive(Ptr<const WifiPsdu> psdu, RxSignalInfo rxSignalInfo,
                WifiTxVector txVector, std::vector<bool> statusPerMpdu);
-  Ptr<WifiPhy> m_tx; ///< transmit
-  Input m_input;     ///< input
-  Output m_output;   ///< output
+  Ptr<WifiPhy> m_tx;
+  Input m_input;
+  Output m_output;
 };
 
 void PsrExperiment::Send() {
@@ -138,59 +104,42 @@ PsrExperiment::Output PsrExperiment::Run(PsrExperiment::Input input) {
   return m_output;
 }
 
-/// CollisionExperiment
 class CollisionExperiment {
 public:
-  /// Input structure
   struct Input {
     Input();
-    Time interval;         ///< interval
-    double xA;             ///< x A
-    double xB;             ///< x B
-    std::string txModeA;   ///< transmit mode A
-    std::string txModeB;   ///< transmit mode B
-    uint8_t txPowerLevelA; ///< transmit power level A
-    uint8_t txPowerLevelB; ///< transmit power level B
-    uint32_t packetSizeA;  ///< packet size A
-    uint32_t packetSizeB;  ///< packet size B
-    uint32_t nPackets;     ///< number of packets
+    Time interval;
+    double xA;
+    double xB;
+    std::string txModeA;
+    std::string txModeB;
+    uint8_t txPowerLevelA;
+    uint8_t txPowerLevelB;
+    uint32_t packetSizeA;
+    uint32_t packetSizeB;
+    uint32_t nPackets;
   };
 
-  /// Output structure
   struct Output {
-    uint32_t receivedA; ///< received A
-    uint32_t receivedB; ///< received B
+    uint32_t receivedA;
+    uint32_t receivedB;
   };
 
   CollisionExperiment();
 
-  /**
-   * Run function
-   * \param input the collision experiment data
-   * \returns the experiment output
-   */
   CollisionExperiment::Output Run(CollisionExperiment::Input input);
 
 private:
-  /// Send A function
   void SendA() const;
-  /// Send B function
   void SendB() const;
-  /**
-   * Receive function
-   * \param psdu the PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector the wifi transmit vector
-   * \param statusPerMpdu reception status per MPDU
-   */
   void Receive(Ptr<const WifiPsdu> psdu, RxSignalInfo rxSignalInfo,
                WifiTxVector txVector, std::vector<bool> statusPerMpdu);
-  Ptr<WifiPhy> m_txA; ///< transmit A
-  Ptr<WifiPhy> m_txB; ///< transmit B
-  uint32_t m_flowIdA; ///< flow ID A
-  uint32_t m_flowIdB; ///< flow ID B
-  Input m_input;      ///< input
-  Output m_output;    ///< output
+  Ptr<WifiPhy> m_txA;
+  Ptr<WifiPhy> m_txB;
+  uint32_t m_flowIdA;
+  uint32_t m_flowIdB;
+  Input m_input;
+  Output m_output;
 };
 
 void CollisionExperiment::SendA() const {

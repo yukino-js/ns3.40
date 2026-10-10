@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011,12 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/double.h>
 #include <ns3/log.h>
@@ -32,38 +14,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TestParabolicAntennaModel");
 
-/**
- * \ingroup antenna-tests
- *
- * \brief Test condition (equal to or less than)
- */
 enum ParabolicAntennaModelGainTestCondition { EQUAL = 0, LESSTHAN = 1 };
 
-/**
- * \ingroup antenna-tests
- *
- * \brief ParabolicAntennaModel Test
- */
 class ParabolicAntennaModelTestCase : public TestCase {
 public:
-  /**
-   * Build the test name
-   * \param a Antenna angle
-   * \param b Beamwidth
-   * \param o Orientation
-   * \param g MaxGain
-   * \return the test name
-   */
   static std::string BuildNameString(Angles a, double b, double o, double g);
-  /**
-   * Constructor
-   * \param a Antenna angle
-   * \param b Beamwidth
-   * \param o Orientation
-   * \param g MaxGain
-   * \param expectedGainDb Expected antenna gain
-   * \param cond Test condition
-   */
   ParabolicAntennaModelTestCase(Angles a, double b, double o, double g,
                                 double expectedGainDb,
                                 ParabolicAntennaModelGainTestCondition cond);
@@ -71,12 +26,12 @@ public:
 private:
   void DoRun() override;
 
-  Angles m_a;                                    //!< Antenna angle
-  double m_b;                                    //!< Beamwidth
-  double m_o;                                    //!< Orientation
-  double m_g;                                    //!< MaxGain
-  double m_expectedGain;                         //!< Expected gain
-  ParabolicAntennaModelGainTestCondition m_cond; //!< Test condition
+  Angles m_a;
+  double m_b;
+  double m_o;
+  double m_g;
+  double m_expectedGain;
+  ParabolicAntennaModelGainTestCondition m_cond;
 };
 
 std::string ParabolicAntennaModelTestCase::BuildNameString(Angles a, double b,
@@ -116,11 +71,6 @@ void ParabolicAntennaModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup antenna-tests
- *
- * \brief ParabolicAntennaModel TestSuite
- */
 class ParabolicAntennaModelTestSuite : public TestSuite {
 public:
   ParabolicAntennaModelTestSuite();
@@ -128,14 +78,6 @@ public:
 
 ParabolicAntennaModelTestSuite::ParabolicAntennaModelTestSuite()
     : TestSuite("parabolic-antenna-model", UNIT) {
-  // with a 60 deg beamwidth, gain is -20dB at +-77.460 degrees from boresight
-  //                                                                         phi,
-  //                                                                         theta,
-  //                                                                         beamwidth,
-  //                                                                         orientation,
-  //                                                                         maxAttn,
-  //                                                                         expectedGain,
-  //                                                                         condition
   AddTestCase(new ParabolicAntennaModelTestCase(
                   Angles(DegreesToRadians(0), DegreesToRadians(90)), 60, 0, 20,
                   0, EQUAL),
@@ -181,8 +123,6 @@ ParabolicAntennaModelTestSuite::ParabolicAntennaModelTestSuite()
                   20, -20, EQUAL),
               TestCase::QUICK);
 
-  // with a 60 deg beamwidth, gain is -10dB at +-54.772 degrees from boresight
-  // test positive orientation
   AddTestCase(new ParabolicAntennaModelTestCase(
                   Angles(DegreesToRadians(60), DegreesToRadians(90)), 60, 60,
                   10, 0, EQUAL),
@@ -228,8 +168,6 @@ ParabolicAntennaModelTestSuite::ParabolicAntennaModelTestSuite()
                   10, -10, EQUAL),
               TestCase::QUICK);
 
-  // test negative orientation and different beamwidths
-  // with a 80 deg beamwidth, gain is -20dB at +- 73.030 degrees from boresight
   AddTestCase(new ParabolicAntennaModelTestCase(
                   Angles(DegreesToRadians(-150), DegreesToRadians(90)), 80,
                   -150, 10, 0, EQUAL),
@@ -271,7 +209,6 @@ ParabolicAntennaModelTestSuite::ParabolicAntennaModelTestSuite()
                   10, -10, EQUAL),
               TestCase::QUICK);
 
-  // test elevation angle
   AddTestCase(new ParabolicAntennaModelTestCase(
                   Angles(DegreesToRadians(0), DegreesToRadians(88)), 60, 0, 20,
                   0, EQUAL),
@@ -358,6 +295,5 @@ ParabolicAntennaModelTestSuite::ParabolicAntennaModelTestSuite()
               TestCase::QUICK);
 };
 
-/// Static variable for test initialization
 static ParabolicAntennaModelTestSuite
     g_staticParabolicAntennaModelTestSuiteInstance;

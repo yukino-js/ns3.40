@@ -1,10 +1,4 @@
 {
-  // Type checking configuration for the JavaScript tooling that replaced the
-  // Python drivers (`main.py`, `docs/build.py`, `docs/plots/main.py`).
-  //
-  // These scripts are plain ESM JavaScript with JSDoc type annotations, so the
-  // compiler runs in check-only mode: `npm run typecheck` (tsc --noEmit) never
-  // emits output, it only reports type errors.
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,

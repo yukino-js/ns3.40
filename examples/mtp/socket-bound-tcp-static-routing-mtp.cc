@@ -1,47 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
-
-/* Test program for multi-interface host, static routing
-
-         Destination host (10.20.1.2)
-                 |
-                 | 10.20.1.0/24
-              DSTRTR
-  10.10.1.0/24 /   \  10.10.2.0/24
-              / \
-           Rtr1    Rtr2
- 10.1.1.0/24 |      | 10.1.2.0/24
-             |      /
-              \    /
-             Source
-*/
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -76,8 +33,6 @@ void dstSocketRecv(Ptr<Socket> socket);
 
 int main(int argc, char *argv[]) {
   MtpInterface::Enable();
-  // Allow the user to override any of the defaults and the above
-  // DefaultValue::Bind ()s at run-time, via command-line arguments
   CommandLine cmd(__FILE__);
   cmd.Parse(argc, argv);
 
@@ -92,14 +47,12 @@ int main(int argc, char *argv[]) {
   InternetStackHelper internet;
   internet.Install(c);
 
-  // Point-to-point links
   NodeContainer nSrcnRtr1 = NodeContainer(nSrc, nRtr1);
   NodeContainer nSrcnRtr2 = NodeContainer(nSrc, nRtr2);
   NodeContainer nRtr1nDstRtr = NodeContainer(nRtr1, nDstRtr);
   NodeContainer nRtr2nDstRtr = NodeContainer(nRtr2, nDstRtr);
   NodeContainer nDstRtrnDst = NodeContainer(nDstRtr, nDst);
 
-  // We create the channels first without any IP addressing information
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
   p2p.SetChannelAttribute("Delay", StringValue("2ms"));
@@ -112,7 +65,6 @@ int main(int argc, char *argv[]) {
   Ptr<NetDevice> SrcToRtr1 = dSrcdRtr1.Get(0);
   Ptr<NetDevice> SrcToRtr2 = dSrcdRtr2.Get(0);
 
-  // Later, we add IP addresses.
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer iSrciRtr1 = ipv4.Assign(dSrcdRtr1);
@@ -143,20 +95,16 @@ int main(int argc, char *argv[]) {
   Ptr<Ipv4StaticRouting> staticRoutingDst =
       ipv4RoutingHelper.GetStaticRouting(ipv4Dst);
 
-  // Create static routes from Src to Dst
   staticRoutingRtr1->AddHostRouteTo(Ipv4Address("10.20.1.2"),
                                     Ipv4Address("10.10.1.2"), 2);
   staticRoutingRtr2->AddHostRouteTo(Ipv4Address("10.20.1.2"),
                                     Ipv4Address("10.10.2.2"), 2);
 
-  // Two routes to same destination - setting separate metrics.
-  // You can switch these to see how traffic gets diverted via different routes
   staticRoutingSrc->AddHostRouteTo(Ipv4Address("10.20.1.2"),
                                    Ipv4Address("10.1.1.2"), 1, 5);
   staticRoutingSrc->AddHostRouteTo(Ipv4Address("10.20.1.2"),
                                    Ipv4Address("10.1.2.2"), 2, 10);
 
-  // Creating static routes from DST to Source pointing to Rtr1 VIA Rtr2(!)
   staticRoutingDst->AddHostRouteTo(Ipv4Address("10.1.1.1"),
                                    Ipv4Address("10.20.1.1"), 1);
   staticRoutingDstRtr->AddHostRouteTo(Ipv4Address("10.1.1.1"),
@@ -170,9 +118,6 @@ int main(int argc, char *argv[]) {
                                       Ipv4Address("10.10.2.1"), 2);
   staticRoutingRtr2->AddHostRouteTo(Ipv4Address("10.1.2.1"),
                                     Ipv4Address("10.1.2.1"), 1);
-
-  // There are no apps that can utilize the Socket Option so doing the work
-  // directly.. Taken from tcp-large-transfer example
 
   Ptr<Socket> srcSocket1 =
       Socket::CreateSocket(nSrc, TypeId::LookupByName("ns3::TcpSocketFactory"));
@@ -200,21 +145,14 @@ int main(int argc, char *argv[]) {
   LogComponentEnableAll(LOG_PREFIX_TIME);
   LogComponentEnable("SocketBoundTcpRoutingExample", LOG_LEVEL_INFO);
 
-  // First packet as normal (goes via Rtr1)
   Simulator::Schedule(Seconds(0.1), &StartFlow, srcSocket1, dstaddr, dstport);
-  // Second via Rtr1 explicitly
   Simulator::Schedule(Seconds(1.0), &BindSock, srcSocket2, SrcToRtr1);
   Simulator::Schedule(Seconds(1.1), &StartFlow, srcSocket2, dstaddr, dstport);
-  // Third via Rtr2 explicitly
   Simulator::Schedule(Seconds(2.0), &BindSock, srcSocket3, SrcToRtr2);
   Simulator::Schedule(Seconds(2.1), &StartFlow, srcSocket3, dstaddr, dstport);
-  // Fourth again as normal (goes via Rtr1)
   Simulator::Schedule(Seconds(3.0), &BindSock, srcSocket4,
                       Ptr<NetDevice>(nullptr));
   Simulator::Schedule(Seconds(3.1), &StartFlow, srcSocket4, dstaddr, dstport);
-  // If you uncomment what's below, it results in ASSERT failing since you can't
-  // bind to a socket not existing on a node
-  // Simulator::Schedule(Seconds(4.0),&BindSock, srcSocket, dDstRtrdDst.Get(0));
   Simulator::Run();
   Simulator::Destroy();
 
@@ -230,10 +168,8 @@ void StartFlow(Ptr<Socket> localSocket, Ipv4Address servAddress,
   NS_LOG_INFO("Starting flow at time " << Simulator::Now().GetSeconds());
   currentTxBytes = 0;
   localSocket->Bind();
-  localSocket->Connect(InetSocketAddress(servAddress, servPort)); // connect
+  localSocket->Connect(InetSocketAddress(servAddress, servPort));
 
-  // tell the tcp implementation to call WriteUntilBufferFull again
-  // if we blocked and new tx buffer space becomes available
   localSocket->SetSendCallback(MakeCallback(&WriteUntilBufferFull));
   WriteUntilBufferFull(localSocket, localSocket->GetTxAvailable());
 }
@@ -247,7 +183,6 @@ void WriteUntilBufferFull(Ptr<Socket> localSocket, uint32_t txSpace) {
     toWrite = std::min(toWrite, localSocket->GetTxAvailable());
     int amountSent = localSocket->Send(&data[dataOffset], toWrite, 0);
     if (amountSent < 0) {
-      // we will be called again when new tx space becomes available.
       return;
     }
     currentTxBytes += amountSent;

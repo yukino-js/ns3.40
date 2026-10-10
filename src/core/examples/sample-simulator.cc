@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/double.h"
@@ -25,29 +7,15 @@
 
 #include <iostream>
 
-/**
- * \file
- * \ingroup core-examples
- * \ingroup simulator
- * Example program demonstrating use of various Schedule functions.
- */
-
 using namespace ns3;
 
 namespace {
 
-/** Simple model object to illustrate event handling. */
 class MyModel {
 public:
-  /** Start model execution by scheduling a HandleEvent. */
   void Start();
 
 private:
-  /**
-   *  Simple event handler.
-   *
-   * \param [in] eventValue Event argument.
-   */
   void HandleEvent(double eventValue);
 };
 
@@ -62,31 +30,22 @@ void MyModel::HandleEvent(double value) {
             << std::endl;
 }
 
-/**
- * Simple function event handler which Starts a MyModel object.
- *
- * \param [in] model The MyModel object to start.
- */
 void ExampleFunction(MyModel *model) {
   std::cout << "ExampleFunction received event at "
             << Simulator::Now().GetSeconds() << "s" << std::endl;
   model->Start();
 }
 
-/**
- * Simple function event handler; this function is called randomly.
- */
 void RandomFunction() {
   std::cout << "RandomFunction received event at "
             << Simulator::Now().GetSeconds() << "s" << std::endl;
 }
 
-/** Simple function event handler; the corresponding event is cancelled. */
 void CancelledEvent() {
   std::cout << "I should never be called... " << std::endl;
 }
 
-} // unnamed namespace
+} // namespace
 
 int main(int argc, char *argv[]) {
   CommandLine cmd(__FILE__);

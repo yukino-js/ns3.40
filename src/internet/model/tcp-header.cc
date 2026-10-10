@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 Georgia Tech Research Corporation
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Raj Bhattacharjea <raj.b@gatech.edu>
- */
 
 #include "tcp-header.h"
 
@@ -121,13 +103,6 @@ void TcpHeader::InitializeChecksum(const Address &source,
 }
 
 uint16_t TcpHeader::CalculateHeaderChecksum(uint16_t size) const {
-  /* Buffer size must be at least as large as the largest IP pseudo-header */
-  /* [per RFC2460, but without consideration for IPv6 extension hdrs]      */
-  /* Src address            16 bytes (more generally, Address::MAX_SIZE)   */
-  /* Dst address            16 bytes (more generally, Address::MAX_SIZE)   */
-  /* Upper layer pkt len    4 bytes                                        */
-  /* Zero                   3 bytes                                        */
-  /* Next header            1 byte                                         */
 
   uint32_t maxHdrSz = (2 * Address::MAX_SIZE) + 8;
   Buffer buf = Buffer(maxHdrSz);
@@ -138,23 +113,22 @@ uint16_t TcpHeader::CalculateHeaderChecksum(uint16_t size) const {
   WriteTo(it, m_source);
   WriteTo(it, m_destination);
   if (Ipv4Address::IsMatchingType(m_source)) {
-    it.WriteU8(0);           /* protocol */
-    it.WriteU8(m_protocol);  /* protocol */
-    it.WriteU8(size >> 8);   /* length */
-    it.WriteU8(size & 0xff); /* length */
+    it.WriteU8(0);
+    it.WriteU8(m_protocol);
+    it.WriteU8(size >> 8);
+    it.WriteU8(size & 0xff);
     hdrSize = 12;
   } else {
     it.WriteU16(0);
-    it.WriteU8(size >> 8);   /* length */
-    it.WriteU8(size & 0xff); /* length */
+    it.WriteU8(size >> 8);
+    it.WriteU8(size & 0xff);
     it.WriteU16(0);
     it.WriteU8(0);
-    it.WriteU8(m_protocol); /* protocol */
+    it.WriteU8(m_protocol);
     hdrSize = 40;
   }
 
   it = buf.Begin();
-  /* we don't CompleteChecksum ( ~ ) now */
   return ~(it.CalculateIpChecksum(hdrSize));
 }
 
@@ -197,14 +171,11 @@ void TcpHeader::Serialize(Buffer::Iterator start) const {
   i.WriteHtonU16(m_destinationPort);
   i.WriteHtonU32(m_sequenceNumber.GetValue());
   i.WriteHtonU32(m_ackNumber.GetValue());
-  i.WriteHtonU16(GetLength() << 12 | m_flags); // reserved bits are all zero
+  i.WriteHtonU16(GetLength() << 12 | m_flags);
   i.WriteHtonU16(m_windowSize);
   i.WriteHtonU16(0);
   i.WriteHtonU16(m_urgentPointer);
 
-  // Serialize options if they exist
-  // This implementation does not presently try to align options on word
-  // boundaries using NOP options
   uint32_t optionLen = 0;
 
   for (auto op = m_options.begin(); op != m_options.end(); ++op) {
@@ -213,13 +184,11 @@ void TcpHeader::Serialize(Buffer::Iterator start) const {
     i.Next((*op)->GetSerializedSize());
   }
 
-  // padding to word alignment; add ENDs and/or pad values (they are the same)
   while (optionLen % 4) {
     i.WriteU8(TcpOption::END);
     ++optionLen;
   }
 
-  // Make checksum
   if (m_calcChecksum) {
     uint16_t headerChecksum = CalculateHeaderChecksum(start.GetSize());
     i = start;
@@ -245,7 +214,6 @@ uint32_t TcpHeader::Deserialize(Buffer::Iterator start) {
   i.Next(2);
   m_urgentPointer = i.ReadNtohU16();
 
-  // Deserialize options if they exist
   m_options.clear();
   uint32_t optionLen = (m_length - 5) * 4;
   if (optionLen > m_maxOptionsLen) {
@@ -280,7 +248,6 @@ uint32_t TcpHeader::Deserialize(Buffer::Iterator start) {
     }
     if (op->GetKind() == TcpOption::END) {
       while (optionLen) {
-        // Discard padding bytes without adding to option list
         i.Next(1);
         --optionLen;
         ++m_optionsLen;
@@ -292,7 +259,6 @@ uint32_t TcpHeader::Deserialize(Buffer::Iterator start) {
     NS_LOG_ERROR("Mismatch between calculated length and in-header value");
   }
 
-  // Do checksum
   if (m_calcChecksum) {
     uint16_t headerChecksum = CalculateHeaderChecksum(start.GetSize());
     i = start;
@@ -309,7 +275,6 @@ uint8_t TcpHeader::CalculateHeaderLength() const {
   for (auto i = m_options.begin(); i != m_options.end(); ++i) {
     len += (*i)->GetSerializedSize();
   }
-  // Option list may not include padding; need to pad up to word boundary
   if (len % 4) {
     len += 4 - (len % 4);
   }

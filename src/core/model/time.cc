@@ -1,67 +1,25 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- * Copyright (c) 2007 Emmanuelle Laprise
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * TimeStep support by Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
- */
 #include "abort.h"
 #include "log.h"
 #include "nstime.h"
 
-#include <cmath>   // pow
-#include <iomanip> // showpos
+#include <cmath>
+#include <iomanip>
 #include <mutex>
 #include <sstream>
-
-/**
- * \file
- * \ingroup time
- * ns3::Time, ns3::TimeWithUnit
- * and ns3::TimeValue attribute value implementations.
- */
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE_MASK("Time", ns3::LOG_PREFIX_TIME);
 
-/** Unnamed namespace */
 namespace {
 
-/** Scaling coefficients, exponents, and look up table for unit. */
-/** @{ */
-/** Scaling exponent, relative to smallest unit. */
-//                                      Y,   D,  H, MIN,  S, MS, US, NS, PS, FS
 const int8_t UNIT_POWER[Time::LAST] = {17, 17, 17, 16, 15, 12, 9, 6, 3, 0};
-/** Scaling coefficient, relative to smallest unit. */
 const int32_t UNIT_COEFF[Time::LAST] = {315360, 864, 36, 6, 1, 1, 1, 1, 1, 1};
 
-/**
- * Scale a unit to the smallest unit.
- * \param u The unit to scale
- * \returns The value of \pname{u} in terms of the smallest defined unit.
- */
 long double Scale(Time::Unit u) {
   return UNIT_COEFF[u] * std::pow(10L, UNIT_POWER[u]);
 }
 
-/**
- * Initializer for \c UNIT_VALUE
- * \returns The array of scale factors between units.
- */
 long double *InitUnitValue() {
   static long double values[Time::LAST];
   for (auto u = static_cast<int>(Time::Y); u != static_cast<int>(Time::LAST);
@@ -71,23 +29,14 @@ long double *InitUnitValue() {
   return values;
 }
 
-/** Value of each unit, in terms of the smallest defined unit. */
 const long double *UNIT_VALUE = InitUnitValue();
 
-/** @} */
+} // namespace
 
-} // unnamed namespace
-
-// The set of marked times
-// static
 Time::MarkedTimes *Time::g_markingTimes = nullptr;
 
-/// The static mutex for critical sections around modification of
-/// Time::g_markingTimes.
 static std::mutex g_markingMutex;
 
-// Function called to force static initialization
-// static
 bool Time::StaticInit() {
   static bool firstTime = true;
 
@@ -101,14 +50,6 @@ bool Time::StaticInit() {
       NS_LOG_ERROR("firstTime but g_markingTimes != 0");
     }
 
-    // Schedule the cleanup.
-    // We'd really like:
-    //   NS_LOG_LOGIC ("scheduling ClearMarkedTimes()");
-    //   Simulator::Schedule ( Seconds (0), & ClearMarkedTimes);
-    //   [or even better:  Simulator::AtStart ( & ClearMarkedTimes ); ]
-    // But this triggers a static initialization order error,
-    // since the Simulator static initialization may not have occurred.
-    // Instead, we call ClearMarkedTimes directly from Simulator::Run ()
     firstTime = false;
   }
 
@@ -118,7 +59,7 @@ bool Time::StaticInit() {
 Time::Time(const std::string &s) {
   NS_LOG_FUNCTION(this << &s);
   std::string::size_type n = s.find_first_not_of("+-0123456789.eE");
-  if (n != std::string::npos) { // Found non-numeric
+  if (n != std::string::npos) {
     std::istringstream iss;
     iss.str(s.substr(0, n));
     double r;
@@ -148,7 +89,6 @@ Time::Time(const std::string &s) {
       NS_ABORT_MSG("Can't Parse Time " << s);
     }
   } else {
-    // they didn't provide units, assume seconds
     std::istringstream iss;
     iss.str(s);
     double v;
@@ -161,7 +101,6 @@ Time::Time(const std::string &s) {
   }
 }
 
-// static
 Time::Resolution &Time::SetDefaultNsResolution() {
   NS_LOG_FUNCTION_NOARGS();
   static Resolution resolution;
@@ -169,19 +108,15 @@ Time::Resolution &Time::SetDefaultNsResolution() {
   return resolution;
 }
 
-// static
 void Time::SetResolution(Unit resolution) {
   NS_LOG_FUNCTION(resolution);
   SetResolution(resolution, PeekResolution());
 }
 
-// static
 void Time::SetResolution(Unit unit, Resolution *resolution,
-                         const bool convert /* = true */) {
+                         const bool convert) {
   NS_LOG_FUNCTION(resolution);
   if (convert) {
-    // We have to convert existing Times with the old
-    // conversion values, so do it first
     ConvertTimes(unit);
   }
 
@@ -215,8 +150,6 @@ void Time::SetResolution(Unit unit, Resolution *resolution,
     NS_LOG_DEBUG("SetResolution factor " << factor << " real factor "
                                          << realFactor);
     info->factor = factor;
-    // here we could equivalently check for realFactor == 1.0 but it's better
-    // to avoid checking equality of doubles
     if (shift == 0 && quotient == 1) {
       info->timeFrom = int64x64_t(1);
       info->timeTo = int64x64_t(1);
@@ -241,21 +174,7 @@ void Time::SetResolution(Unit unit, Resolution *resolution,
   resolution->unit = unit;
 }
 
-// static
 void Time::ClearMarkedTimes() {
-  /**
-   * \internal
-   *
-   * We're called by Simulator::Run, which knows nothing about the mutex,
-   * so we need a critical section here.
-   *
-   * It would seem natural to use this function at the end of
-   * ConvertTimes, but that function already has the mutex.
-   * The mutex can not be locked more than once in the same thread,
-   * so calling this function from ConvertTimes is a bad idea.
-   *
-   * Instead, we copy this body into ConvertTimes.
-   */
 
   std::unique_lock lock{g_markingMutex};
 
@@ -265,17 +184,14 @@ void Time::ClearMarkedTimes() {
     g_markingTimes->erase(g_markingTimes->begin(), g_markingTimes->end());
     g_markingTimes = nullptr;
   }
-} // Time::ClearMarkedTimes
+}
 
-// static
 void Time::Mark(Time *const time) {
   std::unique_lock lock{g_markingMutex};
 
   NS_LOG_FUNCTION(time);
   NS_ASSERT(time != nullptr);
 
-  // Repeat the g_markingTimes test here inside the CriticalSection,
-  // since earlier test was outside and might be stale.
   if (g_markingTimes) {
     auto ret = g_markingTimes->insert(time);
     NS_LOG_LOGIC("\t[" << g_markingTimes->size() << "] recording " << time);
@@ -284,9 +200,8 @@ void Time::Mark(Time *const time) {
       NS_LOG_WARN("already recorded " << time << "!");
     }
   }
-} // Time::Mark ()
+}
 
-// static
 void Time::Clear(Time *const time) {
   std::unique_lock lock{g_markingMutex};
 
@@ -307,9 +222,8 @@ void Time::Clear(Time *const time) {
       NS_LOG_LOGIC("\t[" << g_markingTimes->size() << "] removing  " << time);
     }
   }
-} // Time::Clear ()
+}
 
-// static
 void Time::ConvertTimes(const Unit unit) {
   std::unique_lock lock{g_markingMutex};
 
@@ -329,21 +243,14 @@ void Time::ConvertTimes(const Unit unit) {
 
   NS_LOG_LOGIC("logged " << g_markingTimes->size() << " Time objects.");
 
-  // Body of ClearMarkedTimes
-  // Assert above already guarantees g_markingTimes != 0
   NS_LOG_LOGIC("clearing MarkedTimes");
   g_markingTimes->erase(g_markingTimes->begin(), g_markingTimes->end());
   g_markingTimes = nullptr;
-
-} // Time::ConvertTimes ()
-
-// static
-Time::Unit Time::GetResolution() {
-  // No function log b/c it interferes with operator<<
-  return PeekResolution()->unit;
 }
 
-TimeWithUnit Time::As(const Unit unit /* = Time::AUTO */) const {
+Time::Unit Time::GetResolution() { return PeekResolution()->unit; }
+
+TimeWithUnit Time::As(const Unit unit) const {
   return TimeWithUnit(*this, unit);
 }
 
@@ -358,9 +265,7 @@ std::ostream &operator<<(std::ostream &os, const TimeWithUnit &timeU) {
 
   if (unit == Time::AUTO) {
     auto value = static_cast<long double>(timeU.m_time.GetTimeStep());
-    // convert to finest scale (fs)
     value *= Scale(Time::GetResolution());
-    // find the best unit
     int u = Time::Y;
     while (u != Time::LAST && UNIT_VALUE[u] > value) {
       ++u;
@@ -413,19 +318,10 @@ std::ostream &operator<<(std::ostream &os, const TimeWithUnit &timeU) {
 
   double v = timeU.m_time.ToDouble(unit);
 
-  // Note: we must copy the "original" format flags because we have to modify
-  // them. std::ios_base::showpos is to print the "+" in front of the number for
-  // positive, std::ios_base::right is to add (eventual) extra space in front of
-  // the number.
-  //   the eventual extra space might be due to a std::setw (_number_), and
-  //   normally it would be printed after the number and before the time unit
-  //   label.
-
   std::ios_base::fmtflags ff = os.flags();
 
   os << std::showpos << std::right << v << label;
 
-  // And here we have to restore what we changed.
   if (!(ff & std::ios_base::showpos)) {
     os << std::noshowpos;
   }

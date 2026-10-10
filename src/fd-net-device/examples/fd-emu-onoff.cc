@@ -1,108 +1,4 @@
-/*
- * Copyright (c) 2012 University of Washington, 2012 INRIA
- *               2017 Università' degli Studi di Napoli Federico II
- *               2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alina Quereilhac <alina.quereilhac@inria.fr>
- * Extended by: Pasquale Imputato <p.imputato@gmail.com>
- *              Harsh Patel <thadodaharsh10@gmail.com>
- *              Hrishikesh Hiraskar <hrishihiraskar@gmail.com>
- *              Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
-// +----------------------+     +-----------------------+
-// |      client host     |     |      server host      |
-// +----------------------+     +-----------------------+
-// |     ns-3 Node 0      |     |      ns-3 Node 1      |
-// |  +----------------+  |     |   +----------------+  |
-// |  |    ns-3 TCP    |  |     |   |    ns-3 TCP    |  |
-// |  +----------------+  |     |   +----------------+  |
-// |  |    ns-3 IPv4   |  |     |   |    ns-3 IPv4   |  |
-// |  +----------------+  |     |   +----------------+  |
-// |  |   FdNetDevice  |  |     |   |   FdNetDevice  |  |
-// |  |       or       |  |     |   |       or       |  |
-// |  | NetmapNetDevice|  |     |   | NetmapNetDevice|  |
-// |  |       or       |  |     |   |       or       |  |
-// |  |  DpdkNetDevice |  |     |   |  DpdkNetDevice |  |
-// |  |    10.1.1.1    |  |     |   |    10.1.1.2    |  |
-// |  +----------------+  |     |   +----------------+  |
-// |  |       fd       |  |     |   |       fd       |  |
-// |  |       or       |  |     |   |       or       |  |
-// |  |       EAL      |  |     |   |       EAL      |  |
-// |  +----------------+  |     |   +----------------+  |
-// |    |    eth0    |    |     |     |    eth0    |    |
-// |    |     or     |    |     |     |     or     |    |
-// |    | 0000:00.1f |    |     |     | 0000:00.1f |    |
-// +----+------------+----+     +-----+------------+----+
-//
-//         10.1.1.11                     10.1.1.12
-//
-//             |                            |
-//             +----------------------------+
-//
-// This example is aimed at measuring the throughput of the FdNetDevice
-// when using the EmuFdNetDeviceHelper. This is achieved by saturating
-// the channel with TCP traffic. Then the throughput can be obtained from
-// the generated .pcap files.
-//
-// To run this example you will need two hosts (client & server).
-// Steps to run the experiment:
-//
-// 1 - Connect the 2 computers with an Ethernet cable.
-// 2 - Set the IP addresses on both Ethernet devices.
-//
-// client machine: $ sudo ip addr add dev eth0 10.1.1.11/24
-// server machine: $ sudo ip addr add dev eth0 10.1.1.12/24
-//
-// 3 - Set both Ethernet devices to promiscuous mode.
-//
-// both machines: $ sudo ip link set eth0 promisc on
-//
-// 3' - If you run emulation in netmap or dpdk mode, you need before to load
-//      the netmap.ko or dpdk modules. The user is in charge to configure and
-//      build netmap/dpdk separately.
-//
-// 4 - Give root suid to the raw or netmap socket creator binary.
-//     If the --enable-sudo option was used to configure ns-3 with ns3, then the
-//     following step will not be necessary.
-//
-// both hosts: $ sudo chown root.root
-// build/src/fd-net-device/ns3-dev-raw-sock-creator both hosts: $ sudo chmod
-// 4755 build/src/fd-net-device/ns3-dev-raw-sock-creator
-//
-// or (if you run emulation in netmap mode):
-// both hosts: $ sudo chown root.root
-// build/src/fd-net-device/ns3-dev-netmap-device-creator both hosts: $ sudo
-// chmod 4755 build/src/fd-net-device/ns3-dev-netmap-device-creator
-//
-// 4' - If you run emulation in dpdk mode, you will need to run example as root.
-//
-// 5 - In case of DpdkNetDevice, use device address instead of device name
-//
-// For example: 0000:00:1f.6 (can be obtained by lspci)
-//
-// 6 - Run the server side:
-//
-// server host: $ ./ns3 run "fd-emu-onoff --serverMode=1"
-//
-// 7 - Run the client side:
-//
-// client host: $ ./ns3 run "fd-emu-onoff"
-//
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -121,7 +17,7 @@ NS_LOG_COMPONENT_DEFINE("EmuFdNetDeviceSaturationExample");
 
 int main(int argc, char *argv[]) {
   uint16_t sinkPort = 8000;
-  uint32_t packetSize = 1400; // bytes
+  uint32_t packetSize = 1400;
   std::string dataRate("1000Mb/s");
   bool serverMode = false;
 
@@ -137,7 +33,7 @@ int main(int argc, char *argv[]) {
   std::string emuMode("raw");
 #elif HAVE_NETMAP_USER_H
   std::string emuMode("netmap");
-#else // HAVE_DPDK_USER_H is true (otherwise this example is not compiled)
+#else
   std::string emuMode("dpdk");
 #endif
 
@@ -216,13 +112,8 @@ int main(int argc, char *argv[]) {
 #ifdef HAVE_DPDK_USER_H
   if (emuMode == "dpdk") {
     DpdkNetDeviceHelper *dpdk = new DpdkNetDeviceHelper();
-    // Use e1000 driver library (this is for IGb PMD supporting Intel 1GbE NIC)
-    // NOTE: DPDK supports multiple Poll Mode Drivers (PMDs) and you can use it
-    // based on your NIC. You just need to set pmd library as follows:
     dpdk->SetPmdLibrary("librte_pmd_e1000.so");
-    // Set dpdk driver to use for the NIC. `uio_pci_generic` supports most NICs.
     dpdk->SetDpdkDriver("uio_pci_generic");
-    // Set device name
     dpdk->SetDeviceName(deviceName);
     helper = dpdk;
   }

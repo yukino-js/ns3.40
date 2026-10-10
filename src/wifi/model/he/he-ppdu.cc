@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2020 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Rediet <getachew.redieteab@orange.com>
- *         Muhammad Iqbal Rochman <muhiqbalcr@uchicago.edu>
- *         Sébastien Deronne <sebastien.deronne@gmail.com> (HeSigHeader)
- */
 
 #include "he-ppdu.h"
 
@@ -50,13 +30,11 @@ std::ostream &operator<<(std::ostream &os, const HePpdu::TxPsdFlag &flag) {
 HePpdu::HePpdu(const WifiConstPsduMap &psdus, const WifiTxVector &txVector,
                const WifiPhyOperatingChannel &channel, Time ppduDuration,
                uint64_t uid, TxPsdFlag flag)
-    : OfdmPpdu(psdus.begin()->second, txVector, channel, uid,
-               false), // don't instantiate LSigHeader of OfdmPpdu
+    : OfdmPpdu(psdus.begin()->second, txVector, channel, uid, false),
       m_txPsdFlag(flag) {
   NS_LOG_FUNCTION(this << psdus << txVector << channel << ppduDuration << uid
                        << flag);
 
-  // overwrite with map (since only first element used by OfdmPpdu)
   m_psdus.begin()->second = nullptr;
   m_psdus.clear();
   m_psdus = psdus;
@@ -66,8 +44,7 @@ HePpdu::HePpdu(const WifiConstPsduMap &psdus, const WifiTxVector &txVector,
 HePpdu::HePpdu(Ptr<const WifiPsdu> psdu, const WifiTxVector &txVector,
                const WifiPhyOperatingChannel &channel, Time ppduDuration,
                uint64_t uid)
-    : OfdmPpdu(psdu, txVector, channel, uid,
-               false), // don't instantiate LSigHeader of OfdmPpdu
+    : OfdmPpdu(psdu, txVector, channel, uid, false),
       m_txPsdFlag(PSD_NON_HE_PORTION) {
   NS_LOG_FUNCTION(this << psdu << txVector << channel << ppduDuration << uid);
   NS_ASSERT(!IsMu());
@@ -118,8 +95,8 @@ void HePpdu::SetHeSigHeader(const WifiTxVector &txVector) {
                  ? GetMuMimoUsersEncoding(txVector.GetHeMuUserInfoMap().size())
                  : noMuMimoUsers),
         .m_sigBCompression = txVector.IsSigBCompression(),
-        .m_giLtfSize = GetGuardIntervalAndNltfEncoding(
-            txVector.GetGuardInterval(), 2 /*NLTF currently unused*/),
+        .m_giLtfSize =
+            GetGuardIntervalAndNltfEncoding(txVector.GetGuardInterval(), 2),
         .m_ruAllocation = txVector.GetRuAllocation(p20Index),
         .m_contentChannels = GetHeSigBContentChannels(txVector, p20Index),
         .m_center26ToneRuIndication =
@@ -134,8 +111,8 @@ void HePpdu::SetHeSigHeader(const WifiTxVector &txVector) {
         .m_mcs = mcs,
         .m_bandwidth =
             GetChannelWidthEncodingFromMhz(txVector.GetChannelWidth()),
-        .m_giLtfSize = GetGuardIntervalAndNltfEncoding(
-            txVector.GetGuardInterval(), 2 /*NLTF currently unused*/),
+        .m_giLtfSize =
+            GetGuardIntervalAndNltfEncoding(txVector.GetGuardInterval(), 2),
         .m_nsts = GetNstsEncodingFromNss(txVector.GetNss())});
   }
 }
@@ -221,7 +198,6 @@ void HePpdu::SetHeMuUserInfos(WifiTxVector &txVector,
         if (sigBcompression) {
           numUsersLeft = numMuMimoUsers;
         } else {
-          // not MU-MIMO
           numUsersLeft = 1;
         }
       }
@@ -279,7 +255,6 @@ Time HePpdu::GetTxDuration() const {
   uint8_t sigExtension =
       (m_operatingChannel.GetPhyBand() == WIFI_PHY_BAND_2_4GHZ) ? 6 : 0;
   uint8_t m = IsDlMu() ? 1 : 2;
-  // Equation 27-11 of IEEE P802.11ax/D4.0
   const auto calculatedDuration =
       MicroSeconds(((ceil(static_cast<double>(length + 3 + m) / 3)) * 4) + 20 +
                    sigExtension);
@@ -313,8 +288,7 @@ bool HePpdu::IsDlMu() const { return (m_preamble == WIFI_PREAMBLE_HE_MU); }
 
 bool HePpdu::IsUlMu() const { return (m_preamble == WIFI_PREAMBLE_HE_TB); }
 
-Ptr<const WifiPsdu> HePpdu::GetPsdu(uint8_t bssColor,
-                                    uint16_t staId /* = SU_STA_ID */) const {
+Ptr<const WifiPsdu> HePpdu::GetPsdu(uint8_t bssColor, uint16_t staId) const {
   if (!IsMu()) {
     NS_ASSERT(m_psdus.size() == 1);
     return m_psdus.at(SU_STA_ID);
@@ -382,18 +356,12 @@ void HePpdu::UpdateTxVectorForUlMu(
   }
   NS_ASSERT(GetModulation() >= WIFI_MOD_CLASS_HE);
   NS_ASSERT(GetType() == WIFI_PPDU_TYPE_UL_MU);
-  // HE TB PPDU reception needs information from the TRIGVECTOR to be able to
-  // receive the PPDU
   const auto staId = GetStaId();
   if (trigVector.has_value() && trigVector->IsUlMu() &&
       (trigVector->GetHeMuUserInfoMap().count(staId) > 0)) {
-    // These information are not carried in HE-SIG-A for a HE TB PPDU,
-    // but they are carried in the Trigger frame soliciting the HE TB PPDU
     m_txVector->SetGuardInterval(trigVector->GetGuardInterval());
     m_txVector->SetHeMuUserInfo(staId, trigVector->GetHeMuUserInfo(staId));
   } else {
-    // Set dummy user info, PPDU will be dropped later after decoding PHY
-    // headers.
     m_txVector->SetHeMuUserInfo(
         staId,
         {{HeRu::GetRuType(m_txVector->GetChannelWidth()), 1, true}, 0, 1});
@@ -403,14 +371,9 @@ void HePpdu::UpdateTxVectorForUlMu(
 std::pair<std::size_t, std::size_t> HePpdu::GetNumRusPerHeSigBContentChannel(
     uint16_t channelWidth, const RuAllocation &ruAllocation,
     bool sigBCompression, uint8_t numMuMimoUsers) {
-  std::pair<std::size_t /* number of RUs in content channel 1 */,
-            std::size_t /* number of RUs in content channel 2 */>
-      chSize{0, 0};
+  std::pair<std::size_t, std::size_t> chSize{0, 0};
 
   if (sigBCompression) {
-    // If the HE-SIG-B Compression field in the HE-SIG-A field of an HE MU PPDU
-    // is 1, for bandwidths larger than 20 MHz, the AP performs an equitable
-    // split of the User fields between two HE-SIG-B content channels
     if (channelWidth == 20) {
       return {numMuMimoUsers, 0};
     }
@@ -437,7 +400,6 @@ std::pair<std::size_t, std::size_t> HePpdu::GetNumRusPerHeSigBContentChannel(
     for (auto n = 0; n < channelWidth / 20;) {
       chSize.first += HeRu::GetRuSpecs(ruAllocation[n]).size();
       if (ruAllocation[n] >= 208) {
-        // 996 tone RU occupies 80 MHz
         n += 4;
         continue;
       }
@@ -446,7 +408,6 @@ std::pair<std::size_t, std::size_t> HePpdu::GetNumRusPerHeSigBContentChannel(
     for (auto n = 0; n < channelWidth / 20;) {
       chSize.second += HeRu::GetRuSpecs(ruAllocation[n + 1]).size();
       if (ruAllocation[n + 1] >= 208) {
-        // 996 tone RU occupies 80 MHz
         n += 4;
         continue;
       }
@@ -492,15 +453,12 @@ HePpdu::GetHeSigBContentChannels(const WifiTxVector &txVector,
       NS_ASSERT(ru == userInfo.ru);
       std::size_t ccIndex{0};
       if (channelWidth < 40) {
-        // only one content channel
         ccIndex = 0;
       } else if (txVector.IsSigBCompression()) {
-        // equal split
         ccIndex = (contentChannels.at(0).size() <= contentChannels.at(1).size())
                       ? 0
                       : 1;
-      } else // MU-MIMO
-      {
+      } else {
         ccIndex = (((ruIdx - 1) / numRus) % 2 == 0) ? 0 : 1;
       }
       contentChannels.at(ccIndex).push_back(
@@ -510,7 +468,6 @@ HePpdu::GetHeSigBContentChannels(const WifiTxVector &txVector,
 
   const auto isSigBCompression = txVector.IsSigBCompression();
   if (!isSigBCompression) {
-    // Add unassigned RUs
     auto numNumRusPerHeSigBContentChannel = GetNumRusPerHeSigBContentChannel(
         channelWidth, txVector.GetRuAllocation(p20Index), isSigBCompression,
         isSigBCompression ? txVector.GetHeMuUserInfoMap().size() : 0);
@@ -536,16 +493,13 @@ uint32_t HePpdu::GetSigBFieldSize(uint16_t channelWidth,
                                   const RuAllocation &ruAllocation,
                                   bool sigBCompression,
                                   std::size_t numMuMimoUsers) {
-  // Compute the number of bits used by common field.
   uint32_t commonFieldSize = 0;
   if (!sigBCompression) {
-    commonFieldSize = 4 /* CRC */ + 6 /* tail */;
+    commonFieldSize = 4 + 6;
     if (channelWidth <= 40) {
-      commonFieldSize += 8; // only one allocation subfield
+      commonFieldSize += 8;
     } else {
-      commonFieldSize +=
-          8 * (channelWidth / 40) /* one allocation field per 40 MHz */ +
-          1 /* center RU */;
+      commonFieldSize += 8 * (channelWidth / 40) + 1;
     }
   }
 
@@ -553,15 +507,10 @@ uint32_t HePpdu::GetSigBFieldSize(uint16_t channelWidth,
       channelWidth, ruAllocation, sigBCompression, numMuMimoUsers);
   auto maxNumRusPerContentChannel =
       std::max(numRusPerContentChannel.first, numRusPerContentChannel.second);
-  auto maxNumUserBlockFields =
-      maxNumRusPerContentChannel /
-      2; // handle last user block with single user, if any, further down
-  std::size_t userSpecificFieldSize =
-      maxNumUserBlockFields *
-      (2 * 21 /* user fields (2 users) */ + 4 /* tail */ + 6 /* CRC */);
+  auto maxNumUserBlockFields = maxNumRusPerContentChannel / 2;
+  std::size_t userSpecificFieldSize = maxNumUserBlockFields * (2 * 21 + 4 + 6);
   if (maxNumRusPerContentChannel % 2 != 0) {
-    userSpecificFieldSize +=
-        21 /* last user field */ + 4 /* CRC */ + 6 /* tail */;
+    userSpecificFieldSize += 21 + 4 + 6;
   }
 
   return commonFieldSize + userSpecificFieldSize;
@@ -616,7 +565,6 @@ uint8_t HePpdu::GetGuardIntervalAndNltfEncoding(uint16_t gi, uint8_t nltf) {
 
 uint16_t HePpdu::GetGuardIntervalFromEncoding(uint8_t giAndNltfSize) {
   if (giAndNltfSize == 3) {
-    // we currently do not consider DCM nor STBC fields
     return 3200;
   } else if (giAndNltfSize == 2) {
     return 1600;

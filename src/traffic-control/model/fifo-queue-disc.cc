@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:  Stefano Avallone <stavallo@unina.it>
- */
 
 #include "fifo-queue-disc.h"
 
@@ -60,9 +42,6 @@ bool FifoQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   }
 
   bool retval = GetInternalQueue(0)->Enqueue(item);
-
-  // If Queue::Enqueue fails, QueueDisc::DropBeforeEnqueue is called by the
-  // internal queue because QueueDisc::AddInternalQueue sets the trace callback
 
   NS_LOG_LOGIC("Number packets " << GetInternalQueue(0)->GetNPackets());
   NS_LOG_LOGIC("Number bytes " << GetInternalQueue(0)->GetNBytes());
@@ -109,7 +88,6 @@ bool FifoQueueDisc::CheckConfig() {
   }
 
   if (GetNInternalQueues() == 0) {
-    // add a DropTail queue
     AddInternalQueue(CreateObjectWithAttributes<DropTailQueue<QueueDiscItem>>(
         "MaxSize", QueueSizeValue(GetMaxSize())));
   }

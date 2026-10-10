@@ -1,41 +1,3 @@
-/*
- * Copyright (c) 2009, GTech Systems, Inc.
- * Copyright (c) 2021 NITK Surathkal: Extended to handle IPv6
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alfred Park <park@gtech-systems.com>
- * Modified By: Josh Pelkey <jpelkey@gatech.edu> (ported to ns-3)
- * Modified By: Ameya Deshpande <ameyanrd@outlook.com> (IPv6 extensions)
- *              Tommaso Pecorella <tommaso.pecorella@unifi.it> (IPv6 extensions)
- */
-/*
- * DARPA NMS Campus Network Model
- *
- * This topology replicates the original NMS Campus Network model
- * with the exception of chord links (which were never utilized in the
- * original model)
- * Link Bandwidths and Delays may not be the same as the original
- * specifications
- *
- * The fundamental unit of the NMS model consists of a campus network. The
- * campus network topology can been seen in the model manual.
- *
- * The number of hosts (default 42) is variable.  Finally, an arbitrary
- * number of these campus networks can be connected together (default 2)
- * to make very large simulations.
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -56,17 +18,8 @@ NS_LOG_COMPONENT_DEFINE("CampusNetworkModel");
 
 void Progress() { Simulator::Schedule(Seconds(0.1), Progress); }
 
-/**
- * \ingroup nix-vector-routing
- * 2D array used in nix-vector-routing example "nms-p2p-nix.cc"
- */
 template <typename T> class Array2D {
 public:
-  /**
-   * Constructor
-   * \param x number of rows
-   * \param y number of columns
-   */
   Array2D(const size_t x, const size_t y) : p(new T *[x]), m_xMax(x) {
     for (size_t i = 0; i < m_xMax; i++) {
       p[i] = new T[y];
@@ -81,30 +34,15 @@ public:
     p = nullptr;
   }
 
-  /**
-   * Accessor operator
-   * \param i index to be retrieved
-   * \return a pointer to the indexed element
-   */
   T *operator[](const size_t i) { return p[i]; }
 
 private:
-  T **p;               //!< Stored elements
-  const size_t m_xMax; //!< maximum number of rows
+  T **p;
+  const size_t m_xMax;
 };
 
-/**
- * \ingroup nix-vector-routing
- * 3D array used in nix-vector-routing example "nms-p2p-nix.cc"
- */
 template <typename T> class Array3D {
 public:
-  /**
-   * Constructor
-   * \param x number of rows
-   * \param y number of columns
-   * \param z number of layers
-   */
   Array3D(const size_t x, const size_t y, const size_t z)
       : p(new Array2D<T> *[x]), m_xMax(x) {
     for (size_t i = 0; i < m_xMax; i++) {
@@ -121,23 +59,17 @@ public:
     p = nullptr;
   }
 
-  /**
-   * Accessor operator
-   * \param i index to be retrieved
-   * \return a reference to an Array2D of the indexed element
-   */
   Array2D<T> &operator[](const size_t i) { return *(p[i]); }
 
 private:
-  Array2D<T> **p;      //!< Stored elements
-  const size_t m_xMax; //!< maximum number of rows
+  Array2D<T> **p;
+  const size_t m_xMax;
 };
 
 int main(int argc, char *argv[]) {
   auto t0 = std::chrono::steady_clock::now();
 
   std::cout << " ==== DARPA NMS CAMPUS NETWORK SIMULATION ====" << std::endl;
-  // LogComponentEnable ("OnOffApplication", LOG_LEVEL_INFO);
 
   int nCN = 2;
   int nLANClients = 42;
@@ -189,21 +121,18 @@ int main(int argc, char *argv[]) {
   p2p_100mb1ms.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
   p2p_100mb1ms.SetChannelAttribute("Delay", StringValue("1ms"));
 
-  // Setup NixVector Routing
   if (nix) {
     if (!useIpv6) {
       Ipv4NixVectorHelper nixRouting;
-      stack.SetRoutingHelper(nixRouting); // has effect on the next Install ()
+      stack.SetRoutingHelper(nixRouting);
     } else {
       Ipv6NixVectorHelper nixRouting;
-      stack.SetRoutingHelper(nixRouting); // has effect on the next Install ()
+      stack.SetRoutingHelper(nixRouting);
     }
   }
 
-  // Create Campus Networks
   for (int z = 0; z < nCN; ++z) {
     std::cout << "Creating Campus Network " << z << ":" << std::endl;
-    // Create Net0
     std::cout << "  SubNet [ 0";
     for (int i = 0; i < 3; ++i) {
       nodes_net0[z][i].Create(1);
@@ -216,7 +145,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < 3; ++i) {
       ndc0[i] = p2p_1gb5ms.Install(nodes_net0[z][i]);
     }
-    // Create Net1
     std::cout << " 1";
     for (int i = 0; i < 6; ++i) {
       nodes_net1[z][i].Create(1);
@@ -234,7 +162,6 @@ int main(int argc, char *argv[]) {
       }
       ndc1[i] = p2p_1gb5ms.Install(nodes_net1[z][i]);
     }
-    // Connect Net0 <-> Net1
     NodeContainer net0_1;
     net0_1.Add(nodes_net0[z][2].Get(0));
     net0_1.Add(nodes_net1[z][0].Get(0));
@@ -250,7 +177,6 @@ int main(int argc, char *argv[]) {
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc0_1);
     }
-    // Create Net2
     std::cout << " 2";
     for (int i = 0; i < 14; ++i) {
       nodes_net2[z][i].Create(1);
@@ -298,7 +224,6 @@ int main(int argc, char *argv[]) {
         }
       }
     }
-    // Create Net3
     std::cout << " 3 ]" << std::endl;
     for (int i = 0; i < 9; ++i) {
       nodes_net3[z][i].Create(1);
@@ -342,12 +267,10 @@ int main(int argc, char *argv[]) {
       }
     }
     std::cout << "  Connecting Subnets..." << std::endl;
-    // Create Lone Routers (Node 4 & 5)
     nodes_netLR[z].Create(2);
     stack.Install(nodes_netLR[z]);
     NetDeviceContainer ndcLR;
     ndcLR = p2p_1gb5ms.Install(nodes_netLR[z]);
-    // Connect Net2/Net3 through Lone Routers to Net0
     NodeContainer net0_4;
     NodeContainer net0_5;
     NodeContainer net2_4a;
@@ -379,66 +302,52 @@ int main(int argc, char *argv[]) {
     ndc3_5a = p2p_1gb5ms.Install(net3_5a);
     ndc3_5b = p2p_1gb5ms.Install(net3_5b);
 
-    // Assign IP addresses
-
     if (!useIpv6) {
-      // ndc0_4
       oss.str("");
       oss << 10 + z << ".1.253.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc0_4);
-      // ndc0_5
       oss.str("");
       oss << 10 + z << ".1.254.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc0_5);
-      // ndc2_4a
       oss.str("");
       oss << 10 + z << ".4.253.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc2_4a);
-      // ndc2_4b
       oss.str("");
       oss << 10 + z << ".4.254.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc2_4b);
-      // ndc3_5a
       oss.str("");
       oss << 10 + z << ".5.253.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc3_5a);
-      // ndc3_5b
       oss.str("");
       oss << 10 + z << ".5.254.0";
       addressHelperv4.SetBase(oss.str().c_str(), "255.255.255.0");
       addressHelperv4.Assign(ndc3_5b);
     } else {
-      // ndc0_4
       oss.str("");
       oss << 2001 + z << ":1:253::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc0_4);
-      // ndc0_5
       oss.str("");
       oss << 2001 + z << ":1:254::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc0_5);
-      // ndc2_4a
       oss.str("");
       oss << 2001 + z << ":4:253::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc2_4a);
-      // ndc2_4b
       oss.str("");
       oss << 2001 + z << ":4:254::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc2_4b);
-      // ndc3_5a
       oss.str("");
       oss << 2001 + z << ":5:253::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
       addressHelperv6.Assign(ndc3_5a);
-      // ndc3_5b
       oss.str("");
       oss << 2001 + z << ":5:254::";
       addressHelperv6.SetBase(oss.str().c_str(), Ipv6Prefix(64));
@@ -508,7 +417,6 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  // Create Ring Links
   if (nCN > 1) {
     std::cout << "Forming Ring Topology..." << std::endl;
     auto nodes_ring = new NodeContainer[nCN];
@@ -536,7 +444,6 @@ int main(int argc, char *argv[]) {
     delete[] nodes_ring;
   }
 
-  // Create Traffic Flows
   std::cout << "Creating TCP Traffic Flows:" << std::endl;
   Config::SetDefault("ns3::OnOffApplication::MaxBytes", UintegerValue(500000));
   Config::SetDefault("ns3::OnOffApplication::OnTime",
@@ -561,16 +468,13 @@ int main(int argc, char *argv[]) {
     if (z == nCN - 1) {
       x = 0;
     }
-    // Subnet 2 LANs
     std::cout << "  Campus Network " << z << " Flows [ Net2 ";
     for (int i = 0; i < 7; ++i) {
       for (int j = 0; j < nLANClients; ++j) {
-        // Sinks
         PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkAddress);
         ApplicationContainer sinkApp =
             sinkHelper.Install(nodes_net2LAN[z][i][j].Get(0));
         sinkApp.Start(Seconds(0.0));
-        // Sources
         r1 = 2 + (int)(4 * urng->GetValue());
         r2 = 10 * urng->GetValue();
         OnOffHelper client("ns3::TcpSocketFactory", Address());
@@ -581,16 +485,13 @@ int main(int argc, char *argv[]) {
         clientApp.Start(Seconds(r2));
       }
     }
-    // Subnet 3 LANs
     std::cout << "Net3 ]" << std::endl;
     for (int i = 0; i < 5; ++i) {
       for (int j = 0; j < nLANClients; ++j) {
-        // Sinks
         PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkAddress);
         ApplicationContainer sinkApp =
             sinkHelper.Install(nodes_net3LAN[z][i][j].Get(0));
         sinkApp.Start(Seconds(0.0));
-        // Sources
         r1 = 2 + (int)(4 * urng->GetValue());
         r2 = 10 * urng->GetValue();
         OnOffHelper client("ns3::TcpSocketFactory", Address());
@@ -607,10 +508,8 @@ int main(int argc, char *argv[]) {
   auto routingStart = std::chrono::steady_clock::now();
 
   if (nix) {
-    // Calculate routing tables
     std::cout << "Using Nix-vectors..." << std::endl;
   } else {
-    // Calculate routing tables
     std::cout << "Populating Global Static Routing Tables..." << std::endl;
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
   }

@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -36,40 +8,15 @@
 #include "ns3/ipv6-address-generator.h"
 #include "ns3/network-module.h"
 
-// Network topology (default)
-//
-//            n2     +          +     n3          .
-//             | ... |\        /| ... |           .
-//             ======= \      / =======           .
-//              CSMA    \    /   CSMA             .
-//                       \  /                     .
-//            n1     +--- n0 ---+     n4          .
-//             | ... |   /  \   | ... |           .
-//             =======  /    \  =======           .
-//              CSMA   /      \  CSMA             .
-//                    /        \                  .
-//            n6     +          +     n5          .
-//             | ... |          | ... |           .
-//             =======          =======           .
-//              CSMA             CSMA             .
-//
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("CsmaStar");
 
 int main(int argc, char *argv[]) {
-  //
-  // Set up some default values for the simulation.
-  //
   Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(137));
 
-  // ??? try and stick 15kb/s into the data rate
   Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("14kb/s"));
 
-  //
-  // Default number of nodes in the star.  Overridable by command line argument.
-  //
   uint32_t nSpokes = 7;
   uint32_t useIpv6 = 0;
   Ipv6Address ipv6AddressBase = Ipv6Address("2001::");
@@ -89,11 +36,6 @@ int main(int argc, char *argv[]) {
 
   NodeContainer fillNodes;
 
-  //
-  // Just to be nasy, hang some more nodes off of the CSMA channel for each
-  // spoke, so that there are a total of 16 nodes on each channel.  Stash
-  // all of these new devices into a container.
-  //
   NetDeviceContainer fillDevices;
 
   uint32_t nFill = 14;
@@ -118,16 +60,6 @@ int main(int argc, char *argv[]) {
     star.AssignIpv6Addresses(ipv6AddressBase, ipv6AddressPrefix);
   }
 
-  //
-  // We assigned addresses to the logical hub and the first "drop" of the
-  // CSMA network that acts as the spoke, but we also have a number of fill
-  // devices (nFill) also hanging off the CSMA network.  We have got to
-  // assign addresses to them as well.  We put all of the fill devices into
-  // a single device container, so the first nFill devices are associated
-  // with the channel connected to spokeDevices.Get (0), the second nFill
-  // devices are associated with the channel connected to spokeDevices.Get (1)
-  // etc.
-  //
   Ipv4AddressHelper address;
   Ipv6AddressHelper address6;
   for (uint32_t i = 0; i < star.SpokeCount(); ++i) {
@@ -153,9 +85,6 @@ int main(int argc, char *argv[]) {
   }
 
   NS_LOG_INFO("Create applications.");
-  //
-  // Create a packet sink on the star "hub" to receive packets.
-  //
   uint16_t port = 50000;
 
   if (useIpv6 == 0) {
@@ -173,9 +102,6 @@ int main(int argc, char *argv[]) {
     hubApp6.Stop(Seconds(10.0));
   }
 
-  //
-  // Create OnOff applications to send TCP to the hub, one on each spoke node.
-  //
   OnOffHelper onOffHelper("ns3::TcpSocketFactory", Address());
   onOffHelper.SetAttribute(
       "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -200,14 +126,6 @@ int main(int argc, char *argv[]) {
   spokeApps.Start(Seconds(1.0));
   spokeApps.Stop(Seconds(10.0));
 
-  //
-  // Because we are evil, we also add OnOff applications to send TCP to the hub
-  // from the fill devices on each CSMA link.  The first nFill nodes in the
-  // fillNodes container are on the CSMA network talking to the zeroth device
-  // on the hub node.  The next nFill nodes are on the CSMA network talking to
-  // the first device on the hub node, etc.  So the ith fillNode is associated
-  // with the hub address found on the (i / nFill)th device on the hub node.
-  //
   ApplicationContainer fillApps;
 
   for (uint32_t i = 0; i < fillNodes.GetN(); ++i) {
@@ -227,17 +145,11 @@ int main(int argc, char *argv[]) {
   fillApps.Stop(Seconds(10.0));
 
   NS_LOG_INFO("Enable static global routing.");
-  //
-  // Turn on global static routing so we can actually be routed across the star.
-  //
   if (useIpv6 == 0) {
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
   }
 
   NS_LOG_INFO("Enable pcap tracing.");
-  //
-  // Do pcap tracing on all devices on all nodes.
-  //
   csma.EnablePcapAll("csma-star", false);
 
   NS_LOG_INFO("Run Simulation.");

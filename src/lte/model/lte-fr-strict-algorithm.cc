@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-fr-strict-algorithm.h"
 
@@ -29,16 +10,14 @@ NS_LOG_COMPONENT_DEFINE("LteFrStrictAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(LteFrStrictAlgorithm);
 
-/// FrStrictDownlinkDefaultConfiguration structure
 struct FrStrictDownlinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t dlBandwidth;          ///< DL bandwidth
-  uint8_t dlCommonSubBandwidth; ///< DL common subbandwidth
-  uint8_t dlEdgeSubBandOffset;  ///< DL edge subband offset
-  uint8_t dlEdgeSubBandwidth;   ///< DL edge subbandwidth
+  uint8_t cellId;
+  uint8_t dlBandwidth;
+  uint8_t dlCommonSubBandwidth;
+  uint8_t dlEdgeSubBandOffset;
+  uint8_t dlEdgeSubBandwidth;
 };
 
-/// The strict downlink default configuration
 static const FrStrictDownlinkDefaultConfiguration
     g_frStrictDownlinkDefaultConfiguration[]{
         {1, 15, 2, 0, 4},    {2, 15, 2, 4, 4},     {3, 15, 2, 8, 4},
@@ -48,16 +27,14 @@ static const FrStrictDownlinkDefaultConfiguration
         {1, 100, 28, 0, 24}, {2, 100, 28, 24, 24}, {3, 100, 28, 48, 24},
     };
 
-/// FrStrictUplinkDefaultConfiguration structure
 struct FrStrictUplinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t ulBandwidth;          ///< UL bandwidth
-  uint8_t ulCommonSubBandwidth; ///< UL common subbandwidth
-  uint8_t ulEdgeSubBandOffset;  ///< UL edge subband offset
-  uint8_t ulEdgeSubBandwidth;   ///< UL edge subbandwidth
+  uint8_t cellId;
+  uint8_t ulBandwidth;
+  uint8_t ulCommonSubBandwidth;
+  uint8_t ulEdgeSubBandOffset;
+  uint8_t ulEdgeSubBandwidth;
 };
 
-/// The strict uplink default configuration
 static const FrStrictUplinkDefaultConfiguration
     g_frStrictUplinkDefaultConfiguration[]{
         {1, 15, 3, 0, 4},    {2, 15, 3, 4, 4},     {3, 15, 3, 8, 4},
@@ -67,11 +44,9 @@ static const FrStrictUplinkDefaultConfiguration
         {1, 100, 28, 0, 24}, {2, 100, 28, 24, 24}, {3, 100, 28, 48, 24},
     };
 
-/** \returns number of downlink configurations */
 const uint16_t
     NUM_DOWNLINK_CONFS(sizeof(g_frStrictDownlinkDefaultConfiguration) /
                        sizeof(FrStrictDownlinkDefaultConfiguration));
-/** \returns number of uplink configurations */
 const uint16_t NUM_UPLINK_CONFS(sizeof(g_frStrictUplinkDefaultConfiguration) /
                                 sizeof(FrStrictUplinkDefaultConfiguration));
 
@@ -430,19 +405,8 @@ uint8_t LteFrStrictAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
 
   if (!m_enabledInUplink) {
-    return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute
-              // mode TS36.213 Table 5.1.1.1-2
+    return 1;
   }
-
-  // TS36.213 Table 5.1.1.1-2
-  //    TPC   |   Accumulated Mode  |  Absolute Mode
-  //------------------------------------------------
-  //     0    |         -1          |      -4
-  //     1    |          0          |      -1
-  //     2    |          1          |       1
-  //     3    |          3          |       4
-  //------------------------------------------------
-  //  here Absolute mode is used
 
   auto it = m_ues.find(rnti);
   if (it == m_ues.end()) {
@@ -520,4 +484,4 @@ void LteFrStrictAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, since it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

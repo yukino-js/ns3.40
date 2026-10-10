@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include <ns3/double.h>
 #include <ns3/enum.h>
@@ -37,56 +19,29 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TupleTestSuite");
 
-/** Object with attribute values storing tuples */
 class TupleObject : public Object {
 public:
-  /**
-   * Test enum type
-   */
   enum TupleTestEnum { VALUE1, VALUE2, VALUE3 };
 
   TupleObject();
   ~TupleObject() override;
 
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
-  // NOTE EnumValue::Get() return an int, so the tuple element type must be an
-  // int in place of the enum type
-  using Tuple1Value = TupleValue<StringValue, StringValue,
-                                 EnumValue>;  //!< Tuple1 attribute value
-  using Tuple1 = Tuple1Value::result_type;    //!< tuple of values
-  using Tuple1Pack = Tuple1Value::value_type; //!< tuple of attribute values
+  using Tuple1Value = TupleValue<StringValue, StringValue, EnumValue>;
+  using Tuple1 = Tuple1Value::result_type;
+  using Tuple1Pack = Tuple1Value::value_type;
 
-  using Tuple2 = std::tuple<double, uint16_t, std::string>; //!< Tuple2 typedef
+  using Tuple2 = std::tuple<double, uint16_t, std::string>;
 
-  /**
-   * Set tuple1
-   * \param tuple tuple value
-   */
   void SetTuple1(const Tuple1 &tuple);
-  /**
-   * Get tuple1
-   * \return tuple1
-   */
   Tuple1 GetTuple1() const;
-  /**
-   * Set tuple2
-   * \param tuple tuple value
-   */
   void SetTuple2(const Tuple2 &tuple);
-  /**
-   * Get tuple2
-   * \return tuple2
-   */
   Tuple2 GetTuple2() const;
 
 private:
-  Tuple1 m_tuple1; //!< first tuple
-  Tuple2 m_tuple2; //!< second tuple
+  Tuple1 m_tuple1;
+  Tuple2 m_tuple2;
 };
 
 TypeId TupleObject::GetTypeId() {
@@ -127,7 +82,6 @@ void TupleObject::SetTuple2(const Tuple2 &tuple) { m_tuple2 = tuple; }
 
 TupleObject::Tuple2 TupleObject::GetTuple2() const { return m_tuple2; }
 
-/** Test instantiation, initialization, access */
 class TupleValueTestCase : public TestCase {
 public:
   TupleValueTestCase();
@@ -144,7 +98,6 @@ TupleValueTestCase::TupleValueTestCase()
 void TupleValueTestCase::DoRun() {
   auto tupleObject = CreateObject<TupleObject>();
 
-  // Test that default values have been assigned to tuple 1
   auto t1 = tupleObject->GetTuple1();
   NS_TEST_ASSERT_MSG_EQ((std::get<0>(t1) == "Hey"), true,
                         "First element of tuple 1 not correctly set");
@@ -153,7 +106,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(std::get<2>(t1), (int)(TupleObject::VALUE1),
                         "Third element of tuple 1 not correctly set");
 
-  // Test that default values have been assigned to tuple 2
   auto t2 = tupleObject->GetTuple2();
   NS_TEST_ASSERT_MSG_EQ(std::get<0>(t2), 6.022,
                         "First element of tuple 2 not correctly set");
@@ -162,7 +114,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ((std::get<2>(t2) == "Avogadro"), true,
                         "Third element of tuple 2 not correctly set");
 
-  // Test that we can correctly set and get new values for tuple 1
   bool ret1 = tupleObject->SetAttributeFailSafe(
       "StringStringEnumTuple",
       MakeTupleValue<TupleObject::Tuple1Pack>(
@@ -182,7 +133,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(std::get<2>(t1), (int)(TupleObject::VALUE2),
                         "Third element of tuple 1 not correctly set");
 
-  // Test that we can correctly set and get new values for tuple 2
   bool ret2 = tupleObject->SetAttributeFailSafe(
       "DoubleUintStringTuple",
       TupleValue<DoubleValue, UintegerValue, StringValue>(
@@ -202,7 +152,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ((std::get<2>(t2) == "Coulomb"), true,
                         "Third element of tuple 2 not correctly set");
 
-  // Test that we can set tuple 1 from string
   ret1 = tupleObject->SetAttributeFailSafe(
       "StringStringEnumTuple", StringValue("{Come, Together, VALUE1}"));
   NS_TEST_ASSERT_MSG_EQ(ret1, true, "Setting valid values to tuple 1 failed");
@@ -215,7 +164,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(std::get<2>(t1), (int)(TupleObject::VALUE1),
                         "Third element of tuple 1 not correctly set");
 
-  // Test that we can set tuple 2 from string
   ret2 = tupleObject->SetAttributeFailSafe(
       "DoubleUintStringTuple", StringValue("{2.99, 8, LightSpeed}"));
   NS_TEST_ASSERT_MSG_EQ(ret2, true, "Setting valid values to tuple 2 failed");
@@ -228,7 +176,6 @@ void TupleValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ((std::get<2>(t2) == "LightSpeed"), true,
                         "Third element of tuple 2 not correctly set");
 
-  // Test that setting invalid values fails
   ret1 = tupleObject->SetAttributeFailSafe(
       "StringStringEnumTuple",
       TupleValue<StringValue, StringValue>({"Get", "Back"}));
@@ -276,7 +223,6 @@ void TupleValueTestCase::DoRun() {
       true, "Tuple modified after failed assignment");
 }
 
-/** Test suite */
 class TupleValueTestSuite : public TestSuite {
 public:
   TupleValueTestSuite();
@@ -287,5 +233,4 @@ TupleValueTestSuite::TupleValueTestSuite()
   AddTestCase(new TupleValueTestCase(), TestCase::QUICK);
 }
 
-static TupleValueTestSuite
-    g_tupleValueTestSuite; //!< Static variable for test initialization
+static TupleValueTestSuite g_tupleValueTestSuite;

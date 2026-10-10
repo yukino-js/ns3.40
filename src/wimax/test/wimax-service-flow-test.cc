@@ -1,23 +1,3 @@
-/*
- *  Copyright (c) 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- *
- */
 #include "ns3/cs-parameters.h"
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipcs-classifier-record.h"
@@ -31,12 +11,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the service flow creation.
- */
 class Ns3WimaxSfCreationTestCase : public TestCase {
 public:
   Ns3WimaxSfCreationTestCase();
@@ -52,7 +26,6 @@ Ns3WimaxSfCreationTestCase::Ns3WimaxSfCreationTestCase()
 Ns3WimaxSfCreationTestCase::~Ns3WimaxSfCreationTestCase() {}
 
 void Ns3WimaxSfCreationTestCase::DoRun() {
-  // default values
   int duration = 2;
   WimaxHelper::SchedulerType scheduler = WimaxHelper::SCHED_TYPE_SIMPLE;
 
@@ -86,7 +59,6 @@ void Ns3WimaxSfCreationTestCase::DoRun() {
   Ipv4InterfaceContainer SSinterfaces = address.Assign(ssDevs);
   Ipv4InterfaceContainer BSinterface = address.Assign(bsDevs);
 
-  // Create one UGS Downlink service flow between the ss and the bs
   auto DlServiceFlowUgs = new ServiceFlow(ServiceFlow::SF_DIRECTION_DOWN);
   IpcsClassifierRecord DlClassifierUgs(
       Ipv4Address("0.0.0.0"), Ipv4Mask("0.0.0.0"), Ipv4Address("0.0.0.0"),
@@ -102,7 +74,6 @@ void Ns3WimaxSfCreationTestCase::DoRun() {
   DlServiceFlowUgs->SetMaxTrafficBurst(1000);
   DlServiceFlowUgs->SetTrafficPriority(1);
 
-  // Create one UGS Uplink service flow between the ss and the bs
   auto UlServiceFlowUgs = new ServiceFlow(ServiceFlow::SF_DIRECTION_UP);
   IpcsClassifierRecord UlClassifierUgs(
       Ipv4Address("0.0.0.0"), Ipv4Mask("0.0.0.0"), Ipv4Address("0.0.0.0"),
@@ -127,12 +98,6 @@ void Ns3WimaxSfCreationTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax Service Flow Test Suite
- */
 class Ns3WimaxServiceFlowTestSuite : public TestSuite {
 public:
   Ns3WimaxServiceFlowTestSuite();
@@ -143,5 +108,4 @@ Ns3WimaxServiceFlowTestSuite::Ns3WimaxServiceFlowTestSuite()
   AddTestCase(new Ns3WimaxSfCreationTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxServiceFlowTestSuite
-    ns3WimaxServiceFlowTestSuite; ///< the test suite
+static Ns3WimaxServiceFlowTestSuite ns3WimaxServiceFlowTestSuite;

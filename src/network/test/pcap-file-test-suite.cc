@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Craig Dowell (craigdo@ee.washington.edu)
- */
 
 #include "ns3/log.h"
 #include "ns3/pcap-file.h"
@@ -42,10 +13,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("pcap-file-test-suite");
-
-// ===========================================================================
-// Some utility functions for the tests.
-// ===========================================================================
 
 static uint16_t Swap(uint16_t val) {
   return ((val >> 8) & 0x00ff) | ((val << 8) & 0xff00);
@@ -80,13 +47,6 @@ static bool CheckFileLength(std::string filename, long sizeExpected) {
   return sizeActual == sizeExpected;
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap File Object can do its
- * most basic job and create an empty pcap file.
- */
 class WriteModeCreateTestCase : public TestCase {
 public:
   WriteModeCreateTestCase();
@@ -97,7 +57,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  std::string m_testFilename; //!< File name
+  std::string m_testFilename;
 };
 
 WriteModeCreateTestCase::WriteModeCreateTestCase()
@@ -122,10 +82,6 @@ void WriteModeCreateTestCase::DoTeardown() {
 void WriteModeCreateTestCase::DoRun() {
   PcapFile f;
 
-  //
-  // Opening a new file in write mode should result in an empty file of the
-  // given name.
-  //
   f.Open(m_testFilename, std::ios::out);
 
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
@@ -141,10 +97,6 @@ void WriteModeCreateTestCase::DoRun() {
       "Open (" << m_testFilename
                << ", \"std::ios::out\") does not result in an empty file");
 
-  //
-  // Calling Init() on a file created with "std::ios::out" should result in a
-  // file just long enough to contain the pcap file header.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
@@ -159,10 +111,6 @@ void WriteModeCreateTestCase::DoRun() {
       CheckFileLength(m_testFilename, 24), true,
       "Init () does not result in a file with a pcap file header");
 
-  //
-  // Opening an existing file in write mode should result in that file being
-  // emptied.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
@@ -175,9 +123,6 @@ void WriteModeCreateTestCase::DoRun() {
                             << m_testFilename
                             << ", \"w\") does not result in an empty file");
 
-  //
-  // Initialize the file again.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename << ", \"w\") returns error");
@@ -185,11 +130,6 @@ void WriteModeCreateTestCase::DoRun() {
   f.Init(1234, 5678, 7);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (1234, 5678, 7) returns error");
 
-  //
-  // Now we should be able to write to it since it was opened in std::ios::out
-  // mode. This is just a permissions check so we don't actually look at the
-  // data.
-  //
   uint8_t buffer[128];
   memset(buffer, 0, sizeof(buffer));
   f.Write(0, 0, buffer, 128);
@@ -198,13 +138,6 @@ void WriteModeCreateTestCase::DoRun() {
                                                   << ") returns error");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap File Object can open an
- * existing pcap file.
- */
 class ReadModeCreateTestCase : public TestCase {
 public:
   ReadModeCreateTestCase();
@@ -215,7 +148,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  std::string m_testFilename; //!< File name
+  std::string m_testFilename;
 };
 
 ReadModeCreateTestCase::ReadModeCreateTestCase()
@@ -240,9 +173,6 @@ void ReadModeCreateTestCase::DoTeardown() {
 void ReadModeCreateTestCase::DoRun() {
   PcapFile f;
 
-  //
-  // Opening a non-existing file in read mode should result in an error.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), true,
                         "Open (non-existing-filename "
@@ -255,18 +185,11 @@ void ReadModeCreateTestCase::DoRun() {
       "Open (" << m_testFilename
                << ", \"std::ios::in\") unexpectedly created a file");
 
-  //
-  // Okay, now create an uninitialized file using previously tested operations
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (filename, \"std::ios::out\") returns error");
   f.Close();
 
-  //
-  // Opening this file should result in an error since it has no pcap file
-  // header.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), true,
                         "Open (non-initialized-filename "
@@ -275,10 +198,6 @@ void ReadModeCreateTestCase::DoRun() {
   f.Close();
   f.Clear();
 
-  //
-  // Okay, now open that non-initialized file in write mode and initialize it
-  // Note that we open it in write mode to initialize it.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
@@ -288,19 +207,12 @@ void ReadModeCreateTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (1234, 5678, 7) returns error");
   f.Close();
 
-  //
-  // Opening this file should now work since it has a pcap file header.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (initialized-filename "
                             << m_testFilename
                             << ", \"std::ios::in\") returns error");
 
-  //
-  // Now we should not be able to write to it since it was opened in "r" mode
-  // even if it has been initialized..
-  //
   uint8_t buffer[128];
   f.Write(0, 0, buffer, 128);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), true,
@@ -311,10 +223,6 @@ void ReadModeCreateTestCase::DoRun() {
 }
 
 #if 0
-// ===========================================================================
-// Test case to make sure that the Pcap File Object can open an existing pcap
-// file for appending.
-// ===========================================================================
 class AppendModeCreateTestCase : public TestCase
 {
 public:
@@ -361,9 +269,6 @@ AppendModeCreateTestCase::DoRun ()
 {
   PcapFile f;
 
-  //
-  // Opening a non-existing file in append mode should result in an error.
-  //
   f.Open (m_testFilename, std::ios::out | std::ios::app);
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), true, "Open (non-existing-filename " << m_testFilename <<
                          ", \"std::ios::app\") does not return error");
@@ -373,26 +278,17 @@ AppendModeCreateTestCase::DoRun ()
   NS_TEST_ASSERT_MSG_EQ (CheckFileExists (m_testFilename), false,
                          "Open (" << m_testFilename << ", \"std::ios::app\") unexpectedly created a file");
 
-  //
-  // Okay, now create an uninitialized file using previously tested operations
-  //
   f.Open (m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), false, "Open (" << m_testFilename <<
                          ", \"std::ios::out\") returns error");
   f.Close ();
 
-  //
-  // Opening this file should result in an error since it has no pcap file header.
-  //
   f.Open (m_testFilename, std::ios::out | std::ios::app);
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), true, "Open (non-initialized-filename " << m_testFilename <<
                          ", \"std::ios::app\") does not return error");
   f.Close ();
   f.Clear ();
 
-  //
-  // Okay, now open that non-initialized file in write mode and initialize it.
-  //
   f.Open (m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), false, "Open (non-initialized-filename " << m_testFilename <<
                          ", \"std::ios::out\") returns error");
@@ -401,16 +297,10 @@ AppendModeCreateTestCase::DoRun ()
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), false, "Init (1234, 5678, 7) returns error");
   f.Close ();
 
-  //
-  // Opening this file should now work since it has a pcap file header.
-  //
   f.Open (m_testFilename, std::ios::out | std::ios::app);
   NS_TEST_ASSERT_MSG_EQ (f.Fail (), false, "Open (initialized-filename " << m_testFilename <<
                          ", \"std::ios::app\") returns error");
 
-  //
-  // We should be able to write to it since it was opened in "std::ios::app" mode.
-  //
   uint8_t buffer[128];
   memset (buffer, 0, sizeof(buffer));
   f.Write (0, 0, buffer, 128);
@@ -420,14 +310,6 @@ AppendModeCreateTestCase::DoRun ()
 }
 #endif
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap File Object can
- * write out correct pcap file headers in both endian cases,
- * and then read them in correctly.
- */
 class FileHeaderTestCase : public TestCase {
 public:
   FileHeaderTestCase();
@@ -438,7 +320,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  std::string m_testFilename; //!< File name
+  std::string m_testFilename;
 };
 
 FileHeaderTestCase::FileHeaderTestCase()
@@ -462,24 +344,15 @@ void FileHeaderTestCase::DoTeardown() {
 void FileHeaderTestCase::DoRun() {
   PcapFile f;
 
-  //
-  // Create an uninitialized file using previously tested operations
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
                                  << ", \"std::ios::out\") returns error");
 
-  //
-  // Initialize the pcap file header.
-  //
   f.Init(1234, 5678, 7);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (1234, 5678, 7) returns error");
   f.Close();
 
-  //
-  // Take a look and see what was done to the file
-  //
   FILE *p = std::fopen(m_testFilename.c_str(), "r+b");
   NS_TEST_ASSERT_MSG_NE(
       p, nullptr,
@@ -490,23 +363,6 @@ void FileHeaderTestCase::DoRun() {
   uint32_t val32;
   uint16_t val16;
 
-  //
-  // Because the regression tests require that pcap file output be compared
-  // byte-by-byte, we had to decide on a single format for written pcap files.
-  // This was little endian.  So we have to do something special with big-
-  // endian machines here.
-  //
-  // When a big endian machine writes a pcap file, it is forced into swap
-  // mode and actually writes little endian files.  This is automagically
-  // fixed up when using a PcapFile to read the values, but when a big-
-  // endian machine reads these values directly, they will be swapped.
-  //
-  // We can remove this nonsense when we get rid of the pcap-file-comparison
-  // regression tests.
-  //
-  // So, determine the endian-ness of the running system, and if we're on
-  // a big-endian machine, swap all of the results below before checking.
-  //
   union {
     uint32_t a;
     uint8_t b[4];
@@ -567,15 +423,6 @@ void FileHeaderTestCase::DoRun() {
   std::fclose(p);
   p = nullptr;
 
-  //
-  // We wrote a little-endian file out correctly, now let's see if we can read
-  // it back in correctly.
-  //
-  // As mentioned above, when a big endian machine writes a pcap file, it is
-  // forced into swap mode and actually writes little endian files.  This is
-  // automagically fixed up when using a PcapFile to read the values, so we
-  // don't have to do anything special here.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (existing-initialized-file "
@@ -596,30 +443,15 @@ void FileHeaderTestCase::DoRun() {
                         "Read back data link type incorrectly");
   f.Close();
 
-  //
-  // Re-open the file to erase its contents.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
                                  << ", \"std::ios::out\") returns error");
 
-  //
-  // Initialize the pcap file header, turning on swap mode manually to force
-  // the pcap file header to be written out in foreign-endian form, whichever
-  // endian-ness that might be.  Since big-endian machines are automatically
-  // forced into swap mode, the <true> parameter to f.Init() below is actually
-  // a no-op and we're always writing foreign-endian files.  In that case,
-  // this test case is really just a duplicate of the previous.
-  //
   f.Init(1234, 5678, 7, true);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (1234, 5678, 7) returns error");
   f.Close();
 
-  //
-  // Take a look and see what was done to the file.  Everything should now
-  // appear byte-swapped.
-  //
   p = std::fopen(m_testFilename.c_str(), "r+b");
   NS_TEST_ASSERT_MSG_NE(
       p, nullptr,
@@ -664,13 +496,6 @@ void FileHeaderTestCase::DoRun() {
   std::fclose(p);
   p = nullptr;
 
-  //
-  // We wrote an opposite-endian file out correctly, now let's see if we can
-  // read it back in correctly.  Again, in the case of a big-endian machine, we
-  // already did this test and it is just a duplicate.  What we don't test on a
-  // big endian machine is writing out a big-endian file by default, but we
-  // can't do that since it breaks regression testing.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (existing-initialized-file "
@@ -696,14 +521,6 @@ void FileHeaderTestCase::DoRun() {
   f.Close();
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap File Object can
- * write pcap packet records in both endian cases, and then read
- * them in correctly.
- */
 class RecordHeaderTestCase : public TestCase {
 public:
   RecordHeaderTestCase();
@@ -714,7 +531,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  std::string m_testFilename; //!< File name
+  std::string m_testFilename;
 };
 
 RecordHeaderTestCase::RecordHeaderTestCase()
@@ -738,84 +555,39 @@ void RecordHeaderTestCase::DoTeardown() {
 void RecordHeaderTestCase::DoRun() {
   PcapFile f;
 
-  //
-  // Create an uninitialized file using previously tested operations
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
                                  << ", \"std::ios::out\") returns error");
 
-  //
-  // Initialize the pcap file header.
-  //
   f.Init(37, 43, -7);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (37, 43, -7) returns error");
 
-  //
-  // Initialize a buffer with a counting pattern to check the data later.
-  //
   uint8_t bufferOut[128];
   for (uint32_t i = 0; i < 128; ++i) {
     bufferOut[i] = i;
   }
 
-  //
-  // Now we should be able to write a packet to it since it was opened in "w"
-  // mode.  The packet data written should be limited to 43 bytes in length
-  // by the Init() call above.
-  //
   f.Write(1234, 5678, bufferOut, 128);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Write (write-only-file " << m_testFilename
                                                   << ") returns error");
   f.Close();
 
-  //
-  // Let's peek into the file and see what actually went out for that
-  // packet.
-  //
   FILE *p = std::fopen(m_testFilename.c_str(), "r+b");
   NS_TEST_ASSERT_MSG_NE(
       p, nullptr,
       "fopen() should have been able to open a correctly created pcap file");
 
-  //
-  // A pcap file header takes up 24 bytes, a pcap record header takes up 16
-  // bytes and we wrote in 43 bytes, so the file must be 83 bytes long.  Let's
-  // just double check that this is exactly what happened.
-  //
   std::fseek(p, 0, SEEK_END);
   auto size = std::ftell(p);
   NS_TEST_ASSERT_MSG_EQ(size, 83,
                         "Pcap file with one 43 byte packet is incorrect size");
 
-  //
-  // A pcap file header takes up 24 bytes, so we should see a pcap record header
-  // starting there in the file.  We've tested this all before so we just assume
-  // it's all right and just seek to just past that point..
-  //
   std::fseek(p, 24, SEEK_SET);
 
   uint32_t val32;
 
-  //
-  // Because the regression tests require that pcap file output be compared
-  // byte-by-byte, we had to decide on a single format for written pcap files.
-  // This was little endian.  So we have to do something special with big-
-  // endian machines here.
-  //
-  // When a big endian machine writes a pcap file, it is forced into swap
-  // mode and actually writes little endian files.  This is automagically
-  // fixed up when using a PcapFile to read the values, but when a big-
-  // endian machine reads these values directly, they will be swapped.
-  //
-  // We can remove this nonsense when we get rid of the pcap-file-comparison
-  // regression tests.
-  //
-  // So, determine the endian-ness of the running system, and if we're on
-  // a big-endian machine, swap all of the results below before checking.
-  //
   union {
     uint32_t a;
     uint8_t b[4];
@@ -853,10 +625,6 @@ void RecordHeaderTestCase::DoRun() {
   }
   NS_TEST_ASSERT_MSG_EQ(val32, 128, "Actual length written incorrectly");
 
-  //
-  // Take a look and see what went out into the file.  The packet data
-  // should be unchanged (unswapped).
-  //
   uint8_t bufferIn[128];
 
   result = std::fread(bufferIn, 1, 43, p);
@@ -871,10 +639,6 @@ void RecordHeaderTestCase::DoRun() {
   std::fclose(p);
   p = nullptr;
 
-  //
-  // Let's see if the PcapFile object can figure out how to do the same thing
-  // and correctly read in a packet.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(
       f.Fail(), false,
@@ -904,69 +668,35 @@ void RecordHeaderTestCase::DoRun() {
                         "good packet given buffer size");
   f.Close();
 
-  //
-  // Did the data come back correctly?
-  //
   for (uint32_t i = 0; i < 43; ++i) {
     NS_TEST_ASSERT_MSG_EQ(bufferIn[i], bufferOut[i],
                           "Incorrect packet data read from known good packet");
   }
 
-  //
-  // We have to check to make sure that the pcap record header is swapped
-  // correctly.  Since big-endian machines are automatically forced into
-  // swap mode, the <true> parameter to f.Init() below is actually
-  // a no-op and we're always writing foreign-endian files.  In that case,
-  // this test case is really just a duplicate of the previous.
-  //
-  // Open the file in write mode to clear the data.
-  //
   f.Open(m_testFilename, std::ios::out);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << m_testFilename
                                  << ", \"std::ios::out\") returns error");
 
-  //
-  // Initialize the pcap file header, forcing the object into swap mode.
-  //
   f.Init(37, 43, -7, true);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false, "Init (37, 43, -7) returns error");
 
-  //
-  // Now we should be able to write a packet to it since it was opened in "w"
-  // mode.  The packet data written should be limited to 43 bytes in length
-  // by the Init() call above.
-  //
   f.Write(1234, 5678, bufferOut, 128);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Write (write-only-file " << m_testFilename
                                                   << ") returns error");
   f.Close();
 
-  //
-  // Let's peek into the file and see what actually went out for that
-  // packet.
-  //
   p = std::fopen(m_testFilename.c_str(), "r+b");
   NS_TEST_ASSERT_MSG_NE(
       p, nullptr,
       "fopen() should have been able to open a correctly created pcap file");
 
-  //
-  // A pcap file header takes up 24 bytes, a pcap record header takes up 16
-  // bytes and we wrote in 43 bytes, so the file must be 83 bytes long.  Let's
-  // just double check that this is exactly what happened.
-  //
   std::fseek(p, 0, SEEK_END);
   size = std::ftell(p);
   NS_TEST_ASSERT_MSG_EQ(size, 83,
                         "Pcap file with one 43 byte packet is incorrect size");
 
-  //
-  // A pcap file header takes up 24 bytes, so we should see a pcap record header
-  // starting there in the file.  We've tested this all before so we just assume
-  // it's all right and just seek past it.
-  //
   result = std::fseek(p, 24, SEEK_SET);
   NS_TEST_ASSERT_MSG_EQ(result, 0, "Failed seeking past pcap header");
 
@@ -990,10 +720,6 @@ void RecordHeaderTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(val32, Swap(uint32_t(128)),
                         "Swapped Actual length written incorrectly");
 
-  //
-  // Take a look and see what went out into the file.  The packet data
-  // should be unchanged (unswapped).
-  //
   result = std::fread(bufferIn, 1, 43, p);
   NS_TEST_ASSERT_MSG_EQ(result, 43,
                         "Unable to fread() packet data of expected length");
@@ -1006,11 +732,6 @@ void RecordHeaderTestCase::DoRun() {
   std::fclose(p);
   p = nullptr;
 
-  //
-  // Let's see if the PcapFile object can figure out how to do the same thing
-  // and correctly read in a packet.  The record header info should come back to
-  // us swapped back into correct form.
-  //
   f.Open(m_testFilename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(
       f.Fail(), false,
@@ -1033,9 +754,6 @@ void RecordHeaderTestCase::DoRun() {
                         "Incorrectly constructed actual read length from known "
                         "good packet given buffer size");
 
-  //
-  // Did the data come back correctly (unchanged / unswapped)?
-  //
   for (uint32_t i = 0; i < 43; ++i) {
     NS_TEST_ASSERT_MSG_EQ(bufferIn[i], bufferOut[i],
                           "Incorrect packet data read from known good packet");
@@ -1044,13 +762,6 @@ void RecordHeaderTestCase::DoRun() {
   f.Close();
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap File Object can read
- * out the contents of a known good pcap file.
- */
 class ReadFileTestCase : public TestCase {
 public:
   ReadFileTestCase();
@@ -1061,7 +772,7 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  std::string m_testFilename; //!< File name
+  std::string m_testFilename;
 };
 
 ReadFileTestCase::ReadFileTestCase()
@@ -1077,15 +788,12 @@ void ReadFileTestCase::DoTeardown() {}
 static const uint32_t N_KNOWN_PACKETS = 6;
 static const uint32_t N_PACKET_BYTES = 16;
 
-/**
- * PCAP Packet structure
- */
 struct PacketEntry {
-  uint32_t tsSec;                //!< Time (seconds part)
-  uint32_t tsUsec;               //!< Time (micro seconds part)
-  uint32_t inclLen;              //!< Length of the entry in the PCAP
-  uint32_t origLen;              //!< length of the original packet
-  uint16_t data[N_PACKET_BYTES]; //!< Packet data
+  uint32_t tsSec;
+  uint32_t tsUsec;
+  uint32_t inclLen;
+  uint32_t origLen;
+  uint16_t data[N_PACKET_BYTES];
 };
 
 static const PacketEntry knownPackets[] = {
@@ -1130,22 +838,12 @@ static const PacketEntry knownPackets[] = {
 void ReadFileTestCase::DoRun() {
   PcapFile f;
 
-  //
-  //
   std::string filename = CreateDataDirFilename("known.pcap");
   f.Open(filename, std::ios::in);
   NS_TEST_ASSERT_MSG_EQ(f.Fail(), false,
                         "Open (" << filename
                                  << ", \"std::ios::in\") returns error");
 
-  //
-  // We are going to read out the file header and all of the packets to make
-  // sure that we read what we know, a priori, to be there.
-  //
-  // The packet data was gotten using "tcpdump -nn -tt -r known.pcap -x"
-  // and the timestamp and first 32 bytes of the resulting dump were
-  // duplicated in the structure above.
-  //
   uint8_t data[N_PACKET_BYTES];
   uint32_t tsSec;
   uint32_t tsUsec;
@@ -1176,10 +874,6 @@ void ReadFileTestCase::DoRun() {
                           "given buffer size");
   }
 
-  //
-  // The file should now be at EOF since we've read all of the packets.
-  // Another packet read should return an error.
-  //
   f.Read(data, 1, tsSec, tsUsec, inclLen, origLen, readLen);
   NS_TEST_ASSERT_MSG_EQ(
       f.Eof(), true,
@@ -1188,12 +882,6 @@ void ReadFileTestCase::DoRun() {
   f.Close();
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test case to make sure that the Pcap::Diff method works as expected.
- */
 class DiffTestCase : public TestCase {
 public:
   DiffTestCase();
@@ -1206,9 +894,6 @@ DiffTestCase::DiffTestCase()
     : TestCase("Check that PcapFile::Diff works as expected") {}
 
 void DiffTestCase::DoRun() {
-  //
-  // Check that PcapDiff(file, file) is false
-  //
   std::string filename = CreateDataDirFilename("known.pcap");
   uint32_t sec(0);
   uint32_t usec(0);
@@ -1217,10 +902,6 @@ void DiffTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(diff, false,
                         "PcapDiff(file, file) must always be false");
 
-  //
-  // Create different PCAP file (with the same timestamps, but different
-  // packets) and check that it is indeed different
-  //
   std::string filename2 = CreateTempDirFilename("different.pcap");
   PcapFile f;
 
@@ -1247,12 +928,6 @@ void DiffTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(usec, 3696, "Files are different from 2.3696 seconds");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief PCAP file utils TestSuite
- */
 class PcapFileTestSuite : public TestSuite {
 public:
   PcapFileTestSuite();
@@ -1262,12 +937,10 @@ PcapFileTestSuite::PcapFileTestSuite() : TestSuite("pcap-file", UNIT) {
   SetDataDir(NS_TEST_SOURCEDIR);
   AddTestCase(new WriteModeCreateTestCase, TestCase::QUICK);
   AddTestCase(new ReadModeCreateTestCase, TestCase::QUICK);
-  // AddTestCase (new AppendModeCreateTestCase, TestCase::QUICK);
   AddTestCase(new FileHeaderTestCase, TestCase::QUICK);
   AddTestCase(new RecordHeaderTestCase, TestCase::QUICK);
   AddTestCase(new ReadFileTestCase, TestCase::QUICK);
   AddTestCase(new DiffTestCase, TestCase::QUICK);
 }
 
-static PcapFileTestSuite
-    pcapFileTestSuite; //!< Static variable for test initialization
+static PcapFileTestSuite pcapFileTestSuite;

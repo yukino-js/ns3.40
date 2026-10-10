@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2009, 2010 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mirko Banchi <mk.banchi@gmail.com>
- *          Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "originator-block-ack-agreement.h"
 
@@ -57,7 +38,6 @@ bool OriginatorBlockAckAgreement::IsReset() const { return m_state == RESET; }
 
 uint16_t OriginatorBlockAckAgreement::GetStartingSequence() const {
   if (m_txWindow.GetWinSize() == 0) {
-    // the TX window has not been initialized yet
     return m_startingSeq;
   }
   return m_txWindow.GetWinStart();
@@ -73,7 +53,7 @@ void OriginatorBlockAckAgreement::InitTxWindow() {
 
 void OriginatorBlockAckAgreement::AdvanceTxWindow() {
   while (m_txWindow.At(0)) {
-    m_txWindow.Advance(1); // reset the current head -- ensures loop termination
+    m_txWindow.Advance(1);
   }
 }
 
@@ -87,12 +67,9 @@ void OriginatorBlockAckAgreement::NotifyTransmittedMpdu(
     return;
   }
 
-  // advance the transmit window if an MPDU beyond the current transmit window
-  // is transmitted (see Section 10.24.7.7 of 802.11-2016)
   if (distance >= m_txWindow.GetWinSize()) {
     std::size_t count = distance - m_txWindow.GetWinSize() + 1;
     m_txWindow.Advance(count);
-    // transmit window may advance further
     AdvanceTxWindow();
     NS_LOG_DEBUG("Transmitted MPDU beyond current transmit window. New "
                  "starting sequence number: "
@@ -109,13 +86,8 @@ void OriginatorBlockAckAgreement::NotifyAckedMpdu(Ptr<const WifiMpdu> mpdu) {
     return;
   }
 
-  // when an MPDU is transmitted, the transmit window is updated such that the
-  // transmitted MPDU is in the window, hence we cannot be notified of the
-  // acknowledgment of an MPDU which is beyond the transmit window
   m_txWindow.At(distance) = true;
 
-  // the starting sequence number can be advanced to the sequence number of
-  // the nearest unacknowledged MPDU
   AdvanceTxWindow();
   NS_LOG_DEBUG("Starting sequence number: " << m_txWindow.GetWinStart());
 }
@@ -131,7 +103,6 @@ void OriginatorBlockAckAgreement::NotifyDiscardedMpdu(
   }
 
   m_txWindow.Advance(distance + 1);
-  // transmit window may advance further
   AdvanceTxWindow();
   NS_LOG_DEBUG("Discarded MPDU within current transmit window. New starting "
                "sequence number: "

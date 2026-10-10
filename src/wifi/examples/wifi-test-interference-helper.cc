@@ -1,53 +1,4 @@
-/*
- * Copyright (c) 2015
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
-//
-// This script is used to verify the behavior of InterferenceHelper.
-//
-// The scenario consists of two IEEE 802.11 hidden stations and an access point.
-// The two stations have both a packet to transmit to the access point.
-//
-//
-// (xA,0,0)     (0,0,0)      (xB,0,0)
-//
-//    *   ----->   *   <-----   *
-//    |            |            |
-//   STA A         AP          STA B
-//
-//
-// The program can be configured at run-time by passing command-line arguments.
-// It enables to configure the delay between the transmission from station A
-// and the transmission from station B (--delay option). It is also possible to
-// select the tx power level (--txPowerA and --txPowerB options), the packet
-// size
-// (--packetSizeA and --packetSizeB options) and the modulation (--txModeA and
-// --txModeB options) used for the respective transmissions.
-//
-// By default, IEEE 802.11a with long preamble type is considered, but those
-// parameters can be also picked among other IEEE 802.11 flavors and preamble
-// types available in the simulator (--standard and --preamble options).
-// Note that the program checks the consistency between the selected standard
-// the selected preamble type.
-//
-// The output of the program displays InterfenceHelper and SpectrumWifiPhy trace
-// logs associated to the chosen scenario.
-//
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -72,75 +23,59 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("test-interference-helper");
 
-bool checkResults = false; //!< True if results have to be checked.
-bool expectRxASuccessful =
-    false; //!< True if Rx from A is expected to be successful.
-bool expectRxBSuccessful =
-    false; //!< True if Rx from B is expected to be successful.
+bool checkResults = false;
+bool expectRxASuccessful = false;
+bool expectRxBSuccessful = false;
 
-/// InterferenceExperiment
 class InterferenceExperiment {
 public:
-  /// Input structure
   struct Input {
     Input();
-    Time interval;         ///< interval
-    double xA;             ///< x A
-    double xB;             ///< x B
-    std::string txModeA;   ///< transmit mode A
-    std::string txModeB;   ///< transmit mode B
-    double txPowerLevelA;  ///< transmit power level A
-    double txPowerLevelB;  ///< transmit power level B
-    uint32_t packetSizeA;  ///< packet size A
-    uint32_t packetSizeB;  ///< packet size B
-    uint16_t channelA;     ///< channel number A
-    uint16_t channelB;     ///< channel number B
-    uint16_t widthA;       ///< channel width A
-    uint16_t widthB;       ///< channel width B
-    WifiStandard standard; ///< standard
-    WifiPhyBand band;      ///< band
-    WifiPreamble preamble; ///< preamble
-    bool captureEnabled;   ///< whether physical layer capture is enabled
-    double captureMargin;  ///< margin used for physical layer capture
+    Time interval;
+    double xA;
+    double xB;
+    std::string txModeA;
+    std::string txModeB;
+    double txPowerLevelA;
+    double txPowerLevelB;
+    uint32_t packetSizeA;
+    uint32_t packetSizeB;
+    uint16_t channelA;
+    uint16_t channelB;
+    uint16_t widthA;
+    uint16_t widthB;
+    WifiStandard standard;
+    WifiPhyBand band;
+    WifiPreamble preamble;
+    bool captureEnabled;
+    double captureMargin;
   };
 
   InterferenceExperiment();
-  /**
-   * Run function
-   * \param input the interference experiment data
-   */
   void Run(InterferenceExperiment::Input input);
 
 private:
-  /**
-   * Function triggered when a packet is dropped
-   * \param packet the packet that was dropped
-   * \param reason the reason why it was dropped
-   */
   void PacketDropped(Ptr<const Packet> packet, WifiPhyRxfailureReason reason);
-  /// Send A function
   void SendA() const;
-  /// Send B function
   void SendB() const;
-  Ptr<SpectrumWifiPhy> m_txA; ///< transmit A function
-  Ptr<SpectrumWifiPhy> m_txB; ///< transmit B function
-  Input m_input;              ///< input
-  bool m_droppedA; ///< flag to indicate whether packet A has been dropped
-  bool m_droppedB; ///< flag to indicate whether packet B has been dropped
-  mutable uint64_t m_uidA; ///< UID to use for packet A
-  mutable uint64_t m_uidB; ///< UID to use for packet B
+  Ptr<SpectrumWifiPhy> m_txA;
+  Ptr<SpectrumWifiPhy> m_txB;
+  Input m_input;
+  bool m_droppedA;
+  bool m_droppedB;
+  mutable uint64_t m_uidA;
+  mutable uint64_t m_uidB;
 };
 
 void InterferenceExperiment::SendA() const {
   WifiMacHeader hdr;
-  hdr.SetType(WIFI_MAC_CTL_ACK); // so that size may not be empty while being as
-                                 // short as possible
+  hdr.SetType(WIFI_MAC_CTL_ACK);
   Ptr<Packet> p = Create<Packet>(m_input.packetSizeA - hdr.GetSerializedSize() -
                                  WIFI_MAC_FCS_LENGTH);
   m_uidA = p->GetUid();
   Ptr<WifiPsdu> psdu = Create<WifiPsdu>(p, hdr);
   WifiTxVector txVector;
-  txVector.SetTxPowerLevel(0); // only one TX power level
+  txVector.SetTxPowerLevel(0);
   txVector.SetMode(WifiMode(m_input.txModeA));
   txVector.SetChannelWidth(m_input.widthA);
   txVector.SetPreambleType(m_input.preamble);
@@ -149,14 +84,13 @@ void InterferenceExperiment::SendA() const {
 
 void InterferenceExperiment::SendB() const {
   WifiMacHeader hdr;
-  hdr.SetType(WIFI_MAC_CTL_ACK); // so that size may not be empty while being as
-                                 // short as possible
+  hdr.SetType(WIFI_MAC_CTL_ACK);
   Ptr<Packet> p = Create<Packet>(m_input.packetSizeB - hdr.GetSerializedSize() -
                                  WIFI_MAC_FCS_LENGTH);
   m_uidB = p->GetUid();
   Ptr<WifiPsdu> psdu = Create<WifiPsdu>(p, hdr);
   WifiTxVector txVector;
-  txVector.SetTxPowerLevel(0); // only one TX power level
+  txVector.SetTxPowerLevel(0);
   txVector.SetMode(WifiMode(m_input.txModeB));
   txVector.SetChannelWidth(m_input.widthB);
   txVector.SetPreambleType(m_input.preamble);
@@ -294,7 +228,7 @@ int main(int argc, char *argv[]) {
   InterferenceExperiment::Input input;
   std::string str_standard = "WIFI_PHY_STANDARD_80211a";
   std::string str_preamble = "WIFI_PREAMBLE_LONG";
-  uint64_t delay = 0; // microseconds
+  uint64_t delay = 0;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("delay",

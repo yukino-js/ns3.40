@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #ifndef TIMER_IMPL_H
 #define TIMER_IMPL_H
@@ -25,227 +7,74 @@
 #include "simulator.h"
 #include "type-traits.h"
 
-/**
- * \file
- * \ingroup timer
- * \ingroup timerimpl
- * ns3::TimerImpl declaration and implementation.
- */
-
 namespace ns3 {
 
-/**
- * \ingroup timer
- * The timer implementation underlying Timer and Watchdog.
- */
 class TimerImpl {
 public:
-  /** Destructor. */
   virtual ~TimerImpl() {}
 
-  /**
-   * Set the arguments to be used when invoking the expire function.
-   */
-  /**@{*/
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \param [in] a1 The first argument
-   */
   template <typename T1> void SetArgs(T1 a1);
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \tparam T2 \deduced Type of the second argument.
-   * \param [in] a1 the first argument
-   * \param [in] a2 the second argument
-   */
   template <typename T1, typename T2> void SetArgs(T1 a1, T2 a2);
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \tparam T2 \deduced Type of the second argument.
-   * \tparam T3 \deduced Type of the third argument.
-   * \param [in] a1 the first argument
-   * \param [in] a2 the second argument
-   * \param [in] a3 the third argument
-   */
   template <typename T1, typename T2, typename T3>
   void SetArgs(T1 a1, T2 a2, T3 a3);
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \tparam T2 \deduced Type of the second argument.
-   * \tparam T3 \deduced Type of the third argument.
-   * \tparam T4 \deduced Type of the fourth argument.
-   * \param [in] a1 the first argument
-   * \param [in] a2 the second argument
-   * \param [in] a3 the third argument
-   * \param [in] a4 the fourth argument
-   */
   template <typename T1, typename T2, typename T3, typename T4>
   void SetArgs(T1 a1, T2 a2, T3 a3, T4 a4);
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \tparam T2 \deduced Type of the second argument.
-   * \tparam T3 \deduced Type of the third argument.
-   * \tparam T4 \deduced Type of the fourth argument.
-   * \tparam T5 \deduced Type of the fifth argument.
-   * \param [in] a1 the first argument
-   * \param [in] a2 the second argument
-   * \param [in] a3 the third argument
-   * \param [in] a4 the fourth argument
-   * \param [in] a5 the fifth argument
-   */
   template <typename T1, typename T2, typename T3, typename T4, typename T5>
   void SetArgs(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5);
-  /**
-   * \tparam T1 \deduced Type of the first argument.
-   * \tparam T2 \deduced Type of the second argument.
-   * \tparam T3 \deduced Type of the third argument.
-   * \tparam T4 \deduced Type of the fourth argument.
-   * \tparam T5 \deduced Type of the fifth argument.
-   * \tparam T6 \deduced Type of the sixth argument.
-   * \param [in] a1 the first argument
-   * \param [in] a2 the second argument
-   * \param [in] a3 the third argument
-   * \param [in] a4 the fourth argument
-   * \param [in] a5 the fifth argument
-   * \param [in] a6 the sixth argument
-   */
   template <typename T1, typename T2, typename T3, typename T4, typename T5,
             typename T6>
   void SetArgs(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6);
-  /**@}*/
 
-  /**
-   * Schedule the callback for a future time.
-   *
-   * \param [in] delay The amount of time until the timer expires.
-   * \returns The scheduled EventId.
-   */
   virtual EventId Schedule(const Time &delay) = 0;
-  /** Invoke the expire function. */
   virtual void Invoke() = 0;
 };
 
 } // namespace ns3
 
-/********************************************************************
- *  Implementation of TimerImpl implementation functions.
- ********************************************************************/
-
 namespace ns3 {
 
-/**
- * \ingroup timer
- * \defgroup timerimpl TimerImpl Implementation
- * @{
- */
-
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1> struct TimerImplOne : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   */
   virtual void SetArguments(T1 a1) = 0;
 };
 
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1, typename T2> struct TimerImplTwo : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   * \param [in] a2 The second argument.
-   */
   virtual void SetArguments(T1 a1, T2 a2) = 0;
 };
 
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1, typename T2, typename T3>
 struct TimerImplThree : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   * \param [in] a2 The second argument.
-   * \param [in] a3 The third argument.
-   */
   virtual void SetArguments(T1 a1, T2 a2, T3 a3) = 0;
 };
 
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1, typename T2, typename T3, typename T4>
 struct TimerImplFour : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   * \param [in] a2 The second argument.
-   * \param [in] a3 The third argument.
-   * \param [in] a4 The fourth argument.
-   */
   virtual void SetArguments(T1 a1, T2 a2, T3 a3, T4 a4) = 0;
 };
 
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1, typename T2, typename T3, typename T4, typename T5>
 struct TimerImplFive : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   * \param [in] a2 The second argument.
-   * \param [in] a3 The third argument.
-   * \param [in] a4 The fourth argument.
-   * \param [in] a5 The fifth argument.
-   */
   virtual void SetArguments(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5) = 0;
 };
 
-/** TimerImpl specialization class for varying numbers of arguments. */
 template <typename T1, typename T2, typename T3, typename T4, typename T5,
           typename T6>
 struct TimerImplSix : public TimerImpl {
-  /**
-   * Bind the arguments to be used when the callback function is invoked.
-   *
-   * \param [in] a1 The first argument.
-   * \param [in] a2 The second argument.
-   * \param [in] a3 The third argument.
-   * \param [in] a4 The fourth argument.
-   * \param [in] a5 The fifth argument.
-   * \param [in] a6 The sixth argument.
-   */
   virtual void SetArguments(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6) = 0;
 };
 
-/** Type and reference traits for TimerImpl arguments. */
 template <typename T> struct TimerTraits {
-  /** Storage type for an argument. */
   typedef
       typename TypeTraits<typename TypeTraits<T>::ReferencedType>::NonConstType
           StoredType;
-  /** Parameter type for an argument. */
   typedef const StoredType &ParameterType;
 };
 
-/**
- * Make a TimerImpl from a function pointer taking varying numbers of arguments.
- *
- * \tparam FN \deduced Function signature type of the callback function.
- * \param [in] fn The function pointer to invoke when the timer expires.
- * \returns The TimerImpl.
- */
 template <typename FN> TimerImpl *MakeTimerImpl(FN fn) {
   NS_ASSERT(TypeTraits<FN>::IsFunctionPointer);
   return MakeTimerImpl(
       IntToType<TypeTraits<FN>::FunctionPointerTraits::nArgs>(), fn);
 }
 
-/**
- * Make a TimerImpl from a function pointer taking zero arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<0>, FN fn) {
   struct FnTimerImplZero : public TimerImpl {
     FnTimerImplZero(FN fn) : m_fn(fn) {}
@@ -262,10 +91,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<0>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking one argument.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<1>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -289,10 +114,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<1>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking two arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<2>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -323,10 +144,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<2>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking three arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<3>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -363,10 +180,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<3>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking four arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<4>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -409,10 +222,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<4>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking five arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<5>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -461,10 +270,6 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<5>, FN fn) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking six arguments.
- * \copydetails MakeTimerImpl(FN)
- */
 template <typename FN> TimerImpl *MakeTimerImpl(IntToType<6>, FN fn) {
   typedef typename TypeTraits<FN>::FunctionPointerTraits::Arg1Type T1;
   typedef typename TimerTraits<T1>::ParameterType T1Parameter;
@@ -519,46 +324,12 @@ template <typename FN> TimerImpl *MakeTimerImpl(IntToType<6>, FN fn) {
   return function;
 }
 
-/**
- * Helper for the MakeTimerImpl functions which take a class method.
- *
- * This helper converts a pointer to a reference.
- *
- * This is the generic template declaration (with empty body).
- *
- * \tparam T \explicit The object type.
- */
 template <typename T> struct TimerImplMemberTraits;
 
-/**
- * Helper for the MakeTimerImpl functions which take a class method.
- *
- * This helper converts a pointer to a reference.
- *
- * This is the specialization for pointer to \c T.
- *
- * \tparam T \explicit The object type.
- */
 template <typename T> struct TimerImplMemberTraits<T *> {
-  /**
-   * Convert a pointer type to a reference.
-   *
-   * \param [in] p The pointer.
-   * \returns A reference to the object pointed to by \c p.
-   */
   static T &GetReference(T *p) { return *p; }
 };
 
-/**
- * Make a TimerImpl from a class method pointer taking
- * a varying number of arguments.
- *
- * \tparam MEM_PTR \deduced Class method function signature type.
- * \tparam OBJ_PTR \deduced Class type.
- * \param [in] memPtr Class method to invoke when the timer expires.
- * \param [in] objPtr Object instance pointer.
- * \returns The TimerImpl.
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(MEM_PTR memPtr, OBJ_PTR objPtr) {
   NS_ASSERT(TypeTraits<MEM_PTR>::IsPointerToMember);
@@ -567,10 +338,6 @@ TimerImpl *MakeTimerImpl(MEM_PTR memPtr, OBJ_PTR objPtr) {
       objPtr);
 }
 
-/**
- * Make a TimerImpl from a function pointer taking zero arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<0>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   struct MemFnTimerImplZero : public TimerImpl {
@@ -592,10 +359,6 @@ TimerImpl *MakeTimerImpl(IntToType<0>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking one argument.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<1>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -624,10 +387,6 @@ TimerImpl *MakeTimerImpl(IntToType<1>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking two arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<2>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -664,10 +423,6 @@ TimerImpl *MakeTimerImpl(IntToType<2>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking three arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<3>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -710,10 +465,6 @@ TimerImpl *MakeTimerImpl(IntToType<3>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking four arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<4>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -763,10 +514,6 @@ TimerImpl *MakeTimerImpl(IntToType<4>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking five arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<5>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -822,10 +569,6 @@ TimerImpl *MakeTimerImpl(IntToType<5>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   return function;
 }
 
-/**
- * Make a TimerImpl from a function pointer taking six arguments.
- * \copydetails MakeTimerImpl(MEM_PTR,OBJ_PTR)
- */
 template <typename MEM_PTR, typename OBJ_PTR>
 TimerImpl *MakeTimerImpl(IntToType<6>, MEM_PTR memPtr, OBJ_PTR objPtr) {
   typedef typename TypeTraits<MEM_PTR>::PointerToMemberTraits::Arg1Type T1;
@@ -885,12 +628,6 @@ TimerImpl *MakeTimerImpl(IntToType<6>, MEM_PTR memPtr, OBJ_PTR objPtr) {
 
   return function;
 }
-
-/**@}*/ // \ingroup timer
-
-/********************************************************************
- *  Implementation of TimerImpl itself.
- ********************************************************************/
 
 template <typename T1> void TimerImpl::SetArgs(T1 a1) {
   typedef TimerImplOne<typename TimerTraits<T1>::ParameterType> TimerImplBase;
@@ -985,4 +722,4 @@ void TimerImpl::SetArgs(T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6) {
 
 } // namespace ns3
 
-#endif /* TIMER_IMPL_H */
+#endif

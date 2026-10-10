@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #include "tcp-general-test.h"
 
 #include "ns3/config.h"
@@ -26,41 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpNewRenoCongAvoidTest");
 
-/**
- * \ingroup internet-test
- *
- * \brief Test the behavior of RFC congestion avoidance
- *
- * From RFC 5681:\n
- *
- *     cwnd += min (N, SMSS)                      (2)
- *
- *  During congestion avoidance, cwnd is incremented by roughly 1 full-
- *  sized segment per round-trip time (RTT).  Congestion avoidance
- *  continues until congestion is detected.  The basic guidelines for
- *  incrementing cwnd during congestion avoidance are:
- *
- *     * MAY increment cwnd by SMSS bytes
- *
- *     * SHOULD increment cwnd per equation (2) once per RTT
- *
- *     * MUST NOT increment cwnd by more than SMSS bytes
- *
- * To test this behavior and these points, a tracing callback is attached
- * to the cWnd. Each time it increases, the increment is saved. Meanwhile, a
- * timer checks if an amount of time equals to the RTT has passed, and if yes,
- * it checks that the increment has not passed the 1 MSS limit.
- */
 class TcpNewRenoCongAvoidNormalTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param segmentSize Segment size.
-   * \param packetSize Size of the packets.
-   * \param packets Number of packets.
-   * \param congControl Type of congestion control.
-   * \param desc The test description.
-   */
   TcpNewRenoCongAvoidNormalTest(uint32_t segmentSize, uint32_t packetSize,
                                 uint32_t packets, const TypeId &congControl,
                                 const std::string &desc);
@@ -70,22 +20,18 @@ protected:
   void QueueDrop(SocketWho who) override;
   void PhyDrop(SocketWho who) override;
   void NormalClose(SocketWho who) override;
-  /**
-   * \brief Called each RTT (1.0 sec in the testing environment) and check
-   * that the overall increment in this RTT is less or equal than 1 MSS
-   */
   void Check();
 
   void ConfigureEnvironment() override;
   void ConfigureProperties() override;
 
 private:
-  uint32_t m_segmentSize; //!< Segment size.
-  uint32_t m_packetSize;  //!< Size of the packets.
-  uint32_t m_packets;     //!< Number of packets.
-  uint32_t m_increment;   //!< Congestion window increment.
-  EventId m_event;        //!< Check event.
-  bool m_initial;         //!< True on first run.
+  uint32_t m_segmentSize;
+  uint32_t m_packetSize;
+  uint32_t m_packets;
+  uint32_t m_increment;
+  EventId m_event;
+  bool m_initial;
 };
 
 TcpNewRenoCongAvoidNormalTest::TcpNewRenoCongAvoidNormalTest(
@@ -153,11 +99,6 @@ void TcpNewRenoCongAvoidNormalTest::NormalClose(SocketWho who) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TestSuite for the behavior of RFC congestion avoidance
- */
 class TcpRenoCongAvoidTestSuite : public TestSuite {
 public:
   TcpRenoCongAvoidTestSuite() : TestSuite("tcp-cong-avoid-test", UNIT) {
@@ -182,5 +123,4 @@ public:
   }
 };
 
-static TcpRenoCongAvoidTestSuite
-    g_tcpCongAvoidNormalTest; //!< Static variable for test initialization
+static TcpRenoCongAvoidTestSuite g_tcpCongAvoidNormalTest;

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Ankit Deepak <adadeepak8@gmail.com>
- *          Deepti Rajagopal <deeptir96@gmail.com>
- *
- */
 
 #include "ns3/data-rate.h"
 #include "ns3/dhcp-client.h"
@@ -31,31 +11,15 @@
 
 using namespace ns3;
 
-/**
- * \ingroup dhcp
- * \defgroup dhcp-test DHCP module tests
- */
-
-/**
- * \ingroup dhcp-test
- * \ingroup tests
- *
- * \brief DHCP basic tests
- */
 class DhcpTestCase : public TestCase {
 public:
   DhcpTestCase();
   ~DhcpTestCase() override;
-  /**
-   * Triggered by an address lease on a client.
-   * \param context The test name.
-   * \param newAddress The leased address.
-   */
   void LeaseObtained(std::string context, const Ipv4Address &newAddress);
 
 private:
   void DoRun() override;
-  Ipv4Address m_leasedAddress[3]; //!< Address given to the nodes
+  Ipv4Address m_leasedAddress[3];
 };
 
 DhcpTestCase::DhcpTestCase() : TestCase("Dhcp test case ") {}
@@ -72,7 +36,6 @@ void DhcpTestCase::LeaseObtained(std::string context,
 }
 
 void DhcpTestCase::DoRun() {
-  /*Set up devices*/
   NodeContainer nodes;
   NodeContainer routers;
   nodes.Create(3);
@@ -139,12 +102,6 @@ void DhcpTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup dhcp-test
- * \ingroup tests
- *
- * \brief DHCP TestSuite
- */
 class DhcpTestSuite : public TestSuite {
 public:
   DhcpTestSuite();
@@ -154,4 +111,4 @@ DhcpTestSuite::DhcpTestSuite() : TestSuite("dhcp", UNIT) {
   AddTestCase(new DhcpTestCase, TestCase::QUICK);
 }
 
-static DhcpTestSuite dhcpTestSuite; //!< Static variable for test initialization
+static DhcpTestSuite dhcpTestSuite;

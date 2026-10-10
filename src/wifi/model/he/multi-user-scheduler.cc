@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "multi-user-scheduler.h"
 
@@ -94,8 +76,6 @@ void MultiUserScheduler::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
   if (!m_apMac) {
     Ptr<ApWifiMac> apMac = this->GetObject<ApWifiMac>();
-    // verify that it's a valid AP mac and that
-    // the AP mac was not set before
     if (apMac) {
       this->SetWifiMac(apMac);
     }
@@ -115,7 +95,6 @@ void MultiUserScheduler::DoInitialize() {
 void MultiUserScheduler::SetAccessReqInterval(Time interval) {
   NS_LOG_FUNCTION(this << interval.As(Time::MS));
   m_accessReqInterval = interval;
-  // start the timer if past initialization
   if (m_accessReqInterval.IsStrictlyPositive() && IsInitialized()) {
     m_accessReqTimer = Simulator::Schedule(
         m_accessReqInterval, &MultiUserScheduler::AccessReqTimeout, this);
@@ -126,8 +105,6 @@ void MultiUserScheduler::SetWifiMac(Ptr<ApWifiMac> mac) {
   NS_LOG_FUNCTION(this << mac);
   m_apMac = mac;
 
-  // When VHT DL MU-MIMO will be supported, we will have to lower this
-  // requirement and allow a Multi-user scheduler to be installed on a VHT AP.
   NS_ABORT_MSG_IF(!m_apMac || !m_apMac->GetHeConfiguration(),
                   "MultiUserScheduler can only be installed on HE APs");
 
@@ -152,7 +129,6 @@ Ptr<HeFrameExchangeManager> MultiUserScheduler::GetHeFem(uint8_t linkId) const {
 void MultiUserScheduler::AccessReqTimeout() {
   NS_LOG_FUNCTION(this);
 
-  // request channel access if not requested yet
   auto edca = m_apMac->GetQosTxop(m_accessReqAc);
 
   for (uint8_t linkId = 0; linkId < m_apMac->GetNLinks(); linkId++) {
@@ -161,7 +137,6 @@ void MultiUserScheduler::AccessReqTimeout() {
     }
   }
 
-  // restart timer
   if (m_accessReqInterval.IsStrictlyPositive()) {
     m_accessReqTimer = Simulator::Schedule(
         m_accessReqInterval, &MultiUserScheduler::AccessReqTimeout, this);
@@ -182,7 +157,6 @@ MultiUserScheduler::NotifyAccessGranted(Ptr<QosTxop> edca, Time availableTime,
   m_linkId = linkId;
 
   if (m_accessReqTimer.IsRunning() && m_restartTimerUponAccess) {
-    // restart access timer
     m_accessReqTimer.Cancel();
     if (m_accessReqInterval.IsStrictlyPositive()) {
       m_accessReqTimer = Simulator::Schedule(
@@ -215,7 +189,6 @@ MultiUserScheduler::DlMuInfo &MultiUserScheduler::GetDlMuInfo(uint8_t linkId) {
                   "Next transmission is not DL MU");
 
 #ifdef NS3_BUILD_PROFILE_DEBUG
-  // check that all the addressed stations support HE
   for (auto &psdu : m_lastTxInfo[linkId].dlInfo.psduMap) {
     auto receiver = psdu.second->GetAddr1();
     auto linkId = m_apMac->IsAssociated(receiver);
@@ -264,8 +237,6 @@ MultiUserScheduler::GetTriggerFrame(const CtrlTriggerHeader &trigger,
 void MultiUserScheduler::CheckTriggerFrame() {
   NS_LOG_FUNCTION(this);
 
-  // Set the CS Required subfield to true, unless the UL Length subfield is less
-  // than or equal to 76 (see Section 26.5.2.5 of 802.11ax-2021)
   m_lastTxInfo[m_linkId].ulInfo.trigger.SetCsRequired(
       m_lastTxInfo[m_linkId].ulInfo.trigger.GetUlLength() > 76);
 
@@ -274,9 +245,6 @@ void MultiUserScheduler::CheckTriggerFrame() {
 
 uint32_t MultiUserScheduler::GetMaxSizeOfQosNullAmpdu(
     const CtrlTriggerHeader &trigger) const {
-  // find the maximum number of TIDs for which a BlockAck agreement has been
-  // established with an STA, among all the STAs solicited by the given Trigger
-  // Frame
   uint8_t maxNTids = 0;
   for (const auto &userInfo : trigger) {
     auto address = m_apMac->GetMldOrLinkAddressByAid(userInfo.GetAid12());
@@ -291,7 +259,6 @@ uint32_t MultiUserScheduler::GetMaxSizeOfQosNullAmpdu(
     maxNTids = std::max(maxNTids, staNTids);
   }
 
-  // compute the size in bytes of maxNTids QoS Null frames
   WifiMacHeader header(WIFI_MAC_QOSDATA_NULL);
   header.SetDsTo();
   header.SetDsNotFrom();

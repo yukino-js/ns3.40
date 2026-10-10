@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "packet.h"
 
 #include "ns3/assert.h"
@@ -82,20 +64,11 @@ void PacketTagIterator::Item::GetTag(Tag &tag) const {
 }
 
 Ptr<Packet> Packet::Copy() const {
-  // we need to invoke the copy constructor directly
-  // rather than calling Create because the copy constructor
-  // is private.
   return Ptr<Packet>(new Packet(*this), false);
 }
 
 Packet::Packet()
     : m_buffer(), m_byteTagList(), m_packetTagList(),
-      /* The upper 32 bits of the packet id in
-       * metadata is for the system id. For non-
-       * distributed simulations, this is simply
-       * zero.  The lower 32 bits are for the
-       * global UID
-       */
       m_metadata(static_cast<uint64_t>(Simulator::GetSystemId()) << 32 |
                      m_globalUid,
                  0),
@@ -123,12 +96,6 @@ Packet &Packet::operator=(const Packet &o) {
 
 Packet::Packet(uint32_t size)
     : m_buffer(size), m_byteTagList(), m_packetTagList(),
-      /* The upper 32 bits of the packet id in
-       * metadata is for the system id. For non-
-       * distributed simulations, this is simply
-       * zero.  The lower 32 bits are for the
-       * global UID
-       */
       m_metadata(static_cast<uint64_t>(Simulator::GetSystemId()) << 32 |
                      m_globalUid,
                  size),
@@ -145,12 +112,6 @@ Packet::Packet(const uint8_t *buffer, uint32_t size, bool magic)
 
 Packet::Packet(const uint8_t *buffer, uint32_t size)
     : m_buffer(), m_byteTagList(), m_packetTagList(),
-      /* The upper 32 bits of the packet id in
-       * metadata is for the system id. For non-
-       * distributed simulations, this is simply
-       * zero.  The lower 32 bits are for the
-       * global UID
-       */
       m_metadata(static_cast<uint64_t>(Simulator::GetSystemId()) << 32 |
                      m_globalUid,
                  size),
@@ -176,8 +137,6 @@ Ptr<Packet> Packet::CreateFragment(uint32_t start, uint32_t length) const {
   NS_ASSERT(m_buffer.GetSize() >= start + length);
   uint32_t end = m_buffer.GetSize() - (start + length);
   PacketMetadata metadata = m_metadata.CreateFragment(start, end);
-  // again, call the constructor directly rather than
-  // through Create because it is private.
   Ptr<Packet> ret = Ptr<Packet>(
       new Packet(buffer, byteTagList, m_packetTagList, metadata), false);
   ret->SetNixVector(GetNixVector());
@@ -373,11 +332,11 @@ void Packet::Print(std::ostream &os) const {
           NS_ASSERT(chunk != nullptr);
           if (item.type == PacketMetadata::Item::HEADER) {
             Buffer::Iterator end = item.current;
-            end.Next(item.currentSize); // move from start
+            end.Next(item.currentSize);
             chunk->Deserialize(item.current, end);
           } else if (item.type == PacketMetadata::Item::TRAILER) {
             Buffer::Iterator start = item.current;
-            start.Prev(item.currentSize); // move from end
+            start.Prev(item.currentSize);
             chunk->Deserialize(start, item.current);
           } else {
             chunk->Deserialize(item.current);
@@ -394,10 +353,6 @@ void Packet::Print(std::ostream &os) const {
     }
   }
 #if 0
-  // The code below will work only if headers and trailers
-  // define the right attributes which is not the case for
-  // now. So, as a temporary measure, we use the
-  // headers' and trailers' Print method as shown above.
   PacketMetadata::ItemIterator i = m_metadata.BeginItem (m_buffer);
   while (i.HasNext ())
     {
@@ -477,45 +432,27 @@ uint32_t Packet::GetSerializedSize() const {
   uint32_t size = 0;
 
   if (m_nixVector) {
-    // increment total size by the size of the nix-vector
-    // ensuring 4-byte boundary
     size += ((m_nixVector->GetSerializedSize() + 3) & (~3));
 
-    // add 4-bytes for entry of total length of nix-vector
     size += 4;
   } else {
-    // if no nix-vector, still have to add 4-bytes
-    // to account for the entry of total size for
-    // nix-vector in the buffer
     size += 4;
   }
 
-  // increment total size by size of packet tag list
-  // ensuring 4-byte boundary
   size += ((m_packetTagList.GetSerializedSize() + 3) & (~3));
 
-  // add 4-bytes for entry of total length of packet tag list
   size += 4;
 
-  // increment total size by size of byte tag list
-  // ensuring 4-byte boundary
   size += ((m_byteTagList.GetSerializedSize() + 3) & (~3));
 
-  // add 4-bytes for entry of total length of byte tag list
   size += 4;
 
-  // increment total size by size of meta-data
-  // ensuring 4-byte boundary
   size += ((m_metadata.GetSerializedSize() + 3) & (~3));
 
-  // add 4-bytes for entry of total length of meta-data
   size += 4;
 
-  // increment total size by size of buffer
-  // ensuring 4-byte boundary
   size += ((m_buffer.GetSerializedSize() + 3) & (~3));
 
-  // add 4-bytes for entry of total length of buffer
   size += 4;
 
   return size;
@@ -525,21 +462,14 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
   auto p = reinterpret_cast<uint32_t *>(buffer);
   uint32_t size = 0;
 
-  // if nix-vector exists, serialize it
   if (m_nixVector) {
     uint32_t nixSize = m_nixVector->GetSerializedSize();
     if (size + nixSize <= maxSize) {
-      // put the total length of nix-vector in the
-      // buffer. this includes 4-bytes for total
-      // length itself
       *p++ = nixSize + 4;
       size += nixSize;
 
-      // serialize the nix-vector
       uint32_t serialized = m_nixVector->Serialize(p, nixSize);
       if (serialized) {
-        // increment p by nixSize bytes
-        // ensuring 4-byte boundary
         p += ((nixSize + 3) & (~3)) / 4;
       } else {
         return 0;
@@ -548,9 +478,6 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
       return 0;
     }
   } else {
-    // no nix vector, set zero length,
-    // ie 4-bytes, since it must include
-    // length for itself
     if (size + 4 <= maxSize) {
       size += 4;
       *p++ = 4;
@@ -559,20 +486,13 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     }
   }
 
-  // Serialize byte tag list
   uint32_t byteTagSize = m_byteTagList.GetSerializedSize();
   if (size + byteTagSize <= maxSize) {
-    // put the total length of byte tag list in the
-    // buffer. this includes 4-bytes for total
-    // length itself
     *p++ = byteTagSize + 4;
     size += byteTagSize;
 
-    // serialize the byte tag list
     uint32_t serialized = m_byteTagList.Serialize(p, byteTagSize);
     if (serialized) {
-      // increment p by byteTagSize bytes
-      // ensuring 4-byte boundary
       p += ((byteTagSize + 3) & (~3)) / 4;
     } else {
       return 0;
@@ -581,20 +501,13 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Serialize packet tag list
   uint32_t packetTagSize = m_packetTagList.GetSerializedSize();
   if (size + packetTagSize <= maxSize) {
-    // put the total length of packet tag list in the
-    // buffer. this includes 4-bytes for total
-    // length itself
     *p++ = packetTagSize + 4;
     size += packetTagSize;
 
-    // serialize the packet tag list
     uint32_t serialized = m_packetTagList.Serialize(p, packetTagSize);
     if (serialized) {
-      // increment p by packetTagSize bytes
-      // ensuring 4-byte boundary
       p += ((packetTagSize + 3) & (~3)) / 4;
     } else {
       return 0;
@@ -603,21 +516,14 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Serialize Metadata
   uint32_t metaSize = m_metadata.GetSerializedSize();
   if (size + metaSize <= maxSize) {
-    // put the total length of metadata in the
-    // buffer. this includes 4-bytes for total
-    // length itself
     *p++ = metaSize + 4;
     size += metaSize;
 
-    // serialize the metadata
     uint32_t serialized =
         m_metadata.Serialize(reinterpret_cast<uint8_t *>(p), metaSize);
     if (serialized) {
-      // increment p by metaSize bytes
-      // ensuring 4-byte boundary
       p += ((metaSize + 3) & (~3)) / 4;
     } else {
       return 0;
@@ -626,15 +532,10 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Serialize the packet contents
   uint32_t bufSize = m_buffer.GetSerializedSize();
   if (size + bufSize <= maxSize) {
-    // put the total length of the buffer in the
-    // buffer. this includes 4-bytes for total
-    // length itself
     *p++ = bufSize + 4;
 
-    // serialize the buffer
     uint32_t serialized =
         m_buffer.Serialize(reinterpret_cast<uint8_t *>(p), bufSize);
     if (!serialized) {
@@ -644,7 +545,6 @@ uint32_t Packet::Serialize(uint8_t *buffer, uint32_t maxSize) const {
     return 0;
   }
 
-  // Serialized successfully
   return 1;
 }
 
@@ -653,101 +553,68 @@ uint32_t Packet::Deserialize(const uint8_t *buffer, uint32_t size) {
 
   auto p = reinterpret_cast<const uint32_t *>(buffer);
 
-  // read nix-vector
   NS_ASSERT(!m_nixVector);
   uint32_t nixSize = *p++;
 
-  // if size less than nixSize, the buffer
-  // will be overrun, assert
   NS_ASSERT(size >= nixSize);
 
   if (nixSize > 4) {
     Ptr<NixVector> nix = Create<NixVector>();
     uint32_t nixDeserialized = nix->Deserialize(p, nixSize);
     if (!nixDeserialized) {
-      // nix-vector not deserialized
-      // completely
       return 0;
     }
     m_nixVector = nix;
-    // increment p by nixSize ensuring
-    // 4-byte boundary
     p += ((((nixSize - 4) + 3) & (~3)) / 4);
   }
   size -= nixSize;
 
-  // read byte tags
   uint32_t byteTagSize = *p++;
 
-  // if size less than byteTagSize, the buffer
-  // will be overrun, assert
   NS_ASSERT(size >= byteTagSize);
 
   uint32_t byteTagDeserialized = m_byteTagList.Deserialize(p, byteTagSize);
   if (!byteTagDeserialized) {
-    // byte tags not deserialized completely
     return 0;
   }
-  // increment p by byteTagSize ensuring
-  // 4-byte boundary
   p += ((((byteTagSize - 4) + 3) & (~3)) / 4);
   size -= byteTagSize;
 
-  // read packet tags
   uint32_t packetTagSize = *p++;
 
-  // if size less than packetTagSize, the buffer
-  // will be overrun, assert
   NS_ASSERT(size >= packetTagSize);
 
   uint32_t packetTagDeserialized =
       m_packetTagList.Deserialize(p, packetTagSize);
   if (!packetTagDeserialized) {
-    // packet tags not deserialized completely
     return 0;
   }
-  // increment p by packetTagSize ensuring
-  // 4-byte boundary
   p += ((((packetTagSize - 4) + 3) & (~3)) / 4);
   size -= packetTagSize;
 
-  // read metadata
   uint32_t metaSize = *p++;
 
-  // if size less than metaSize, the buffer
-  // will be overrun, assert
   NS_ASSERT(size >= metaSize);
 
   uint32_t metadataDeserialized =
       m_metadata.Deserialize(reinterpret_cast<const uint8_t *>(p), metaSize);
   if (!metadataDeserialized) {
-    // meta-data not deserialized
-    // completely
     return 0;
   }
-  // increment p by metaSize ensuring
-  // 4-byte boundary
   p += ((((metaSize - 4) + 3) & (~3)) / 4);
   size -= metaSize;
 
-  // read buffer contents
   uint32_t bufSize = *p++;
 
-  // if size less than bufSize, the buffer
-  // will be overrun, assert
   NS_ASSERT(size >= bufSize);
 
   uint32_t bufferDeserialized =
       m_buffer.Deserialize(reinterpret_cast<const uint8_t *>(p), bufSize);
   if (!bufferDeserialized) {
-    // buffer not deserialized
-    // completely
     return 0;
   }
   size -= bufSize;
 
-  // return zero if did not deserialize the
-  // number of expected bytes
   return (size == 0);
 }
 

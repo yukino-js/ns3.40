@@ -1,21 +1,3 @@
-//
-// Copyright (c) 2008-2010 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt> <gjcarneiro@gmail.com>
-//
 
 #include "ns3/object.h"
 #include "ns3/sequence-number.h"
@@ -27,25 +9,12 @@ using namespace ns3;
 
 namespace {
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Test object using sequence numbers
- *
- * \note Class internal to sequence-number-test-suite.cc
- */
 class SequenceNumberTestObj : public Object {
-  /// Test traced sequence number.
   TracedValue<SequenceNumber32> m_testTracedSequenceNumber;
 
 public:
   SequenceNumberTestObj() { m_testTracedSequenceNumber = SequenceNumber32(0); }
 
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId() {
     static TypeId tid =
         TypeId("ns3::SequenceNumberTestObj")
@@ -61,27 +30,15 @@ public:
 
   TypeId GetInstanceTypeId() const override { return GetTypeId(); }
 
-  /// Increment the sequence number.
   void IncSequenceNumber() { m_testTracedSequenceNumber += 1; }
 };
 
 } // namespace
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Sequence Number Unit Test
- */
 class SequenceNumberTestCase : public TestCase {
-  SequenceNumber32 m_oldval; //!< Old value
-  SequenceNumber32 m_newval; //!< New value
+  SequenceNumber32 m_oldval;
+  SequenceNumber32 m_newval;
 
-  /**
-   * Sequence number tracker
-   * \param oldval Old value
-   * \param newval New value
-   */
   void SequenceNumberTracer(SequenceNumber32 oldval, SequenceNumber32 newval);
 
 public:
@@ -198,12 +155,6 @@ void SequenceNumberTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Sequence Number TestSuite
- */
 class SequenceNumberTestSuite : public TestSuite {
 public:
   SequenceNumberTestSuite() : TestSuite("sequence-number", UNIT) {
@@ -211,5 +162,4 @@ public:
   }
 };
 
-static SequenceNumberTestSuite
-    g_seqNumTests; //!< Static variable for test initialization
+static SequenceNumberTestSuite g_seqNumTests;

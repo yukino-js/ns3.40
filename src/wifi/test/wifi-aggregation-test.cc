@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/fcfs-wifi-queue-scheduler.h"
 #include "ns3/he-configuration.h"
@@ -50,32 +32,20 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Ampdu Aggregation Test
- */
 class AmpduAggregationTest : public TestCase {
 public:
   AmpduAggregationTest();
 
 private:
-  /**
-   * Fired when the MAC discards an MPDU.
-   *
-   * \param reason the reason why the MPDU was discarded
-   * \param mpdu the discarded MPDU
-   */
   void MpduDiscarded(WifiMacDropReason reason, Ptr<const WifiMpdu> mpdu);
 
   void DoRun() override;
-  Ptr<WifiNetDevice> m_device;             ///< WifiNetDevice
-  Ptr<StaWifiMac> m_mac;                   ///< Mac
-  Ptr<YansWifiPhy> m_phy;                  ///< Phy
-  Ptr<WifiRemoteStationManager> m_manager; ///< remote station manager
-  ObjectFactory m_factory;                 ///< factory
-  bool m_discarded; ///< whether the packet should be discarded
+  Ptr<WifiNetDevice> m_device;
+  Ptr<StaWifiMac> m_mac;
+  Ptr<YansWifiPhy> m_phy;
+  Ptr<WifiRemoteStationManager> m_manager;
+  ObjectFactory m_factory;
+  bool m_discarded;
 };
 
 AmpduAggregationTest::AmpduAggregationTest()
@@ -88,16 +58,10 @@ void AmpduAggregationTest::MpduDiscarded(WifiMacDropReason,
 }
 
 void AmpduAggregationTest::DoRun() {
-  /*
-   * Create device and attach HT configuration.
-   */
   m_device = CreateObject<WifiNetDevice>();
   Ptr<HtConfiguration> htConfiguration = CreateObject<HtConfiguration>();
   m_device->SetHtConfiguration(htConfiguration);
 
-  /*
-   * Create and configure phy layer.
-   */
   m_phy = CreateObject<YansWifiPhy>();
   Ptr<InterferenceHelper> interferenceHelper =
       CreateObject<InterferenceHelper>();
@@ -106,9 +70,6 @@ void AmpduAggregationTest::DoRun() {
   m_phy->ConfigureStandard(WIFI_STANDARD_80211n);
   m_device->SetPhy(m_phy);
 
-  /*
-   * Create and configure manager.
-   */
   m_factory = ObjectFactory();
   m_factory.SetTypeId("ns3::ConstantRateWifiManager");
   m_factory.Set("DataMode", StringValue("HtMcs7"));
@@ -116,9 +77,6 @@ void AmpduAggregationTest::DoRun() {
   m_manager->SetupPhy(m_phy);
   m_device->SetRemoteStationManager(m_manager);
 
-  /*
-   * Create and configure mac layer.
-   */
   m_mac = CreateObjectWithAttributes<StaWifiMac>("QosSupported",
                                                  BooleanValue(true));
   m_mac->SetDevice(m_device);
@@ -138,9 +96,6 @@ void AmpduAggregationTest::DoRun() {
   m_mac->SetState(StaWifiMac::ASSOCIATED);
   m_mac->SetMacQueueScheduler(CreateObject<FcfsWifiQueueScheduler>());
 
-  /*
-   * Configure MPDU aggregation.
-   */
   m_mac->SetAttribute("BE_MaxAmpduSize", UintegerValue(65535));
   HtCapabilities htCapabilities;
   htCapabilities.SetMaxAmpduLength(65535);
@@ -149,9 +104,6 @@ void AmpduAggregationTest::DoRun() {
   m_manager->AddStationHtCapabilities(Mac48Address("00:00:00:00:00:03"),
                                       htCapabilities);
 
-  /*
-   * Create a dummy packet of 1500 bytes and fill mac header fields.
-   */
   Ptr<const Packet> pkt = Create<Packet>(1500);
   Ptr<Packet> currentAggregatedPacket = Create<Packet>();
   WifiMacHeader hdr;
@@ -163,9 +115,6 @@ void AmpduAggregationTest::DoRun() {
   hdr.SetNoMoreFragments();
   hdr.SetNoRetry();
 
-  /*
-   * Establish agreement.
-   */
   MgtAddBaRequestHeader reqHdr;
   reqHdr.SetImmediateBlockAck();
   reqHdr.SetTid(0);
@@ -187,11 +136,6 @@ void AmpduAggregationTest::DoRun() {
   m_mac->GetBEQueue()->GetBaManager()->UpdateOriginatorAgreement(
       respHdr, hdr.GetAddr1(), 0);
 
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * Test behavior when no other packets are in the queue
-   */
   Ptr<HtFrameExchangeManager> htFem = DynamicCast<HtFrameExchangeManager>(fem);
   Ptr<MpduAggregator> mpduAggregator = htFem->GetMpduAggregator();
 
@@ -209,15 +153,9 @@ void AmpduAggregationTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(mpduList.empty(), true,
                         "a single packet should not result in an A-MPDU");
 
-  // the packet has not been "transmitted", release its sequence number
   m_mac->m_txMiddle->SetSequenceNumberFor(&item->GetHeader());
   item->UnassignSeqNo();
 
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * Test behavior when 2 more packets are in the queue
-   */
   Ptr<const Packet> pkt1 = Create<Packet>(1500);
   Ptr<const Packet> pkt2 = Create<Packet>(1500);
   WifiMacHeader hdr1;
@@ -255,14 +193,6 @@ void AmpduAggregationTest::DoRun() {
                           "wrong sequence number");
   }
 
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * Test behavior when the 802.11n station and another non-QoS station are
-   * associated to the AP. The AP sends an A-MPDU to the 802.11n station
-   * followed by the last retransmission of a non-QoS data frame to the non-QoS
-   * station. This is used to reproduce bug 2224.
-   */
   pkt1 = Create<Packet>(1500);
   pkt2 = Create<Packet>(1500);
   hdr1.SetAddr1(Mac48Address("00:00:00:00:00:02"));
@@ -299,7 +229,6 @@ void AmpduAggregationTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(
       mpduList.empty(), true,
       "a single packet for this destination should not result in an A-MPDU");
-  // dequeue the MPDU
   htFem->DequeueMpdu(item);
 
   peeked = m_mac->GetBEQueue()->PeekNextMpdu(SINGLE_LINK_OP_ID);
@@ -315,8 +244,7 @@ void AmpduAggregationTest::DoRun() {
       mpduList.empty(), true,
       "no MPDU aggregation should be performed if there is no agreement");
 
-  m_manager->SetMaxSsrc(0); // set to 0 in order to fake that the maximum number
-                            // of retries has been reached
+  m_manager->SetMaxSsrc(0);
   m_mac->TraceConnectWithoutContext(
       "DroppedMpdu", MakeCallback(&AmpduAggregationTest::MpduDiscarded, this));
   htFem->m_dcf = m_mac->GetBEQueue();
@@ -336,40 +264,28 @@ void AmpduAggregationTest::DoRun() {
   htConfiguration = nullptr;
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Two Level Aggregation Test
- */
 class TwoLevelAggregationTest : public TestCase {
 public:
   TwoLevelAggregationTest();
 
 private:
   void DoRun() override;
-  Ptr<WifiNetDevice> m_device;             ///< WifiNetDevice
-  Ptr<StaWifiMac> m_mac;                   ///< Mac
-  Ptr<YansWifiPhy> m_phy;                  ///< Phy
-  Ptr<WifiRemoteStationManager> m_manager; ///< remote station manager
-  ObjectFactory m_factory;                 ///< factory
+  Ptr<WifiNetDevice> m_device;
+  Ptr<StaWifiMac> m_mac;
+  Ptr<YansWifiPhy> m_phy;
+  Ptr<WifiRemoteStationManager> m_manager;
+  ObjectFactory m_factory;
 };
 
 TwoLevelAggregationTest::TwoLevelAggregationTest()
     : TestCase("Check the correctness of two-level aggregation operations") {}
 
 void TwoLevelAggregationTest::DoRun() {
-  /*
-   * Create device and attach HT configuration.
-   */
   m_device = CreateObject<WifiNetDevice>();
   m_device->SetStandard(WIFI_STANDARD_80211n);
   Ptr<HtConfiguration> htConfiguration = CreateObject<HtConfiguration>();
   m_device->SetHtConfiguration(htConfiguration);
 
-  /*
-   * Create and configure phy layer.
-   */
   m_phy = CreateObject<YansWifiPhy>();
   Ptr<InterferenceHelper> interferenceHelper =
       CreateObject<InterferenceHelper>();
@@ -378,9 +294,6 @@ void TwoLevelAggregationTest::DoRun() {
   m_phy->ConfigureStandard(WIFI_STANDARD_80211n);
   m_device->SetPhy(m_phy);
 
-  /*
-   * Create and configure manager.
-   */
   m_factory = ObjectFactory();
   m_factory.SetTypeId("ns3::ConstantRateWifiManager");
   m_factory.Set("DataMode", StringValue("HtMcs7"));
@@ -388,9 +301,6 @@ void TwoLevelAggregationTest::DoRun() {
   m_manager->SetupPhy(m_phy);
   m_device->SetRemoteStationManager(m_manager);
 
-  /*
-   * Create and configure mac layer.
-   */
   m_mac = CreateObjectWithAttributes<StaWifiMac>("QosSupported",
                                                  BooleanValue(true));
   m_mac->SetDevice(m_device);
@@ -410,9 +320,6 @@ void TwoLevelAggregationTest::DoRun() {
   m_mac->SetState(StaWifiMac::ASSOCIATED);
   m_mac->SetMacQueueScheduler(CreateObject<FcfsWifiQueueScheduler>());
 
-  /*
-   * Configure aggregation.
-   */
   m_mac->SetAttribute("BE_MaxAmsduSize", UintegerValue(4095));
   m_mac->SetAttribute("BE_MaxAmpduSize", UintegerValue(65535));
   HtCapabilities htCapabilities;
@@ -421,10 +328,6 @@ void TwoLevelAggregationTest::DoRun() {
   m_manager->AddStationHtCapabilities(Mac48Address("00:00:00:00:00:02"),
                                       htCapabilities);
 
-  /*
-   * Create dummy packets of 1500 bytes and fill mac header fields that will be
-   * used for the tests.
-   */
   Ptr<const Packet> pkt = Create<Packet>(1500);
   WifiMacHeader hdr;
   hdr.SetAddr1(Mac48Address("00:00:00:00:00:02"));
@@ -432,13 +335,6 @@ void TwoLevelAggregationTest::DoRun() {
   hdr.SetType(WIFI_MAC_QOSDATA);
   hdr.SetQosTid(0);
 
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * Test MSDU and MPDU aggregation. Three MSDUs are in the queue and the
-   * maximum A-MSDU size is such that only two MSDUs can be aggregated.
-   * Therefore, the first MPDU we get contains an A-MSDU of 2 MSDUs.
-   */
   Ptr<HtFrameExchangeManager> htFem = DynamicCast<HtFrameExchangeManager>(fem);
   Ptr<MsduAggregator> msduAggregator = htFem->GetMsduAggregator();
   Ptr<MpduAggregator> mpduAggregator = htFem->GetMpduAggregator();
@@ -462,17 +358,10 @@ void TwoLevelAggregationTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(result, true, "aggregation failed");
   NS_TEST_EXPECT_MSG_EQ(item->GetPacketSize(), 3030, "wrong packet size");
 
-  // dequeue the MSDUs
   htFem->DequeueMpdu(item);
 
   NS_TEST_EXPECT_MSG_EQ(m_mac->GetBEQueue()->GetWifiMacQueue()->GetNPackets(),
                         1, "Unexpected number of MSDUs left in the EDCA queue");
-
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * A-MSDU aggregation fails when there is just one MSDU in the queue.
-   */
 
   peeked = m_mac->GetBEQueue()->PeekNextMpdu(SINGLE_LINK_OP_ID);
   txParams.Clear();
@@ -488,15 +377,6 @@ void TwoLevelAggregationTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(m_mac->GetBEQueue()->GetWifiMacQueue()->GetNPackets(),
                         0, "queue should be empty");
 
-  //-----------------------------------------------------------------------------------------------------
-
-  /*
-   * Aggregation of MPDUs is stopped to prevent that the PPDU duration exceeds
-   * the TXOP limit. In this test, the VI AC is used, which has a default TXOP
-   * limit of 3008 microseconds.
-   */
-
-  // Establish agreement.
   uint8_t tid = 5;
   MgtAddBaRequestHeader reqHdr;
   reqHdr.SetImmediateBlockAck();
@@ -519,17 +399,15 @@ void TwoLevelAggregationTest::DoRun() {
   m_mac->GetVIQueue()->GetBaManager()->UpdateOriginatorAgreement(
       respHdr, hdr.GetAddr1(), 0);
 
-  m_mac->SetAttribute("VI_MaxAmsduSize",
-                      UintegerValue(3050)); // max 2 MSDUs per A-MSDU
+  m_mac->SetAttribute("VI_MaxAmsduSize", UintegerValue(3050));
   m_mac->SetAttribute("VI_MaxAmpduSize", UintegerValue(65535));
   m_mac->GetVIQueue()->SetAttribute("TxopLimits",
                                     AttributeContainerValue<TimeValue>(
                                         std::vector<Time>{MicroSeconds(3008)}));
-  m_manager->SetAttribute("DataMode", StringValue("HtMcs2")); // 19.5Mbps
+  m_manager->SetAttribute("DataMode", StringValue("HtMcs2"));
 
   hdr.SetQosTid(tid);
 
-  // Add 10 MSDUs to the EDCA queue
   for (uint8_t i = 0; i < 10; i++) {
     m_mac->GetVIQueue()->GetWifiMacQueue()->Enqueue(
         Create<WifiMpdu>(Create<Packet>(1300), hdr));
@@ -539,10 +417,8 @@ void TwoLevelAggregationTest::DoRun() {
   txParams.Clear();
   txParams.m_txVector = m_mac->GetWifiRemoteStationManager()->GetDataTxVector(
       peeked->GetHeader(), m_phy->GetChannelWidth());
-  Time txopLimit = m_mac->GetVIQueue()->GetTxopLimit(); // 3.008 ms
+  Time txopLimit = m_mac->GetVIQueue()->GetTxopLimit();
 
-  // Compute the first MPDU to be aggregated in an A-MPDU. It must contain an
-  // A-MSDU aggregating two MSDUs
   item = m_mac->GetVIQueue()->GetNextMpdu(SINGLE_LINK_OP_ID, peeked, txParams,
                                           txopLimit, true);
 
@@ -551,18 +427,6 @@ void TwoLevelAggregationTest::DoRun() {
 
   auto mpduList = mpduAggregator->GetNextAmpdu(item, txParams, txopLimit);
 
-  // The maximum number of bytes that can be transmitted in a TXOP is
-  // (approximately, as we do not consider that the preamble is transmitted at a
-  // different rate): 19.5 Mbps * 3.008 ms = 7332 bytes Given that the max
-  // A-MSDU size is set to 3050, an A-MSDU will contain two MSDUs and have a
-  // size of 2 * 1300 (MSDU size) + 2 * 14 (A-MSDU subframe header size) + 2
-  // (one padding field) = 2630 bytes Hence, we expect that the A-MPDU will
-  // consist of:
-  // - 2 MPDUs containing each an A-MSDU. The size of each MPDU is 2630 (A-MSDU)
-  // + 30 (header+trailer) = 2660
-  // - 1 MPDU containing a single MSDU. The size of such MPDU is 1300 (MSDU) +
-  // 30 (header+trailer) = 1330 The size of the A-MPDU is 4 + 2660 + 4 + 2660 +
-  // 4 + 1330 = 6662
   NS_TEST_EXPECT_MSG_EQ(mpduList.empty(), false, "aggregation failed");
   NS_TEST_EXPECT_MSG_EQ(mpduList.size(), 3,
                         "Unexpected number of MPDUs in the A-MPDU");
@@ -588,39 +452,24 @@ void TwoLevelAggregationTest::DoRun() {
   htConfiguration = nullptr;
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief 802.11ax aggregation test which permits 64 or 256 MPDUs in A-MPDU
- * according to the negotiated buffer size.
- */
 class HeAggregationTest : public TestCase {
 public:
   HeAggregationTest();
 
 private:
   void DoRun() override;
-  /**
-   * Run test for a given buffer size
-   *
-   * \param bufferSize the buffer size
-   */
   void DoRunSubTest(uint16_t bufferSize);
-  Ptr<WifiNetDevice> m_device;             ///< WifiNetDevice
-  Ptr<StaWifiMac> m_mac;                   ///< Mac
-  Ptr<YansWifiPhy> m_phy;                  ///< Phy
-  Ptr<WifiRemoteStationManager> m_manager; ///< remote station manager
-  ObjectFactory m_factory;                 ///< factory
+  Ptr<WifiNetDevice> m_device;
+  Ptr<StaWifiMac> m_mac;
+  Ptr<YansWifiPhy> m_phy;
+  Ptr<WifiRemoteStationManager> m_manager;
+  ObjectFactory m_factory;
 };
 
 HeAggregationTest::HeAggregationTest()
     : TestCase("Check the correctness of 802.11ax aggregation operations") {}
 
 void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
-  /*
-   * Create device and attach configurations.
-   */
   m_device = CreateObject<WifiNetDevice>();
   Ptr<HtConfiguration> htConfiguration = CreateObject<HtConfiguration>();
   m_device->SetHtConfiguration(htConfiguration);
@@ -629,9 +478,6 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   Ptr<HeConfiguration> heConfiguration = CreateObject<HeConfiguration>();
   m_device->SetHeConfiguration(heConfiguration);
 
-  /*
-   * Create and configure phy layer.
-   */
   m_phy = CreateObject<YansWifiPhy>();
   Ptr<InterferenceHelper> interferenceHelper =
       CreateObject<InterferenceHelper>();
@@ -640,9 +486,6 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   m_phy->ConfigureStandard(WIFI_STANDARD_80211ax);
   m_device->SetPhy(m_phy);
 
-  /*
-   * Create and configure manager.
-   */
   m_factory = ObjectFactory();
   m_factory.SetTypeId("ns3::ConstantRateWifiManager");
   m_factory.Set("DataMode", StringValue("HeMcs11"));
@@ -650,9 +493,6 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   m_manager->SetupPhy(m_phy);
   m_device->SetRemoteStationManager(m_manager);
 
-  /*
-   * Create and configure mac layer.
-   */
   m_mac = CreateObjectWithAttributes<StaWifiMac>("QosSupported",
                                                  BooleanValue(true));
   m_mac->SetDevice(m_device);
@@ -672,16 +512,10 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   m_mac->SetState(StaWifiMac::ASSOCIATED);
   m_mac->SetMacQueueScheduler(CreateObject<FcfsWifiQueueScheduler>());
 
-  /*
-   * Configure aggregation.
-   */
   HeCapabilities heCapabilities;
   m_manager->AddStationHeCapabilities(Mac48Address("00:00:00:00:00:02"),
                                       heCapabilities);
 
-  /*
-   * Fill mac header fields.
-   */
   WifiMacHeader hdr;
   hdr.SetAddr1(Mac48Address("00:00:00:00:00:02"));
   hdr.SetAddr2(Mac48Address("00:00:00:00:00:01"));
@@ -693,9 +527,6 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   hdr.SetNoMoreFragments();
   hdr.SetNoRetry();
 
-  /*
-   * Establish agreement.
-   */
   MgtAddBaRequestHeader reqHdr;
   reqHdr.SetImmediateBlockAck();
   reqHdr.SetTid(0);
@@ -717,10 +548,6 @@ void HeAggregationTest::DoRunSubTest(uint16_t bufferSize) {
   m_mac->GetBEQueue()->GetBaManager()->UpdateOriginatorAgreement(
       respHdr, hdr.GetAddr1(), 0);
 
-  /*
-   * Test behavior when 300 packets are ready for transmission but negotiated
-   * buffer size is 64
-   */
   Ptr<HtFrameExchangeManager> htFem = DynamicCast<HtFrameExchangeManager>(fem);
   Ptr<MpduAggregator> mpduAggregator = htFem->GetMpduAggregator();
 
@@ -775,25 +602,6 @@ void HeAggregationTest::DoRun() {
   DoRunSubTest(256);
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for A-MSDU and A-MPDU aggregation
- *
- * This test aims to check that the packets passed to the MAC layer (on the
- * sender side) are forwarded up to the upper layer (on the receiver side) when
- * A-MSDU and A-MPDU aggregation are used. This test checks that no packet
- * copies are performed, hence packets can be tracked by means of a pointer.
- *
- * In this test, an HT STA sends 8 packets (each of 1000 bytes) to an HT AP.
- * The block ack threshold is set to 2, hence the first packet is sent as an
- * MPDU containing a single MSDU because the establishment of a Block Ack
- * agreement is not triggered yet. The maximum A-MSDU size is set to 4500 bytes
- * and the maximum A-MPDU size is set to 7500 bytes, hence the remaining packets
- * are sent in an A-MPDU containing two MPDUs, the first one including 4 MSDUs
- * and the second one including 3 MPDUs.
- */
 class PreservePacketsInAmpdus : public TestCase {
 public:
   PreservePacketsInAmpdus();
@@ -802,30 +610,13 @@ public:
   void DoRun() override;
 
 private:
-  std::list<Ptr<const Packet>>
-      m_packetList; ///< List of packets passed to the MAC
-  std::vector<std::size_t>
-      m_nMpdus; ///< Number of MPDUs in PSDUs passed to the PHY
-  std::vector<std::size_t>
-      m_nMsdus; ///< Number of MSDUs in MPDUs passed to the PHY
+  std::list<Ptr<const Packet>> m_packetList;
+  std::vector<std::size_t> m_nMpdus;
+  std::vector<std::size_t> m_nMsdus;
 
-  /**
-   * Callback invoked when an MSDU is passed to the MAC
-   * \param packet the MSDU to transmit
-   */
   void NotifyMacTransmit(Ptr<const Packet> packet);
-  /**
-   * Callback invoked when the sender MAC passes a PSDU(s) to the PHY
-   * \param psduMap the PSDU map
-   * \param txVector the TX vector
-   * \param txPowerW the transmit power in Watts
-   */
   void NotifyPsduForwardedDown(WifiConstPsduMap psduMap, WifiTxVector txVector,
                                double txPowerW);
-  /**
-   * Callback invoked when the receiver MAC forwards a packet up to the upper
-   * layer \param p the packet
-   */
   void NotifyMacForwardUp(Ptr<const Packet> p);
 };
 
@@ -855,8 +646,6 @@ void PreservePacketsInAmpdus::NotifyPsduForwardedDown(WifiConstPsduMap psduMap,
 
   for (auto &mpdu : *PeekPointer(psduMap[SU_STA_ID])) {
     std::size_t dist = std::distance(mpdu->begin(), mpdu->end());
-    // the list of aggregated MSDUs is empty if the MPDU includes a
-    // non-aggregated MSDU
     m_nMsdus.push_back(dist > 0 ? dist : 1);
   }
 }
@@ -887,7 +676,6 @@ void PreservePacketsInAmpdus::DoRun() {
   Ssid ssid = Ssid("ns-3-ssid");
   mac.SetType("ns3::StaWifiMac", "BE_MaxAmsduSize", UintegerValue(4500),
               "BE_MaxAmpduSize", UintegerValue(7500), "Ssid", SsidValue(ssid),
-              /* setting blockack threshold for sta's BE queue */
               "BE_BlockAckThreshold", UintegerValue(2), "ActiveProbing",
               BooleanValue(false));
 
@@ -920,7 +708,6 @@ void PreservePacketsInAmpdus::DoRun() {
   socket.SetPhysicalAddress(ap_device->GetAddress());
   socket.SetProtocol(1);
 
-  // install packet sockets on nodes.
   PacketSocketHelper packetSocket;
   packetSocket.Install(wifiStaNode);
   packetSocket.Install(wifiApNode);
@@ -956,9 +743,6 @@ void PreservePacketsInAmpdus::DoRun() {
 
   Simulator::Destroy();
 
-  // Two packets are transmitted. The first one is an MPDU containing a single
-  // MSDU. The second one is an A-MPDU containing two MPDUs: the first MPDU
-  // contains 4 MSDUs and the second MPDU contains 3 MSDUs
   NS_TEST_EXPECT_MSG_EQ(m_nMpdus.size(), 2,
                         "Unexpected number of transmitted packets");
   NS_TEST_EXPECT_MSG_EQ(m_nMsdus.size(), 3,
@@ -973,17 +757,10 @@ void PreservePacketsInAmpdus::DoRun() {
                         "Unexpected number of MSDUs in the second MPDU");
   NS_TEST_EXPECT_MSG_EQ(m_nMsdus[2], 3,
                         "Unexpected number of MSDUs in the third MPDU");
-  // All the packets must have been forwarded up at the receiver
   NS_TEST_EXPECT_MSG_EQ(m_packetList.empty(), true,
                         "Some packets have not been forwarded up");
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Wifi Aggregation Test Suite
- */
 class WifiAggregationTestSuite : public TestSuite {
 public:
   WifiAggregationTestSuite();
@@ -997,4 +774,4 @@ WifiAggregationTestSuite::WifiAggregationTestSuite()
   AddTestCase(new PreservePacketsInAmpdus, TestCase::QUICK);
 }
 
-static WifiAggregationTestSuite g_wifiAggregationTestSuite; ///< the test suite
+static WifiAggregationTestSuite g_wifiAggregationTestSuite;

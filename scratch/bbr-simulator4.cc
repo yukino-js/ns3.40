@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -31,19 +18,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("MultiFlowEcnSimulator");
-
-// ============================================================================
-// 实验目标：N-to-1 聚合场景下的 ECN 标记与公平性研究
-// 拓扑：
-//   sender_i (N 个) --accessBw/accessDelay-- router -- bottleneckBw/delay --
-//   receiver
-// 所有 N 个发送端使用同一协议（默认为 DCTCP），所有流经过同一瓶颈
-// 瓶颈安装 RED+ECN。主要观察：
-//   * 每条流的吞吐是否公平
-//   * RED 标记是否均匀分布
-//   * 队列长度在多流下是否更抖动
-// 可以通过 --tcpType=dctcp|cubic|bbr 切换协议，复用同一拓扑。
-// ============================================================================
 
 static void QueueLengthTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                               uint32_t newVal) {
@@ -68,7 +42,7 @@ static void ConnectSocketCwnd(uint32_t nodeId,
 
 int main(int argc, char *argv[]) {
   uint32_t nFlows = 4;
-  std::string tcpType = "dctcp"; // dctcp | cubic | bbr
+  std::string tcpType = "dctcp";
   std::string bottleneckBw = "100Mbps";
   std::string bottleneckDelay = "1ms";
   std::string accessBw = "1Gbps";
@@ -92,7 +66,6 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("simTime", "Simulation time (s)", simTime);
   cmd.Parse(argc, argv);
 
-  //! 选择 TCP 变体
   TypeId tid;
   if (tcpType == "dctcp") {
     tid = TcpDctcp::GetTypeId();
@@ -126,7 +99,6 @@ int main(int argc, char *argv[]) {
   Time::SetResolution(Time::NS);
   LogComponentEnable("MultiFlowEcnSimulator", LOG_LEVEL_INFO);
 
-  //! 节点
   NodeContainer senders;
   senders.Create(nFlows);
   Ptr<Node> router = CreateObject<Node>();
@@ -137,17 +109,14 @@ int main(int argc, char *argv[]) {
   stack.Install(router);
   stack.Install(receiver);
 
-  //! 接入链路
   PointToPointHelper p2pAccess;
   p2pAccess.SetDeviceAttribute("DataRate", StringValue(accessBw));
   p2pAccess.SetChannelAttribute("Delay", StringValue(accessDelay));
 
-  //! 瓶颈链路
   PointToPointHelper p2pBottleneck;
   p2pBottleneck.SetDeviceAttribute("DataRate", StringValue(bottleneckBw));
   p2pBottleneck.SetChannelAttribute("Delay", StringValue(bottleneckDelay));
 
-  //! access 链路用 PfifoFast
   TrafficControlHelper tchAccess;
   tchAccess.SetRootQueueDisc("ns3::PfifoFastQueueDisc");
 
@@ -180,7 +149,6 @@ int main(int argc, char *argv[]) {
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  //! receiver 上一个 sink 接所有流
   uint16_t port = 9000;
   PacketSinkHelper sinkHelper("ns3::TcpSocketFactory",
                               InetSocketAddress(Ipv4Address::GetAny(), port));
@@ -189,7 +157,6 @@ int main(int argc, char *argv[]) {
   sinkApp.Start(Seconds(0.0));
   sinkApp.Stop(Seconds(simTime + 1.0));
 
-  //! N 个 BulkSend 发送端，错开 10ms 启动避免完全同步
   ApplicationContainer sourceApps;
   for (uint32_t i = 0; i < nFlows; ++i) {
     BulkSendHelper source("ns3::TcpSocketFactory",
@@ -201,14 +168,12 @@ int main(int argc, char *argv[]) {
     sourceApps.Add(app);
   }
 
-  //! trace
   AsciiTraceHelper asciiHelper;
   auto qlenStream = asciiHelper.CreateFileStream("qlen.log");
   Ptr<QueueDisc> redQd = qdBottleneck.Get(0);
   redQd->TraceConnectWithoutContext(
       "PacketsInQueue", MakeBoundCallback(&QueueLengthTracer, qlenStream));
 
-  //! 每个发送端一个独立 cwnd 文件
   for (uint32_t i = 0; i < nFlows; ++i) {
     std::ostringstream fn;
     fn << "cwnd-sender" << i << ".log";
@@ -223,7 +188,6 @@ int main(int argc, char *argv[]) {
   Simulator::Stop(Seconds(simTime + 2.0));
   Simulator::Run();
 
-  //! RED 统计
   QueueDisc::Stats st = redQd->GetStats();
   std::ofstream redStats("red-stats.log");
   redStats << "# N-to-1 aggregation, tcp=" << tcpType << " useEcn=" << useEcn
@@ -241,7 +205,6 @@ int main(int argc, char *argv[]) {
   redStats << "ForcedDrop           "
            << st.GetNDroppedPackets(RedQueueDisc::FORCED_DROP) << "\n";
 
-  //! 公平性：Jain's index
   monitor->CheckForLostPackets();
   auto classifier = DynamicCast<Ipv4FlowClassifier>(flowMon.GetClassifier());
   double sumThr = 0.0;
@@ -253,7 +216,7 @@ int main(int argc, char *argv[]) {
                       it.second.timeFirstTxPacket.GetSeconds();
     double throughputMbps =
         duration > 0 ? it.second.rxBytes * 8.0 / duration / 1e6 : 0.0;
-    if (t.protocol == 6 /* TCP */) {
+    if (t.protocol == 6) {
       sumThr += throughputMbps;
       sumThr2 += throughputMbps * throughputMbps;
       ++n;

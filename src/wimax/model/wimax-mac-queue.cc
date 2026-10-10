@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *         Mohamed Amine Ismail <Amine.Ismail@sophia.inria.fr>
- *                              <Amine.Ismail@UDcast.com>
- */
 
 #include "wimax-mac-queue.h"
 
@@ -48,11 +28,6 @@ WimaxMacQueue::QueueElement::QueueElement(Ptr<Packet> packet,
 uint32_t WimaxMacQueue::QueueElement::GetSize() const {
   uint32_t size = m_packet->GetSize() + m_hdrType.GetSerializedSize();
 
-  /*check because may be it is a bandwidth request packet (in which case a
-   Bandwidth Request Header has already been added to the packet) in which case
-   Generic MAC Header will not be added to it. this will only happen in the case
-   of SS as only SS sends the bandwidth request packet.
- */
   if (m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
     size += m_hdr.GetSerializedSize();
   }
@@ -138,10 +113,6 @@ Ptr<Packet> WimaxMacQueue::Dequeue(MacHeaderType::HeaderType packetType) {
 
     if (!element.m_fragmentation) {
       NS_LOG_INFO("FRAG_DEBUG: Enqueued Packet IS NOT a fragment" << std::endl);
-      /*check because may be it is a bandwidth request packet (in which case a
-        Bandwidth Request Header has already been added to the packet) in which
-        case Generic MAC Header will not be added to it. this will only happen
-        in the case of SS as only SS sends the bandwidth request packet. */
       m_bytes -= element.GetSize();
       if (element.m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
         packet->AddHeader(element.m_hdr);
@@ -151,13 +122,8 @@ Ptr<Packet> WimaxMacQueue::Dequeue(MacHeaderType::HeaderType packetType) {
       m_traceDequeue(packet);
       return packet;
     } else {
-      /*
-       The enqueued packet is a fragment (the latest fragment)
-       We must modify type field of the m_hdr and add a fragmentation Subhdr
-       */
       NS_LOG_INFO("\t Enqueued Packet IS a fragment, add subhdr" << std::endl);
 
-      // Create a fragment
       uint32_t fragmentOffset = element.m_fragmentOffset;
       uint32_t fragmentSize = element.m_packet->GetSize() - fragmentOffset;
 
@@ -172,16 +138,12 @@ Ptr<Packet> WimaxMacQueue::Dequeue(MacHeaderType::HeaderType packetType) {
 
       FragmentationSubheader fragmentSubhdr;
       NS_LOG_INFO("\t Latest Fragment" << std::endl);
-      fragmentSubhdr.SetFc(2); // This is the latest fragment
+      fragmentSubhdr.SetFc(2);
       fragmentSubhdr.SetFsn(element.m_fragmentNumber);
 
       NS_LOG_INFO("\t FragmentSize=" << fragment->GetSize() << std::endl);
       fragment->AddHeader(fragmentSubhdr);
 
-      /*check because may be it is a bandwidth request packet (in which case a
-      Bandwidth Request Header has already been added to the packet) in which
-      case Generic MAC Header will not be added to it. this will only happen in
-      the case of SS as only SS sends the bandwidth request packet. */
       if (element.m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
         uint8_t tmpType = element.m_hdr.GetType();
         tmpType |= 4;
@@ -212,10 +174,8 @@ Ptr<Packet> WimaxMacQueue::Dequeue(MacHeaderType::HeaderType packetType,
     uint32_t headerSize = 2 + element.m_hdr.GetSerializedSize() +
                           element.m_hdrType.GetSerializedSize();
 
-    // Create a fragment
     uint32_t maxFragmentSize = availableByte - headerSize;
-    uint32_t fragmentOffset =
-        element.m_fragmentOffset; // It is the latest byte sent.
+    uint32_t fragmentOffset = element.m_fragmentOffset;
 
     Ptr<Packet> packet = element.m_packet->Copy();
     NS_LOG_INFO("\t Create a fragment"
@@ -246,10 +206,6 @@ Ptr<Packet> WimaxMacQueue::Dequeue(MacHeaderType::HeaderType packetType,
     SetFragmentNumber(packetType);
     SetFragmentOffset(packetType, maxFragmentSize);
 
-    /*check because may be it is a bandwidth request packet (in which case a
-      Bandwidth Request Header has already been added to the packet) in which
-      case Generic MAC Header will not be added to it. this will only happen in
-      the case of SS as only SS sends the bandwidth request packet. */
     if (element.m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
       uint8_t tmpType = element.m_hdr.GetType();
       tmpType |= 4;
@@ -275,8 +231,6 @@ Ptr<Packet> WimaxMacQueue::Peek(GenericMacHeader &hdr) const {
     hdr = element.m_hdr;
     Ptr<Packet> packet = element.m_packet->Copy();
 
-    // this function must not be used by SS as it may be then a bandwidth
-    // request header
     packet->AddHeader(element.m_hdr);
     return packet;
   }
@@ -291,8 +245,6 @@ Ptr<Packet> WimaxMacQueue::Peek(GenericMacHeader &hdr, Time &timeStamp) const {
     timeStamp = element.m_timeStamp;
     Ptr<Packet> packet = element.m_packet->Copy();
 
-    // this function must not be used for by SS as it may be then a bandwidth
-    // request header
     packet->AddHeader(element.m_hdr);
     return packet;
   }
@@ -305,10 +257,6 @@ Ptr<Packet> WimaxMacQueue::Peek(MacHeaderType::HeaderType packetType) const {
     QueueElement element = Front(packetType);
     Ptr<Packet> packet = element.m_packet->Copy();
 
-    /*check because may be it is a bandwidth request packet (in which case a
-     Bandwidth Request Header has already been added to the packet) in which
-     case Generic MAC Header will not be added to it. this will only happen in
-     the case of SS as only SS sends the bandwidth request packet. */
     if (element.m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
       packet->AddHeader(element.m_hdr);
     }
@@ -325,10 +273,6 @@ Ptr<Packet> WimaxMacQueue::Peek(MacHeaderType::HeaderType packetType,
     timeStamp = element.m_timeStamp;
     Ptr<Packet> packet = element.m_packet->Copy();
 
-    /*check because may be it is a bandwidth request packet (in which case a
-     Bandwidth Request Header has already been added to the packet) in which
-     case Generic MAC Header will not be added to it. this will only happen in
-     the case of SS as only SS sends the bandwidth request packet. */
     if (element.m_hdrType.GetType() == MacHeaderType::HEADER_TYPE_GENERIC) {
       packet->AddHeader(element.m_hdr);
     }
@@ -344,7 +288,6 @@ uint32_t WimaxMacQueue::GetNBytes() const { return m_bytes; }
 
 uint32_t WimaxMacQueue::GetQueueLengthWithMACOverhead() {
   uint32_t queueSize = GetNBytes();
-  // Add MAC Overhead
   queueSize += GetSize() * 6;
   MacHeaderType::HeaderType packetType = MacHeaderType::HEADER_TYPE_GENERIC;
   if (CheckForFragmentation(packetType)) {

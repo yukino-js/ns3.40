@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Luis Pacheco <luisbelem@gmail.com>
- */
 #include <ns3/core-module.h>
 #include <ns3/spectrum-module.h>
 #include <ns3/test.h>
@@ -24,35 +6,19 @@ NS_LOG_COMPONENT_DEFINE("WaveformGeneratorTest");
 
 using namespace ns3;
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Waveform generator Test
- */
 class WaveformGeneratorTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param period waveform period (seconds)
-   * \param dutyCycle waveform duty cycle
-   * \param stop stop time (seconds)
-   */
   WaveformGeneratorTestCase(double period, double dutyCycle, double stop);
   ~WaveformGeneratorTestCase() override;
 
 private:
   void DoRun() override;
 
-  /**
-   * Trace if the waveform is active
-   * \param newPkt unused.
-   */
   void TraceWave(Ptr<const Packet> newPkt);
-  double m_period;    //!< waveform period (seconds)
-  double m_dutyCycle; //!< waveform duty cycle
-  double m_stop;      //!< stop time (seconds)
-  int m_fails;        //!< failure check
+  double m_period;
+  double m_dutyCycle;
+  double m_stop;
+  int m_fails;
 };
 
 void WaveformGeneratorTestCase::TraceWave(Ptr<const Packet> newPkt) {
@@ -109,11 +75,6 @@ void WaveformGeneratorTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Waveform generator TestSuite
- */
 class WaveformGeneratorTestSuite : public TestSuite {
 public:
   WaveformGeneratorTestSuite();
@@ -123,11 +84,8 @@ WaveformGeneratorTestSuite::WaveformGeneratorTestSuite()
     : TestSuite("waveform-generator", SYSTEM) {
   NS_LOG_INFO("creating WaveformGeneratorTestSuite");
 
-  // Stop while wave is active
   AddTestCase(new WaveformGeneratorTestCase(1.0, 0.5, 1.2), TestCase::QUICK);
-  // Stop after wave
   AddTestCase(new WaveformGeneratorTestCase(1.0, 0.5, 1.7), TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static WaveformGeneratorTestSuite g_waveformGeneratorTestSuite;

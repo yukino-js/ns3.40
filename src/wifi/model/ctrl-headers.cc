@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "ctrl-headers.h"
 
@@ -28,10 +10,6 @@
 #include <algorithm>
 
 namespace ns3 {
-
-/***********************************
- *       Block ack request
- ***********************************/
 
 NS_OBJECT_ENSURE_REGISTERED(CtrlBAckRequestHeader);
 
@@ -57,7 +35,7 @@ void CtrlBAckRequestHeader::Print(std::ostream &os) const {
 
 uint32_t CtrlBAckRequestHeader::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 2; // Bar control
+  size += 2;
   switch (m_barType.m_variant) {
   case BlockAckReqType::BASIC:
   case BlockAckReqType::COMPRESSED:
@@ -200,10 +178,6 @@ bool CtrlBAckRequestHeader::IsMultiTid() const {
   return m_barType.m_variant == BlockAckReqType::MULTI_TID;
 }
 
-/***********************************
- *       Block ack response
- ***********************************/
-
 NS_OBJECT_ENSURE_REGISTERED(CtrlBAckResponseHeader);
 
 CtrlBAckResponseHeader::CtrlBAckResponseHeader()
@@ -237,11 +211,8 @@ void CtrlBAckResponseHeader::Print(std::ostream &os) const {
 }
 
 uint32_t CtrlBAckResponseHeader::GetSerializedSize() const {
-  // This method only makes use of the configured BA type, so that functions
-  // like GetBlockAckSize () can easily return the size of a Block Ack of a
-  // given type
   uint32_t size = 0;
-  size += 2; // BA control
+  size += 2;
   switch (m_baType.m_variant) {
   case BlockAckType::BASIC:
   case BlockAckType::COMPRESSED:
@@ -249,12 +220,11 @@ uint32_t CtrlBAckResponseHeader::GetSerializedSize() const {
     size += (2 + m_baType.m_bitmapLen[0]);
     break;
   case BlockAckType::MULTI_TID:
-    size += (2 + 2 + 8) * (m_tidInfo + 1); // Multi-TID block ack
+    size += (2 + 2 + 8) * (m_tidInfo + 1);
     break;
   case BlockAckType::MULTI_STA:
     for (auto &bitmapLen : m_baType.m_bitmapLen) {
-      size += 2 /* AID TID Info */ + (bitmapLen > 0 ? 2 : 0) /* BA SSC */ +
-              bitmapLen;
+      size += 2 + (bitmapLen > 0 ? 2 : 0) + bitmapLen;
     }
     break;
   default:
@@ -312,25 +282,18 @@ uint32_t CtrlBAckResponseHeader::Deserialize(Buffer::Iterator start) {
     std::size_t index = 0;
     while (i.GetRemainingSize() > 0) {
       m_baInfo.emplace_back();
-      m_baType.m_bitmapLen.push_back(
-          0); // updated by next call to SetStartingSequenceControl
+      m_baType.m_bitmapLen.push_back(0);
 
       m_baInfo.back().m_aidTidInfo = i.ReadLsbtohU16();
 
       if (GetAid11(index) != 2045) {
-        // the Block Ack Starting Sequence Control and Block Ack Bitmap
-        // subfields are only present in Block acknowledgement context, i.e., if
-        // the Ack Type subfield is set to 0 and the TID subfield is set to a
-        // value from 0 to 7.
         if (!GetAckType(index) && GetTidInfo(index) < 8) {
           SetStartingSequenceControl(i.ReadLsbtohU16(), index);
           i = DeserializeBitmap(i, index);
         }
       } else {
-        i.ReadLsbtohU32(); // next 4 bytes are reserved
+        i.ReadLsbtohU32();
         ReadFrom(i, m_baInfo.back().m_ra);
-        // the length of this Per AID TID Info subfield is 12, so set
-        // the bitmap length to 8 to simulate the correct size
         m_baType.m_bitmapLen.back() = 8;
       }
       index++;
@@ -557,9 +520,6 @@ CtrlBAckResponseHeader::GetStartingSequenceControl(std::size_t index) const {
 
   uint16_t ret = (m_baInfo[index].m_startingSeq << 4) & 0xfff0;
 
-  // The Fragment Number subfield encodes the length of the bitmap for
-  // Compressed and Multi-STA variants (see sections 9.3.1.9.3 and 9.3.1.9.7
-  // of 802.11ax Draft 3.0). Note that Fragmentation Level 3 is not supported.
   if (m_baType.m_variant == BlockAckType::COMPRESSED) {
     if (m_baType.m_bitmapLen[0] == 32) {
       ret |= 0x0004;
@@ -587,9 +547,6 @@ void CtrlBAckResponseHeader::SetStartingSequenceControl(uint16_t seqControl,
                 "index can only be non null for Multi-STA Block Ack");
   NS_ASSERT(index < m_baInfo.size());
 
-  // The Fragment Number subfield encodes the length of the bitmap for
-  // Compressed and Multi-STA variants (see sections 9.3.1.9.3 and 9.3.1.9.7
-  // of 802.11ax Draft 3.0). Note that Fragmentation Level 3 is not supported.
   if (m_baType.m_variant == BlockAckType::COMPRESSED) {
     if ((seqControl & 0x0001) == 1) {
       NS_FATAL_ERROR("Fragmentation Level 3 unsupported");
@@ -695,8 +652,6 @@ void CtrlBAckResponseHeader::SetReceivedPacket(uint16_t seq,
   }
   switch (m_baType.m_variant) {
   case BlockAckType::BASIC:
-    /* To set correctly basic block ack bitmap we need fragment number too.
-        So if it's not specified, we consider packet not fragmented. */
     m_baInfo[index].m_bitmap[IndexInBitmap(seq) * 2] |= 0x01;
     break;
   case BlockAckType::COMPRESSED:
@@ -728,8 +683,6 @@ void CtrlBAckResponseHeader::SetReceivedFragment(uint16_t seq, uint8_t frag) {
   case BlockAckType::COMPRESSED:
   case BlockAckType::EXTENDED_COMPRESSED:
   case BlockAckType::MULTI_STA:
-    /* We can ignore this...compressed block ack doesn't support
-       acknowledgment of single fragments */
     break;
   case BlockAckType::MULTI_TID:
     NS_FATAL_ERROR("Multi-tid block ack is not supported.");
@@ -748,7 +701,6 @@ bool CtrlBAckResponseHeader::IsPacketReceived(uint16_t seq,
 
   if (m_baType.m_variant == BlockAckType::MULTI_STA && GetAckType(index) &&
       GetTidInfo(index) == 14) {
-    // All-ack context
     return true;
   }
   if (!IsInBitmap(seq, index)) {
@@ -756,7 +708,6 @@ bool CtrlBAckResponseHeader::IsPacketReceived(uint16_t seq,
   }
   switch (m_baType.m_variant) {
   case BlockAckType::BASIC:
-    /*It's impossible to say if an entire packet was correctly received. */
     return false;
   case BlockAckType::COMPRESSED:
   case BlockAckType::EXTENDED_COMPRESSED:
@@ -788,8 +739,6 @@ bool CtrlBAckResponseHeader::IsFragmentReceived(uint16_t seq,
   case BlockAckType::COMPRESSED:
   case BlockAckType::EXTENDED_COMPRESSED:
   case BlockAckType::MULTI_STA:
-    /* We can ignore this...compressed block ack doesn't support
-       acknowledgement of single fragments */
     return false;
   case BlockAckType::MULTI_TID: {
     NS_FATAL_ERROR("Multi-tid block ack is not supported.");
@@ -855,10 +804,6 @@ void CtrlBAckResponseHeader::ResetBitmap(std::size_t index) {
   m_baInfo[index].m_bitmap.assign(m_baType.m_bitmapLen[index], 0);
 }
 
-/***********************************
- * Trigger frame - User Info field
- ***********************************/
-
 CtrlTriggerUserInfoField::CtrlTriggerUserInfoField(TriggerFrameType triggerType,
                                                    TriggerFrameVariant variant)
     : m_variant(variant), m_aid12(0), m_ruAllocation(0),
@@ -875,7 +820,6 @@ CtrlTriggerUserInfoField::operator=(const CtrlTriggerUserInfoField &userInfo) {
   NS_ABORT_MSG_IF(m_triggerType != userInfo.m_triggerType,
                   "Trigger Frame type mismatch");
 
-  // check for self-assignment
   if (&userInfo == this) {
     return *this;
   }
@@ -902,7 +846,7 @@ void CtrlTriggerUserInfoField::Print(std::ostream &os) const {
 
 uint32_t CtrlTriggerUserInfoField::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 5; // User Info (excluding Trigger Dependent User Info)
+  size += 5;
 
   switch (m_triggerType) {
   case TriggerFrameType::BASIC_TRIGGER:
@@ -910,12 +854,9 @@ uint32_t CtrlTriggerUserInfoField::GetSerializedSize() const {
     size += 1;
     break;
   case TriggerFrameType::MU_BAR_TRIGGER:
-    size += m_muBarTriggerDependentUserInfo
-                .GetSerializedSize(); // BAR Control and BAR Information
+    size += m_muBarTriggerDependentUserInfo.GetSerializedSize();
     break;
   default:;
-    // The Trigger Dependent User Info subfield is not present in the other
-    // variants
   }
 
   return size;
@@ -932,7 +873,7 @@ CtrlTriggerUserInfoField::Serialize(Buffer::Iterator start) const {
 
   Buffer::Iterator i = start;
 
-  uint32_t userInfo = 0; // User Info except the MSB
+  uint32_t userInfo = 0;
   userInfo |= (m_aid12 & 0x0fff);
   userInfo |= (m_ruAllocation << 12);
   userInfo |= (m_ulFecCodingType ? 1 << 20 : 0);
@@ -950,9 +891,6 @@ CtrlTriggerUserInfoField::Serialize(Buffer::Iterator start) const {
   }
 
   i.WriteHtolsbU32(userInfo);
-  // Here we need to write 8 bits covering the UL Target RSSI (7 bits) and B39,
-  // which is reserved in the HE variant and the PS160 subfield in the EHT
-  // variant.
   uint8_t bit32To39 = m_ulTargetRssi;
   if (m_variant == TriggerFrameVariant::EHT) {
     bit32To39 |= (m_ps160 ? 1 << 7 : 0);
@@ -1000,7 +938,7 @@ Buffer::Iterator CtrlTriggerUserInfoField::Deserialize(Buffer::Iterator start) {
   }
 
   uint8_t bit32To39 = i.ReadU8();
-  m_ulTargetRssi = bit32To39 & 0x7f; // B39 is reserved in HE variant
+  m_ulTargetRssi = bit32To39 & 0x7f;
   if (m_variant == TriggerFrameVariant::EHT) {
     m_ps160 = (bit32To39 >> 7) == 1;
   }
@@ -1028,7 +966,7 @@ WifiPreamble CtrlTriggerUserInfoField::GetPreambleType() const {
   default:
     NS_ABORT_MSG("Unexpected variant: " << +static_cast<uint8_t>(m_variant));
   }
-  return WIFI_PREAMBLE_LONG; // to silence warning
+  return WIFI_PREAMBLE_LONG;
 }
 
 void CtrlTriggerUserInfoField::SetAid12(uint16_t aid) {
@@ -1134,7 +1072,6 @@ void CtrlTriggerUserInfoField::SetMuRtsRuAllocation(uint8_t value) {
 
   m_ruAllocation = (value << 1);
   if (value == 68) {
-    // set B0 for 160 MHz and 80+80 MHz indication
     m_ruAllocation++;
   }
 }
@@ -1230,7 +1167,7 @@ bool CtrlTriggerUserInfoField::GetMoreRaRu() const {
 }
 
 void CtrlTriggerUserInfoField::SetUlTargetRssiMaxTxPower() {
-  m_ulTargetRssi = 127; // see Table 9-25i of 802.11ax amendment D3.0
+  m_ulTargetRssi = 127;
 }
 
 void CtrlTriggerUserInfoField::SetUlTargetRssi(int8_t dBm) {
@@ -1255,10 +1192,8 @@ void CtrlTriggerUserInfoField::SetBasicTriggerDepUserInfo(uint8_t spacingFactor,
   NS_ABORT_MSG_IF(m_triggerType != TriggerFrameType::BASIC_TRIGGER,
                   "Not a Basic Trigger Frame");
 
-  m_basicTriggerDependentUserInfo = (spacingFactor & 0x03) |
-                                    (tidLimit & 0x07) << 2
-                                    // B5 is reserved
-                                    | (prefAc & 0x03) << 6;
+  m_basicTriggerDependentUserInfo =
+      (spacingFactor & 0x03) | (tidLimit & 0x07) << 2 | (prefAc & 0x03) << 6;
 }
 
 uint8_t CtrlTriggerUserInfoField::GetMpduMuSpacingFactor() const {
@@ -1301,10 +1236,6 @@ CtrlTriggerUserInfoField::GetMuBarTriggerDepUserInfo() const {
   return m_muBarTriggerDependentUserInfo;
 }
 
-/***********************************
- *       Trigger frame
- ***********************************/
-
 NS_OBJECT_ENSURE_REGISTERED(CtrlTriggerHeader);
 
 CtrlTriggerHeader::CtrlTriggerHeader()
@@ -1345,7 +1276,7 @@ CtrlTriggerHeader::CtrlTriggerHeader(TriggerFrameType type,
     ui.SetAid12(userInfo.first);
     ui.SetRuAllocation(userInfo.second.ru);
     ui.SetUlMcs(userInfo.second.mcs);
-    ui.SetSsAllocation(1, userInfo.second.nss); // MU-MIMO is not supported
+    ui.SetSsAllocation(1, userInfo.second.nss);
   }
 }
 
@@ -1353,7 +1284,6 @@ CtrlTriggerHeader::~CtrlTriggerHeader() {}
 
 CtrlTriggerHeader &
 CtrlTriggerHeader::operator=(const CtrlTriggerHeader &trigger) {
-  // check for self-assignment
   if (&trigger == this) {
     return *this;
   }
@@ -1403,9 +1333,8 @@ TriggerFrameVariant CtrlTriggerHeader::GetVariant() const { return m_variant; }
 
 uint32_t CtrlTriggerHeader::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 8; // Common Info (excluding Trigger Dependent Common Info)
+  size += 8;
 
-  // Add the size of the Trigger Dependent Common Info subfield
   if (m_triggerType == TriggerFrameType::GCR_MU_BAR_TRIGGER) {
     size += 4;
   }
@@ -1439,7 +1368,7 @@ void CtrlTriggerHeader::Serialize(Buffer::Iterator start) const {
   commonInfo |= static_cast<uint64_t>(m_apTxPower & 0x3f) << 28;
   commonInfo |= static_cast<uint64_t>(m_ulSpatialReuse) << 37;
   if (m_variant == TriggerFrameVariant::HE) {
-    uint64_t ulHeSigA2 = 0x01ff; // nine bits equal to 1
+    uint64_t ulHeSigA2 = 0x01ff;
     commonInfo |= ulHeSigA2 << 54;
   }
 
@@ -1450,7 +1379,7 @@ void CtrlTriggerHeader::Serialize(Buffer::Iterator start) const {
   }
 
   for (std::size_t count = 0; count < m_padding; count++) {
-    i.WriteU8(0xff); // Padding field
+    i.WriteU8(0xff);
   }
 }
 
@@ -1481,11 +1410,9 @@ uint32_t CtrlTriggerHeader::Deserialize(Buffer::Iterator start) {
                   "NFRP Trigger frame is not supported");
 
   while (i.GetRemainingSize() >= 2) {
-    // read the first 2 bytes to check if we encountered the Padding field
     if (i.ReadU16() == 0xffff) {
       m_padding = i.GetRemainingSize() + 2;
     } else {
-      // go back 2 bytes to deserialize the User Info field from the beginning
       i.Prev(2);
       CtrlTriggerUserInfoField &ui = AddUserInfoField();
       i = ui.Deserialize(i);
@@ -1645,14 +1572,12 @@ uint8_t CtrlTriggerHeader::GetLtfType() const {
 }
 
 void CtrlTriggerHeader::SetApTxPower(int8_t power) {
-  // see Table 9-25f "AP Tx Power subfield encoding" of 802.11ax amendment D3.0
   NS_ABORT_MSG_IF(power < -20 || power > 40, "Out of range power values");
 
   m_apTxPower = static_cast<uint8_t>(power + 20);
 }
 
 int8_t CtrlTriggerHeader::GetApTxPower() const {
-  // see Table 9-25f "AP Tx Power subfield encoding" of 802.11ax amendment D3.0
   return static_cast<int8_t>(m_apTxPower) - 20;
 }
 
@@ -1673,8 +1598,6 @@ void CtrlTriggerHeader::SetPaddingSize(std::size_t size) {
 std::size_t CtrlTriggerHeader::GetPaddingSize() const { return m_padding; }
 
 CtrlTriggerHeader CtrlTriggerHeader::GetCommonInfoField() const {
-  // make a copy of this Trigger Frame and remove the User Info fields from the
-  // copy
   CtrlTriggerHeader trigger(*this);
   trigger.m_userInfoFields.clear();
   return trigger;
@@ -1717,8 +1640,6 @@ std::size_t CtrlTriggerHeader::GetNUserInfoFields() const {
 CtrlTriggerHeader::ConstIterator
 CtrlTriggerHeader::FindUserInfoWithAid(ConstIterator start,
                                        uint16_t aid12) const {
-  // the lambda function returns true if a User Info field has the AID12
-  // subfield equal to the given aid12 value
   return std::find_if(start, end(),
                       [aid12](const CtrlTriggerUserInfoField &ui) -> bool {
                         return (ui.GetAid12() == aid12);
@@ -1755,8 +1676,6 @@ bool CtrlTriggerHeader::IsValid() const {
     return true;
   }
 
-  // check that allocated RUs do not overlap
-  // TODO This is not a problem in case of UL MU-MIMO
   std::vector<HeRu::RuSpec> prevRus;
 
   for (auto &ui : m_userInfoFields) {

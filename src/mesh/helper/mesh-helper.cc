@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- *         Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "mesh-helper.h"
 
@@ -53,10 +34,8 @@ NetDeviceContainer MeshHelper::Install(const WifiPhyHelper &phyHelper,
   NS_ASSERT(m_stack);
   for (auto i = c.Begin(); i != c.End(); ++i) {
     Ptr<Node> node = *i;
-    // Create a mesh point device
     Ptr<MeshPointDevice> mp = CreateObject<MeshPointDevice>();
     node->AddDevice(mp);
-    // Create wifi interfaces (single interface by default)
     for (uint32_t i = 0; i < m_nInterfaces; ++i) {
       uint32_t channel = 0;
       if (m_spreadChannelPolicy == ZERO_CHANNEL) {
@@ -91,10 +70,8 @@ Ptr<WifiNetDevice> MeshHelper::CreateInterface(const WifiPhyHelper &phyHelper,
                                                uint16_t channelId) const {
   Ptr<WifiNetDevice> device = CreateObject<WifiNetDevice>();
 
-  // this is a const method, but we need to force the correct QoS setting
   ObjectFactory macObjectFactory = m_mac;
-  macObjectFactory.Set("QosSupported",
-                       BooleanValue(true)); // a mesh station is a QoS station
+  macObjectFactory.Set("QosSupported", BooleanValue(true));
   std::vector<Ptr<WifiPhy>> phys = phyHelper.Create(node, device);
   NS_ABORT_IF(phys.size() != 1);
   node->AddDevice(device);
@@ -159,22 +136,18 @@ int64_t MeshHelper::AssignStreams(NetDeviceContainer c, int64_t stream) {
     Ptr<MeshWifiInterfaceMac> mac;
     if (mpd) {
       currentStream += mpd->AssignStreams(currentStream);
-      // To access, we need the underlying WifiNetDevices
       std::vector<Ptr<NetDevice>> ifaces = mpd->GetInterfaces();
       for (auto i = ifaces.begin(); i != ifaces.end(); i++) {
         wifi = DynamicCast<WifiNetDevice>(*i);
 
-        // Handle any random numbers in the PHY objects.
         currentStream += wifi->GetPhy()->AssignStreams(currentStream);
 
-        // Handle any random numbers in the station managers.
         Ptr<WifiRemoteStationManager> manager = wifi->GetRemoteStationManager();
         Ptr<MinstrelWifiManager> minstrel =
             DynamicCast<MinstrelWifiManager>(manager);
         if (minstrel) {
           currentStream += minstrel->AssignStreams(currentStream);
         }
-        // Handle any random numbers in the mesh mac and plugins
         mac = DynamicCast<MeshWifiInterfaceMac>(wifi->GetMac());
         currentStream += mac->AssignStreams(currentStream);
 

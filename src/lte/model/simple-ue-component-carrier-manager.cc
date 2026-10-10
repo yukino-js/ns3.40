@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015 Danilo Abrignani
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Danilo Abrignani <danilo.abrignani@unibo.it>
- *
- */
 
 #include "simple-ue-component-carrier-manager.h"
 
@@ -28,31 +9,16 @@ NS_LOG_COMPONENT_DEFINE("SimpleUeComponentCarrierManager");
 
 NS_OBJECT_ENSURE_REGISTERED(SimpleUeComponentCarrierManager);
 
-///////////////////////////////////////////////////////////
-// SAP forwarders
-///////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////
-// MAC SAP PROVIDER SAP forwarders
-///////////////////////////////////////////////////////////
-
-/// SimpleUeCcmMacSapProvider class
 class SimpleUeCcmMacSapProvider : public LteMacSapProvider {
 public:
-  /**
-   * Constructor
-   *
-   * \param mac the component carrier manager
-   */
   SimpleUeCcmMacSapProvider(SimpleUeComponentCarrierManager *mac);
 
-  // inherited from LteMacSapProvider
   void TransmitPdu(LteMacSapProvider::TransmitPduParameters params) override;
   void ReportBufferStatus(
       LteMacSapProvider::ReportBufferStatusParameters params) override;
 
 private:
-  SimpleUeComponentCarrierManager *m_mac; ///< the component carrier manager
+  SimpleUeComponentCarrierManager *m_mac;
 };
 
 SimpleUeCcmMacSapProvider::SimpleUeCcmMacSapProvider(
@@ -68,28 +34,17 @@ void SimpleUeCcmMacSapProvider::ReportBufferStatus(
   m_mac->DoReportBufferStatus(params);
 }
 
-///////////////////////////////////////////////////////////
-// MAC SAP USER SAP forwarders
-/////////////// ////////////////////////////////////////////
-
-/// SimpleUeCcmMacSapUser class
 class SimpleUeCcmMacSapUser : public LteMacSapUser {
 public:
-  /**
-   * Constructor
-   *
-   * \param mac the component carrier manager
-   */
   SimpleUeCcmMacSapUser(SimpleUeComponentCarrierManager *mac);
 
-  // inherited from LteMacSapUser
   void NotifyTxOpportunity(
       LteMacSapUser::TxOpportunityParameters txOpParams) override;
   void ReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams) override;
   void NotifyHarqDeliveryFailure() override;
 
 private:
-  SimpleUeComponentCarrierManager *m_mac; ///< the component carrier manager
+  SimpleUeComponentCarrierManager *m_mac;
 };
 
 SimpleUeCcmMacSapUser::SimpleUeCcmMacSapUser(
@@ -111,10 +66,6 @@ void SimpleUeCcmMacSapUser::ReceivePdu(
 void SimpleUeCcmMacSapUser::NotifyHarqDeliveryFailure() {
   m_mac->DoNotifyHarqDeliveryFailure();
 }
-
-//////////////////////////////////////////////////////////
-// SimpleUeComponentCarrierManager methods
-///////////////////////////////////////////////////////////
 
 SimpleUeComponentCarrierManager::SimpleUeComponentCarrierManager() {
   NS_LOG_FUNCTION(this);
@@ -165,7 +116,6 @@ void SimpleUeComponentCarrierManager::DoTransmitPdu(
   NS_ABORT_MSG_IF(it == m_macSapProvidersMap.end(),
                   "could not find Sap for ComponentCarrier "
                       << (uint16_t)params.componentCarrierId);
-  // with this algorithm all traffic is on Primary Carrier, is it?
   it->second->TransmitPdu(params);
 }
 
@@ -223,9 +173,6 @@ void SimpleUeComponentCarrierManager::DoReceivePdu(
   }
 }
 
-///////////////////////////////////////////////////////////
-// Ue CCM RRC SAP PROVIDER SAP forwarders
-///////////////////////////////////////////////////////////
 std::vector<uint16_t>
 SimpleUeComponentCarrierManager::DoRemoveLc(uint8_t lcid) {
   NS_LOG_FUNCTION(this << " lcId" << lcid);
@@ -233,8 +180,6 @@ SimpleUeComponentCarrierManager::DoRemoveLc(uint8_t lcid) {
   NS_ABORT_MSG_IF(m_lcAttached.find(lcid) == m_lcAttached.end(),
                   "could not find LCID " << lcid);
   m_lcAttached.erase(lcid);
-  // send back all the configuration to the componentCarrier where we want to
-  // remove the Lc
   auto it = m_componentCarrierLcMap.begin();
   while (it != m_componentCarrierLcMap.end()) {
     auto lcToRemove = it->second.find(lcid);
@@ -252,14 +197,11 @@ SimpleUeComponentCarrierManager::DoRemoveLc(uint8_t lcid) {
 
 void SimpleUeComponentCarrierManager::DoReset() {
   NS_LOG_FUNCTION(this);
-  // same semantics as LteUeMac::DoRest
   auto it = m_lcAttached.begin();
   while (it != m_lcAttached.end()) {
-    // don't delete CCCH
     if (it->first == 0) {
       ++it;
     } else {
-      // note: use of postfix operator preserves validity of iterator
       m_lcAttached.erase(it++);
     }
   }
@@ -308,8 +250,6 @@ LteMacSapUser *SimpleUeComponentCarrierManager::DoConfigureSignalBearer(
     LteMacSapUser *msu) {
   NS_LOG_FUNCTION(this);
   auto it = m_lcAttached.find(lcid);
-  // if the following assert is hit, e.g., in handover scenarios, it means
-  //  the DoRest function is not called by UE RRC
   NS_ABORT_MSG_IF(it != m_lcAttached.end(),
                   "Warning, LCID " << (uint8_t)lcid << " already exist");
 
@@ -337,4 +277,4 @@ LteMacSapUser *SimpleUeComponentCarrierManager::DoConfigureSignalBearer(
   return m_ccmMacSapUser;
 }
 
-} // end of namespace ns3
+} // namespace ns3

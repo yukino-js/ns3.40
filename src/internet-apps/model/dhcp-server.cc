@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011 UPB
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Radu Lupu <rlupu@elcom.pub.ro>
- *         Ankit Deepak <adadeepak8@gmail.com>
- *         Deepti Rajagopal <deeptir96@gmail.com>
- *
- */
 
 #include "dhcp-server.h"
 
@@ -107,7 +85,6 @@ void DhcpServer::StartApplication() {
 
   uint32_t addrIndex;
 
-  // add the DHCP local address to the leased addresses list, if it is defined!
   Ptr<Ipv4> ipv4 = GetNode()->GetObject<Ipv4>();
   int32_t ifIndex = ipv4->GetInterfaceForPrefix(m_poolAddress, m_poolMask);
 
@@ -124,7 +101,6 @@ void DhcpServer::StartApplication() {
             m_minAddress.Get() &&
         ipv4->GetAddress(ifIndex, addrIndex).GetLocal().Get() <=
             m_maxAddress.Get()) {
-      // set infinite GRANTED_LEASED_TIME for my address
 
       myOwnAddress = ipv4->GetAddress(ifIndex, addrIndex).GetLocal();
       m_leasedAddresses[Address()] = std::make_pair(myOwnAddress, 0xffffffff);
@@ -168,10 +144,8 @@ void DhcpServer::StopApplication() {
 void DhcpServer::TimerHandler() {
   NS_LOG_FUNCTION(this);
 
-  // Set up timeout events and release of unsolicited addresses from the list
   LeasedAddressIter i;
   for (i = m_leasedAddresses.begin(); i != m_leasedAddresses.end(); i++) {
-    // update the address state
     if (i->second.second != 0xffffffff && i->second.second != 0) {
       i->second.second--;
       if (i->second.second == 0) {
@@ -232,7 +206,6 @@ void DhcpServer::SendOffer(Ptr<NetDevice> iDev, DhcpHeader header,
 
   auto iter = m_leasedAddresses.find(sourceChaddr);
   if (iter != m_leasedAddresses.end()) {
-    // We know this client from some time ago
     if (m_leasedAddresses[sourceChaddr].second != 0 &&
         m_leasedAddresses[sourceChaddr].second != 0xffffffff) {
       NS_LOG_LOGIC(
@@ -244,14 +217,10 @@ void DhcpServer::SendOffer(Ptr<NetDevice> iDev, DhcpHeader header,
     m_expiredAddresses.remove(sourceChaddr);
     offeredAddress = m_leasedAddresses[sourceChaddr].first;
   } else {
-    // No previous record of the client, we must find a suitable address and
-    // create a record.
     if (!m_availableAddresses.empty()) {
-      // use an address never used before (if there is one)
       offeredAddress = m_availableAddresses.front();
       m_availableAddresses.pop_front();
     } else {
-      // there's still hope: reuse the old ones.
       if (!m_expiredAddresses.empty()) {
         Address oldestChaddr = m_expiredAddresses.back();
         m_expiredAddresses.pop_back();
@@ -315,7 +284,6 @@ void DhcpServer::SendAck(Ptr<NetDevice> iDev, DhcpHeader header,
   LeasedAddressIter iter;
   iter = m_leasedAddresses.find(sourceChaddr);
   if (iter != m_leasedAddresses.end()) {
-    // update the lease time of this address - send ACK
     (iter->second.second) += m_lease.GetSeconds();
     packet = Create<Packet>();
     newDhcpHeader.ResetOpt();
@@ -333,7 +301,6 @@ void DhcpServer::SendAck(Ptr<NetDevice> iDev, DhcpHeader header,
       m_socket->SendTo(packet, 0, from);
     }
   } else {
-    // Deleted or expired lease - send NACK
     packet = Create<Packet>();
     newDhcpHeader.ResetOpt();
     newDhcpHeader.SetType(DhcpHeader::DHCPNACK);
@@ -363,8 +330,6 @@ void DhcpServer::AddStaticDhcpEntry(Address chaddr, Ipv4Address addr) {
                                                        << m_minAddress << ", "
                                                        << m_maxAddress << "]");
 
-  // We need to cleanup the type from the stored chaddr, or later we'll fail to
-  // compare it. Moreover, the length is always 16, because chaddr is 16 bytes.
   uint8_t buffer[Address::MAX_SIZE];
   std::memset(buffer, 0, Address::MAX_SIZE);
   uint32_t len = chaddr.CopyTo(buffer);
@@ -387,4 +352,4 @@ void DhcpServer::AddStaticDhcpEntry(Address chaddr, Ipv4Address addr) {
   m_leasedAddresses[cleanedCaddr] = std::make_pair(addr, 0xffffffff);
 }
 
-} // Namespace ns3
+} // namespace ns3

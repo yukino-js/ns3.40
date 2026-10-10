@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2016 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-general-test.h"
 
@@ -27,21 +10,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SackPermittedTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Test case for checking the SACK-PERMITTED option.
- *
- */
 class SackPermittedTestCase : public TcpGeneralTest {
 public:
-  /** \brief Configuration of the test */
   enum Configuration { DISABLED, ENABLED_RECEIVER, ENABLED_SENDER, ENABLED };
 
-  /**
-   * \brief Constructor
-   * \param conf Test configuration.
-   * */
   SackPermittedTestCase(SackPermittedTestCase::Configuration conf);
 
 protected:
@@ -51,7 +23,7 @@ protected:
   void Tx(const Ptr<const Packet> p, const TcpHeader &h,
           SocketWho who) override;
 
-  Configuration m_configuration; //!< The configuration
+  Configuration m_configuration;
 };
 
 SackPermittedTestCase::SackPermittedTestCase(
@@ -144,7 +116,6 @@ void SackPermittedTestCase::Tx(const Ptr<const Packet> p, const TcpHeader &h,
     }
   } else if (who == RECEIVER) {
     if (h.GetFlags() & TcpHeader::SYN) {
-      // Sender has not sent SackPermitted, so implementation should disable ts
       if (m_configuration == ENABLED_RECEIVER) {
         NS_TEST_ASSERT_MSG_EQ(h.HasOption(TcpOption::SACKPERMITTED), false,
                               "sender has not ts, but receiver sent anyway");
@@ -161,15 +132,8 @@ void SackPermittedTestCase::Tx(const Ptr<const Packet> p, const TcpHeader &h,
   }
 }
 
-/**
- * \ingroup internet-test
- *  \ingroup tests
- *
- * The test case for testing the TCP SACK PERMITTED option.
- */
 class TcpSackPermittedTestSuite : public TestSuite {
 public:
-  /** \brief Constructor */
   TcpSackPermittedTestSuite() : TestSuite("tcp-sack-permitted", UNIT) {
     AddTestCase(new SackPermittedTestCase(SackPermittedTestCase::DISABLED),
                 TestCase::QUICK);
@@ -184,5 +148,4 @@ public:
   }
 };
 
-static TcpSackPermittedTestSuite
-    g_tcpSackPermittedTestSuite; //!< Static variable for test initialization
+static TcpSackPermittedTestSuite g_tcpSackPermittedTestSuite;

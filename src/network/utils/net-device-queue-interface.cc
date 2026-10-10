@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stefano.avallone@.unina.it>
- */
 
 #include "net-device-queue-interface.h"
 
@@ -72,7 +54,6 @@ void NetDeviceQueue::Wake() {
   bool wasStoppedByDevice = m_stoppedByDevice;
   m_stoppedByDevice = false;
 
-  // Request the queue disc to dequeue a packet
   if (wasStoppedByDevice && !m_wakeCallback.IsNull()) {
     m_wakeCallback();
   }
@@ -112,7 +93,6 @@ void NetDeviceQueue::NotifyTransmittedBytes(uint32_t bytes) {
   }
   bool wasStoppedByQueueLimits = m_stoppedByQueueLimits;
   m_stoppedByQueueLimits = false;
-  // Request the queue disc to dequeue a packet
   if (wasStoppedByQueueLimits && !m_wakeCallback.IsNull()) {
     m_wakeCallback();
   }
@@ -161,7 +141,6 @@ TypeId NetDeviceQueueInterface::GetTypeId() {
 NetDeviceQueueInterface::NetDeviceQueueInterface() {
   NS_LOG_FUNCTION(this);
 
-  // the default select queue callback returns 0
   m_selectQueueCallback = [](Ptr<QueueItem> item) { return 0; };
 }
 
@@ -186,7 +165,6 @@ void NetDeviceQueueInterface::DoDispose() {
 void NetDeviceQueueInterface::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
 
-  // Notify the NetDeviceQueue objects that an object was aggregated
   for (auto &tx : m_txQueuesVector) {
     tx->NotifyAggregatedObject(this);
   }
@@ -210,7 +188,6 @@ void NetDeviceQueueInterface::SetNTxQueues(std::size_t numTxQueues) {
   NS_ABORT_MSG_IF(!m_txQueuesVector.empty(),
                   "Cannot call SetNTxQueues after creating device queues");
 
-  // create the netdevice queues
   for (std::size_t i = 0; i < numTxQueues; i++) {
     m_txQueuesVector.push_back(
         m_txQueues.Create()->GetObject<NetDeviceQueue>());

@@ -1,23 +1,4 @@
-/*
- * Copyright (c) 2012 University of Washington, 2012 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
-// Network topology
-//
 #include "ns3/core-module.h"
 #include "ns3/fd-net-device-module.h"
 #include "ns3/internet-apps-module.h"
@@ -70,13 +51,6 @@ int main(int argc, char *argv[]) {
 
   fd.EnablePcapAll("dummy-network", true);
 
-  // The next three lines will stop the simulator at time 5 seconds.  Usually,
-  // it is sufficient to just call Simulator::Stop (Seconds (5)).
-  // However, in order to produce a clean valgrind output
-  // when running this example in our test suite (see issue #343), we
-  // first stop each device explicitly at time 5, and then wait one
-  // simulator timestep later (1 nanosecond by default) to call
-  // Simulator::Stop ().
   device1->Stop(Seconds(5));
   device2->Stop(Seconds(5));
   Simulator::Stop(Seconds(5) + TimeStep(1));

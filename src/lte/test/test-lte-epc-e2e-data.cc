@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "ns3/abort.h"
 #include "ns3/boolean.h"
@@ -42,66 +24,39 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteEpcE2eData");
 
-/**
- * \ingroup lte-test
- */
-
-/// BearerTestData structure
 struct BearerTestData {
-  /**
-   * Constructor
-   *
-   * \param n the number of packets
-   * \param s the packet size
-   * \param i the inter packet interval in seconds
-   */
   BearerTestData(uint32_t n, uint32_t s, double i);
 
-  uint32_t numPkts;         ///< the number of packets
-  uint32_t pktSize;         ///< the packet size
-  Time interPacketInterval; ///< the inter packet interval time
+  uint32_t numPkts;
+  uint32_t pktSize;
+  Time interPacketInterval;
 
-  Ptr<PacketSink> dlServerApp;  ///< the DL server app
-  Ptr<Application> dlClientApp; ///< the DL client app
+  Ptr<PacketSink> dlServerApp;
+  Ptr<Application> dlClientApp;
 
-  Ptr<PacketSink> ulServerApp;  ///< the UL server app
-  Ptr<Application> ulClientApp; ///< the UL client app
+  Ptr<PacketSink> ulServerApp;
+  Ptr<Application> ulClientApp;
 };
 
 BearerTestData::BearerTestData(uint32_t n, uint32_t s, double i)
     : numPkts(n), pktSize(s), interPacketInterval(Seconds(i)) {}
 
-/// UeTestData structure
 struct UeTestData {
-  std::vector<BearerTestData> bearers; ///< the bearer test data
+  std::vector<BearerTestData> bearers;
 };
 
-/// EnbTestData structure
 struct EnbTestData {
-  std::vector<UeTestData> ues; ///< the list of UEs
+  std::vector<UeTestData> ues;
 };
-
-/**
- * \ingroup lte-test
- *
- * \brief Test that e2e packet flow is correct. Compares the data send and the
- * data received. Test uses mostly the PDCP stats to check the performance.
- */
 
 class LteEpcE2eDataTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param name the reference name
-   * \param v the ENB test data
-   */
   LteEpcE2eDataTestCase(std::string name, std::vector<EnbTestData> v);
   ~LteEpcE2eDataTestCase() override;
 
 private:
   void DoRun() override;
-  std::vector<EnbTestData> m_enbTestData; ///< the ENB test data
+  std::vector<EnbTestData> m_enbTestData;
 };
 
 LteEpcE2eDataTestCase::LteEpcE2eDataTestCase(std::string name,
@@ -133,23 +88,19 @@ void LteEpcE2eDataTestCase::DoRun() {
   lteHelper->SetAttribute("PathlossModel",
                           StringValue("ns3::FriisPropagationLossModel"));
 
-  // allow jumbo frames on the S1-U link
   epcHelper->SetAttribute("S1uLinkMtu", UintegerValue(30000));
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
-  p2ph.SetDeviceAttribute("Mtu",
-                          UintegerValue(30000)); // jumbo frames here as well
+  p2ph.SetDeviceAttribute("Mtu", UintegerValue(30000));
   p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
   NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
   Ipv4AddressHelper ipv4h;
@@ -157,12 +108,10 @@ void LteEpcE2eDataTestCase::DoRun() {
   Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
   Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
 
-  // setup default gateway for the remote hosts
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
       ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
 
-  // hardcoded UE addresses for now
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.255.255.0"), 1);
 
@@ -197,31 +146,26 @@ void LteEpcE2eDataTestCase::DoRun() {
     ueMobility.Install(ues);
     NetDeviceContainer ueLteDevs = lteHelper->InstallUeDevice(ues);
 
-    // we install the IP stack on the UEs
     InternetStackHelper internet;
     internet.Install(ues);
 
-    // assign IP address to UEs, and install applications
     for (uint32_t u = 0; u < ues.GetN(); ++u) {
       Ptr<Node> ue = ues.Get(u);
       Ptr<NetDevice> ueLteDevice = ueLteDevs.Get(u);
       Ipv4InterfaceContainer ueIpIface =
           epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLteDevice));
-      // set the default gateway for the UE
       Ptr<Ipv4StaticRouting> ueStaticRouting =
           ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
       ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
                                        1);
 
-      // we can now attach the UE, which will also activate the default EPS
-      // bearer
       lteHelper->Attach(ueLteDevice, *enbLteDevIt);
 
       uint16_t dlPort = 2000;
       for (uint32_t b = 0; b < enbit->ues.at(u).bearers.size(); ++b) {
         BearerTestData &bearerTestData = enbit->ues.at(u).bearers.at(b);
 
-        { // Downlink
+        {
           ++dlPort;
           PacketSinkHelper packetSinkHelper(
               "ns3::UdpSocketFactory",
@@ -242,7 +186,7 @@ void LteEpcE2eDataTestCase::DoRun() {
           bearerTestData.dlClientApp = apps.Get(0);
         }
 
-        { // Uplink
+        {
           ++ulPort;
           PacketSinkHelper packetSinkHelper(
               "ns3::UdpSocketFactory",
@@ -275,8 +219,6 @@ void LteEpcE2eDataTestCase::DoRun() {
         ulpf.remotePortEnd = ulPort;
         tft->Add(ulpf);
 
-        // all data will go over the dedicated bearer instead of the default EPS
-        // bearer
         lteHelper->ActivateDedicatedEpsBearer(ueLteDevice, epsBearer, tft);
       }
     }
@@ -289,8 +231,7 @@ void LteEpcE2eDataTestCase::DoRun() {
               "MaxTxBufferSize",
               UintegerValue(2 * 1024 * 1024));
 
-  double statsStartTime =
-      0.040; // need to allow for RRC connection establishment + SRS
+  double statsStartTime = 0.040;
   double statsDuration = 2.0;
 
   lteHelper->EnablePdcpTraces();
@@ -310,9 +251,6 @@ void LteEpcE2eDataTestCase::DoRun() {
     for (auto ueit = enbit->ues.begin(); ueit < enbit->ues.end(); ++ueit) {
       uint64_t imsi = ++imsiCounter;
       for (uint32_t b = 0; b < ueit->bearers.size(); ++b) {
-        // LCID 0, 1, 2 are for SRBs
-        // LCID 3 is (at the moment) the Default EPS bearer, and is unused in
-        // this test program
         uint8_t lcid = b + 4;
         uint32_t expectedPkts = ueit->bearers.at(b).numPkts;
         uint32_t expectedBytes =
@@ -353,16 +291,11 @@ void LteEpcE2eDataTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Test that the S1-U interface implementation works correctly
- */
 class LteEpcE2eDataTestSuite : public TestSuite {
 public:
   LteEpcE2eDataTestSuite();
 
-} g_lteEpcE2eDataTestSuite; ///< the test suite
+} g_lteEpcE2eDataTestSuite;
 
 LteEpcE2eDataTestSuite::LteEpcE2eDataTestSuite()
     : TestSuite("lte-epc-e2e-data", SYSTEM) {
@@ -449,8 +382,7 @@ LteEpcE2eDataTestSuite::LteEpcE2eDataTestSuite()
 
   EnbTestData e8;
   UeTestData u8;
-  BearerTestData f8(50, 8000,
-                    0.02); // watch out for ns3::LteRlcUm::MaxTxBufferSize
+  BearerTestData f8(50, 8000, 0.02);
   u8.bearers.push_back(f8);
   e8.ues.push_back(u8);
   std::vector<EnbTestData> v8;

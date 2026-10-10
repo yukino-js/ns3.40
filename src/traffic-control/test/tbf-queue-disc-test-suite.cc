@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2017 Kungliga Tekniska Högskolan
- *               2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Surya Seetharaman <suryaseetharaman.9@gmail.com>
- *          Stefano Avallone <stavallo@unina.it>
- */
 
 #include "ns3/config.h"
 #include "ns3/double.h"
@@ -35,24 +15,11 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Tbf Queue Disc Test Item
- */
 class TbfQueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p the packet
-   * \param addr the address
-   */
   TbfQueueDiscTestItem(Ptr<Packet> p, const Address &addr);
   ~TbfQueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   TbfQueueDiscTestItem() = delete;
   TbfQueueDiscTestItem(const TbfQueueDiscTestItem &) = delete;
   TbfQueueDiscTestItem &operator=(const TbfQueueDiscTestItem &) = delete;
@@ -70,37 +37,15 @@ void TbfQueueDiscTestItem::AddHeader() {}
 
 bool TbfQueueDiscTestItem::Mark() { return false; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Tbf Queue Disc Test Case
- */
 class TbfQueueDiscTestCase : public TestCase {
 public:
   TbfQueueDiscTestCase();
   void DoRun() override;
 
 private:
-  /**
-   * Enqueue function
-   * \param queue the queue disc into which enqueue needs to be done
-   * \param dest the destination address
-   * \param size the size of the packet in bytes to be enqueued
-   */
   void Enqueue(Ptr<TbfQueueDisc> queue, Address dest, uint32_t size);
-  /**
-   * DequeueAndCheck function to check if a packet is blocked or not after
-   * dequeuing and verify against expected result \param queue the queue disc on
-   * which DequeueAndCheck needs to be done \param flag the boolean value
-   * against which the return value of dequeue () has to be compared with \param
-   * printStatement the string to be printed in the NS_TEST_EXPECT_MSG_EQ
-   */
   void DequeueAndCheck(Ptr<TbfQueueDisc> queue, bool flag,
                        std::string printStatement);
-  /**
-   * Run TBF test function
-   * \param mode the mode
-   */
   void RunTbfTest(QueueSizeUnit mode);
 };
 
@@ -109,7 +54,6 @@ TbfQueueDiscTestCase::TbfQueueDiscTestCase()
 
 void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
   uint32_t pktSize = 1500;
-  // 1 for packets; pktSize for bytes
   uint32_t modeSize = 1;
   uint32_t qSize = 4;
   uint32_t burst = 6000;
@@ -118,17 +62,6 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
   DataRate peakRate = DataRate("0KB/s");
 
   Ptr<TbfQueueDisc> queue = CreateObject<TbfQueueDisc>();
-
-  // test 1: Simple Enqueue/Dequeue with verification of attribute setting
-  /* 1. There is no second bucket since "peakRate" is set to 0.
-     2. A simple enqueue of five packets, each containing 1500B is followed by
-        the dequeue those five packets.
-     3. The subtraction of tokens from the first bucket to send out each of the
-        five packets is monitored and verified.
-     Note : The number of tokens in the first bucket is full at the beginning.
-            With the dequeuing of each packet, the number of tokens keeps
-     decreasing. So packets are dequeued as long as there are enough tokens in
-     the bucket. */
 
   if (mode == QueueSizeUnit::BYTES) {
     modeSize = pktSize;
@@ -229,8 +162,6 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
                         "The number of tokens in the first bucket should be "
                         "four pktSizes lesser");
 
-  // test 2 : When DataRate == FirstBucketTokenRate; packets should pass
-  // smoothly.
   queue = CreateObject<TbfQueueDisc>();
   qSize = 10;
   pktSize = 1000;
@@ -278,12 +209,6 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
   Simulator::Stop(Seconds(1));
   Simulator::Run();
 
-  // test 3 : When DataRate >>> FirstBucketTokenRate; some packets should get
-  // blocked and waking of queue should get scheduled.
-  /* 10 packets are enqueued and then dequeued. Since the token rate is less
-     than the data rate, the last packet i.e the 10th packet gets blocked and
-     waking of queue is scheduled after a time when enough tokens will be
-     available. At that time the 10th packet passes through. */
   queue = CreateObject<TbfQueueDisc>();
 
   Config::SetDefault("ns3::QueueDisc::Quota", UintegerValue(1));
@@ -354,17 +279,6 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
   Simulator::Stop(Seconds(1.3));
   Simulator::Run();
 
-  // test 4 : This test checks the peakRate control of packet dequeue, when
-  // DataRate < FirstBucketTokenRate.
-  /* 10 packets each of size 1000 bytes are enqueued followed by
-     their dequeue. The data rate (25 KB/s) is not sufficiently higher than the
-     btokens rate (15 KB/s), so that in the startup phase the first bucket is
-     not empty. Hence when adequate tokens are present in the second (peak)
-     bucket, the packets get transmitted, otherwise they are blocked. So
-     basically the transmission of packets falls under the regulation of the
-     second bucket since first bucket will always have excess tokens. TBF does
-     not let all the packets go smoothly without any control just because there
-     are excess tokens in the first bucket. */
   queue = CreateObject<TbfQueueDisc>();
 
   Config::SetDefault("ns3::QueueDisc::Quota", UintegerValue(1));
@@ -423,20 +337,7 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
                         pktSize);
   }
 
-  // The pattern being checked is a pattern of dequeue followed by blocked.  The
-  // delay between enqueues is not sufficient to allow ptokens to refill before
-  // the next dequeue.  The first enqueue is at 1.08s in the future, and the
-  // attempted dequeue is at 1.10s in the future.  The first dequeue will always
-  // succeed.  The second enqueue is 1.12s and attempted dequeue is at 1.14s in
-  // the future, but the last dequeue was 0.04s prior; only 800 tokens can be
-  // refilled in 0.04s at a peak rate of 20Kbps.  The actual dequeue occurs at
-  // 0.01s further into the future when ptokens refills to 1000. To repeat the
-  // pattern, odd-numbered dequeue events should be spaced at intervals of at
-  // least 100ms, and the even-numbered dequeue events (that block) should be
-  // 0.04s (delay) following the last odd-numbered dequeue event.
-  double nextDelay =
-      (2 * delay) +
-      0.02; // 20ms after first enqueue to attempt the first dequeue;
+  double nextDelay = (2 * delay) + 0.02;
   for (uint32_t i = 1; i <= nPkt; i++) {
     if (i % 2 == 1) {
       Simulator::Schedule(Seconds(nextDelay),
@@ -447,8 +348,7 @@ void TbfQueueDiscTestCase::RunTbfTest(QueueSizeUnit mode) {
       Simulator::Schedule(Seconds(nextDelay),
                           &TbfQueueDiscTestCase::DequeueAndCheck, this, queue,
                           false, "This packet should be blocked");
-      nextDelay += 0.06; // Need 0.04 + 0.06 seconds to allow the next packet to
-                         // be dequeued without block
+      nextDelay += 0.06;
     }
   }
   Simulator::Stop(Seconds(0.55));
@@ -472,14 +372,9 @@ void TbfQueueDiscTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Tbf Queue Disc Test Suite
- */
 static class TbfQueueDiscTestSuite : public TestSuite {
 public:
   TbfQueueDiscTestSuite() : TestSuite("tbf-queue-disc", UNIT) {
     AddTestCase(new TbfQueueDiscTestCase(), TestCase::QUICK);
   }
-} g_tbfQueueTestSuite; ///< the test suite
+} g_tbfQueueTestSuite;

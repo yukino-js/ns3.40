@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Georgia Institute of Technology
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: George F. Riley <riley@ece.gatech.edu>
- */
 
 #include "bulk-send-application.h"
 
@@ -112,23 +94,17 @@ void BulkSendApplication::DoDispose() {
 
   m_socket = nullptr;
   m_unsentPacket = nullptr;
-  // chain up
   Application::DoDispose();
 }
 
-// Application Methods
-void BulkSendApplication::StartApplication() // Called at time specified by
-                                             // Start
-{
+void BulkSendApplication::StartApplication() {
   NS_LOG_FUNCTION(this);
   Address from;
 
-  // Create the socket if not already
   if (!m_socket) {
     m_socket = Socket::CreateSocket(GetNode(), m_tid);
     int ret = -1;
 
-    // Fatal error if socket type is not NS3_SOCK_STREAM or NS3_SOCK_SEQPACKET
     if (m_socket->GetSocketType() != Socket::NS3_SOCK_STREAM &&
         m_socket->GetSocketType() != Socket::NS3_SOCK_SEQPACKET) {
       NS_FATAL_ERROR("Using BulkSend with an incompatible socket type. "
@@ -169,8 +145,7 @@ void BulkSendApplication::StartApplication() // Called at time specified by
   }
 }
 
-void BulkSendApplication::StopApplication() // Called at time specified by Stop
-{
+void BulkSendApplication::StopApplication() {
   NS_LOG_FUNCTION(this);
 
   if (m_socket) {
@@ -182,18 +157,12 @@ void BulkSendApplication::StopApplication() // Called at time specified by Stop
   }
 }
 
-// Private helpers
-
 void BulkSendApplication::SendData(const Address &from, const Address &to) {
   NS_LOG_FUNCTION(this);
 
-  while (m_maxBytes == 0 || m_totBytes < m_maxBytes) { // Time to send more
+  while (m_maxBytes == 0 || m_totBytes < m_maxBytes) {
 
-    // uint64_t to allow the comparison later.
-    // the result is in a uint32_t range anyway, because
-    // m_sendSize is uint32_t.
     uint64_t toSend = m_sendSize;
-    // Make sure we don't send too many
     if (m_maxBytes > 0) {
       toSend = std::min(toSend, m_maxBytes - m_totBytes);
     }
@@ -210,7 +179,6 @@ void BulkSendApplication::SendData(const Address &from, const Address &to) {
       header.SetSize(toSend);
       NS_ABORT_IF(toSend < header.GetSerializedSize());
       packet = Create<Packet>(toSend - header.GetSerializedSize());
-      // Trace before adding header, for consistency with PacketSink
       m_txTraceWithSeqTsSize(packet, from, to, header);
       packet->AddHeader(header);
     } else {
@@ -223,16 +191,10 @@ void BulkSendApplication::SendData(const Address &from, const Address &to) {
       m_txTrace(packet);
       m_unsentPacket = nullptr;
     } else if (actual == -1) {
-      // We exit this loop when actual < toSend as the send side
-      // buffer is full. The "DataSent" callback will pop when
-      // some buffer space has freed up.
       NS_LOG_DEBUG("Unable to send packet; caching for later attempt");
       m_unsentPacket = packet;
       break;
     } else if (actual > 0 && (unsigned)actual < toSend) {
-      // A Linux socket (non-blocking, such as in DCE) may return
-      // a quantity less than the packet size.  Split the packet
-      // into two, trace the sent packet, save the unsent packet
       NS_LOG_DEBUG("Packet size: " << packet->GetSize() << "; sent: " << actual
                                    << "; fragment saved: "
                                    << toSend - (unsigned)actual);
@@ -247,7 +209,6 @@ void BulkSendApplication::SendData(const Address &from, const Address &to) {
       NS_FATAL_ERROR("Unexpected return value from m_socket->Send ()");
     }
   }
-  // Check if time to close (all sent)
   if (m_totBytes == m_maxBytes && m_connected) {
     m_socket->Close();
     m_connected = false;
@@ -273,7 +234,7 @@ void BulkSendApplication::ConnectionFailed(Ptr<Socket> socket) {
 void BulkSendApplication::DataSend(Ptr<Socket> socket, uint32_t) {
   NS_LOG_FUNCTION(this);
 
-  if (m_connected) { // Only send new data if the connection has completed
+  if (m_connected) {
     Address from;
     Address to;
     socket->GetSockName(from);
@@ -282,4 +243,4 @@ void BulkSendApplication::DataSend(Ptr<Socket> socket, uint32_t) {
   }
 }
 
-} // Namespace ns3
+} // namespace ns3

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-interface-address.h"
 
@@ -81,15 +63,12 @@ void Ipv6InterfaceAddress::SetAddress(Ipv6Address address) {
 
   if (address.IsLocalhost()) {
     m_scope = HOST;
-    /* localhost address is always /128 prefix */
     m_prefix = Ipv6Prefix(128);
   } else if (address.IsLinkLocal()) {
     m_scope = LINKLOCAL;
-    /* link-local address is always /64 prefix */
     m_prefix = Ipv6Prefix(64);
   } else if (address.IsLinkLocalMulticast()) {
     m_scope = LINKLOCAL;
-    /* link-local multicast address is always /16 prefix */
     m_prefix = Ipv6Prefix(16);
   } else {
     m_scope = GLOBAL;
@@ -198,4 +177,4 @@ void Ipv6InterfaceAddress::StopDadTimer ()
 }
 #endif
 
-} /* namespace ns3 */
+} // namespace ns3

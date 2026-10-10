@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 Emmanuelle Laprise
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
- */
 
 #include "csma-channel.h"
 
@@ -188,7 +170,6 @@ bool CsmaChannel::TransmitEnd() {
   for (auto it = m_deviceList.begin(); it < m_deviceList.end(); it++) {
     if (it->IsActive() &&
         it->devicePtr != m_deviceList[m_currentSrc].devicePtr) {
-      // schedule reception events
       Simulator::ScheduleWithContext(it->devicePtr->GetNode()->GetId(), m_delay,
                                      &CsmaNetDevice::Receive, it->devicePtr,
                                      m_currentPkt->Copy(),
@@ -196,7 +177,6 @@ bool CsmaChannel::TransmitEnd() {
     }
   }
 
-  // also schedule for the tx side to go back to IDLE
   Simulator::Schedule(m_delay, &CsmaChannel::PropagationCompleteEvent, this);
   return retVal;
 }

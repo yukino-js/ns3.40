@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2013 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-general-test.h"
 
@@ -27,22 +10,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TimestampTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP TimeStamp enabling Test.
- */
 class TimestampTestCase : public TcpGeneralTest {
 public:
-  /**
-   * TimeStamp configuration.
-   */
   enum Configuration { DISABLED, ENABLED_RECEIVER, ENABLED_SENDER, ENABLED };
 
-  /**
-   * \brief Constructor.
-   * \param conf Test configuration.
-   */
   TimestampTestCase(TimestampTestCase::Configuration conf);
 
 protected:
@@ -54,7 +25,7 @@ protected:
   void Rx(const Ptr<const Packet> p, const TcpHeader &h,
           SocketWho who) override;
 
-  Configuration m_configuration; //!< Test configuration.
+  Configuration m_configuration;
 };
 
 TimestampTestCase::TimestampTestCase(TimestampTestCase::Configuration conf)
@@ -138,7 +109,6 @@ void TimestampTestCase::Tx(const Ptr<const Packet> p, const TcpHeader &h,
     }
   } else if (who == RECEIVER) {
     if (h.GetFlags() & TcpHeader::SYN) {
-      // Sender has not sent timestamp, so implementation should disable ts
       if (m_configuration == ENABLED_RECEIVER) {
         NS_TEST_ASSERT_MSG_EQ(h.HasOption(TcpOption::TS), false,
                               "sender has not ts, but receiver sent anyway");
@@ -162,37 +132,20 @@ void TimestampTestCase::Rx(const Ptr<const Packet> p, const TcpHeader &h,
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP TimeStamp values Test.
- */
 class TimestampValueTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param startTime Start time (Seconds).
-   * \param timeToWait Time to wait (Seconds).
-   * \param name Test description.
-   */
   TimestampValueTestCase(double startTime, double timeToWait, std::string name);
 
 private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Perform the test checks.
-   */
   void Check();
-  /**
-   * \brief Test initialization.
-   */
   void Init();
 
-  double m_startTime;  //!< Start time (Seconds).
-  double m_timeToWait; //!< Time to wait (Seconds).
-  double m_initValue;  //!< Initialization value (Seconds).
+  double m_startTime;
+  double m_timeToWait;
+  double m_initValue;
 };
 
 TimestampValueTestCase::TimestampValueTestCase(double startTime,
@@ -230,11 +183,6 @@ void TimestampValueTestCase::Check() {
                             "Estimating Wrong RTT");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP TimeStamp TestSuite.
- */
 class TcpTimestampTestSuite : public TestSuite {
 public:
   TcpTimestampTestSuite() : TestSuite("tcp-timestamp", UNIT) {
@@ -259,5 +207,4 @@ public:
   }
 };
 
-static TcpTimestampTestSuite
-    g_tcpTimestampTestSuite; //!< Static variable for test initialization
+static TcpTimestampTestSuite g_tcpTimestampTestSuite;

@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2015 Danilo Abrignani
- * Copyright (c) 2016 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Danilo Abrignani <danilo.abrignani@unibo.it>
- *          Biljana Bojovic <biljana.bojovic@cttc.es>
- *
- */
 
 #include "no-op-component-carrier-manager.h"
 
@@ -67,10 +46,6 @@ void NoOpComponentCarrierManager::DoInitialize() {
   LteEnbComponentCarrierManager::DoInitialize();
 }
 
-//////////////////////////////////////////////
-// MAC SAP
-/////////////////////////////////////////////
-
 void NoOpComponentCarrierManager::DoTransmitPdu(
     LteMacSapProvider::TransmitPduParameters params) {
   NS_LOG_FUNCTION(this);
@@ -78,7 +53,6 @@ void NoOpComponentCarrierManager::DoTransmitPdu(
   NS_ASSERT_MSG(it != m_macSapProvidersMap.end(),
                 "could not find Sap for ComponentCarrier "
                     << params.componentCarrierId);
-  // with this algorithm all traffic is on Primary Carrier
   it->second->TransmitPdu(params);
 }
 
@@ -131,11 +105,6 @@ void NoOpComponentCarrierManager::DoAddUe(uint16_t rnti, uint8_t state) {
     UeInfo info;
     info.m_ueState = state;
 
-    // the Primary carrier (PC) is enabled by default
-    // on the PC the SRB0 and SRB1 are enabled when the Ue is connected
-    // these are hard-coded and the configuration not pass through the
-    // Component Carrier Manager which is responsible of configure
-    // only DataRadioBearer on the different Component Carrier
     info.m_enabledComponentCarrier = 1;
     m_ueInfo.emplace(rnti, info);
   } else {
@@ -170,16 +139,12 @@ NoOpComponentCarrierManager::DoSetupDataRadioBearer(EpsBearer bearer,
   NS_ASSERT_MSG(rntiIt != m_ueInfo.end(),
                 "SetupDataRadioBearer on unknown RNTI " << rnti);
 
-  // enable by default all carriers
   rntiIt->second.m_enabledComponentCarrier = m_noOfComponentCarriers;
 
   std::vector<LteCcmRrcSapProvider::LcsConfig> res;
   LteCcmRrcSapProvider::LcsConfig entry;
   LteEnbCmacSapProvider::LcInfo lcinfo;
-  // NS_LOG_DEBUG (this << " componentCarrierEnabled " << (uint16_t)
-  // eccIt->second);
   for (uint16_t ncc = 0; ncc < m_noOfComponentCarriers; ncc++) {
-    // NS_LOG_DEBUG (this << " res size " << (uint16_t) res.size ());
     LteEnbCmacSapProvider::LcInfo lci;
     lci.rnti = rnti;
     lci.lcId = lcid;
@@ -197,14 +162,14 @@ NoOpComponentCarrierManager::DoSetupDataRadioBearer(EpsBearer bearer,
       lci.mbrDl = 0;
       lci.gbrUl = 0;
       lci.gbrDl = 0;
-    } // data flows only on PC
+    }
     NS_LOG_DEBUG(this << " RNTI " << lci.rnti << "Lcid " << (uint16_t)lci.lcId
                       << " lcGroup " << (uint16_t)lci.lcGroup);
     entry.componentCarrierId = ncc;
     entry.lc = lci;
     entry.msu = m_ccmMacSapUser;
     res.push_back(entry);
-  } // end for
+  }
 
   auto lcidIt = rntiIt->second.m_rlcLcInstantiated.find(lcid);
   if (lcidIt == rntiIt->second.m_rlcLcInstantiated.end()) {
@@ -230,8 +195,6 @@ NoOpComponentCarrierManager::DoReleaseDataRadioBearer(uint16_t rnti,
                                                       uint8_t lcid) {
   NS_LOG_FUNCTION(this << rnti << +lcid);
 
-  // Here we receive directly the RNTI and the LCID, instead of only DRB ID
-  // DRB ID are mapped as DRBID = LCID + 2
   auto rntiIt = m_ueInfo.find(rnti);
   NS_ASSERT_MSG(rntiIt != m_ueInfo.end(),
                 "request to Release Data Radio Bearer on UE with unknown RNTI "
@@ -299,14 +262,6 @@ void NoOpComponentCarrierManager::DoUlReceiveMacCe(MacCeListElement_s bsr,
     for (uint16_t i = 0; i < 4; i++) {
       uint8_t bsrId = bsr.m_macCeValue.m_bufferStatus.at(i);
       uint32_t buffer = BufferSizeLevelBsr::BsrId2BufferSize(bsrId);
-      // here the buffer should be divide among the different sap
-      // since the buffer status report are compressed information
-      // it is needed to use BsrId2BufferSize to uncompress
-      // after the split over all component carriers is is needed to
-      // compress again the information to fit MacCeListEkement_s structure
-      // verify how many Component Carrier are enabled per UE
-      // in this simple code the BufferStatus will be notify only
-      // to the primary carrier component
       newBsr.m_macCeValue.m_bufferStatus.at(i) =
           BufferSizeLevelBsr::BufferSize2BsrId(buffer);
     }
@@ -314,9 +269,6 @@ void NoOpComponentCarrierManager::DoUlReceiveMacCe(MacCeListElement_s bsr,
     if (sapIt == m_ccmMacSapProviderMap.end()) {
       NS_FATAL_ERROR("Sap not found in the CcmMacSapProviderMap");
     } else {
-      // in the current implementation bsr in uplink is forwarded only to the
-      // primary carrier. above code demonstrates how to resize buffer status if
-      // more carriers are being used in future
       sapIt->second->ReportMacCeToScheduler(newBsr);
     }
   } else {
@@ -334,8 +286,6 @@ void NoOpComponentCarrierManager::DoUlReceiveSr(uint16_t rnti,
 
   sapIt->second->ReportSrToScheduler(rnti);
 }
-
-//////////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(RrComponentCarrierManager);
 
@@ -387,36 +337,23 @@ void RrComponentCarrierManager::DoUlReceiveMacCe(MacCeListElement_s bsr,
   NS_ASSERT_MSG(bsr.m_macCeType == MacCeListElement_s::BSR,
                 "Received a Control Message not allowed " << bsr.m_macCeType);
 
-  // split traffic in uplink equally among carriers
   uint32_t numberOfCarriersForUe =
       m_ueInfo.at(bsr.m_rnti).m_enabledComponentCarrier;
 
   if (bsr.m_macCeType == MacCeListElement_s::BSR) {
     MacCeListElement_s newBsr;
     newBsr.m_rnti = bsr.m_rnti;
-    // mac control element type, values can be BSR, PHR, CRNTI
     newBsr.m_macCeType = bsr.m_macCeType;
-    // the power headroom, 64 means no valid phr is available
     newBsr.m_macCeValue.m_phr = bsr.m_macCeValue.m_phr;
-    // indicates that the CRNTI MAC CE was received. The value is not used.
     newBsr.m_macCeValue.m_crnti = bsr.m_macCeValue.m_crnti;
-    // and value 64 means that the buffer status should not be updated
     newBsr.m_macCeValue.m_bufferStatus.resize(4);
-    // always all 4 LCGs are present see 6.1.3.1 of 3GPP TS 36.321.
     for (uint16_t i = 0; i < 4; i++) {
       uint8_t bsrStatusId = bsr.m_macCeValue.m_bufferStatus.at(i);
       uint32_t bufferSize = BufferSizeLevelBsr::BsrId2BufferSize(bsrStatusId);
-      // here the buffer should be divide among the different sap
-      // since the buffer status report are compressed information
-      // it is needed to use BsrId2BufferSize to uncompress
-      // after the split over all component carriers is is needed to
-      // compress again the information to fit MacCeListElement_s structure
-      // verify how many Component Carrier are enabled per UE
       newBsr.m_macCeValue.m_bufferStatus.at(i) =
           BufferSizeLevelBsr::BufferSize2BsrId(bufferSize /
                                                numberOfCarriersForUe);
     }
-    // notify MAC of each component carrier that is enabled for this UE
     for (uint32_t i = 0; i < numberOfCarriersForUe; i++) {
       NS_ASSERT_MSG(m_ccmMacSapProviderMap.find(i) !=
                         m_ccmMacSapProviderMap.end(),
@@ -430,10 +367,8 @@ void RrComponentCarrierManager::DoUlReceiveMacCe(MacCeListElement_s bsr,
   }
 }
 
-void RrComponentCarrierManager::DoUlReceiveSr(
-    uint16_t rnti, uint8_t /* componentCarrierId */) {
+void RrComponentCarrierManager::DoUlReceiveSr(uint16_t rnti, uint8_t) {
   NS_LOG_FUNCTION(this);
-  // split traffic in uplink equally among carriers
   uint32_t numberOfCarriersForUe = m_ueInfo.at(rnti).m_enabledComponentCarrier;
 
   m_ccmMacSapProviderMap.find(m_lastCcIdForSr)
@@ -445,4 +380,4 @@ void RrComponentCarrierManager::DoUlReceiveSr(
   }
 }
 
-} // end of namespace ns3
+} // namespace ns3

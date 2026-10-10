@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "wifi-phy-common.h"
 
@@ -32,15 +14,13 @@ uint16_t ConvertGuardIntervalToNanoSeconds(WifiMode mode,
   uint16_t gi = 800;
   if (mode.GetModulationClass() >= WIFI_MOD_CLASS_HE) {
     Ptr<HeConfiguration> heConfiguration = device->GetHeConfiguration();
-    NS_ASSERT(heConfiguration); // If HE/EHT modulation is used, we should have
-                                // a HE configuration attached
+    NS_ASSERT(heConfiguration);
     gi = static_cast<uint16_t>(
         heConfiguration->GetGuardInterval().GetNanoSeconds());
   } else if (mode.GetModulationClass() == WIFI_MOD_CLASS_HT ||
              mode.GetModulationClass() == WIFI_MOD_CLASS_VHT) {
     Ptr<HtConfiguration> htConfiguration = device->GetHtConfiguration();
-    NS_ASSERT(htConfiguration); // If HT/VHT modulation is used, we should have
-                                // a HT configuration attached
+    NS_ASSERT(htConfiguration);
     gi = htConfiguration->GetShortGuardIntervalSupported() ? 400 : 800;
   }
   return gi;
@@ -76,11 +56,8 @@ WifiPreamble GetPreambleForTransmission(WifiModulationClass modulation,
   } else if (modulation == WIFI_MOD_CLASS_VHT) {
     return WIFI_PREAMBLE_VHT_SU;
   } else if (modulation == WIFI_MOD_CLASS_HT) {
-    return WIFI_PREAMBLE_HT_MF; // HT_GF has been removed
-  } else if (modulation == WIFI_MOD_CLASS_HR_DSSS &&
-             useShortPreamble) // ERP_DSSS is modeled through HR_DSSS (since
-                               // same preamble and modulation)
-  {
+    return WIFI_PREAMBLE_HT_MF;
+  } else if (modulation == WIFI_MOD_CLASS_HR_DSSS && useShortPreamble) {
     return WIFI_PREAMBLE_SHORT;
   } else {
     return WIFI_PREAMBLE_LONG;
@@ -218,7 +195,7 @@ uint16_t GetMaximumChannelWidth(WifiModulationClass modulation) {
   case WIFI_MOD_CLASS_HE:
     return 160;
   case WIFI_MOD_CLASS_EHT:
-    return 160; // TODO update when 320 MHz channels are supported
+    return 160;
   default:
     NS_ABORT_MSG("Unknown modulation class: " << modulation);
     return 0;

@@ -1,25 +1,4 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pavel Boyko <boyko@iitp.ru>
- */
 
-#include "ns3/mesh-information-element-vector.h"
-#include "ns3/test.h"
-// All information elements:
 #include "ns3/ie-dot11s-beacon-timing.h"
 #include "ns3/ie-dot11s-configuration.h"
 #include "ns3/ie-dot11s-id.h"
@@ -30,20 +9,11 @@
 #include "ns3/ie-dot11s-prep.h"
 #include "ns3/ie-dot11s-preq.h"
 #include "ns3/ie-dot11s-rann.h"
+#include "ns3/mesh-information-element-vector.h"
+#include "ns3/test.h"
 
 using namespace ns3;
 
-/**
- * \ingroup mesh
- * \ingroup tests
- * \defgroup mesh-test mesh module tests
- */
-
-/**
- * \ingroup mesh-test
- *
- * \brief Built-in self test for MeshInformationElementVector and all IE
- */
 struct MeshInformationElementVectorBist : public TestCase {
   MeshInformationElementVectorBist()
       : TestCase("Serialization test for all mesh information elements") {};
@@ -53,7 +23,6 @@ struct MeshInformationElementVectorBist : public TestCase {
 void MeshInformationElementVectorBist::DoRun() {
   MeshInformationElementVector vector;
   {
-    // Mesh ID test
     Ptr<dot11s::IeMeshId> meshId = Create<dot11s::IeMeshId>("qwerty");
     vector.AddInformationElement(meshId);
   }
@@ -151,11 +120,6 @@ void MeshInformationElementVectorBist::DoRun() {
       "Roundtrip serialization of all known information elements works");
 }
 
-/**
- * \ingroup mesh-test
- *
- * \brief Mesh Test Suite
- */
 class MeshTestSuite : public TestSuite {
 public:
   MeshTestSuite();
@@ -165,4 +129,4 @@ MeshTestSuite::MeshTestSuite() : TestSuite("devices-mesh", UNIT) {
   AddTestCase(new MeshInformationElementVectorBist, TestCase::QUICK);
 }
 
-static MeshTestSuite g_meshTestSuite; ///< the test suite
+static MeshTestSuite g_meshTestSuite;

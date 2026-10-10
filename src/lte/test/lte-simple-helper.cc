@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es> (Based on lte-helper.cc)
- */
 
 #include "lte-simple-helper.h"
 
@@ -76,7 +58,7 @@ void LteSimpleHelper::DoDispose() {
 
 NetDeviceContainer LteSimpleHelper::InstallEnbDevice(NodeContainer c) {
   NS_LOG_FUNCTION(this);
-  Initialize(); // will run DoInitialize () if necessary
+  Initialize();
   NetDeviceContainer devices;
   for (auto i = c.Begin(); i != c.End(); ++i) {
     Ptr<Node> node = *i;
@@ -105,8 +87,7 @@ Ptr<NetDevice> LteSimpleHelper::InstallSingleEnbDevice(Ptr<Node> n) {
 
   if (m_lteRlcEntityType == RLC_UM) {
     m_enbRlc = CreateObject<LteRlcUm>();
-  } else // m_lteRlcEntityType == RLC_AM
-  {
+  } else {
     m_enbRlc = CreateObject<LteRlcAm>();
   }
 
@@ -126,8 +107,6 @@ Ptr<NetDevice> LteSimpleHelper::InstallSingleEnbDevice(Ptr<Node> n) {
   m_enbRrc->SetDevice(enbDev);
 
   enbDev->SetReceiveCallback(MakeCallback(&LteTestMac::Receive, m_enbMac));
-
-  // Connect SAPs: RRC <-> PDCP <-> RLC <-> MAC
 
   m_enbRrc->SetLtePdcpSapProvider(m_enbPdcp->GetLtePdcpSapProvider());
   m_enbPdcp->SetLtePdcpSapUser(m_enbRrc->GetLtePdcpSapUser());
@@ -149,8 +128,7 @@ Ptr<NetDevice> LteSimpleHelper::InstallSingleUeDevice(Ptr<Node> n) {
 
   if (m_lteRlcEntityType == RLC_UM) {
     m_ueRlc = CreateObject<LteRlcUm>();
-  } else // m_lteRlcEntityType == RLC_AM
-  {
+  } else {
     m_ueRlc = CreateObject<LteRlcAm>();
   }
 
@@ -168,8 +146,6 @@ Ptr<NetDevice> LteSimpleHelper::InstallSingleUeDevice(Ptr<Node> n) {
   m_ueMac->SetDevice(ueDev);
 
   ueDev->SetReceiveCallback(MakeCallback(&LteTestMac::Receive, m_ueMac));
-
-  // Connect SAPs: RRC <-> PDCP <-> RLC <-> MAC
 
   m_ueRrc->SetLtePdcpSapProvider(m_uePdcp->GetLtePdcpSapProvider());
   m_uePdcp->SetLtePdcpSapUser(m_ueRrc->GetLtePdcpSapUser());
@@ -200,7 +176,6 @@ void LteSimpleHelper::EnableLogComponents() {
 }
 
 void LteSimpleHelper::EnableTraces() {
-  //   EnableMacTraces ();
   EnableRlcTraces();
   EnablePdcpTraces();
 }
@@ -210,15 +185,6 @@ void LteSimpleHelper::EnableRlcTraces() {
   EnableUlRlcTraces();
 }
 
-/**
- * DL transmit PDU callback
- *
- * \param rlcStats the stats calculator
- * \param path
- * \param rnti the RNTI
- * \param lcid the LCID
- * \param packetSize the packet size
- */
 void LteSimpleHelperDlTxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
                                     std::string path, uint16_t rnti,
                                     uint8_t lcid, uint32_t packetSize) {
@@ -228,16 +194,6 @@ void LteSimpleHelperDlTxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
   rlcStats->DlTxPdu(cellId, imsi, rnti, lcid, packetSize);
 }
 
-/**
- * DL receive PDU callback
- *
- * \param rlcStats the stats calculator
- * \param path
- * \param rnti the RNTI
- * \param lcid the LCID
- * \param packetSize the packet size
- * \param delay the delay
- */
 void LteSimpleHelperDlRxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
                                     std::string path, uint16_t rnti,
                                     uint8_t lcid, uint32_t packetSize,
@@ -249,26 +205,8 @@ void LteSimpleHelperDlRxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
   rlcStats->DlRxPdu(cellId, imsi, rnti, lcid, packetSize, delay);
 }
 
-void LteSimpleHelper::EnableDlRlcTraces() {
-  NS_LOG_FUNCTION_NOARGS();
+void LteSimpleHelper::EnableDlRlcTraces() { NS_LOG_FUNCTION_NOARGS(); }
 
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LteRlc/TxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperDlTxPduCallback,
-  //                    m_rlcStats));
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LteRlc/RxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperDlRxPduCallback,
-  //                    m_rlcStats));
-}
-
-/**
- * UL transmit PDU callback
- *
- * \param rlcStats the stats calculator
- * \param path
- * \param rnti the RNTI
- * \param lcid the LCID
- * \param packetSize the packet size
- */
 void LteSimpleHelperUlTxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
                                     std::string path, uint16_t rnti,
                                     uint8_t lcid, uint32_t packetSize) {
@@ -278,16 +216,6 @@ void LteSimpleHelperUlTxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
   rlcStats->UlTxPdu(cellId, imsi, rnti, lcid, packetSize);
 }
 
-/**
- * UL receive PDU callback
- *
- * \param rlcStats the stats calculator
- * \param path
- * \param rnti the RNTI
- * \param lcid the LCID
- * \param packetSize the packet size
- * \param delay the delay
- */
 void LteSimpleHelperUlRxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
                                     std::string path, uint16_t rnti,
                                     uint8_t lcid, uint32_t packetSize,
@@ -299,42 +227,15 @@ void LteSimpleHelperUlRxPduCallback(Ptr<RadioBearerStatsCalculator> rlcStats,
   rlcStats->UlRxPdu(cellId, imsi, rnti, lcid, packetSize, delay);
 }
 
-void LteSimpleHelper::EnableUlRlcTraces() {
-  NS_LOG_FUNCTION_NOARGS();
-
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LteRlc/TxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperUlTxPduCallback,
-  //                    m_rlcStats));
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LteRlc/RxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperUlRxPduCallback,
-  //                    m_rlcStats));
-}
+void LteSimpleHelper::EnableUlRlcTraces() { NS_LOG_FUNCTION_NOARGS(); }
 
 void LteSimpleHelper::EnablePdcpTraces() {
   EnableDlPdcpTraces();
   EnableUlPdcpTraces();
 }
 
-void LteSimpleHelper::EnableDlPdcpTraces() {
-  NS_LOG_FUNCTION_NOARGS();
+void LteSimpleHelper::EnableDlPdcpTraces() { NS_LOG_FUNCTION_NOARGS(); }
 
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LtePdcp/TxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperDlTxPduCallback,
-  //                    m_pdcpStats));
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LtePdcp/RxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperDlRxPduCallback,
-  //                    m_pdcpStats));
-}
-
-void LteSimpleHelper::EnableUlPdcpTraces() {
-  NS_LOG_FUNCTION_NOARGS();
-
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LtePdcp/TxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperUlTxPduCallback,
-  //                    m_pdcpStats));
-  //   Config::Connect ("/NodeList/*/DeviceList/*/LtePdcp/RxPDU",
-  //                    MakeBoundCallback (&LteSimpleHelperUlRxPduCallback,
-  //                    m_pdcpStats));
-}
+void LteSimpleHelper::EnableUlPdcpTraces() { NS_LOG_FUNCTION_NOARGS(); }
 
 } // namespace ns3

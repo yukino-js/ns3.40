@@ -1,22 +1,5 @@
 #! /usr/bin/env python3
 
-# Copyright (C) 2008-2011 INESC Porto
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
-# Author: Gustavo J. A. M. Carneiro <gjc@inescporto.pt>
 
 import unittest
 from ns import ns
@@ -25,17 +8,7 @@ import sys
 UINT32_MAX = 0xFFFFFFFF
 
 
-## TestSimulator class
 class TestSimulator(unittest.TestCase):
-    ## @var _received_packet
-    #  received packet
-    ## @var _args_received
-    #  args
-    ## @var _cb_time
-    #  current time
-    ## @var _context_received
-    #  context
-
     def testScheduleNow(self):
         """! Test schedule now
         @param self this object
@@ -189,7 +162,6 @@ class TestSimulator(unittest.TestCase):
         ns.Config.SetDefault(
             "ns3::OnOffApplication::PacketSize", ns.core.UintegerValue(123)
         )
-        # hm.. no Config.Get?
 
     def testSocket(self):
         """! Test socket
@@ -239,7 +211,6 @@ class TestSimulator(unittest.TestCase):
         self.assertTrue(self._received_packet is not None)
         self.assertEqual(self._received_packet.GetSize(), 19)
 
-        # Delete Ptr<>'s on the python side to let C++ clean them
         del internet
 
     def testAttributes(self):
@@ -247,7 +218,6 @@ class TestSimulator(unittest.TestCase):
         @param self this object
         @return None
         """
-        # Templated class DropTailQueue<Packet> in C++
         queue = ns.CreateObject("DropTailQueue<Packet>")
         queueSizeValue = ns.network.QueueSizeValue(ns.network.QueueSize("500p"))
         queue.SetAttribute("MaxSize", queueSizeValue)
@@ -256,7 +226,6 @@ class TestSimulator(unittest.TestCase):
         queue.GetAttribute("MaxSize", limit)
         self.assertEqual(limit.Get(), ns.network.QueueSize("500p"))
 
-        ## -- object pointer values
         mobility = ns.CreateObject("RandomWaypointMobilityModel")
         ptr = ns.CreateObject("PointerValue")
         mobility.GetAttribute("PositionAllocator", ptr)
@@ -270,7 +239,6 @@ class TestSimulator(unittest.TestCase):
         mobility.GetAttribute("PositionAllocator", ptr2)
         self.assertNotEqual(ptr.GetObject(), ns.core.Ptr["Object"](ns.cppyy.nullptr))
 
-        # Delete Ptr<>'s on the python side to let C++ clean them
         del queue, mobility, ptr, ptr2
 
     def testIdentity(self):
@@ -287,7 +255,6 @@ class TestSimulator(unittest.TestCase):
 
         self.assertEqual(c1, c2)
 
-        # Delete Ptr<>'s on the python side to let C++ clean them
         del csma, channel
 
     def testTypeId(self):
@@ -342,7 +309,6 @@ class TestSimulator(unittest.TestCase):
         @return None
         """
 
-        ## MyNode class
         class MyNode(ns.network.Node):
             def GetLocalTime(self) -> ns.Time:
                 return ns.Seconds(10)
@@ -392,7 +358,6 @@ class TestSimulator(unittest.TestCase):
             }
         """)
 
-        ## EchoServer application class
         class EchoServer(ns.applications.Application):
             LOGGING = False
             ECHO_PORT = 1234
@@ -406,12 +371,8 @@ class TestSimulator(unittest.TestCase):
                 return None
                 """
                 super().__init__()
-                self.__python_owns__ = (
-                    False  # Let C++ destroy this on Simulator::Destroy
-                )
-                ## Listen port for the server
+                self.__python_owns__ = False
                 self.port = port
-                ## Socket used by the server to listen to port
                 self.m_socket = ns.network.Socket.CreateSocket(
                     node, ns.core.TypeId.LookupByName("ns3::UdpSocketFactory")
                 )

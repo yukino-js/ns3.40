@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "ns3/log.h"
 #include "ns3/lte-spectrum-value-helper.h"
@@ -25,28 +7,14 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteTestEarfcn");
 
-/**
- * \ingroup lte-test
- *
- * \brief Test case that is testing if the frequency is properly generated
- * from provided EARFCN frequency.
- */
-
 class LteEarfcnTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param str reference name
-   * \param earfcn EARFCN
-   * \param f frequency
-   */
   LteEarfcnTestCase(const char *str, uint32_t earfcn, double f);
   ~LteEarfcnTestCase() override;
 
 protected:
-  uint32_t m_earfcn; ///< the EARFCN
-  double m_f;        ///< the frequency
+  uint32_t m_earfcn;
+  double m_f;
 
 private:
   void DoRun() override;
@@ -64,23 +32,8 @@ void LteEarfcnTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ_TOL(f, m_f, 0.0000001, "wrong frequency");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief
- * Test case that is testing if the downlink frequency is properly
- * converted from provided downlink EARFCN frequency value.
- */
-
 class LteEarfcnDlTestCase : public LteEarfcnTestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param str reference name
-   * \param earfcn EARFCN
-   * \param f frequency
-   */
   LteEarfcnDlTestCase(const char *str, uint32_t earfcn, double f);
 
 private:
@@ -92,30 +45,13 @@ LteEarfcnDlTestCase::LteEarfcnDlTestCase(const char *str, uint32_t earfcn,
     : LteEarfcnTestCase(str, earfcn, f) {}
 
 void LteEarfcnDlTestCase::DoRun() {
-  //   LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  //   LOG_LEVEL_ALL); LogComponentEnable ("LteSpectrumValueHelper", logLevel);
-  //   LogComponentEnable ("LteTestEarfcn", logLevel);
 
   double f = LteSpectrumValueHelper::GetDownlinkCarrierFrequency(m_earfcn);
   NS_TEST_ASSERT_MSG_EQ_TOL(f, m_f, 0.0000001, "wrong frequency");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief  Test case that is testing if the uplink frequency is properly
- * converted from provided uplink EARFCN frequency value.
- */
-
 class LteEarfcnUlTestCase : public LteEarfcnTestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param str reference name
-   * \param earfcn EARFCN
-   * \param f frequency
-   */
   LteEarfcnUlTestCase(const char *str, uint32_t earfcn, double f);
 
 private:
@@ -131,21 +67,11 @@ void LteEarfcnUlTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ_TOL(f, m_f, 0.0000001, "wrong frequency");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Test suite for testing correct conversion of frequencies in
- * the downlink and the uplink, and general EARFCN frequencies.
- */
 class LteEarfcnTestSuite : public TestSuite {
 public:
   LteEarfcnTestSuite();
 };
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteEarfcnTestSuite g_lteEarfcnTestSuite;
 
 LteEarfcnTestSuite::LteEarfcnTestSuite() : TestSuite("lte-earfcn", UNIT) {

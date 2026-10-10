@@ -1,62 +1,4 @@
-/*
- * Copyright (c) 2014 Universidad de la República - Uruguay
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Matias Richart <mrichart@fing.edu.uy>
- */
 
-/**
- * This example program is designed to illustrate the behavior of three
- * power/rate-adaptive WiFi rate controls; namely, ns3::ParfWifiManager,
- * ns3::AparfWifiManager and ns3::RrpaaWifiManager.
- *
- * This simulation consist of 4 nodes, two APs and two STAs.
- * The APs generates UDP traffic with a CBR of 54 Mbps to the STAs.
- * The APa use any power and rate control mechanism, and the STAs use only
- * Minstrel rate control.
- * The STAs can be configured to be at any distance from the APs.
- *
- * The objective is to test power and rate control in the links with
- * interference from the other link.
- *
- * The output consists of:
- * - A plot of average throughput vs. time.
- * - A plot of average transmit power vs. time.
- * - Plots for the percentage of time the APs are in each MAC state (IDLE, TX,
- * RX, BUSY)
- * - If enabled, the changes of power and rate to standard output.
- * - If enabled, the average throughput, delay, jitter and tx opportunity for
- * the total simulation time.
- *
- * Example usage:
- * \code{.sh}
- *   ./ns3 run "wifi-power-adaptation-interference
- * --manager=ns3::AparfWifiManager
- * --outputFileName=aparf" \endcode
- *
- * Another example (changing STAs position):
- * \code{.sh}
- *   ./ns3 run "wifi-power-adaptation-interference
- * --manager=ns3::AparfWifiManager
- * --outputFileName=aparf --STA1_x=5 --STA2_x=205" \endcode
- *
- * To enable the log of rate and power changes:
- * \code{.sh}
- *   export NS_LOG=PowerAdaptationInterference=level_info
- * \endcode
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -82,160 +24,58 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("PowerAdaptationInterference");
 
-/// Packet size generated at the AP.
 static const uint32_t packetSize = 1420;
 
-/**
- * \brief Class to collect node statistics.
- */
 class NodeStatistics {
 public:
-  /**
-   * \brief Constructor.
-   *
-   * \param aps Access points
-   * \param stas WiFi Stations.
-   */
   NodeStatistics(NetDeviceContainer aps, NetDeviceContainer stas);
 
-  /**
-   * \brief Collects the statistics at a given time.
-   *
-   * \param time Time at which the statistics are collected.
-   */
   void CheckStatistics(double time);
 
-  /**
-   * \brief Callback called by WifiNetDevice/Phy/PhyTxBegin.
-   *
-   * \param path The trace path.
-   * \param packet The sent packet.
-   * \param powerW The Tx power.
-   */
   void PhyCallback(std::string path, Ptr<const Packet> packet, double powerW);
-  /**
-   * \brief Callback called by PacketSink/Rx.
-   *
-   * \param path The trace path.
-   * \param packet The received packet.
-   * \param from The sender address.
-   */
   void RxCallback(std::string path, Ptr<const Packet> packet,
                   const Address &from);
-  /**
-   * \brief Callback called by WifiNetDevice/RemoteStationManager/x/PowerChange.
-   *
-   * \param path The trace path.
-   * \param oldPower Old Tx power.
-   * \param newPower Actual Tx power.
-   * \param dest Destination of the transmission.
-   */
   void PowerCallback(std::string path, double oldPower, double newPower,
                      Mac48Address dest);
-  /**
-   * \brief Callback called by WifiNetDevice/RemoteStationManager/x/RateChange.
-   *
-   * \param path The trace path.
-   * \param oldRate Old rate.
-   * \param newRate Actual rate.
-   * \param dest Destination of the transmission.
-   */
   void RateCallback(std::string path, DataRate oldRate, DataRate newRate,
                     Mac48Address dest);
-  /**
-   * \brief Callback called by YansWifiPhy/State/State.
-   *
-   * \param path The trace path.
-   * \param init Time when the state started.
-   * \param duration Amount of time we've been in (or will be in) the state.
-   * \param state The state.
-   */
   void StateCallback(std::string path, Time init, Time duration,
                      WifiPhyState state);
 
-  /**
-   * \brief Get the Throughput output data
-   *
-   * \return the Throughput output data.
-   */
   Gnuplot2dDataset GetDatafile();
-  /**
-   * \brief Get the Power output data.
-   *
-   * \return the Power output data.
-   */
   Gnuplot2dDataset GetPowerDatafile();
-  /**
-   * \brief Get the IDLE state output data.
-   *
-   * \return the IDLE state output data.
-   */
   Gnuplot2dDataset GetIdleDatafile();
-  /**
-   * \brief Get the BUSY state output data.
-   *
-   * \return the BUSY state output data.
-   */
   Gnuplot2dDataset GetBusyDatafile();
-  /**
-   * \brief Get the TX state output data.
-   *
-   * \return the TX state output data.
-   */
   Gnuplot2dDataset GetTxDatafile();
-  /**
-   * \brief Get the RX state output data.
-   *
-   * \return the RX state output data.
-   */
   Gnuplot2dDataset GetRxDatafile();
 
-  /**
-   * \brief Get the Busy time.
-   *
-   * \return the busy time.
-   */
   double GetBusyTime() const;
 
 private:
-  /// Time, DataRate pair vector.
   typedef std::vector<std::pair<Time, DataRate>> TxTime;
-  /**
-   * \brief Setup the WifiPhy object.
-   *
-   * \param phy The WifiPhy to setup.
-   */
   void SetupPhy(Ptr<WifiPhy> phy);
-  /**
-   * \brief Get the time at which a given datarate has been recorded.
-   *
-   * \param rate The datarate to search.
-   * \return the time.
-   */
   Time GetCalcTxTime(DataRate rate);
 
-  std::map<Mac48Address, double>
-      m_currentPower; //!< Current Tx power for each sender.
-  std::map<Mac48Address, DataRate>
-      m_currentRate;               //!< Current Tx rate for each sender.
-  uint32_t m_bytesTotal;           //!< Number of received bytes.
-  double m_totalEnergy;            //!< Energy used.
-  double m_totalTime;              //!< Time spent.
-  double busyTime;                 //!< BUSY time.
-  double idleTime;                 //!< IDLE time.
-  double txTime;                   //!< TX time.
-  double rxTime;                   //!< RX time.
-  double m_totalBusyTime;          //!< Total time in BUSY state.
-  double m_totalIdleTime;          //!< Total time in IDLE state.
-  double m_totalTxTime;            //!< Total time in TX state.
-  double m_totalRxTime;            //!< Total time in RX state.
-  TxTime m_timeTable;              //!< Time, DataRate table.
-  Gnuplot2dDataset m_output;       //!< Throughput output data.
-  Gnuplot2dDataset m_output_power; //!< Power output data.
-  Gnuplot2dDataset m_output_idle;  //!< IDLE output data.
-  Gnuplot2dDataset m_output_busy;  //!< BUSY output data.
-  Gnuplot2dDataset m_output_rx;    //!< RX output data.
-  Gnuplot2dDataset m_output_tx;    //!< TX output data.
+  std::map<Mac48Address, double> m_currentPower;
+  std::map<Mac48Address, DataRate> m_currentRate;
+  uint32_t m_bytesTotal;
+  double m_totalEnergy;
+  double m_totalTime;
+  double busyTime;
+  double idleTime;
+  double txTime;
+  double rxTime;
+  double m_totalBusyTime;
+  double m_totalIdleTime;
+  double m_totalTxTime;
+  double m_totalRxTime;
+  TxTime m_timeTable;
+  Gnuplot2dDataset m_output;
+  Gnuplot2dDataset m_output_power;
+  Gnuplot2dDataset m_output_idle;
+  Gnuplot2dDataset m_output_busy;
+  Gnuplot2dDataset m_output_rx;
+  Gnuplot2dDataset m_output_tx;
 };
 
 NodeStatistics::NodeStatistics(NetDeviceContainer aps,
@@ -381,14 +221,6 @@ double NodeStatistics::GetBusyTime() const {
   return m_totalBusyTime + m_totalRxTime;
 }
 
-/**
- * Callback called by WifiNetDevice/RemoteStationManager/x/PowerChange.
- *
- * \param path The trace path.
- * \param oldPower Old Tx power.
- * \param newPower Actual Tx power.
- * \param dest Destination of the transmission.
- */
 void PowerCallback(std::string path, double oldPower, double newPower,
                    Mac48Address dest) {
   NS_LOG_INFO((Simulator::Now()).GetSeconds()
@@ -396,14 +228,6 @@ void PowerCallback(std::string path, double oldPower, double newPower,
               << " New power=" << newPower);
 }
 
-/**
- * \brief Callback called by WifiNetDevice/RemoteStationManager/x/RateChange.
- *
- * \param path The trace path.
- * \param oldRate Old rate.
- * \param newRate Actual rate.
- * \param dest Destination of the transmission.
- */
 void RateCallback(std::string path, DataRate oldRate, DataRate newRate,
                   Mac48Address dest) {
   NS_LOG_INFO((Simulator::Now()).GetSeconds()
@@ -412,7 +236,6 @@ void RateCallback(std::string path, DataRate oldRate, DataRate newRate,
 }
 
 int main(int argc, char *argv[]) {
-  // LogComponentEnable("ConstantRateWifiManager", LOG_LEVEL_FUNCTION);
 
   double maxPower = 17;
   double minPower = 0;
@@ -454,11 +277,9 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("STA2_y", "Position of STA2 in y coordinate", sta2_y);
   cmd.Parse(argc, argv);
 
-  // Define the APs
   NodeContainer wifiApNodes;
   wifiApNodes.Create(2);
 
-  // Define the STAs
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create(2);
 
@@ -474,7 +295,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer wifiStaDevices;
   NetDeviceContainer wifiDevices;
 
-  // Configure the STA nodes
   wifi.SetRemoteStationManager("ns3::AarfWifiManager", "RtsCtsThreshold",
                                UintegerValue(rtsThreshold));
   wifiPhy.Set("TxPowerStart", DoubleValue(maxPower));
@@ -489,7 +309,6 @@ int main(int argc, char *argv[]) {
   wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
   wifiStaDevices.Add(wifi.Install(wifiPhy, wifiMac, wifiStaNodes.Get(1)));
 
-  // Configure the AP nodes
   wifi.SetRemoteStationManager(manager, "DefaultTxPowerLevel",
                                UintegerValue(powerLevels - 1),
                                "RtsCtsThreshold", UintegerValue(rtsThreshold));
@@ -503,13 +322,12 @@ int main(int argc, char *argv[]) {
 
   ssid = Ssid("AP1");
   wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid), "BeaconInterval",
-                  TimeValue(MicroSeconds(103424))); // for avoiding collisions);
+                  TimeValue(MicroSeconds(103424)));
   wifiApDevices.Add(wifi.Install(wifiPhy, wifiMac, wifiApNodes.Get(1)));
 
   wifiDevices.Add(wifiStaDevices);
   wifiDevices.Add(wifiApDevices);
 
-  // Configure the mobility.
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -524,7 +342,6 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNodes.Get(1));
   mobility.Install(wifiStaNodes.Get(1));
 
-  // Configure the IP stack
   InternetStackHelper stack;
   stack.Install(wifiApNodes);
   stack.Install(wifiStaNodes);
@@ -535,7 +352,6 @@ int main(int argc, char *argv[]) {
   Ipv4Address sinkAddress1 = i.GetAddress(1);
   uint16_t port = 9;
 
-  // Configure the CBR generator
   PacketSinkHelper sink("ns3::UdpSocketFactory",
                         InetSocketAddress(sinkAddress, port));
   ApplicationContainer apps_sink = sink.Install(wifiStaNodes.Get(0));
@@ -561,21 +377,14 @@ int main(int argc, char *argv[]) {
   apps_sink.Start(Seconds(0.5));
   apps_sink.Stop(Seconds(simuTime));
 
-  //------------------------------------------------------------
-  //-- Setup stats and data collection
-  //--------------------------------------------
-
-  // Statistics counters
   NodeStatistics statisticsAp0 = NodeStatistics(wifiApDevices, wifiStaDevices);
   NodeStatistics statisticsAp1 = NodeStatistics(wifiApDevices, wifiStaDevices);
 
-  // Register packet receptions to calculate throughput
   Config::Connect("/NodeList/2/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&NodeStatistics::RxCallback, &statisticsAp0));
   Config::Connect("/NodeList/3/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&NodeStatistics::RxCallback, &statisticsAp1));
 
-  // Register power and rate changes to calculate the Average Transmit Power
   Config::Connect(
       "/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/RemoteStationManager/$" +
           manager + "/PowerChange",
@@ -598,7 +407,6 @@ int main(int argc, char *argv[]) {
   Config::Connect("/NodeList/1/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin",
                   MakeCallback(&NodeStatistics::PhyCallback, &statisticsAp1));
 
-  // Register States
   Config::Connect("/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/Phy/"
                   "$ns3::YansWifiPhy/State/State",
                   MakeCallback(&NodeStatistics::StateCallback, &statisticsAp0));
@@ -609,7 +417,6 @@ int main(int argc, char *argv[]) {
   statisticsAp0.CheckStatistics(1);
   statisticsAp1.CheckStatistics(1);
 
-  // Callbacks to print every change of power and rate
   Config::Connect("/NodeList/[0-1]/DeviceList/*/$ns3::WifiNetDevice/"
                   "RemoteStationManager/$" +
                       manager + "/PowerChange",
@@ -618,8 +425,6 @@ int main(int argc, char *argv[]) {
                   "RemoteStationManager/$" +
                       manager + "/RateChange",
                   MakeCallback(RateCallback));
-
-  // Calculate Throughput using Flowmonitor
 
   FlowMonitorHelper flowmon;
   Ptr<FlowMonitor> monitor = flowmon.InstallAll();
@@ -672,7 +477,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Plots for AP0
   std::ofstream outfileTh0("throughput-" + outputFileName + "-0.plt");
   Gnuplot gnuplot =
       Gnuplot("throughput-" + outputFileName + "-0.eps", "Throughput");
@@ -726,7 +530,6 @@ int main(int argc, char *argv[]) {
   gnuplot.AddDataset(statisticsAp0.GetIdleDatafile());
   gnuplot.GenerateOutput(outfileIdle0);
 
-  // Plots for AP1
   std::ofstream outfileTh1("throughput-" + outputFileName + "-1.plt");
   gnuplot = Gnuplot("throughput-" + outputFileName + "-1.eps", "Throughput");
   gnuplot.SetTerminal("post eps color enhanced");

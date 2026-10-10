@@ -7,18 +7,14 @@ CONVERT = convert -density 250
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify dia figures from which .png and .pdf figures need to be built
 
 IMAGES_DIA = \
 
-# specify eps figures from which .png and .pdf figures need to be built
 
 IMAGES_EPS = \
 
-# rescale pdf figures as necessary
 
 IMAGES_NOBUILD =
-# IMAGES_NOBUILD = $(FIGURES)/fading_pedestrian.png \
 
 IMAGES_BUILD = \
 	${IMAGES_DIA:.dia=.eps} \
@@ -40,13 +36,11 @@ RESCALE = ../../../utils/rescale-pdf.sh
 	if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
 
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = build
 
-# Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCE)

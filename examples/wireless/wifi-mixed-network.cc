@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016 Sébastien Deronne
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -37,62 +19,31 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This example shows how to configure mixed networks (i.e. mixed b/g and
-// HT/non-HT) and how are performance in several scenarios.
-//
-// The example compares first g only and mixed b/g cases with various
-// configurations depending on the following parameters:
-// - protection mode that is configured on the AP;
-// - whether short PPDU format is supported by the 802.11b station;
-// - whether short slot time is supported by both the 802.11g station and the
-// AP.
-//
-// The example then compares HT only and mixed HT/non-HT cases.
-//
-// The output results show that the presence of an 802.11b station strongly
-// affects 802.11g performance. Protection mechanisms ensure that the NAV value
-// of 802.11b stations is set correctly in case of 802.11g transmissions. In
-// practice, those protection mechanism add a lot of overhead, resulting in
-// reduced performance. CTS-To-Self introduces less overhead than Rts-Cts, but
-// is not heard by hidden stations (and is thus generally only recommended as a
-// protection mechanism for access points). Since short slot time is disabled
-// once an 802.11b station enters the network, benefits from short slot time are
-// only observed in a g only configuration.
-//
-// The user can also select the payload size and can choose either an UDP or a
-// TCP connection. Example: ./ns3 run "wifi-mixed-network --isUdp=1"
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("MixedNetwork");
 
-/** Parameters */
 struct Parameters {
-  std::string testName;          //!< Test name
-  bool enableErpProtection;      //!< True to enable ERP protection
-  std::string erpProtectionMode; //!< ERP protection mode
-  bool enableShortSlotTime;      //!< True to enable short slot time
-  bool enableShortPhyPreamble;   //!< True to enable short PHY preamble
-  WifiStandard apType;           //!< Wifi standard for AP
-  uint32_t nWifiB;               //!< Number of 802.11b stations
-  bool bHasTraffic;              //!< True if 802.11b stations generate traffic
-  uint32_t nWifiG;               //!< Number of 802.11g stations
-  bool gHasTraffic;              //!< True if 802.11g stations generate traffic
-  uint32_t nWifiN;               //!< Number of 802.11n stations
-  bool nHasTraffic;              //!< True if 802.11n stations generate traffic
-  bool isUdp;                    //!< True to generate UDP traffic
-  uint32_t payloadSize;          //!< Payload size in bytes
-  double simulationTime;         //!< Simulation time in seconds
+  std::string testName;
+  bool enableErpProtection;
+  std::string erpProtectionMode;
+  bool enableShortSlotTime;
+  bool enableShortPhyPreamble;
+  WifiStandard apType;
+  uint32_t nWifiB;
+  bool bHasTraffic;
+  uint32_t nWifiG;
+  bool gHasTraffic;
+  uint32_t nWifiN;
+  bool nHasTraffic;
+  bool isUdp;
+  uint32_t payloadSize;
+  double simulationTime;
 };
 
 class Experiment {
 public:
   Experiment();
-  /**
-   * Run an experiment with the given parameters
-   * \param params the given parameters
-   * \return the throughput
-   */
   double Run(Parameters params);
 };
 
@@ -146,7 +97,6 @@ double Experiment::Run(Parameters params) {
   WifiHelper wifi;
   wifi.SetRemoteStationManager("ns3::IdealWifiManager");
 
-  // 802.11b STA
   wifi.SetStandard(WIFI_STANDARD_80211b);
 
   WifiMacHelper mac;
@@ -156,19 +106,16 @@ double Experiment::Run(Parameters params) {
               "ShortSlotTimeSupported",
               BooleanValue(params.enableShortSlotTime));
 
-  // Configure the PHY preamble type: long or short
   phy.Set("ShortPlcpPreambleSupported",
           BooleanValue(params.enableShortPhyPreamble));
 
   NetDeviceContainer bStaDevice;
   bStaDevice = wifi.Install(phy, mac, wifiBStaNodes);
 
-  // 802.11b/g STA
   wifi.SetStandard(WIFI_STANDARD_80211g);
   NetDeviceContainer gStaDevice;
   gStaDevice = wifi.Install(phy, mac, wifiGStaNodes);
 
-  // 802.11b/g/n STA
   wifi.SetStandard(WIFI_STANDARD_80211n);
   NetDeviceContainer nStaDevice;
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid),
@@ -177,7 +124,6 @@ double Experiment::Run(Parameters params) {
               BooleanValue(params.enableShortSlotTime));
   nStaDevice = wifi.Install(phy, mac, wifiNStaNodes);
 
-  // AP
   NetDeviceContainer apDevice;
   wifi.SetStandard(params.apType);
   mac.SetType(
@@ -187,7 +133,6 @@ double Experiment::Run(Parameters params) {
       "ShortSlotTimeSupported", BooleanValue(params.enableShortSlotTime));
   apDevice = wifi.Install(phy, mac, wifiApNode);
 
-  // Set TXOP limit
   if (params.apType == WIFI_STANDARD_80211n) {
     Ptr<NetDevice> dev = wifiApNode.Get(0)->GetDevice(0);
     Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice>(dev);
@@ -209,9 +154,8 @@ double Experiment::Run(Parameters params) {
 
   Config::Set(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/BE_MaxAmpduSize",
-      UintegerValue(0)); // Disable A-MPDU
+      UintegerValue(0));
 
-  // Define mobility model
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -234,7 +178,6 @@ double Experiment::Run(Parameters params) {
   mobility.Install(wifiGStaNodes);
   mobility.Install(wifiNStaNodes);
 
-  // Internet stack
   InternetStackHelper stack;
   stack.Install(wifiApNode);
   stack.Install(wifiBStaNodes);
@@ -252,7 +195,6 @@ double Experiment::Run(Parameters params) {
   Ipv4InterfaceContainer ApInterface;
   ApInterface = address.Assign(apDevice);
 
-  // Setting applications
   if (params.isUdp) {
     uint16_t port = 9;
     UdpServerHelper server(port);
@@ -262,7 +204,7 @@ double Experiment::Run(Parameters params) {
 
     UdpClientHelper client(ApInterface.GetAddress(0), port);
     client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-    client.SetAttribute("Interval", TimeValue(Time("0.0002"))); // packets/s
+    client.SetAttribute("Interval", TimeValue(Time("0.0002")));
     client.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
     ApplicationContainer clientApps;
@@ -301,7 +243,7 @@ double Experiment::Run(Parameters params) {
     onoff.SetAttribute("OffTime",
                        StringValue("ns3::ConstantRandomVariable[Constant=0]"));
     onoff.SetAttribute("PacketSize", UintegerValue(payloadSize));
-    onoff.SetAttribute("DataRate", DataRateValue(150000000)); // bit/s
+    onoff.SetAttribute("DataRate", DataRateValue(150000000));
 
     AddressValue remoteAddress(
         InetSocketAddress(ApInterface.GetAddress(0), port));
@@ -346,10 +288,10 @@ int main(int argc, char *argv[]) {
   params.nWifiN = 0;
   params.nHasTraffic = false;
   params.isUdp = true;
-  params.payloadSize = 1472;  // bytes
-  params.simulationTime = 10; // seconds
+  params.payloadSize = 1472;
+  params.simulationTime = 10;
 
-  bool verifyResults = false; // used for regression
+  bool verifyResults = false;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("payloadSize", "Payload size in bytes", params.payloadSize);

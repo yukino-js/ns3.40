@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -33,48 +9,26 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpVegasTestSuite");
 
-/**
- * \brief TcpVegas congestion control algorithm test
- */
 class TcpVegasTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param ssThresh Slow Start Threshold.
-   * \param rtt The RTT.
-   * \param segmentsAcked Number of segments ACKed.
-   * \param nextTxSeq Next Tx sequence number.
-   * \param lastAckedSeq Last ACKed sequence number.
-   * \param name Test description.
-   */
   TcpVegasTest(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh, Time rtt,
                uint32_t segmentsAcked, SequenceNumber32 nextTxSeq,
                SequenceNumber32 lastAckedSeq, const std::string &name);
 
 private:
   void DoRun() override;
-  /**
-   * \brief Increases the TCP window.
-   * \param cong The congestion control.
-   */
   void IncreaseWindow(Ptr<TcpVegas> cong);
-  /**
-   * brief Get and check the SSH threshold.
-   * \param cong The congestion control.
-   */
   void GetSsThresh(Ptr<TcpVegas> cong);
 
-  uint32_t m_cWnd;                 //!< Congestion window.
-  uint32_t m_segmentSize;          //!< Segment size.
-  uint32_t m_ssThresh;             //!< Slow Start Threshold.
-  Time m_rtt;                      //!< RTT.
-  uint32_t m_segmentsAcked;        //!< Number of segments ACKed.
-  SequenceNumber32 m_nextTxSeq;    //!< Next Tx sequence number.
-  SequenceNumber32 m_lastAckedSeq; //!< Last ACKed sequence number.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_ssThresh;
+  Time m_rtt;
+  uint32_t m_segmentsAcked;
+  SequenceNumber32 m_nextTxSeq;
+  SequenceNumber32 m_lastAckedSeq;
 
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpVegasTest::TcpVegasTest(uint32_t cWnd, uint32_t segmentSize,
@@ -98,21 +52,16 @@ void TcpVegasTest::DoRun() {
 
   Ptr<TcpVegas> cong = CreateObject<TcpVegas>();
 
-  // Set baseRtt to 100 ms
   cong->PktsAcked(m_state, m_segmentsAcked, MilliSeconds(100));
 
-  // Re-set Vegas to assign a new value of minRtt
   cong->CongestionStateSet(m_state, TcpSocketState::CA_OPEN);
   cong->PktsAcked(m_state, m_segmentsAcked, m_rtt);
 
-  // 2 more calls to PktsAcked to increment cntRtt beyond 2
   cong->PktsAcked(m_state, m_segmentsAcked, m_rtt);
   cong->PktsAcked(m_state, m_segmentsAcked, m_rtt);
 
-  // Update cwnd using Vegas algorithm
   cong->IncreaseWindow(m_state, m_segmentsAcked);
 
-  // Our calculation of cwnd
   IncreaseWindow(cong);
 
   NS_TEST_ASSERT_MSG_EQ(m_state->m_cWnd.Get(), m_cWnd,
@@ -125,16 +74,13 @@ void TcpVegasTest::IncreaseWindow(Ptr<TcpVegas> cong) {
   Time baseRtt = MilliSeconds(100);
   uint32_t segCwnd = m_cWnd / m_segmentSize;
 
-  // Calculate expected throughput
   uint64_t expectedCwnd;
   expectedCwnd = (uint64_t)segCwnd * (double)baseRtt.GetMilliSeconds() /
                  (double)m_rtt.GetMilliSeconds();
 
-  // Calculate the difference between actual and expected throughput
   uint32_t diff;
   diff = segCwnd - expectedCwnd;
 
-  // Get the alpha,beta, and gamma attributes
   UintegerValue alpha;
   UintegerValue beta;
   UintegerValue gamma;
@@ -142,18 +88,16 @@ void TcpVegasTest::IncreaseWindow(Ptr<TcpVegas> cong) {
   cong->GetAttribute("Beta", beta);
   cong->GetAttribute("Gamma", gamma);
 
-  if (diff > gamma.Get() &&
-      (m_cWnd <
-       m_ssThresh)) { // Change from slow-start to linear increase/decrease mode
+  if (diff > gamma.Get() && (m_cWnd < m_ssThresh)) {
     segCwnd = std::min(segCwnd, (uint32_t)expectedCwnd + 1);
     m_cWnd = segCwnd * m_segmentSize;
     GetSsThresh(cong);
-  } else if (m_cWnd < m_ssThresh) { // Execute Reno slow start
+  } else if (m_cWnd < m_ssThresh) {
     if (m_segmentsAcked >= 1) {
       m_cWnd += m_segmentSize;
       m_segmentsAcked--;
     }
-  } else { // Linear increase/decrease mode
+  } else {
     if (diff > beta.Get()) {
       m_cWnd = (segCwnd - 1) * m_segmentSize;
       GetSsThresh(cong);
@@ -170,11 +114,6 @@ void TcpVegasTest::GetSsThresh(Ptr<TcpVegas> cong) {
       std::max(std::min(m_ssThresh, m_cWnd - m_segmentSize), 2 * m_segmentSize);
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Vegas TestSuite
- */
 class TcpVegasTestSuite : public TestSuite {
 public:
   TcpVegasTestSuite() : TestSuite("tcp-vegas-test", UNIT) {
@@ -208,5 +147,4 @@ public:
   }
 };
 
-static TcpVegasTestSuite
-    g_tcpVegasTest; //!< Static variable for test initialization
+static TcpVegasTestSuite g_tcpVegasTest;

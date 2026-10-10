@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Guangyu Pei <guangyu.pei@boeing.com>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -34,67 +16,24 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ClearChannelCmu");
 
-/**
- * WiFi clear channel cmu experiment class.
- *
- * It handles the creation and run of an experiment.
- */
 class Experiment {
 public:
   Experiment();
-  /**
-   * Constructor.
-   * \param name The name of the experiment.
-   */
   Experiment(std::string name);
-  /**
-   * Run an experiment.
-   * \param wifi      //!< The WifiHelper class.
-   * \param wifiPhy   //!< The YansWifiPhyHelper class.
-   * \param wifiMac   //!< The WifiMacHelper class.
-   * \param wifiChannel //!< The YansWifiChannelHelper class.
-   * \return the number of received packets.
-   */
   uint32_t Run(const WifiHelper &wifi, const YansWifiPhyHelper &wifiPhy,
                const WifiMacHelper &wifiMac,
                const YansWifiChannelHelper &wifiChannel);
 
 private:
-  /**
-   * Receive a packet.
-   * \param socket The receiving socket.
-   */
   void ReceivePacket(Ptr<Socket> socket);
-  /**
-   * Set the position of a node.
-   * \param node The node.
-   * \param position The position of the node.
-   */
   void SetPosition(Ptr<Node> node, Vector position);
-  /**
-   * Get the position of a node.
-   * \param node The node.
-   * \return the position of the node.
-   */
   Vector GetPosition(Ptr<Node> node);
-  /**
-   * Setup the receiving socket.
-   * \param node The receiving node.
-   * \return the socket.
-   */
   Ptr<Socket> SetupPacketReceive(Ptr<Node> node);
-  /**
-   * Generate the traffic.
-   * \param socket The sending socket.
-   * \param pktSize The packet size.
-   * \param pktCount The number of packets to send.
-   * \param pktInterval The time between packets.
-   */
   void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize, uint32_t pktCount,
                        Time pktInterval);
 
-  uint32_t m_pktsTotal;      //!< Total number of received packets
-  Gnuplot2dDataset m_output; //!< Output dataset.
+  uint32_t m_pktsTotal;
+  Gnuplot2dDataset m_output;
 };
 
 Experiment::Experiment() {}

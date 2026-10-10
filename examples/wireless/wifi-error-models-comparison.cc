@@ -1,28 +1,4 @@
-/*
- * Copyright (c) 2020 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Sébastien Deronne <sebastien.deronne@gmail.com>
- *          Rohan Patidar <rpatidar@uw.edu>
- */
 
-// This example is to show difference among Nist, Yans and Table-based error
-// rate models.
-//
-// It outputs plots of the Frame Error Rate versus the Signal-to-noise ratio for
-// Nist, Yans and Table-based error rate models and for MCS 0, 4 and 7 value.
 
 #include "ns3/command-line.h"
 #include "ns3/gnuplot.h"
@@ -37,7 +13,7 @@
 using namespace ns3;
 
 int main(int argc, char *argv[]) {
-  uint32_t size = 1500 * 8; // bits
+  uint32_t size = 1500 * 8;
   bool tableErrorModelEnabled = true;
   bool yansErrorModelEnabled = true;
   bool nistErrorModelEnabled = true;
@@ -99,19 +75,16 @@ int main(int argc, char *argv[]) {
 
       double ps = yans->GetChunkSuccessRate(wifiMode, txVector, snr, size);
       if (ps < 0 || ps > 1) {
-        // error
         exit(1);
       }
       yansdataset.Add(snrDb, 1 - ps);
       ps = nist->GetChunkSuccessRate(wifiMode, txVector, snr, size);
       if (ps < 0 || ps > 1) {
-        // error
         exit(1);
       }
       nistdataset.Add(snrDb, 1 - ps);
       ps = table->GetChunkSuccessRate(wifiMode, txVector, snr, size);
       if (ps < 0 || ps > 1) {
-        // error
         exit(1);
       }
       tabledataset.Add(snrDb, 1 - ps);

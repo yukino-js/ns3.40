@@ -1,20 +1,6 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 set(libs "${libs_to_build}")
 
-# Process the visualizer module first if enabled
 if(visualizer IN_LIST libs)
   if(${ENABLE_VISUALIZER})
     message(STATUS "Processing src/visualizer")
@@ -23,7 +9,6 @@ if(visualizer IN_LIST libs)
   list(REMOVE_ITEM libs visualizer)
 endif()
 
-# Process subdirectories
 foreach(libname ${libs})
   if(EXISTS ${PROJECT_SOURCE_DIR}/src/${libname}/CMakeLists.txt)
     message(STATUS "Processing src/${libname}")
@@ -36,19 +21,14 @@ foreach(libname ${libs})
   endif()
 endforeach()
 
-# Prevents link errors due to symbol collisions if the same library is linked
-# multiple times
 list(REMOVE_DUPLICATES ns3-external-libs)
 
-# Build the lib-ns3-static (ns3.x-static-buildtype.a/.lib) with all sublibraries
 if(${NS3_STATIC})
   add_library(
     ${lib-ns3-static} STATIC ${PROJECT_SOURCE_DIR}/build-support/empty.cc
                              "${lib-ns3-static-objs}"
   )
 
-  # Replace shared library suffix and check if static version exists before
-  # linking
   set(ns3-external-static-libs)
   foreach(sharedlib ${ns3-external-libs})
     if(NOT (${sharedlib} MATCHES ".so"))
@@ -66,7 +46,6 @@ if(${NS3_STATIC})
     endif()
   endforeach()
 
-  # Required by some static libraries, such as sqlite, for some odd reason
   if(LINUX)
     list(APPEND ns3-external-static-libs -ldl)
   endif()
@@ -80,8 +59,6 @@ if(${NS3_STATIC})
   endif()
 endif()
 
-# Build the lib-ns3 (ns3.x-monolib-buildtype.dll/.dylib/.so) with all
-# sublibraries
 if(${NS3_MONOLIB})
   add_library(
     ${lib-ns3-monolib} SHARED ${PROJECT_SOURCE_DIR}/build-support/empty.cc
@@ -91,7 +68,7 @@ if(${NS3_MONOLIB})
     ${lib-ns3-monolib}
     PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE
                RUNTIME_OUTPUT_DIRECTORY
-               ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} # set output directory for DLLs
+               ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
   )
   target_link_libraries(
     ${lib-ns3-monolib} ${LIB_AS_NEEDED_PRE} ${ns3-external-libs}

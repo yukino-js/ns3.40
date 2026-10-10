@@ -1,39 +1,4 @@
-/*
- * Copyright (c) 2022 Tokushima University, Japan
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Alberto Gallegos Ramonet <alramonet@is.tokushima-u.ac.jp>
- *          Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
-/*
-   This program produces a gnuplot file that plots the theoretical and
-   experimental packet error rate (PER) as a function of receive signal for the
-   802.15.4 model. As described by the standard, the PER is calculated with the
-   transmission of frames with a PSDU of 20 bytes. This is equivalent to an MPDU
-   = MAC header (11 bytes) + FCS (2 bytes) +  payload (MSDU 7 bytes). In the
-   experimental test, 1000 frames are transmitted for each Rx signal ranging
-   from -130 dBm to -100 dBm with increments of 0.01 dBm. The point before PER
-   is < 1 % is the device receive sensitivity. Theoretical and experimental Rx
-   sensitivity is printed at the end of the end and a plot is generated.
-
-   Example usage:
-
-   ./ns3 run "lr-wpan-per-plot --rxSensitivity=-92"
-
-*/
 
 #include <ns3/core-module.h>
 #include <ns3/gnuplot.h>
@@ -45,15 +10,10 @@
 
 using namespace ns3;
 
-uint32_t g_packetsReceived = 0; //!< number of packets received
+uint32_t g_packetsReceived = 0;
 
 NS_LOG_COMPONENT_DEFINE("LrWpanErrorDistancePlot");
 
-/**
- * Function called when a Data indication is invoked
- * \param params MCPS data indication parameters
- * \param p packet
- */
 void PacketReceivedCallback(McpsDataIndicationParams params, Ptr<Packet> p) {
   g_packetsReceived++;
 }
@@ -65,14 +25,14 @@ int main(int argc, char *argv[]) {
   std::ostringstream os;
   std::ofstream perfile("802.15.4-per-vs-rxSignal.plt");
 
-  double minRxSignal = -111; // dBm
-  double maxRxSignal = -82;  // dBm
+  double minRxSignal = -111;
+  double maxRxSignal = -82;
   double increment = 0.01;
   int maxPackets = 1000;
-  int packetSize = 7; // bytes (MPDU payload)
-  double txPower = 0; // dBm
+  int packetSize = 7;
+  double txPower = 0;
   uint32_t channelNumber = 11;
-  double rxSensitivity = -106.58; // dBm
+  double rxSensitivity = -106.58;
 
   CommandLine cmd(__FILE__);
 
@@ -116,16 +76,11 @@ int main(int argc, char *argv[]) {
       svh.CreateTxPowerSpectralDensity(txPower, channelNumber);
   dev0->GetPhy()->SetTxPowerSpectralDensity(psd);
 
-  // Set Rx sensitivity of the receiving device
   dev1->GetPhy()->SetRxSensitivity(rxSensitivity);
 
   McpsDataIndicationCallback cb0;
   cb0 = MakeCallback(&PacketReceivedCallback);
   dev1->GetMac()->SetMcpsDataIndicationCallback(cb0);
-
-  //////////////////////////////////
-  // Experimental  PER v.s Signal //
-  //////////////////////////////////
 
   double per = 1;
   double sensitivityExp = 0;
@@ -168,17 +123,9 @@ int main(int argc, char *argv[]) {
     g_packetsReceived = 0;
   }
 
-  /////////////////////////////////
-  // Theoretical PER v.s. Signal //
-  /////////////////////////////////
-
   Ptr<LrWpanErrorModel> lrWpanError = CreateObject<LrWpanErrorModel>();
   LrWpanSpectrumValueHelper psdHelper;
 
-  // Calculate the noise that accounts for both thermal noise (floor noise) and
-  // imperfections on the chip or lost before reaching the demodulator.
-  // In O-QPSK 250kbps, the point where PER is <= 1% without
-  // additional noise is -106.58 dBm (Noise Factor = 1)
   double maxRxSensitivityW = (pow(10.0, -106.58 / 10.0) / 1000.0);
   long double noiseFactor =
       (pow(10.0, rxSensitivity / 10.0) / 1000.0) / maxRxSensitivityW;
@@ -199,12 +146,9 @@ int main(int argc, char *argv[]) {
       sensitivityTheo = j;
     }
 
-    signal = pow(10.0, j / 10.0) / 1000.0; // signal in Watts
+    signal = pow(10.0, j / 10.0) / 1000.0;
     snr = signal / noise;
 
-    // According to the standard, Packet error rate should be obtained
-    // using a PSDU of 20 bytes using
-    // the equation PER = 1 - (1 - BER)^nbits
     perTheoretical =
         (1.0 - lrWpanError->GetChunkSuccessRate(snr, (packetSize + 13) * 8)) *
         100;

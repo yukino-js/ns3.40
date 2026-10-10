@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- *
- */
 
 #include "ns3/config.h"
 #include "ns3/data-rate.h"
@@ -39,23 +20,11 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Queue Disc Test Item
- */
 class QueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p the packet stored in this item
-   */
   QueueDiscTestItem(Ptr<Packet> p);
   ~QueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   QueueDiscTestItem() = delete;
   QueueDiscTestItem(const QueueDiscTestItem &) = delete;
   QueueDiscTestItem &operator=(const QueueDiscTestItem &) = delete;
@@ -73,60 +42,24 @@ void QueueDiscTestItem::AddHeader() {}
 
 bool QueueDiscTestItem::Mark() { return false; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Traffic Control Flow Control Test Case
- */
 class TcFlowControlTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param tt the test type
-   * \param deviceQueueLength the queue length of the device
-   * \param totalTxPackets the total number of packets to transmit
-   */
   TcFlowControlTestCase(QueueSizeUnit tt, uint32_t deviceQueueLength,
                         uint32_t totalTxPackets);
   ~TcFlowControlTestCase() override;
 
 private:
   void DoRun() override;
-  /**
-   * Instruct a node to send a specified number of packets
-   * \param n the node
-   * \param nPackets the number of packets to send
-   */
   void SendPackets(Ptr<Node> n, uint16_t nPackets);
-  /**
-   * Check if the device queue stores the expected number of packets
-   * \param dev the device
-   * \param nPackets the expected number of packets stored in the device queue
-   * \param msg the message to print if a different number of packets are stored
-   */
   void CheckPacketsInDeviceQueue(Ptr<NetDevice> dev, uint16_t nPackets,
                                  const std::string msg);
-  /**
-   * Check if the device queue is in the expected status (stopped or not)
-   * \param dev the device
-   * \param value the expected status of the queue (true means stopped)
-   * \param msg the message to print if the status of the device queue is
-   * different
-   */
   void CheckDeviceQueueStopped(Ptr<NetDevice> dev, bool value,
                                const std::string msg);
-  /**
-   * Check if the queue disc stores the expected number of packets
-   * \param dev the device the queue disc is installed on
-   * \param nPackets the expected number of packets stored in the queue disc
-   * \param msg the message to print if a different number of packets are stored
-   */
   void CheckPacketsInQueueDisc(Ptr<NetDevice> dev, uint16_t nPackets,
                                const std::string msg);
-  QueueSizeUnit m_type;         //!< the test type
-  uint32_t m_deviceQueueLength; //!< the queue length of the device
-  uint32_t m_totalTxPackets;    //!< the toal number of packets to transmit
+  QueueSizeUnit m_type;
+  uint32_t m_deviceQueueLength;
+  uint32_t m_totalTxPackets;
 };
 
 TcFlowControlTestCase::TcFlowControlTestCase(QueueSizeUnit tt,
@@ -199,27 +132,10 @@ void TcFlowControlTestCase::DoRun() {
   TrafficControlHelper tch = TrafficControlHelper::Default();
   tch.Install(txDev);
 
-  // transmit 10 packets at time 0
   Simulator::Schedule(Time(Seconds(0)), &TcFlowControlTestCase::SendPackets,
                       this, n.Get(0), m_totalTxPackets);
 
   if (m_type == QueueSizeUnit::PACKETS) {
-    /*
-     * When the device queue is in packet mode, all the packets enqueued in the
-     * queue disc are correctly transmitted, even if the device queue is stopped
-     * when the last packet is received from the upper layers
-     *
-     * We have the following invariants:
-     *  - totalPackets = txPackets + deviceQueuePackets + qdiscPackets
-     *  - deviceQueuePackets = MIN(totalPackets - txPackets, deviceQueueLen)
-     *  - qdiscPackets = MAX(totalPackets - txPackets - deviceQueuePackets, 0)
-     *
-     * The transmission of each packet takes 1000B/1Mbps = 8ms
-     *
-     * We check the values of deviceQueuePackets and qdiscPackets 1ms after each
-     * packet is transmitted (i.e. at 1ms, 9ms, 17ms, ...), as well as verifying
-     * that the device queue is stopped or not, as appropriate.
-     */
 
     uint32_t checkTimeMs = 0;
     uint32_t deviceQueuePackets = 0;
@@ -227,8 +143,7 @@ void TcFlowControlTestCase::DoRun() {
 
     uint32_t txPackets = 0;
     for (txPackets = 1; txPackets <= m_totalTxPackets; txPackets++) {
-      checkTimeMs =
-          8 * (txPackets - 1) + 1; // Check 1ms after each packet is sent
+      checkTimeMs = 8 * (txPackets - 1) + 1;
       deviceQueuePackets =
           std::min(m_totalTxPackets - txPackets, m_deviceQueueLength);
       qdiscPackets = std::max(m_totalTxPackets - txPackets - deviceQueuePackets,
@@ -263,16 +178,7 @@ void TcFlowControlTestCase::DoRun() {
                               std::to_string(checkTimeMs) + "ms");
     }
   } else {
-    // TODO: Make this test parametric as well, and add new test cases
-    /*
-     * When the device queue is in byte mode, all the packets enqueued in the
-     * queue disc are correctly transmitted, even if the device queue is stopped
-     * when the last packet is received from the upper layers
-     */
 
-    // The transmission of each packet takes 1000B/1Mbps = 8ms
-    // After 1ms, we have 3 packets in the device queue (stopped) and 6 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(1)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -284,8 +190,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(1)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 6, "There must be 6 packets in the queue disc after 1ms");
 
-    // After 9ms, we have 3 packets in the device queue (stopped) and 5 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(9)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -297,8 +201,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(9)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 5, "There must be 5 packets in the queue disc after 9ms");
 
-    // After 17ms, we have 3 packets in the device queue (stopped) and 4 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(17)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -310,8 +212,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(17)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 4, "There must be 4 packets in the queue disc after 17ms");
 
-    // After 25ms, we have 3 packets in the device queue (stopped) and 3 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(25)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -323,8 +223,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(25)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 3, "There must be 3 packets in the queue disc after 25ms");
 
-    // After 33ms, we have 3 packets in the device queue (stopped) and 2 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(33)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -336,8 +234,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(33)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 2, "There must be 2 packets in the queue disc after 33ms");
 
-    // After 41ms, we have 3 packets in the device queue (stopped) and 1 in the
-    // queue disc
     Simulator::Schedule(
         Time(MilliSeconds(41)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -349,8 +245,6 @@ void TcFlowControlTestCase::DoRun() {
         Time(MilliSeconds(41)), &TcFlowControlTestCase::CheckPacketsInQueueDisc,
         this, txDev, 1, "There must be 1 packet in the queue disc after 41ms");
 
-    // After 49ms, we have 3 packets in the device queue (stopped) and the queue
-    // disc is empty
     Simulator::Schedule(
         Time(MilliSeconds(49)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 3,
@@ -362,8 +256,6 @@ void TcFlowControlTestCase::DoRun() {
                         &TcFlowControlTestCase::CheckPacketsInQueueDisc, this,
                         txDev, 0, "The queue disc must be empty after 49ms");
 
-    // After 57ms, we have 2 packets in the device queue (not stopped) and the
-    // queue disc is empty
     Simulator::Schedule(
         Time(MilliSeconds(57)),
         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this, txDev, 2,
@@ -375,8 +267,6 @@ void TcFlowControlTestCase::DoRun() {
                         &TcFlowControlTestCase::CheckPacketsInQueueDisc, this,
                         txDev, 0, "The queue disc must be empty after 57ms");
 
-    // After 81ms, all packets must have been transmitted (the device queue and
-    // the queue disc are empty)
     Simulator::Schedule(Time(MilliSeconds(81)),
                         &TcFlowControlTestCase::CheckPacketsInDeviceQueue, this,
                         txDev, 0, "The device queue must be empty after 81ms");
@@ -392,11 +282,6 @@ void TcFlowControlTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Traffic Control Flow Control Test Suite
- */
 static class TcFlowControlTestSuite : public TestSuite {
 public:
   TcFlowControlTestSuite() : TestSuite("tc-flow-control", UNIT) {
@@ -419,9 +304,7 @@ public:
     AddTestCase(new TcFlowControlTestCase(QueueSizeUnit::PACKETS, 5, 1),
                 TestCase::QUICK);
 
-    // TODO: Right now, this test only works for 5000B and 10 packets (it's hard
-    // coded). Should also be made parametric.
     AddTestCase(new TcFlowControlTestCase(QueueSizeUnit::BYTES, 5000, 10),
                 TestCase::QUICK);
   }
-} g_tcFlowControlTestSuite; ///< the test suite
+} g_tcFlowControlTestSuite;

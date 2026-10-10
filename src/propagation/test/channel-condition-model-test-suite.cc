@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2019 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/channel-condition-model.h"
@@ -30,57 +13,28 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ChannelConditionModelsTest");
 
-/**
- * \ingroup propagation-tests
- *
- * Test case for the 3GPP channel condition models. It determines the
- * channel condition multiple times, estimates the LOS probability and
- * compares it with the value given by the formulas in 3GPP TR 38.901,
- * Table Table 7.4.2-1.
- */
 class ThreeGppChannelConditionModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   ThreeGppChannelConditionModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~ThreeGppChannelConditionModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Evaluates the channel condition between two nodes by calling the method
-   * GetChannelCondition on m_condModel. If the channel condition is LOS it
-   * increments m_numLos
-   * \param a the mobility model of the first node
-   * \param b the mobility model of the second node
-   */
   void EvaluateChannelCondition(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA; //!< the position of the first node
-    Vector m_positionB; //!< the position of the second node
-    double m_pLos;      //!< LOS probability
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    double m_pLos;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
-  Ptr<ThreeGppChannelConditionModel>
-      m_condModel;    //!< the channel condition model
-  uint64_t m_numLos;  //!< the number of LOS occurrences
-  double m_tolerance; //!< tolerance
+  TestVectors<TestVector> m_testVectors;
+  Ptr<ThreeGppChannelConditionModel> m_condModel;
+  uint64_t m_numLos;
+  double m_tolerance;
 };
 
 ThreeGppChannelConditionModelTestCase::ThreeGppChannelConditionModelTestCase()
@@ -100,10 +54,8 @@ void ThreeGppChannelConditionModelTestCase::EvaluateChannelCondition(
 }
 
 void ThreeGppChannelConditionModelTestCase::DoRun() {
-  // create the test vector
   TestVector testVector;
 
-  // tests for the RMa scenario
   testVector.m_positionA = Vector(0, 0, 35.0);
   testVector.m_positionB = Vector(10, 0, 1.5);
   testVector.m_pLos = 1;
@@ -122,7 +74,6 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppRmaChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // tests for the UMa scenario
   testVector.m_positionA = Vector(0, 0, 25.0);
   testVector.m_positionB = Vector(18, 0, 1.5);
   testVector.m_pLos = 1;
@@ -159,7 +110,6 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppUmaChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // tests for the UMi-Street Canyon scenario
   testVector.m_positionA = Vector(0, 0, 10.0);
   testVector.m_positionB = Vector(18, 0, 1.5);
   testVector.m_pLos = 1;
@@ -183,7 +133,6 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
       ThreeGppUmiStreetCanyonChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // tests for the Indoor Mixed Office scenario
   testVector.m_positionA = Vector(0, 0, 2.0);
   testVector.m_positionB = Vector(1.2, 0, 1.5);
   testVector.m_pLos = 1;
@@ -205,7 +154,6 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
       ThreeGppIndoorMixedOfficeChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // tests for the Indoor Open Office scenario
   testVector.m_positionA = Vector(0, 0, 3.0);
   testVector.m_positionB = Vector(5, 0, 1.5);
   testVector.m_pLos = 1;
@@ -227,31 +175,24 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
       ThreeGppIndoorOpenOfficeChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // create the two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // create the mobility models
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
 
-  // aggregate the nodes and the mobility models
   nodes.Get(0)->AggregateObject(a);
   nodes.Get(1)->AggregateObject(b);
 
-  // Get the channel condition multiple times and compute the LOS probability
   uint32_t numberOfReps = 500000;
   for (uint32_t i = 0; i < m_testVectors.GetN(); ++i) {
     testVector = m_testVectors.Get(i);
 
-    // set the distance between the two nodes
     a->SetPosition(testVector.m_positionA);
     b->SetPosition(testVector.m_positionB);
 
-    // create the channel condition model
     condModelFactory.SetTypeId(testVector.m_typeId);
     m_condModel = condModelFactory.Create<ThreeGppChannelConditionModel>();
     m_condModel->SetAttribute("UpdatePeriod", TimeValue(MilliSeconds(9)));
@@ -278,11 +219,6 @@ void ThreeGppChannelConditionModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup propagation-tests
- *
- * Test suite for the channel condition models
- */
 class ChannelConditionModelsTestSuite : public TestSuite {
 public:
   ChannelConditionModelsTestSuite();
@@ -293,5 +229,4 @@ ChannelConditionModelsTestSuite::ChannelConditionModelsTestSuite()
   AddTestCase(new ThreeGppChannelConditionModelTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static ChannelConditionModelsTestSuite g_channelConditionModelsTestSuite;

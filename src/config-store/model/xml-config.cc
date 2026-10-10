@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@cutebugs.net>
- */
 
 #include "xml-config.h"
 
@@ -45,7 +27,6 @@ void XmlConfigSave::SetFilename(std::string filename) {
   }
   int rc;
 
-  /* Create a new XmlWriter for uri, with no compression. */
   m_writer = xmlNewTextWriterFilename(filename.c_str(), 0);
   if (m_writer == nullptr) {
     NS_FATAL_ERROR("Error creating the XML writer");
@@ -54,16 +35,11 @@ void XmlConfigSave::SetFilename(std::string filename) {
   if (rc < 0) {
     NS_FATAL_ERROR("Error at xmlTextWriterSetIndent");
   }
-  /* Start the document with the XML default for the version,
-   * encoding utf-8 and the default for the standalone
-   * declaration. */
   rc = xmlTextWriterStartDocument(m_writer, nullptr, "utf-8", nullptr);
   if (rc < 0) {
     NS_FATAL_ERROR("Error at xmlTextWriterStartDocument");
   }
 
-  /* Start an element named "ns3". Since this is the first
-   * element, this will be the root element of the document. */
   rc = xmlTextWriterStartElement(m_writer, BAD_CAST "ns3");
   if (rc < 0) {
     NS_FATAL_ERROR("Error at xmlTextWriterStartElement\n");
@@ -76,10 +52,6 @@ XmlConfigSave::~XmlConfigSave() {
     return;
   }
   int rc;
-  /* Here we could close the remaining elements using the
-   * function xmlTextWriterEndElement, but since we do not want to
-   * write any other elements, we simply call xmlTextWriterEndDocument,
-   * which will do all the work. */
   rc = xmlTextWriterEndDocument(m_writer);
   if (rc < 0) {
     NS_FATAL_ERROR("Error at xmlTextWriterEndDocument\n");

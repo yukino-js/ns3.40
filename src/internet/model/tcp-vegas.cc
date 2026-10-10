@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "tcp-vegas.h"
 
@@ -86,7 +62,6 @@ void TcpVegas::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
   m_baseRtt = std::min(m_baseRtt, rtt);
   NS_LOG_DEBUG("Updated m_baseRtt = " << m_baseRtt);
 
-  // Update RTT counter
   m_cntRtt++;
   NS_LOG_DEBUG("Updated m_cntRtt = " << m_cntRtt);
 }
@@ -120,67 +95,36 @@ void TcpVegas::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
   NS_LOG_FUNCTION(this << tcb << segmentsAcked);
 
   if (!m_doingVegasNow) {
-    // If Vegas is not on, we follow NewReno algorithm
     NS_LOG_LOGIC("Vegas is not turned on, we follow NewReno algorithm.");
     TcpNewReno::IncreaseWindow(tcb, segmentsAcked);
     return;
   }
 
-  if (tcb->m_lastAckedSeq >= m_begSndNxt) { // A Vegas cycle has finished, we do
-                                            // Vegas cwnd adjustment every RTT.
+  if (tcb->m_lastAckedSeq >= m_begSndNxt) {
 
     NS_LOG_LOGIC("A Vegas cycle has finished, we adjust cwnd once per RTT.");
 
-    // Save the current right edge for next Vegas cycle
     m_begSndNxt = tcb->m_nextTxSequence;
 
-    /*
-     * We perform Vegas calculations only if we got enough RTT samples to
-     * insure that at least 1 of those samples wasn't from a delayed ACK.
-     */
-    if (m_cntRtt <=
-        2) { // We do not have enough RTT samples, so we should behave like Reno
+    if (m_cntRtt <= 2) {
       NS_LOG_LOGIC("We do not have enough RTT samples to do Vegas, so we "
                    "behave like NewReno.");
       TcpNewReno::IncreaseWindow(tcb, segmentsAcked);
     } else {
       NS_LOG_LOGIC("We have enough RTT samples to perform Vegas calculations");
-      /*
-       * We have enough RTT samples to perform Vegas algorithm.
-       * Now we need to determine if cwnd should be increased or decreased
-       * based on the calculated difference between the expected rate and actual
-       * sending rate and the predefined thresholds (alpha, beta, and gamma).
-       */
       uint32_t diff;
       uint32_t targetCwnd;
       uint32_t segCwnd = tcb->GetCwndInSegments();
 
-      /*
-       * Calculate the cwnd we should have. baseRtt is the minimum RTT
-       * per-connection, minRtt is the minimum RTT in this window
-       *
-       * little trick:
-       * desidered throughput is currentCwnd * baseRtt
-       * target cwnd is throughput / minRtt
-       */
       double tmp = m_baseRtt.GetSeconds() / m_minRtt.GetSeconds();
       targetCwnd = static_cast<uint32_t>(segCwnd * tmp);
       NS_LOG_DEBUG("Calculated targetCwnd = " << targetCwnd);
-      NS_ASSERT(segCwnd >= targetCwnd); // implies baseRtt <= minRtt
+      NS_ASSERT(segCwnd >= targetCwnd);
 
-      /*
-       * Calculate the difference between the expected cWnd and
-       * the actual cWnd
-       */
       diff = segCwnd - targetCwnd;
       NS_LOG_DEBUG("Calculated diff = " << diff);
 
       if (diff > m_gamma && (tcb->m_cWnd < tcb->m_ssThresh)) {
-        /*
-         * We are going too fast. We need to slow down and change from
-         * slow-start to linear increase/decrease mode by setting cwnd
-         * to target cwnd. We add 1 because of the integer truncation.
-         */
         NS_LOG_LOGIC("We are going too fast. We need to slow down and "
                      "change to linear increase/decrease mode.");
         segCwnd = std::min(segCwnd, targetCwnd + 1);
@@ -188,14 +132,13 @@ void TcpVegas::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
         tcb->m_ssThresh = GetSsThresh(tcb, 0);
         NS_LOG_DEBUG("Updated cwnd = " << tcb->m_cWnd
                                        << " ssthresh=" << tcb->m_ssThresh);
-      } else if (tcb->m_cWnd < tcb->m_ssThresh) { // Slow start mode
+      } else if (tcb->m_cWnd < tcb->m_ssThresh) {
         NS_LOG_LOGIC("We are in slow start and diff < m_gamma, so we "
                      "follow NewReno slow start");
         TcpNewReno::SlowStart(tcb, segmentsAcked);
-      } else { // Linear increase/decrease mode
+      } else {
         NS_LOG_LOGIC("We are in linear increase/decrease mode");
         if (diff > m_beta) {
-          // We are going too fast, so we slow down
           NS_LOG_LOGIC(
               "We are going too fast, so we slow down by decrementing cwnd");
           segCwnd--;
@@ -204,8 +147,6 @@ void TcpVegas::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
           NS_LOG_DEBUG("Updated cwnd = " << tcb->m_cWnd
                                          << " ssthresh=" << tcb->m_ssThresh);
         } else if (diff < m_alpha) {
-          // We are going too slow (having too little data in the network),
-          // so we speed up.
           NS_LOG_LOGIC(
               "We are going too slow, so we speed up by incrementing cwnd");
           segCwnd++;
@@ -213,7 +154,6 @@ void TcpVegas::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
           NS_LOG_DEBUG("Updated cwnd = " << tcb->m_cWnd
                                          << " ssthresh=" << tcb->m_ssThresh);
         } else {
-          // We are going at the right speed
           NS_LOG_LOGIC("We are sending at the right speed");
         }
       }
@@ -221,7 +161,6 @@ void TcpVegas::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
       NS_LOG_DEBUG("Updated ssThresh = " << tcb->m_ssThresh);
     }
 
-    // Reset cntRtt & minRtt every RTT
     m_cntRtt = 0;
     m_minRtt = Time::Max();
   } else if (tcb->m_cWnd < tcb->m_ssThresh) {

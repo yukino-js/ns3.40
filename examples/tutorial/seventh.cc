@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "tutorial-app.h"
 
@@ -42,51 +15,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("SeventhScriptExample");
 
-// ===========================================================================
-//
-//         node 0                 node 1
-//   +----------------+    +----------------+
-//   |    ns-3 TCP    |    |    ns-3 TCP    |
-//   +----------------+    +----------------+
-//   |    10.1.1.1    |    |    10.1.1.2    |
-//   +----------------+    +----------------+
-//   | point-to-point |    | point-to-point |
-//   +----------------+    +----------------+
-//           |                     |
-//           +---------------------+
-//                5 Mbps, 2 ms
-//
-//
-// We want to look at changes in the ns-3 TCP congestion window.  We need
-// to crank up a flow and hook the CongestionWindow attribute on the socket
-// of the sender.  Normally one would use an on-off application to generate a
-// flow, but this has a couple of problems.  First, the socket of the on-off
-// application is not created until Application Start time, so we wouldn't be
-// able to hook the socket (now) at configuration time.  Second, even if we
-// could arrange a call after start time, the socket is not public so we
-// couldn't get at it.
-//
-// So, we can cook up a simple version of the on-off application that does what
-// we want.  On the plus side we don't need all of the complexity of the on-off
-// application.  On the minus side, we don't have a helper, so we have to get
-// a little more involved in the details, but this is trivial.
-//
-// So first, we create a socket and do the trace connect on it; then we pass
-// this socket into the constructor of our simple application which we then
-// install in the source node.
-//
-// NOTE: If this example gets modified, do not forget to update the .png figure
-// in src/stats/docs/seventh-packet-byte-count.png
-// ===========================================================================
-//
-
-/**
- * Congestion window change callback
- *
- * \param stream The output stream file.
- * \param oldCwnd Old congestion window.
- * \param newCwnd New congestion window.
- */
 static void CwndChange(Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd,
                        uint32_t newCwnd) {
   NS_LOG_UNCOND(Simulator::Now().GetSeconds() << "\t" << newCwnd);
@@ -94,12 +22,6 @@ static void CwndChange(Ptr<OutputStreamWrapper> stream, uint32_t oldCwnd,
                        << "\t" << newCwnd << std::endl;
 }
 
-/**
- * Rx drop callback
- *
- * \param file The output PCAP file.
- * \param p The dropped packet.
- */
 static void RxDrop(Ptr<PcapFileWrapper> file, Ptr<const Packet> p) {
   NS_LOG_UNCOND("RxDrop at " << Simulator::Now().GetSeconds());
   file->Write(Simulator::Now(), p);
@@ -178,35 +100,22 @@ int main(int argc, char *argv[]) {
   devices.Get(1)->TraceConnectWithoutContext("PhyRxDrop",
                                              MakeBoundCallback(&RxDrop, file));
 
-  // Use GnuplotHelper to plot the packet byte count over time
   GnuplotHelper plotHelper;
 
-  // Configure the plot.  The first argument is the file name prefix
-  // for the output files generated.  The second, third, and fourth
-  // arguments are, respectively, the plot title, x-axis, and y-axis labels
   plotHelper.ConfigurePlot("seventh-packet-byte-count",
                            "Packet Byte Count vs. Time", "Time (Seconds)",
                            "Packet Byte Count");
 
-  // Specify the probe type, trace source path (in configuration namespace), and
-  // probe output trace source ("OutputBytes") to plot.  The fourth argument
-  // specifies the name of the data series label on the plot.  The last
-  // argument formats the plot by specifying where the key should be placed.
   plotHelper.PlotProbe(probeType, tracePath, "OutputBytes", "Packet Byte Count",
                        GnuplotAggregator::KEY_BELOW);
 
-  // Use FileHelper to write out the packet byte count over time
   FileHelper fileHelper;
 
-  // Configure the file to be written, and the formatting of output data.
   fileHelper.ConfigureFile("seventh-packet-byte-count",
                            FileAggregator::FORMATTED);
 
-  // Set the labels for this formatted output file.
   fileHelper.Set2dFormat("Time (Seconds) = %.3e\tPacket Byte Count = %.0f");
 
-  // Specify the probe type, trace source path (in configuration namespace), and
-  // probe output trace source ("OutputBytes") to write.
   fileHelper.WriteProbe(probeType, tracePath, "OutputBytes");
 
   Simulator::Stop(Seconds(20));

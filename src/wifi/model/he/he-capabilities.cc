@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "he-capabilities.h"
 
@@ -86,26 +68,15 @@ void HeCapabilities::Print(std::ostream &os) const {
      << +GetHePhyCapabilitiesInfo3() << "|" << GetSupportedMcsAndNss();
 }
 
-uint16_t HeCapabilities::GetInformationFieldSize() const {
-  // IEEE 802.11ax-2021 9.4.2.248 HE Capabilities element
-  // Element ID Extension (1) + HE MAC Capabilities Information (6)
-  // + HE PHY Capabilities Information (11) + Supported HE-MCS And NSS Set (4)
-  // TODO: Supported HE-MCS And NSS Set field has variable length (4, 8 or 12)
-  // TODO: PPE Thresholds field (optional) is not implemented
-  return 22;
-}
+uint16_t HeCapabilities::GetInformationFieldSize() const { return 22; }
 
 void HeCapabilities::SerializeInformationField(Buffer::Iterator start) const {
-  // write the corresponding value for each bit
   start.WriteHtolsbU32(GetHeMacCapabilitiesInfo1());
   start.WriteHtolsbU16(GetHeMacCapabilitiesInfo2());
   start.WriteHtolsbU64(GetHePhyCapabilitiesInfo1());
   start.WriteHtolsbU16(GetHePhyCapabilitiesInfo2());
   start.WriteU8(GetHePhyCapabilitiesInfo3());
   start.WriteHtolsbU32(GetSupportedMcsAndNss());
-  // TODO: add another 32-bits field if 160 MHz channel is supported (variable
-  // length)
-  // TODO: optional PPE Threshold field (variable length)
 }
 
 uint16_t HeCapabilities::DeserializeInformationField(Buffer::Iterator start,
@@ -121,9 +92,6 @@ uint16_t HeCapabilities::DeserializeInformationField(Buffer::Iterator start,
   SetHePhyCapabilitiesInfo(phyCapabilities1, phyCapabilities2,
                            phyCapabilities3);
   SetSupportedMcsAndNss(mcsset);
-  // TODO: add another 32-bits field if 160 MHz channel is supported (variable
-  // length)
-  // TODO: optional PPE Threshold field (variable length)
   return length;
 }
 
@@ -144,8 +112,6 @@ void HeCapabilities::SetHeMacCapabilitiesInfo(uint32_t ctrl1, uint16_t ctrl2) {
   m_32bitBaBitmapSupport = (ctrl1 >> 21) & 0x01;
   m_muCascadeSupport = (ctrl1 >> 22) & 0x01;
   m_ackEnabledAggregationSupport = (ctrl1 >> 23) & 0x01;
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bit 24 is reserved
   m_omControlSupport = (ctrl1 >> 25) & 0x01;
   m_ofdmaRaSupport = (ctrl1 >> 26) & 0x01;
   m_maxAmpduLengthExponent = (ctrl1 >> 27) & 0x03;
@@ -186,8 +152,6 @@ uint32_t HeCapabilities::GetHeMacCapabilitiesInfo1() const {
   val |= (m_32bitBaBitmapSupport & 0x01) << 21;
   val |= (m_muCascadeSupport & 0x01) << 22;
   val |= (m_ackEnabledAggregationSupport & 0x01) << 23;
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bit 24 is reserved
   val |= (m_omControlSupport & 0x01) << 25;
   val |= (m_ofdmaRaSupport & 0x01) << 26;
   val |= (m_maxAmpduLengthExponent & 0x03) << 27;
@@ -218,8 +182,6 @@ uint16_t HeCapabilities::GetHeMacCapabilitiesInfo2() const {
 
 void HeCapabilities::SetHePhyCapabilitiesInfo(uint64_t ctrl1, uint16_t ctrl2,
                                               uint8_t ctrl3) {
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bit 0 is reserved
   m_channelWidthSet = (ctrl1 >> 1) & 0x7f;
   m_puncturedPreambleRx = (ctrl1 >> 8) & 0x0f;
   m_deviceClass = (ctrl1 >> 12) & 0x01;
@@ -276,14 +238,10 @@ void HeCapabilities::SetHePhyCapabilitiesInfo(uint64_t ctrl1, uint16_t ctrl2,
   m_rxFullBwSuInHeMuNonCompressedSigB = (ctrl2 >> 13) & 0x01;
   m_nominalPacketPadding = (ctrl2 >> 14) & 0x03;
   m_maxHeLtfRxInHeMuMoreThanOneRu = ctrl3 & 0x01;
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bits 81-87 are reserved
 }
 
 uint64_t HeCapabilities::GetHePhyCapabilitiesInfo1() const {
   uint64_t val = 0;
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bit 0 is reserved
   val |= (m_channelWidthSet & 0x7f) << 1;
   val |= (m_puncturedPreambleRx & 0x0f) << 8;
   val |= (m_deviceClass & 0x01) << 12;
@@ -359,8 +317,6 @@ uint16_t HeCapabilities::GetHePhyCapabilitiesInfo2() const {
 uint8_t HeCapabilities::GetHePhyCapabilitiesInfo3() const {
   uint8_t val = 0;
   val |= m_maxHeLtfRxInHeMuMoreThanOneRu & 0x01;
-  // IEEE 802.11ax-2021 9.4.2.248.2 HE MAC Capabilities
-  // Bits 81-87 are reserved
   return val;
 }
 
@@ -375,7 +331,6 @@ void HeCapabilities::SetSupportedMcsAndNss(uint16_t ctrl) {
   for (i = 0; i < 5; i++) {
     m_rxBwMap[i] = (ctrl >> (11 + i)) & 0x01;
   }
-  // TODO: MCS NSS Descriptors
 }
 
 uint16_t HeCapabilities::GetSupportedMcsAndNss() const {
@@ -389,11 +344,8 @@ uint16_t HeCapabilities::GetSupportedMcsAndNss() const {
   for (i = 0; i < 5; i++) {
     val |= (m_rxBwMap[i] & 0x01) << (11 + 1);
   }
-  // TODO: MCS NSS Descriptors
   return val;
 }
-
-// TODO: PPE threshold
 
 bool HeCapabilities::IsSupportedTxMcs(uint8_t mcs) const {
   NS_ASSERT(mcs >= 0 && mcs <= 11);

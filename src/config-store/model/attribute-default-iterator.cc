@@ -1,34 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- *  This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Faker Moatamri <faker.moatamri@sophia.inria.fr>
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "attribute-default-iterator.h"
 
@@ -53,45 +23,35 @@ void AttributeDefaultIterator::Iterate() {
     for (uint32_t j = 0; j < tid.GetAttributeN(); j++) {
       TypeId::AttributeInformation info = tid.GetAttribute(j);
       if (!(info.flags & TypeId::ATTR_CONSTRUCT)) {
-        // we can't construct the attribute, so, there is no
-        // initial value for the attribute
         continue;
       }
-      // No accessor, go to next attribute
       if (!info.accessor) {
         continue;
       }
       if (!info.accessor->HasSetter()) {
-        // skip this attribute it doesn't have an setter
         continue;
       }
       if (!info.checker) {
-        // skip, it doesn't have a checker
         continue;
       }
       if (!info.initialValue) {
-        // No value, check next attribute
         continue;
       }
       Ptr<const ObjectPtrContainerValue> vector =
           DynamicCast<const ObjectPtrContainerValue>(info.initialValue);
       if (vector) {
-        // a vector value, won't take it
         continue;
       }
       Ptr<const PointerValue> pointer =
           DynamicCast<const PointerValue>(info.initialValue);
       if (pointer) {
-        // pointer value, won't take it
         continue;
       }
       Ptr<const CallbackValue> callback =
           DynamicCast<const CallbackValue>(info.initialValue);
       if (callback) {
-        // callback value, won't take it
         continue;
       }
-      // We take only values, no pointers or vectors or callbacks
       if (!calledStart) {
         StartVisitTypeId(tid.GetName());
       }

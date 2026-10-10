@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ipv4-list-routing.h"
 
@@ -46,9 +29,6 @@ void Ipv4ListRouting::DoDispose() {
   NS_LOG_FUNCTION(this);
   for (auto rprotoIter = m_routingProtocols.begin();
        rprotoIter != m_routingProtocols.end(); rprotoIter++) {
-    // Note:  Calling dispose on these protocols causes memory leak
-    //        The routing protocols should not maintain a pointer to
-    //        this object, so Dispose() shouldn't be necessary.
     (*rprotoIter).second = nullptr;
   }
   m_routingProtocols.clear();
@@ -108,7 +88,6 @@ Ptr<Ipv4Route> Ipv4ListRouting::RouteOutput(Ptr<Packet> p,
   return nullptr;
 }
 
-// Patterned after Linux ip_route_input and ip_route_input_slow
 bool Ipv4ListRouting::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
                                  Ptr<const NetDevice> idev,
                                  const UnicastForwardCallback &ucb,
@@ -121,7 +100,6 @@ bool Ipv4ListRouting::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
       "RouteInput logic for node: " << m_ipv4->GetObject<Node>()->GetId());
 
   NS_ASSERT(m_ipv4);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv4->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice(idev);
 
@@ -133,21 +111,16 @@ bool Ipv4ListRouting::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
       Ptr<Packet> packetCopy = p->Copy();
       lcb(packetCopy, header, iif);
       retVal = true;
-      // Fall through
     } else {
       lcb(p, header, iif);
       return true;
     }
   }
-  // Check if input device supports IP forwarding
   if (!m_ipv4->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     ecb(p, header, Socket::ERROR_NOROUTETOHOST);
     return true;
   }
-  // Next, try to find a route
-  // If we have already delivered a packet locally (e.g. multicast)
-  // we suppress further downstream local delivery by nulling the callback
   LocalDeliverCallback downstreamLcb = lcb;
   if (retVal) {
     downstreamLcb = MakeNullCallback<void, Ptr<const Packet>,
@@ -163,7 +136,6 @@ bool Ipv4ListRouting::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
       return true;
     }
   }
-  // No routing protocol has found a route.
   return retVal;
 }
 

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007 Georgia Tech Research Corporation
- * Copyright (c) 2009 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Raj Bhattacharjea <raj.b@gatech.edu>
- */
 
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/config.h"
@@ -50,22 +30,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Test - send string data from client to server and back.
- */
 class TcpTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param totalStreamSize Total stream size (in bytes).
-   * \param sourceWriteSize Client data size when sending.
-   * \param sourceReadSize Client data size when receiving.
-   * \param serverWriteSize Server data size when sending.
-   * \param serverReadSize Server data size when receiving.
-   * \param useIpv6 Use IPv6 instead of IPv4.
-   */
   TcpTestCase(uint32_t totalStreamSize, uint32_t sourceWriteSize,
               uint32_t sourceReadSize, uint32_t serverWriteSize,
               uint32_t serverReadSize, bool useIpv6);
@@ -74,88 +40,37 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Setup the test (IPv4 version).
-   */
   void SetupDefaultSim();
-  /**
-   * \brief Setup the test (IPv6 version).
-   */
   void SetupDefaultSim6();
 
-  /**
-   * \brief Create a node with the Internet stack (IPv4 version).
-   * \returns The new node.
-   */
   Ptr<Node> CreateInternetNode();
-  /**
-   * \brief Create a node with the Internet stack (IPv6 version).
-   * \returns The new node.
-   */
   Ptr<Node> CreateInternetNode6();
 
-  /**
-   * \brief Add a SimpleNetDevice to a node (IPv4 version).
-   * \param node The target node.
-   * \param ipaddr the SimpleNetDevice IPv4 address.
-   * \param netmask the SimpleNetDevice IPv4 address netmask.
-   * \returns The new SimpleNetDevice.
-   */
   Ptr<SimpleNetDevice> AddSimpleNetDevice(Ptr<Node> node, const char *ipaddr,
                                           const char *netmask);
-  /**
-   * \brief Add a SimpleNetDevice to a node (IPv6 version).
-   * \param node The target node.
-   * \param ipaddr the SimpleNetDevice IPv6 address.
-   * \param prefix the SimpleNetDevice IP6 address prefix.
-   * \returns The new SimpleNetDevice.
-   */
   Ptr<SimpleNetDevice> AddSimpleNetDevice6(Ptr<Node> node, Ipv6Address ipaddr,
                                            Ipv6Prefix prefix);
 
-  /**
-   * \brief Server: Handle connection created.
-   * \param s The socket.
-   * \param addr The other party address.
-   */
   void ServerHandleConnectionCreated(Ptr<Socket> s, const Address &addr);
-  /**
-   * \brief Server: Receive data.
-   * \param sock The socket.
-   */
   void ServerHandleRecv(Ptr<Socket> sock);
-  /**
-   * \brief Server: Send data.
-   * \param sock The socket.
-   * \param available Unused in the test.
-   */
   void ServerHandleSend(Ptr<Socket> sock, uint32_t available);
-  /**
-   * \brief Client: Send data.
-   * \param sock The socket.
-   * \param available Unused in the test.
-   */
   void SourceHandleSend(Ptr<Socket> sock, uint32_t available);
-  /**
-   * \brief Client: Receive data.
-   * \param sock The socket.
-   */
   void SourceHandleRecv(Ptr<Socket> sock);
 
-  uint32_t m_totalBytes;           //!< Total stream size (in bytes).
-  uint32_t m_sourceWriteSize;      //!< Client data size when sending.
-  uint32_t m_sourceReadSize;       //!< Client data size when receiving.
-  uint32_t m_serverWriteSize;      //!< Server data size when sending.
-  uint32_t m_serverReadSize;       //!< Server data size when receiving.
-  uint32_t m_currentSourceTxBytes; //!< Client Tx bytes.
-  uint32_t m_currentSourceRxBytes; //!< Client Rx bytes.
-  uint32_t m_currentServerRxBytes; //!< Server Tx bytes.
-  uint32_t m_currentServerTxBytes; //!< Server Rx bytes.
-  uint8_t *m_sourceTxPayload;      //!< Client Tx payload.
-  uint8_t *m_sourceRxPayload;      //!< Client Rx payload.
-  uint8_t *m_serverRxPayload;      //!< Server Rx payload.
+  uint32_t m_totalBytes;
+  uint32_t m_sourceWriteSize;
+  uint32_t m_sourceReadSize;
+  uint32_t m_serverWriteSize;
+  uint32_t m_serverReadSize;
+  uint32_t m_currentSourceTxBytes;
+  uint32_t m_currentSourceRxBytes;
+  uint32_t m_currentServerRxBytes;
+  uint32_t m_currentServerTxBytes;
+  uint8_t *m_sourceTxPayload;
+  uint8_t *m_sourceRxPayload;
+  uint8_t *m_serverRxPayload;
 
-  bool m_useIpv6; //!< Use IPv6 instead of IPv4.
+  bool m_useIpv6;
 };
 
 static std::string Name(std::string str, uint32_t totalStreamSize,
@@ -308,28 +223,21 @@ void TcpTestCase::SourceHandleRecv(Ptr<Socket> sock) {
 
 Ptr<Node> TcpTestCase::CreateInternetNode() {
   Ptr<Node> node = CreateObject<Node>();
-  // Traffic Control
   Ptr<TrafficControlLayer> tc = CreateObject<TrafficControlLayer>();
   node->AggregateObject(tc);
-  // ARP
   Ptr<ArpL3Protocol> arp = CreateObject<ArpL3Protocol>();
   node->AggregateObject(arp);
   arp->SetTrafficControl(tc);
-  // IPV4
   Ptr<Ipv4L3Protocol> ipv4 = CreateObject<Ipv4L3Protocol>();
-  // Routing for Ipv4
   Ptr<Ipv4ListRouting> ipv4Routing = CreateObject<Ipv4ListRouting>();
   ipv4->SetRoutingProtocol(ipv4Routing);
   Ptr<Ipv4StaticRouting> ipv4staticRouting = CreateObject<Ipv4StaticRouting>();
   ipv4Routing->AddRoutingProtocol(ipv4staticRouting, 0);
   node->AggregateObject(ipv4);
-  // ICMP
   Ptr<Icmpv4L4Protocol> icmp = CreateObject<Icmpv4L4Protocol>();
   node->AggregateObject(icmp);
-  // UDP
   Ptr<UdpL4Protocol> udp = CreateObject<UdpL4Protocol>();
   node->AggregateObject(udp);
-  // TCP
   Ptr<TcpL4Protocol> tcp = CreateObject<TcpL4Protocol>();
   node->AggregateObject(tcp);
   return node;
@@ -452,27 +360,20 @@ void TcpTestCase::SetupDefaultSim6() {
 
 Ptr<Node> TcpTestCase::CreateInternetNode6() {
   Ptr<Node> node = CreateObject<Node>();
-  // IPV6
   Ptr<Ipv6L3Protocol> ipv6 = CreateObject<Ipv6L3Protocol>();
-  // Routing for Ipv6
   Ptr<Ipv6ListRouting> ipv6Routing = CreateObject<Ipv6ListRouting>();
   ipv6->SetRoutingProtocol(ipv6Routing);
   Ptr<Ipv6StaticRouting> ipv6staticRouting = CreateObject<Ipv6StaticRouting>();
   ipv6Routing->AddRoutingProtocol(ipv6staticRouting, 0);
   node->AggregateObject(ipv6);
-  // ICMP
   Ptr<Icmpv6L4Protocol> icmp = CreateObject<Icmpv6L4Protocol>();
   node->AggregateObject(icmp);
-  // Ipv6 Extensions
   ipv6->RegisterExtensions();
   ipv6->RegisterOptions();
-  // UDP
   Ptr<UdpL4Protocol> udp = CreateObject<UdpL4Protocol>();
   node->AggregateObject(udp);
-  // TCP
   Ptr<TcpL4Protocol> tcp = CreateObject<TcpL4Protocol>();
   node->AggregateObject(tcp);
-  // Traffic Control
   Ptr<TrafficControlLayer> tc = CreateObject<TrafficControlLayer>();
   node->AggregateObject(tc);
   return node;
@@ -492,18 +393,9 @@ Ptr<SimpleNetDevice> TcpTestCase::AddSimpleNetDevice6(Ptr<Node> node,
   return dev;
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP TestSuite - send string data from client to server and back.
- */
 class TcpTestSuite : public TestSuite {
 public:
   TcpTestSuite() : TestSuite("tcp", UNIT) {
-    // Arguments to these test cases are 1) totalStreamSize,
-    // 2) source write size, 3) source read size
-    // 4) server write size, and 5) server read size
-    // with units of bytes
     AddTestCase(new TcpTestCase(13, 200, 200, 200, 200, false),
                 TestCase::QUICK);
     AddTestCase(new TcpTestCase(13, 1, 1, 1, 1, false), TestCase::QUICK);
@@ -517,4 +409,4 @@ public:
   }
 };
 
-static TcpTestSuite g_tcpTestSuite; //!< Static variable for test initialization
+static TcpTestSuite g_tcpTestSuite;

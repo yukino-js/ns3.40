@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011 UPB
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Radu Lupu <rlupu@elcom.pub.ro>
- *         Ankit Deepak <adadeepak8@gmail.com>
- *         Deepti Rajagopal <deeptir96@gmail.com>
- *
- */
 
 #include "dhcp-helper.h"
 
@@ -87,18 +65,11 @@ DhcpHelper::InstallDhcpClientPriv(Ptr<NetDevice> netDevice) const {
   ipv4->SetMetric(interface, 1);
   ipv4->SetUp(interface);
 
-  // Install the default traffic control configuration if the traffic
-  // control layer has been aggregated, if this is not
-  // a loopback interface, and there is no queue disc installed already
   Ptr<TrafficControlLayer> tc = node->GetObject<TrafficControlLayer>();
   if (tc && !DynamicCast<LoopbackNetDevice>(netDevice) &&
       !tc->GetRootQueueDiscOnDevice(netDevice)) {
     Ptr<NetDeviceQueueInterface> ndqi =
         netDevice->GetObject<NetDeviceQueueInterface>();
-    // It is useless to install a queue disc if the device has no
-    // NetDeviceQueueInterface attached: the device queue is never
-    // stopped and every packet enqueued in the queue disc is
-    // immediately dequeued, hence there will never be backlog
     if (ndqi) {
       std::size_t nTxQueues = ndqi->GetNTxQueues();
       NS_LOG_LOGIC(
@@ -149,18 +120,11 @@ DhcpHelper::InstallDhcpServer(Ptr<NetDevice> netDevice, Ipv4Address serverAddr,
   ipv4->SetMetric(interface, 1);
   ipv4->SetUp(interface);
 
-  // Install the default traffic control configuration if the traffic
-  // control layer has been aggregated, if this is not
-  // a loopback interface, and there is no queue disc installed already
   Ptr<TrafficControlLayer> tc = node->GetObject<TrafficControlLayer>();
   if (tc && !DynamicCast<LoopbackNetDevice>(netDevice) &&
       !tc->GetRootQueueDiscOnDevice(netDevice)) {
     Ptr<NetDeviceQueueInterface> ndqi =
         netDevice->GetObject<NetDeviceQueueInterface>();
-    // It is useless to install a queue disc if the device has no
-    // NetDeviceQueueInterface attached: the device queue is never
-    // stopped and every packet enqueued in the queue disc is
-    // immediately dequeued, hence there will never be backlog
     if (ndqi) {
       std::size_t nTxQueues = ndqi->GetNTxQueues();
       NS_LOG_LOGIC(
@@ -171,7 +135,6 @@ DhcpHelper::InstallDhcpServer(Ptr<NetDevice> netDevice, Ipv4Address serverAddr,
     }
   }
 
-  // check that the already fixed addresses are not in conflict with the pool
   for (auto iter = m_fixedAddresses.begin(); iter != m_fixedAddresses.end();
        iter++) {
     if (iter->Get() >= minAddr.Get() && iter->Get() <= maxAddr.Get()) {
@@ -214,18 +177,11 @@ Ipv4InterfaceContainer DhcpHelper::InstallFixedAddress(Ptr<NetDevice> netDevice,
   ipv4->SetUp(interface);
   retval.Add(ipv4, interface);
 
-  // Install the default traffic control configuration if the traffic
-  // control layer has been aggregated, if this is not
-  // a loopback interface, and there is no queue disc installed already
   Ptr<TrafficControlLayer> tc = node->GetObject<TrafficControlLayer>();
   if (tc && !DynamicCast<LoopbackNetDevice>(netDevice) &&
       !tc->GetRootQueueDiscOnDevice(netDevice)) {
     Ptr<NetDeviceQueueInterface> ndqi =
         netDevice->GetObject<NetDeviceQueueInterface>();
-    // It is useless to install a queue disc if the device has no
-    // NetDeviceQueueInterface attached: the device queue is never
-    // stopped and every packet enqueued in the queue disc is
-    // immediately dequeued, hence there will never be backlog
     if (ndqi) {
       std::size_t nTxQueues = ndqi->GetNTxQueues();
       NS_LOG_LOGIC(
@@ -236,7 +192,6 @@ Ipv4InterfaceContainer DhcpHelper::InstallFixedAddress(Ptr<NetDevice> netDevice,
     }
   }
 
-  // check that the already fixed addresses are not in conflict with the pool
   for (auto iter = m_addressPools.begin(); iter != m_addressPools.end();
        iter++) {
     if (addr.Get() >= iter->first.Get() && addr.Get() <= iter->second.Get()) {

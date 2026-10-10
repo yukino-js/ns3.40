@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "dl-mac-messages.h"
 
@@ -65,8 +45,6 @@ Buffer::Iterator DcdChannelEncodings::Read(Buffer::Iterator start) {
   m_frequency = i.ReadU32();
   return DoRead(i);
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 OfdmDcdChannelEncodings::OfdmDcdChannelEncodings()
     : m_channelNr(0), m_ttg(0), m_rtg(0),
@@ -134,14 +112,11 @@ Buffer::Iterator OfdmDcdChannelEncodings::DoRead(Buffer::Iterator start) {
   m_channelNr = i.ReadU8();
   m_ttg = i.ReadU8();
   m_rtg = i.ReadU8();
-  ReadFrom(i, m_baseStationId); // length (6) shall also be written in packet
-                                // instead of hard coded, see ARP example
+  ReadFrom(i, m_baseStationId);
   m_frameDurationCode = i.ReadU8();
   m_frameNumber = i.ReadU32();
   return i;
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 OfdmDlBurstProfile::OfdmDlBurstProfile()
     : m_type(0), m_length(0), m_diuc(0), m_fecCodeType(0) {}
@@ -185,8 +160,6 @@ Buffer::Iterator OfdmDlBurstProfile::Read(Buffer::Iterator start) {
   m_fecCodeType = i.ReadU8();
   return i;
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(Dcd);
 
@@ -278,8 +251,6 @@ uint32_t Dcd::Deserialize(Buffer::Iterator start) {
   return i.GetDistanceFrom(start);
 }
 
-// ----------------------------------------------------------------------------------------------------------
-
 OfdmDlMapIe::OfdmDlMapIe()
     : m_cid(), m_diuc(0), m_preamblePresent(0), m_startTime(0) {}
 
@@ -322,8 +293,6 @@ Buffer::Iterator OfdmDlMapIe::Read(Buffer::Iterator start) {
   m_startTime = i.ReadU16();
   return i;
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(DlMap);
 
@@ -391,11 +360,9 @@ void DlMap::Serialize(Buffer::Iterator start) const {
 uint32_t DlMap::Deserialize(Buffer::Iterator start) {
   Buffer::Iterator i = start;
   m_dcdCount = i.ReadU8();
-  ReadFrom(i, m_baseStationId); // length (6) shall also be written in packet
-                                // instead of hard coded, see ARP example
+  ReadFrom(i, m_baseStationId);
 
-  m_dlMapElements.clear(); // only for printing, otherwise it shows wrong number
-                           // of elements
+  m_dlMapElements.clear();
 
   while (true) {
     OfdmDlMapIe dlMapIe;
@@ -403,8 +370,7 @@ uint32_t DlMap::Deserialize(Buffer::Iterator start) {
 
     AddDlMapElement(dlMapIe);
 
-    if (dlMapIe.GetDiuc() == 14) // End of Map IE
-    {
+    if (dlMapIe.GetDiuc() == 14) {
       break;
     }
   }

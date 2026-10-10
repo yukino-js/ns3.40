@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-fr-soft-algorithm.h"
 
@@ -29,15 +10,13 @@ NS_LOG_COMPONENT_DEFINE("LteFrSoftAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(LteFrSoftAlgorithm);
 
-/// FrSoftDownlinkDefaultConfiguration structure
 struct FrSoftDownlinkDefaultConfiguration {
-  uint8_t cellId;              ///< cell ID
-  uint8_t dlBandwidth;         ///< DL bandwidth
-  uint8_t dlEdgeSubBandOffset; ///< DL edge subband offset
-  uint8_t dlEdgeSubBandwidth;  ///< Dl edge subbandwidth
+  uint8_t cellId;
+  uint8_t dlBandwidth;
+  uint8_t dlEdgeSubBandOffset;
+  uint8_t dlEdgeSubBandwidth;
 };
 
-/// Soft downlink default configuration
 static const FrSoftDownlinkDefaultConfiguration
     g_frSoftDownlinkDefaultConfiguration[]{
         {1, 15, 0, 4},   {2, 15, 4, 4},    {3, 15, 8, 6},    {1, 25, 0, 8},
@@ -46,15 +25,13 @@ static const FrSoftDownlinkDefaultConfiguration
         {1, 100, 0, 32}, {2, 100, 32, 32}, {3, 100, 64, 36},
     };
 
-/// soft uplink default configuration
 struct FrSoftUplinkDefaultConfiguration {
-  uint8_t cellId;              ///< cell ID
-  uint8_t ulBandwidth;         ///< UL bandwidth
-  uint8_t ulEdgeSubBandOffset; ///< UL edge subband offset
-  uint8_t ulEdgeSubBandwidth;  ///< UL edge subbandwidth
+  uint8_t cellId;
+  uint8_t ulBandwidth;
+  uint8_t ulEdgeSubBandOffset;
+  uint8_t ulEdgeSubBandwidth;
 };
 
-/// Soft uplink default configuration
 static const FrSoftUplinkDefaultConfiguration
     g_frSoftUplinkDefaultConfiguration[]{
         {1, 15, 0, 5},   {2, 15, 5, 5},    {3, 15, 10, 5},   {1, 25, 0, 8},
@@ -63,10 +40,8 @@ static const FrSoftUplinkDefaultConfiguration
         {1, 100, 0, 32}, {2, 100, 32, 32}, {3, 100, 64, 36},
     };
 
-/** \returns number of downlink configurations */
 const uint16_t NUM_DOWNLINK_CONFS(sizeof(g_frSoftDownlinkDefaultConfiguration) /
                                   sizeof(FrSoftDownlinkDefaultConfiguration));
-/** \returns number of uplink configurations */
 const uint16_t NUM_UPLINK_CONFS(sizeof(g_frSoftUplinkDefaultConfiguration) /
                                 sizeof(FrSoftUplinkDefaultConfiguration));
 
@@ -392,19 +367,8 @@ uint8_t LteFrSoftAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
 
   if (!m_enabledInUplink) {
-    return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute
-              // mode TS36.213 Table 5.1.1.1-2
+    return 1;
   }
-
-  // TS36.213 Table 5.1.1.1-2
-  //    TPC   |   Accumulated Mode  |  Absolute Mode
-  //------------------------------------------------
-  //     0    |         -1          |      -4
-  //     1    |          0          |      -1
-  //     2    |          1          |       1
-  //     3    |          3          |       4
-  //------------------------------------------------
-  //  here Absolute mode is used
 
   auto it = m_ues.find(rnti);
   if (it == m_ues.end()) {
@@ -501,4 +465,4 @@ void LteFrSoftAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, because it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

@@ -1,63 +1,4 @@
-/*
- * Copyright (c) 2007 University of Washington
- * Copyright (c) 2013 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright (c) 1997 Regents of the University of California.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor of the Laboratory may be used
- *    to endorse or promote products derived from this software without
- *    specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * Contributed by the Daedalus Research Group, UC Berkeley
- * (http://daedalus.cs.berkeley.edu)
- *
- * This code has been ported from ns-2 (queue/errmodel.{cc,h}
- */
 
-/* BurstErrorModel additions
- *
- * Author: Truc Anh N. Nguyen   <annguyen@ittc.ku.edu>
- *         ResiliNets Research Group   https://resilinets.org/
- *         James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- */
 
 #include "error-model.h"
 
@@ -97,9 +38,7 @@ ErrorModel::~ErrorModel() { NS_LOG_FUNCTION(this); }
 bool ErrorModel::IsCorrupt(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << p);
   bool result;
-  // Insert any pre-conditions here
   result = DoCorrupt(p);
-  // Insert any post-conditions here
   return result;
 }
 
@@ -122,10 +61,6 @@ bool ErrorModel::IsEnabled() const {
   NS_LOG_FUNCTION(this);
   return m_enable;
 }
-
-//
-// RateErrorModel
-//
 
 NS_OBJECT_ENSURE_REGISTERED(RateErrorModel);
 
@@ -213,27 +148,18 @@ bool RateErrorModel::DoCorruptPkt(Ptr<Packet> p) {
 
 bool RateErrorModel::DoCorruptByte(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << p);
-  // compute pkt error rate, assume uniformly distributed byte error
   double per = 1 - std::pow(1.0 - m_rate, static_cast<double>(p->GetSize()));
   return (m_ranvar->GetValue() < per);
 }
 
 bool RateErrorModel::DoCorruptBit(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << p);
-  // compute pkt error rate, assume uniformly distributed bit error
   double per =
       1 - std::pow(1.0 - m_rate, static_cast<double>(8 * p->GetSize()));
   return (m_ranvar->GetValue() < per);
 }
 
-void RateErrorModel::DoReset() {
-  NS_LOG_FUNCTION(this);
-  /* re-initialize any state; no-op for now */
-}
-
-//
-// BurstErrorModel
-//
+void RateErrorModel::DoReset() { NS_LOG_FUNCTION(this); }
 
 NS_OBJECT_ENSURE_REGISTERED(BurstErrorModel);
 
@@ -299,27 +225,20 @@ bool BurstErrorModel::DoCorrupt(Ptr<Packet> p) {
   double ranVar = m_burstStart->GetValue();
 
   if (ranVar < m_burstRate) {
-    // get a new burst size for the new error event
     m_currentBurstSz = m_burstSize->GetInteger();
     NS_LOG_DEBUG("new burst size selected: " << m_currentBurstSz);
     if (m_currentBurstSz == 0) {
       NS_LOG_WARN("Burst size == 0; shouldn't happen");
       return false;
     }
-    m_counter = 1; // start counting dropped packets
-    return true;   // drop this packet
+    m_counter = 1;
+    return true;
   } else {
-    // not a burst error event
     if (m_counter < m_currentBurstSz) {
-      // check to see if all the packets (determined by the last
-      // generated m_currentBurstSz) have been dropped.
-      // If not, drop 1 more packet
       m_counter++;
       return true;
     } else {
-      // all packets in the last error event have been dropped
-      // and there is no new error event, so do not drop the packet
-      return false; // no error event
+      return false;
     }
   }
 }
@@ -329,10 +248,6 @@ void BurstErrorModel::DoReset() {
   m_counter = 0;
   m_currentBurstSz = 0;
 }
-
-//
-// ListErrorModel
-//
 
 NS_OBJECT_ENSURE_REGISTERED(ListErrorModel);
 
@@ -358,9 +273,6 @@ void ListErrorModel::SetList(const std::list<uint64_t> &packetlist) {
   m_packetList = packetlist;
 }
 
-// When performance becomes a concern, the list provided could be
-// converted to a dynamically-sized array of uint32_t to avoid
-// list iteration below.
 bool ListErrorModel::DoCorrupt(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << p);
   if (!IsEnabled()) {
@@ -379,10 +291,6 @@ void ListErrorModel::DoReset() {
   NS_LOG_FUNCTION(this);
   m_packetList.clear();
 }
-
-//
-// ReceiveListErrorModel
-//
 
 NS_OBJECT_ENSURE_REGISTERED(ReceiveListErrorModel);
 

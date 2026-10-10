@@ -1,44 +1,4 @@
-/*
- * Copyright (c) 2012 University of Washington, 2012 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alina Quereilhac <alina.quereilhac@inria.fr>
- *
- */
 
-//
-//        node 0                          node 1
-//  +----------------+              +----------------+
-//  |    ns-3 TCP    |              |    ns-3 TCP    |
-//  +----------------+              +----------------+
-//  |    10.1.1.1    |              |    10.1.1.2    |
-//  +----------------+  socketpair  +----------------+
-//  |  fd-net-device |--------------|  fd-net-device |
-//  +----------------+              +----------------+
-//
-// This example is aimed at measuring the throughput of the FdNetDevice
-// in a pure simulation. For this purpose two FdNetDevices, attached to
-// different nodes but in a same simulation, are connected using a socket pair.
-// TCP traffic is sent at a saturating data rate. Then the throughput can
-// be obtained from the generated .pcap files.
-//
-// Steps to run the experiment:
-//
-// $ ./ns3 run "fd2fd-onoff"
-// $ ./ns3 run "fd2fd-onoff --tcpMode=1"
-//
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -54,8 +14,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("FdNetDeviceSaturationExample");
 
 int main(int argc, char *argv[]) {
-  // Command-line arguments
-  //
   bool tcpMode = false;
   CommandLine cmd(__FILE__);
   cmd.AddValue("tcpMode", "1:true, 0:false, default mode UDP", tcpMode);
@@ -71,7 +29,7 @@ int main(int argc, char *argv[]) {
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
   uint16_t sinkPort = 8000;
-  uint32_t packetSize = 10000; // bytes
+  uint32_t packetSize = 10000;
   std::string dataRate("10Mb/s");
 
   NS_LOG_INFO("Create Node");
@@ -109,7 +67,6 @@ int main(int argc, char *argv[]) {
   Ipv4Address serverIp = interfaces.GetAddress(1);
   Ptr<Node> serverNode = nodes.Get(1);
 
-  // server
   Address sinkLocalAddress(InetSocketAddress(serverIp, sinkPort));
 
   PacketSinkHelper sinkHelper(factory, sinkLocalAddress);
@@ -118,7 +75,6 @@ int main(int argc, char *argv[]) {
   sinkApp.Stop(Seconds(30.0));
   fd.EnablePcap("fd2fd-onoff-server", serverDevice);
 
-  // client
   AddressValue serverAddress(InetSocketAddress(serverIp, sinkPort));
   OnOffHelper onoff(factory, Address());
   onoff.SetAttribute("Remote", serverAddress);

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "udp-header.h"
 
@@ -65,23 +47,22 @@ uint16_t UdpHeader::CalculateHeaderChecksum(uint16_t size) const {
   WriteTo(it, m_source);
   WriteTo(it, m_destination);
   if (Ipv4Address::IsMatchingType(m_source)) {
-    it.WriteU8(0);           /* protocol */
-    it.WriteU8(m_protocol);  /* protocol */
-    it.WriteU8(size >> 8);   /* length */
-    it.WriteU8(size & 0xff); /* length */
+    it.WriteU8(0);
+    it.WriteU8(m_protocol);
+    it.WriteU8(size >> 8);
+    it.WriteU8(size & 0xff);
     hdrSize = 12;
   } else if (Ipv6Address::IsMatchingType(m_source)) {
     it.WriteU16(0);
-    it.WriteU8(size >> 8);   /* length */
-    it.WriteU8(size & 0xff); /* length */
+    it.WriteU8(size >> 8);
+    it.WriteU8(size & 0xff);
     it.WriteU16(0);
     it.WriteU8(0);
-    it.WriteU8(m_protocol); /* protocol */
+    it.WriteU8(m_protocol);
     hdrSize = 40;
   }
 
   it = buf.Begin();
-  /* we don't CompleteChecksum ( ~ ) now */
   return ~(it.CalculateIpChecksum(hdrSize));
 }
 

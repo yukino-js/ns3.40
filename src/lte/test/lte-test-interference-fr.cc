@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- * Based on lte-test-interference.{h,cc} by Manuel Requena
- * <manuel.requena@cttc.es> Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-test-interference-fr.h"
 
@@ -45,14 +25,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteInterferenceFrTest");
 
-/**
- * TestSuite
- */
-
 LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
     : TestSuite("lte-interference-fr", SYSTEM) {
-  //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  //  LOG_LEVEL_DEBUG); LogComponentEnable ("LteInterferenceFrTest", logLevel);
 
   AddTestCase(new LteInterferenceHardFrTestCase("d1=50, d2=20", 50.000000,
                                                 20.000000, 356449.932732,
@@ -89,15 +63,8 @@ LteInterferenceFrTestSuite::LteInterferenceFrTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteInterferenceFrTestSuite LteInterferenceFrTestSuite;
 
-/**
- * TestCase Data
- */
 LteInterferenceHardFrTestCase::LteInterferenceHardFrTestCase(
     std::string name, double d1, double d2, double dlSinr, double ulSinr)
     : TestCase("Test: " + name), m_d1(d1), m_d2(d2),
@@ -127,7 +94,6 @@ void LteInterferenceHardFrTestCase::DoRun() {
   lteHelper->SetAttribute(
       "PathlossModel", StringValue("ns3::FriisSpectrumPropagationLossModel"));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -136,26 +102,17 @@ void LteInterferenceHardFrTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  // the topology is the following:
-  //         d2
-  //  UE1-----------eNB2
-  //   |             |
-  // d1|             |d1
-  //   |     d2      |
-  //  eNB1----------UE2
-  //
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));   // eNB1
-  positionAlloc->Add(Vector(m_d2, m_d1, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, m_d1, 0.0));  // UE1
-  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));  // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(m_d2, m_d1, 0.0));
+  positionAlloc->Add(Vector(0.0, m_d1, 0.0));
+  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -181,15 +138,10 @@ void LteInterferenceHardFrTestCase::DoRun() {
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate an EPS bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
-
-  // Use testing chunk processor in the PHY layer
-  // It will be used to test that the SNR is as intended
-  // we plug in two instances, one for DL and one for UL
 
   Ptr<LtePhy> ue1Phy = ueDevs1.Get(0)
                            ->GetObject<LteUeNetDevice>()
@@ -211,8 +163,6 @@ void LteInterferenceHardFrTestCase::DoRun() {
       MakeCallback(&LteSpectrumValueCatcher::ReportValue, &ulSinr1Catcher));
   enb1phy->GetUplinkSpectrumPhy()->AddDataSinrChunkProcessor(testUlSinr1);
 
-  // same as above for eNB2 and UE2
-
   Ptr<LtePhy> ue2Phy = ueDevs2.Get(0)
                            ->GetObject<LteUeNetDevice>()
                            ->GetPhy()
@@ -233,7 +183,6 @@ void LteInterferenceHardFrTestCase::DoRun() {
       MakeCallback(&LteSpectrumValueCatcher::ReportValue, &ulSinr2Catcher));
   enb1phy->GetUplinkSpectrumPhy()->AddDataSinrChunkProcessor(testUlSinr2);
 
-  // need to allow for RRC connection establishment + SRS
   Simulator::Stop(Seconds(0.200));
   Simulator::Run();
 
@@ -258,17 +207,6 @@ void LteInterferenceHardFrTestCase::DoRun() {
     NS_TEST_ASSERT_MSG_EQ_TOL(dlSinr2Db, m_expectedDlSinrDb, 0.01,
                               "Wrong SINR in DL! (eNB2 --> UE2)");
   }
-
-  // FR algorithms do not operate in uplink now, so we do not test it
-  //  double ulSinr1Db = 10.0 * std::log10 (testUlSinr1->GetValue ()->operator[]
-  //  (0)); NS_LOG_DEBUG("ulSinr1Db: "<< ulSinr1Db); NS_TEST_ASSERT_MSG_EQ_TOL
-  //  (ulSinr1Db, m_expectedUlSinrDb, 0.01, "Wrong SINR in UL!  (UE1 -->
-  //  eNB1)");
-  //
-  //  double ulSinr2Db = 10.0 * std::log10 (testUlSinr2->GetValue ()->operator[]
-  //  (0)); NS_LOG_DEBUG("ulSinr2Db: "<< ulSinr2Db); NS_TEST_ASSERT_MSG_EQ_TOL
-  //  (ulSinr2Db, m_expectedUlSinrDb, 0.01, "Wrong SINR in UL!  (UE2 -->
-  //  eNB2)");
 
   Simulator::Destroy();
 }
@@ -312,7 +250,6 @@ void LteInterferenceStrictFrTestCase::DoRun() {
   lteHelper->SetAttribute(
       "PathlossModel", StringValue("ns3::FriisSpectrumPropagationLossModel"));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -321,31 +258,22 @@ void LteInterferenceStrictFrTestCase::DoRun() {
   ueNodes2.Create(2);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  // the topology is the following:
-  //         d2
-  //  UE1-----------eNB2
-  //   |             |
-  // d1|             |d1
-  //   |     d2      |
-  //  eNB1----------UE2
-  //
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));   // eNB1
-  positionAlloc->Add(Vector(m_d2, m_d1, 0.0)); // eNB2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(m_d2, m_d1, 0.0));
 
-  positionAlloc->Add(Vector(0.0, m_d1, 0.0));       // UE1-eNB1
-  positionAlloc->Add(Vector(0.5 * m_d2, 0.0, 0.0)); // UE2-eNB1
+  positionAlloc->Add(Vector(0.0, m_d1, 0.0));
+  positionAlloc->Add(Vector(0.5 * m_d2, 0.0, 0.0));
 
-  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));        // UE1-eNB2
-  positionAlloc->Add(Vector(0.5 * m_d2, m_d1, 0.0)); // UE2-eNB2
+  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));
+  positionAlloc->Add(Vector(0.5 * m_d2, m_d1, 0.0));
 
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -376,15 +304,10 @@ void LteInterferenceStrictFrTestCase::DoRun() {
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate an EPS bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
-
-  // Use testing chunk processor in the PHY layer
-  // It will be used to test that the SNR is as intended
-  // we plug in two instances, one for DL and one for UL
 
   Ptr<LtePhy> ue1Phy = ueDevs1.Get(0)
                            ->GetObject<LteUeNetDevice>()
@@ -406,8 +329,6 @@ void LteInterferenceStrictFrTestCase::DoRun() {
       MakeCallback(&LteSpectrumValueCatcher::ReportValue, &ulSinr1Catcher));
   enb1phy->GetUplinkSpectrumPhy()->AddDataSinrChunkProcessor(testUlSinr1);
 
-  // same as above for eNB2 and UE2
-
   Ptr<LtePhy> ue2Phy = ueDevs2.Get(0)
                            ->GetObject<LteUeNetDevice>()
                            ->GetPhy()
@@ -428,7 +349,6 @@ void LteInterferenceStrictFrTestCase::DoRun() {
       MakeCallback(&LteSpectrumValueCatcher::ReportValue, &ulSinr2Catcher));
   enb1phy->GetUplinkSpectrumPhy()->AddDataSinrChunkProcessor(testUlSinr2);
 
-  // need to allow for UE Measurement report
   Simulator::Stop(Seconds(2.000));
   Simulator::Run();
 
@@ -465,17 +385,6 @@ void LteInterferenceStrictFrTestCase::DoRun() {
     NS_TEST_ASSERT_MSG_EQ_TOL(dlSinr2Db, m_edgeDlSinrDb, 0.01,
                               "Wrong SINR in DL! (eNB2 --> UE2)");
   }
-
-  // FR algorithms do not operate in uplink now, so we do not test it
-  //  double ulSinr1Db = 10.0 * std::log10 (testUlSinr1->GetValue ()->operator[]
-  //  (0)); NS_LOG_DEBUG("ulSinr1Db: "<< ulSinr1Db); NS_TEST_ASSERT_MSG_EQ_TOL
-  //  (ulSinr1Db, m_expectedUlSinrDb, 0.01, "Wrong SINR in UL!  (UE1 -->
-  //  eNB1)");
-  //
-  //  double ulSinr2Db = 10.0 * std::log10 (testUlSinr2->GetValue ()->operator[]
-  //  (0)); NS_LOG_DEBUG("ulSinr2Db: "<< ulSinr2Db); NS_TEST_ASSERT_MSG_EQ_TOL
-  //  (ulSinr2Db, m_expectedUlSinrDb, 0.01, "Wrong SINR in UL!  (UE2 -->
-  //  eNB2)");
 
   Simulator::Destroy();
 }

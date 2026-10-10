@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "single-model-spectrum-channel.h"
 
@@ -88,18 +70,12 @@ void SingleModelSpectrumChannel::StartTx(
   NS_ASSERT_MSG(txParams->psd, "NULL txPsd");
   NS_ASSERT_MSG(txParams->txPhy, "NULL txPhy");
 
-  Ptr<SpectrumSignalParameters> txParamsTrace =
-      txParams->Copy(); // copy it since traced value cannot be const (because
-                        // of potential underlying DynamicCasts)
+  Ptr<SpectrumSignalParameters> txParamsTrace = txParams->Copy();
   m_txSigParamsTrace(txParamsTrace);
 
-  // just a sanity check routine. We might want to remove it to save some
-  // computational load -- one "if" statement  ;-)
   if (!m_spectrumModel) {
-    // first pak, record SpectrumModel
     m_spectrumModel = txParams->psd->GetSpectrumModel();
   } else {
-    // all attached SpectrumPhy instances must use the same SpectrumModel
     NS_ASSERT(*(txParams->psd->GetSpectrumModel()) == *m_spectrumModel);
   }
 
@@ -111,7 +87,6 @@ void SingleModelSpectrumChannel::StartTx(
     Ptr<NetDevice> txNetDevice = txParams->txPhy->GetDevice();
 
     if (rxNetDevice && txNetDevice) {
-      // we assume that devices are attached to a node
       if (rxNetDevice->GetNode()->GetId() == txNetDevice->GetNode()->GetId()) {
         NS_LOG_DEBUG(
             "Skipping the pathloss calculation among different antennas of the "
@@ -159,13 +134,10 @@ void SingleModelSpectrumChannel::StartTx(
           pathLossDb -= propagationGainDb;
         }
         NS_LOG_LOGIC("total pathLoss = " << pathLossDb << " dB");
-        // Gain trace
         m_gainTrace(senderMobility, receiverMobility, txAntennaGain,
                     rxAntennaGain, propagationGainDb, pathLossDb);
-        // Pathloss trace
         m_pathLossTrace(txParams->txPhy, *rxPhyIterator, pathLossDb);
         if (pathLossDb > m_maxLossDb) {
-          // beyond range
           continue;
         }
         double pathGainLinear = std::pow(10.0, (-pathLossDb) / 10.0);
@@ -178,15 +150,11 @@ void SingleModelSpectrumChannel::StartTx(
       }
 
       if (rxNetDevice) {
-        // the receiver has a NetDevice, so we expect that it is attached to a
-        // Node
         uint32_t dstNode = rxNetDevice->GetNode()->GetId();
         Simulator::ScheduleWithContext(dstNode, delay,
                                        &SingleModelSpectrumChannel::StartRx,
                                        this, rxParams, *rxPhyIterator);
       } else {
-        // the receiver is not attached to a NetDevice, so we cannot assume that
-        // it is attached to a node
         Simulator::Schedule(delay, &SingleModelSpectrumChannel::StartRx, this,
                             rxParams, *rxPhyIterator);
       }

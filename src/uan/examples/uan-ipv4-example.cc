@@ -1,34 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hossam Khader <hossamkhader@gmail.com>
- */
 
 #include "ns3/acoustic-modem-energy-model-helper.h"
 #include "ns3/basic-energy-source-helper.h"
@@ -43,73 +13,33 @@
 
 using namespace ns3;
 
-/**
- *
- * This example shows the usage of UDP over IPv4 to transfer data.
- * Two nodes are sending their remaining energy percentage (1 byte)
- * to a gateway node, that prints the received data.
- * The transmissions are scheduled at random times to avoid collisions
- *
- */
-
 NS_LOG_COMPONENT_DEFINE("UanIpv4Example");
 
 class UanExperiment {
 public:
   UanExperiment();
 
-  /**
-   * Set the UAN nodes position
-   */
   void SetupPositions();
 
-  /**
-   * Set the UAN nodes energy
-   */
   void SetupEnergy();
 
-  /**
-   * Set the UAN nodes communication channels
-   */
   void SetupCommunications();
 
-  /**
-   * Set the UAN nodes communication channels
-   */
   void SetupApplications();
 
-  /**
-   * Send a packet from all the nodes
-   */
   void SendPackets();
 
-  /**
-   * Send a packet from one of the nodes
-   * \param node The sending node
-   * \param pkt The packet
-   * \param dst the destination
-   */
   void SendSinglePacket(Ptr<Node> node, Ptr<Packet> pkt, Ipv4Address dst);
 
-  /**
-   * Print the received packet
-   * \param socket The receiving socket
-   */
   void PrintReceivedPacket(Ptr<Socket> socket);
 
-  /**
-   * Prepare the experiment
-   */
   void Prepare();
 
-  /**
-   * Teardown the experiment
-   */
   void Teardown();
 
 private:
-  NodeContainer m_nodes;                      //!< UAN nodes
-  std::map<Ptr<Node>, Ptr<Socket>> m_sockets; //!< send and receive sockets
+  NodeContainer m_nodes;
+  std::map<Ptr<Node>, Ptr<Socket>> m_sockets;
 };
 
 UanExperiment::UanExperiment() {}

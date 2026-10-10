@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-hybla.h"
 
@@ -78,10 +61,6 @@ uint32_t TcpHybla::SlowStart(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
   NS_ASSERT(tcb->m_cWnd <= tcb->m_ssThresh);
 
   if (segmentsAcked >= 1) {
-    /*
-     * slow start
-     * INC = 2^RHO - 1
-     */
 
     double increment = std::pow(2, m_rho) - 1.0;
     auto incr = static_cast<uint32_t>(increment * tcb->m_segmentSize);
@@ -107,10 +86,6 @@ void TcpHybla::CongestionAvoidance(Ptr<TcpSocketState> tcb,
   double increment;
 
   while (segmentsAcked > 0) {
-    /*
-     * congestion avoidance
-     * INC = RHO^2 / W
-     */
     segCwnd = tcb->GetCwndInSegments();
     increment = std::pow(m_rho, 2) / static_cast<double>(segCwnd);
 
@@ -119,15 +94,10 @@ void TcpHybla::CongestionAvoidance(Ptr<TcpSocketState> tcb,
   }
 
   if (m_cWndCnt >= 1.0) {
-    // double to int truncates every time.
     auto inc = static_cast<uint32_t>(m_cWndCnt);
     m_cWndCnt -= inc;
 
     NS_ASSERT(m_cWndCnt >= 0.0);
-
-    /* This leaves space for a tcp pacing implementation; it would be easy
-       to setup a limit on the maximum increment of the cWnd per ACK received.
-       The remaining increment is leaved for the next ACK. */
 
     tcb->m_cWnd += inc * tcb->m_segmentSize;
 

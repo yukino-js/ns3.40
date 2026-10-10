@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015 Danilo Abrignani
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Danilo Abrignani <danilo.abrignani@unibo.it> (Carrier Aggregation -
- * GSoC 2015)
- */
 
 #include "cc-helper.h"
 
@@ -135,12 +116,10 @@ std::map<uint8_t, ComponentCarrier> CcHelper::EquallySpacedCcs() {
   uint32_t dlEarfcn = m_dlEarfcn;
   uint16_t maxBandwidthRb = std::max<uint16_t>(m_ulBandwidth, m_dlBandwidth);
 
-  // Convert bandwidth from RBs to kHz
   uint32_t maxBandwidthKhz =
       LteSpectrumValueHelper::GetChannelBandwidth(maxBandwidthRb) / 1e3;
 
   for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
-    // Make sure we stay within the same band.
     if (LteSpectrumValueHelper::GetUplinkCarrierBand(ulEarfcn) !=
             LteSpectrumValueHelper::GetUplinkCarrierBand(m_ulEarfcn) ||
         LteSpectrumValueHelper::GetDownlinkCarrierBand(dlEarfcn) !=
@@ -162,11 +141,8 @@ std::map<uint8_t, ComponentCarrier> CcHelper::EquallySpacedCcs() {
                                 << m_dlBandwidth << ", ulEarfcn: " << ulEarfcn
                                 << ", dlEarfcn: " << dlEarfcn);
 
-    // The spacing between the centre frequencies of two contiguous CCs should
-    // be multiple of 300 kHz. Round spacing up to 300 kHz.
     uint32_t frequencyShift = 300 * (1 + (maxBandwidthKhz - 1) / 300);
 
-    // Unit of EARFCN corresponds to 100kHz.
     uint32_t earfcnShift = frequencyShift / 100;
     ulEarfcn += earfcnShift;
     dlEarfcn += earfcnShift;

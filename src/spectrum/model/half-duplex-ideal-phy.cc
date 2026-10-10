@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "half-duplex-ideal-phy.h"
 
@@ -62,12 +44,6 @@ void HalfDuplexIdealPhy::DoDispose() {
   SpectrumPhy::DoDispose();
 }
 
-/**
- * \brief Output stream operator
- * \param os output stream
- * \param s the state to print
- * \return an output stream
- */
 std::ostream &operator<<(std::ostream &os, HalfDuplexIdealPhy::State s) {
   switch (s) {
   case HalfDuplexIdealPhy::IDLE:
@@ -235,7 +211,6 @@ bool HalfDuplexIdealPhy::StartTx(Ptr<Packet> p) {
   switch (m_state) {
   case RX:
     AbortRx();
-    // fall through
 
   case IDLE: {
     m_txPacket = p;
@@ -285,32 +260,19 @@ void HalfDuplexIdealPhy::StartRx(Ptr<SpectrumSignalParameters> spectrumParams) {
                     << 10 * std::log10(Integral(*(spectrumParams->psd))) + 30
                     << " dBm");
 
-  // interference will happen regardless of the state of the receiver
   m_interference.AddSignal(spectrumParams->psd, spectrumParams->duration);
 
-  // the device might start RX only if the signal is of a type understood by
-  // this device this corresponds in real devices to preamble detection
   Ptr<HalfDuplexIdealPhySignalParameters> rxParams =
       DynamicCast<HalfDuplexIdealPhySignalParameters>(spectrumParams);
   if (rxParams) {
-    // signal is of known type
     switch (m_state) {
     case TX:
-      // the PHY will not notice this incoming signal
       break;
 
     case RX:
-      // we should check if we should re-sync on a new incoming signal and
-      // discard the old one (somebody calls this the "capture" effect) criteria
-      // considered to do might include the following:
-      //  1) signal strength (e.g., as returned by rxPsd.Norm ())
-      //  2) how much time has passed since previous RX attempt started
-      // if re-sync (capture) is done, then we should call AbortRx ()
       break;
 
     case IDLE:
-      // preamble detection and synchronization is supposed to be always
-      // successful.
 
       Ptr<Packet> p = rxParams->data;
       m_phyRxStartTrace(p);
@@ -331,8 +293,7 @@ void HalfDuplexIdealPhy::StartRx(Ptr<SpectrumSignalParameters> spectrumParams) {
 
       break;
     }
-  } else // rxParams == 0
-  {
+  } else {
     NS_LOG_LOGIC(this << " signal of unknown type");
   }
 

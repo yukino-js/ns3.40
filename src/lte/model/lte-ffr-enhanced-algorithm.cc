@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-ffr-enhanced-algorithm.h"
 
@@ -35,23 +16,19 @@ NS_LOG_COMPONENT_DEFINE("LteFfrEnhancedAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(LteFfrEnhancedAlgorithm);
 
-/// Spectral efficiency for CQI table
 static const double SpectralEfficiencyForCqi[16] = {
-    0.0, // out of range
-    0.15, 0.23, 0.38, 0.6, 0.88, 1.18, 1.48, 1.91,
-    2.41, 2.73, 3.32, 3.9, 4.52, 5.12, 5.55,
+    0.0,  0.15, 0.23, 0.38, 0.6, 0.88, 1.18, 1.48,
+    1.91, 2.41, 2.73, 3.32, 3.9, 4.52, 5.12, 5.55,
 };
 
-/// FfrEnhancedDownlinkDefaultConfiguration structure
 struct FfrEnhancedDownlinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t dlBandwidth;          ///< DL bandwidth
-  uint8_t dlSubBandOffset;      ///< DL subband offset
-  uint8_t dlReuse3SubBandwidth; ///< reuse 3 subbandwidth
-  uint8_t dlReuse1SubBandwidth; ///< reuse 1 subbandwidth
+  uint8_t cellId;
+  uint8_t dlBandwidth;
+  uint8_t dlSubBandOffset;
+  uint8_t dlReuse3SubBandwidth;
+  uint8_t dlReuse1SubBandwidth;
 };
 
-/// The enhanced downlink default configuration
 static const FfrEnhancedDownlinkDefaultConfiguration
     g_ffrEnhancedDownlinkDefaultConfiguration[]{
         {1, 25, 0, 4, 4},    {2, 25, 8, 4, 4},     {3, 25, 16, 4, 4},
@@ -60,16 +37,14 @@ static const FfrEnhancedDownlinkDefaultConfiguration
         {1, 100, 0, 16, 16}, {2, 100, 32, 16, 16}, {3, 100, 64, 16, 16},
     };
 
-/// FfrEnhancedUplinkDefaultConfiguration structure
 struct FfrEnhancedUplinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t ulBandwidth;          ///< UL bandwidth
-  uint8_t ulSubBandOffset;      ///< UL subband offset
-  uint8_t ulReuse3SubBandwidth; ///< UL reuse 3 subbandwidth
-  uint8_t ulReuse1SubBandwidth; ///< UL reuse 1 subbandwidth
+  uint8_t cellId;
+  uint8_t ulBandwidth;
+  uint8_t ulSubBandOffset;
+  uint8_t ulReuse3SubBandwidth;
+  uint8_t ulReuse1SubBandwidth;
 };
 
-/// The enhanced uplink default configuration
 static const FfrEnhancedUplinkDefaultConfiguration
     g_ffrEnhancedUplinkDefaultConfiguration[]{
         {1, 25, 0, 4, 4},    {2, 25, 8, 4, 4},     {3, 25, 16, 4, 4},
@@ -78,11 +53,9 @@ static const FfrEnhancedUplinkDefaultConfiguration
         {1, 100, 0, 16, 16}, {2, 100, 32, 16, 16}, {3, 100, 64, 16, 16},
     };
 
-/** \returns number of downlink configurations */
 const uint16_t
     NUM_DOWNLINK_CONFS(sizeof(g_ffrEnhancedDownlinkDefaultConfiguration) /
                        sizeof(FfrEnhancedDownlinkDefaultConfiguration));
-/** \returns number of uplink configurations */
 const uint16_t
     NUM_UPLINK_CONFS(sizeof(g_ffrEnhancedUplinkDefaultConfiguration) /
                      sizeof(FfrEnhancedUplinkDefaultConfiguration));
@@ -468,7 +441,6 @@ bool LteFfrEnhancedAlgorithm::DoIsDlRbgAvailableForUe(int rbgId,
 
   it = m_ues.find(rnti);
 
-  // if UE area is unknown, serve UE in edge area RBGs
   if (it->second == AreaUnset) {
     return isReuse3Rbg;
   }
@@ -486,7 +458,6 @@ bool LteFfrEnhancedAlgorithm::DoIsDlRbgAvailableForUe(int rbgId,
     NS_LOG_INFO("PRIMARY SEGMENT RNTI: " << rnti << "  rbgId: " << rbgId);
     return (isReuse1Rbg && isCenterUe) || (isReuse3Rbg && isEdgeUe);
   } else if (isSecondarySegmentRbg && isCenterUe) {
-    // check if RB can be used by UE based on CQI information
     NS_LOG_INFO("SECONDARY SEGMENT RNTI: " << rnti << "  rbgId: " << rbgId);
     auto it = m_dlRbgAvailableforUe.find(rnti);
     if (it != m_dlRbgAvailableforUe.end()) {
@@ -551,7 +522,6 @@ bool LteFfrEnhancedAlgorithm::DoIsUlRbgAvailableForUe(int rbgId,
 
   it = m_ues.find(rnti);
 
-  // if UE area is unknown, serve UE in edge area RBGs
   if (it->second == AreaUnset) {
     return isReuse3Rbg;
   }
@@ -568,7 +538,6 @@ bool LteFfrEnhancedAlgorithm::DoIsUlRbgAvailableForUe(int rbgId,
   if (isPrimarySegmentRbg) {
     return (isReuse1Rbg && isCenterUe) || (isReuse3Rbg && isEdgeUe);
   } else if (isSecondarySegmentRbg && isCenterUe) {
-    // check if RB can be used by UE based on CQI information
     NS_LOG_INFO("UL SECONDARY SEGMENT RNTI: " << rnti << "  rbgId: " << rbgId);
     auto it = m_ulRbAvailableforUe.find(rnti);
     if (it != m_ulRbAvailableforUe.end()) {
@@ -592,7 +561,6 @@ void LteFfrEnhancedAlgorithm::DoReportDlCqiInfo(
   for (unsigned int i = 0; i < params.m_cqiList.size(); i++) {
     if (params.m_cqiList.at(i).m_cqiType == CqiListElement_s::A30) {
       NS_LOG_INFO("subband CQI reporting high layer configured");
-      // subband CQI reporting high layer configured
       uint16_t rnti = params.m_cqiList.at(i).m_rnti;
 
       auto ueIt = m_ues.find(rnti);
@@ -606,11 +574,9 @@ void LteFfrEnhancedAlgorithm::DoReportDlCqiInfo(
 
       auto it = m_dlCqi.find(rnti);
       if (it == m_dlCqi.end()) {
-        // create the new entry
         m_dlCqi.insert(std::pair<uint16_t, SbMeasResult_s>(
             rnti, params.m_cqiList.at(i).m_sbMeasResult));
       } else {
-        // update the CQI value and refresh correspondent timer
         (*it).second = params.m_cqiList.at(i).m_sbMeasResult;
       }
     } else {
@@ -674,7 +640,6 @@ void LteFfrEnhancedAlgorithm::DoReportUlCqiInfo(
     const FfMacSchedSapProvider::SchedUlCqiInfoReqParameters &params) {
   NS_LOG_FUNCTION(this);
   if (params.m_ulCqi.m_type == UlCqi_s::SRS) {
-    // get the RNTI from vendor specific parameters
     uint16_t rnti = 0;
     for (uint32_t j = 0; j < m_ulBandwidth; j++) {
       double sinr =
@@ -699,10 +664,8 @@ double LteFfrEnhancedAlgorithm::EstimateUlSinr(
     std::map<uint16_t, std::vector<double>> ulCqiMap) {
   auto itCqi = ulCqiMap.find(rnti);
   if (itCqi == ulCqiMap.end()) {
-    // no cqi info about this UE
     return (NO_SINR);
   } else {
-    // take the average SINR value among the available
     double sinrSum = 0;
     unsigned int sinrNum = 0;
     for (uint32_t i = 0; i < m_ulBandwidth; i++) {
@@ -713,7 +676,6 @@ double LteFfrEnhancedAlgorithm::EstimateUlSinr(
       }
     }
     double estimatedSinr = (sinrNum > 0) ? (sinrSum / sinrNum) : DBL_MAX;
-    // store the value
     (*itCqi).second.at(rb) = estimatedSinr;
     return (estimatedSinr);
   }
@@ -723,19 +685,8 @@ uint8_t LteFfrEnhancedAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
 
   if (!m_enabledInUplink) {
-    return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute
-              // mode TS36.213 Table 5.1.1.1-2
+    return 1;
   }
-
-  // TS36.213 Table 5.1.1.1-2
-  //    TPC   |   Accumulated Mode  |  Absolute Mode
-  //------------------------------------------------
-  //     0    |         -1          |      -4
-  //     1    |          0          |      -1
-  //     2    |          1          |       1
-  //     3    |          3          |       4
-  //------------------------------------------------
-  //  here Absolute mode is used
 
   auto it = m_ues.find(rnti);
   if (it == m_ues.end()) {
@@ -824,4 +775,4 @@ void LteFfrEnhancedAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, because it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

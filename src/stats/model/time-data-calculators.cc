@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 Drexel University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Joe Kopena (tjkopena@cs.drexel.edu)
- */
 
 #include "time-data-calculators.h"
 
@@ -26,8 +8,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TimeDataCalculators");
 
-//--------------------------------------------------------------
-//----------------------------------------------
 TimeMinMaxAvgTotalCalculator::TimeMinMaxAvgTotalCalculator() {
   NS_LOG_FUNCTION(this);
 
@@ -38,7 +18,6 @@ TimeMinMaxAvgTotalCalculator::~TimeMinMaxAvgTotalCalculator() {
   NS_LOG_FUNCTION(this);
 }
 
-/* static */
 TypeId TimeMinMaxAvgTotalCalculator::GetTypeId() {
   static TypeId tid = TypeId("ns3::TimeMinMaxAvgTotalCalculator")
                           .SetParent<DataCalculator>()
@@ -51,7 +30,6 @@ void TimeMinMaxAvgTotalCalculator::DoDispose() {
   NS_LOG_FUNCTION(this);
 
   DataCalculator::DoDispose();
-  // TimeMinMaxAvgTotalCalculator::DoDispose
 }
 
 void TimeMinMaxAvgTotalCalculator::Update(const Time i) {
@@ -75,7 +53,6 @@ void TimeMinMaxAvgTotalCalculator::Update(const Time i) {
     }
     m_count++;
   }
-  // end TimeMinMaxAvgTotalCalculator::Update
 }
 
 void TimeMinMaxAvgTotalCalculator::Output(DataOutputCallback &callback) const {
@@ -89,5 +66,4 @@ void TimeMinMaxAvgTotalCalculator::Output(DataOutputCallback &callback) const {
     callback.OutputSingleton(m_context, m_key + "-max", m_max);
     callback.OutputSingleton(m_context, m_key + "-min", m_min);
   }
-  // end TimeMinMaxAvgTotalCalculator::Output
 }

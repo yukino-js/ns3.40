@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/athstats-helper.h"
 #include "ns3/boolean.h"
@@ -33,42 +15,20 @@
 
 using namespace ns3;
 
-/// True for verbose output.
 static bool g_verbose = true;
 
-/**
- * MAC-level TX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void DevTxTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << " TX p: " << *p << std::endl;
   }
 }
 
-/**
- * MAC-level RX trace.
- *
- * \param context The context.
- * \param p The packet.
- */
 void DevRxTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << " RX p: " << *p << std::endl;
   }
 }
 
-/**
- * PHY-level RX OK trace
- *
- * \param context The context.
- * \param packet The packet.
- * \param snr The SNR.
- * \param mode The wifi mode.
- * \param preamble The preamble.
- */
 void PhyRxOkTrace(std::string context, Ptr<const Packet> packet, double snr,
                   WifiMode mode, WifiPreamble preamble) {
   if (g_verbose) {
@@ -77,13 +37,6 @@ void PhyRxOkTrace(std::string context, Ptr<const Packet> packet, double snr,
   }
 }
 
-/**
- * PHY-level RX error trace
- *
- * \param context The context.
- * \param packet The packet.
- * \param snr The SNR.
- */
 void PhyRxErrorTrace(std::string context, Ptr<const Packet> packet,
                      double snr) {
   if (g_verbose) {
@@ -91,15 +44,6 @@ void PhyRxErrorTrace(std::string context, Ptr<const Packet> packet,
   }
 }
 
-/**
- * PHY-level TX trace.
- *
- * \param context The context.
- * \param packet The packet.
- * \param mode The wifi mode.
- * \param preamble The preamble.
- * \param txPower The TX power.
- */
 void PhyTxTrace(std::string context, Ptr<const Packet> packet, WifiMode mode,
                 WifiPreamble preamble, uint8_t txPower) {
   if (g_verbose) {
@@ -107,14 +51,6 @@ void PhyTxTrace(std::string context, Ptr<const Packet> packet, WifiMode mode,
   }
 }
 
-/**
- * PHY state trace.
- *
- * \param context The context.
- * \param start Start time of the state.
- * \param duration Duration of the state.
- * \param state The state.
- */
 void PhyStateTrace(std::string context, Time start, Time duration,
                    WifiPhyState state) {
   if (g_verbose) {
@@ -123,11 +59,6 @@ void PhyStateTrace(std::string context, Time start, Time duration,
   }
 }
 
-/**
- * Move a node position by 5m on the x axis every second, up to 210m.
- *
- * \param node The node.
- */
 static void AdvancePosition(Ptr<Node> node) {
   Ptr<MobilityModel> mobility = node->GetObject<MobilityModel>();
   Vector pos = mobility->GetPosition();
@@ -157,7 +88,6 @@ int main(int argc, char *argv[]) {
   stas.Create(2);
   ap.Create(1);
 
-  // give packet socket powers to nodes.
   packetSocket.Install(stas);
   packetSocket.Install(ap);
 
@@ -166,15 +96,12 @@ int main(int argc, char *argv[]) {
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   wifiPhy.SetChannel(wifiChannel.Create());
   Ssid ssid = Ssid("wifi-default");
-  // setup stas.
   wifiMac.SetType("ns3::StaWifiMac", "ActiveProbing", BooleanValue(true),
                   "Ssid", SsidValue(ssid));
   staDevs = wifi.Install(wifiPhy, wifiMac, stas);
-  // setup ap.
   wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
   wifi.Install(wifiPhy, wifiMac, ap);
 
-  // mobility.
   mobility.Install(stas);
   mobility.Install(ap);
 

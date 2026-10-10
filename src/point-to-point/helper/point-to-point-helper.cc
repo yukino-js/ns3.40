@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/abort.h"
 #include "ns3/config.h"
@@ -63,11 +45,6 @@ void PointToPointHelper::DisableFlowControl() { m_enableFlowControl = false; }
 void PointToPointHelper::EnablePcapInternal(std::string prefix,
                                             Ptr<NetDevice> nd, bool promiscuous,
                                             bool explicitFilename) {
-  //
-  // All of the Pcap enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type PointToPointNetDevice.
-  //
   Ptr<PointToPointNetDevice> device = nd->GetObject<PointToPointNetDevice>();
   if (!device) {
     NS_LOG_INFO("Device " << device
@@ -94,11 +71,6 @@ void PointToPointHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
                                              std::string prefix,
                                              Ptr<NetDevice> nd,
                                              bool explicitFilename) {
-  //
-  // All of the ascii enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type PointToPointNetDevice.
-  //
   Ptr<PointToPointNetDevice> device = nd->GetObject<PointToPointNetDevice>();
   if (!device) {
     NS_LOG_INFO("Device " << device
@@ -106,24 +78,9 @@ void PointToPointHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // Our default trace sinks are going to use packet printing, so we have to
-  // make sure that is turned on.
-  //
   Packet::EnablePrinting();
 
-  //
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and do a Hook*WithoutContext
-  // since there will be one file per context and therefore the context would
-  // be redundant.
-  //
   if (!stream) {
-    //
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues.  Let the helper decide the actual
-    // name of the file given the prefix.
-    //
     AsciiTraceHelper asciiTraceHelper;
 
     std::string filename;
@@ -136,17 +93,10 @@ void PointToPointHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     Ptr<OutputStreamWrapper> theStream =
         asciiTraceHelper.CreateFileStream(filename);
 
-    //
-    // The MacRx trace source provides our "r" event.
-    //
     asciiTraceHelper
         .HookDefaultReceiveSinkWithoutContext<PointToPointNetDevice>(
             device, "MacRx", theStream);
 
-    //
-    // The "+", '-', and 'd' events are driven by trace sources actually in the
-    // transmit queue.
-    //
     Ptr<Queue<Packet>> queue = device->GetQueue();
     asciiTraceHelper.HookDefaultEnqueueSinkWithoutContext<Queue<Packet>>(
         queue, "Enqueue", theStream);
@@ -155,25 +105,12 @@ void PointToPointHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     asciiTraceHelper.HookDefaultDequeueSinkWithoutContext<Queue<Packet>>(
         queue, "Dequeue", theStream);
 
-    // PhyRxDrop trace source for "d" event
     asciiTraceHelper.HookDefaultDropSinkWithoutContext<PointToPointNetDevice>(
         device, "PhyRxDrop", theStream);
 
     return;
   }
 
-  //
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to providd a context.  We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with the context.
-  //
-  // Note that we are going to use the default trace sinks provided by the
-  // ascii trace helper.  There is actually no AsciiTraceHelper in sight here,
-  // but the default trace sinks are actually publicly available static
-  // functions that are always there waiting for just such a case.
-  //
   uint32_t nodeid = nd->GetNode()->GetId();
   uint32_t deviceid = nd->GetIfIndex();
   std::ostringstream oss;
@@ -234,7 +171,6 @@ NetDeviceContainer PointToPointHelper::Install(Ptr<Node> a, Ptr<Node> b) {
   Ptr<Queue<Packet>> queueB = m_queueFactory.Create<Queue<Packet>>();
   devB->SetQueue(queueB);
   if (m_enableFlowControl) {
-    // Aggregate NetDeviceQueueInterface objects
     Ptr<NetDeviceQueueInterface> ndqiA =
         CreateObject<NetDeviceQueueInterface>();
     ndqiA->GetTxQueue(0)->ConnectQueueTraces(queueA);
@@ -247,9 +183,6 @@ NetDeviceContainer PointToPointHelper::Install(Ptr<Node> a, Ptr<Node> b) {
 
   Ptr<PointToPointChannel> channel = nullptr;
 
-  // If MPI is enabled, we need to see if both nodes have the same system id
-  // (rank), and the rank is the same as this instance.  If both are true,
-  // use a normal p2p channel, otherwise use a remote channel
 #ifdef NS3_MPI
   bool useNormalChannel = true;
   if (MpiInterface::IsEnabled()) {

@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2008 Telecom Bretagne
- * Copyright (c) 2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- *         Mehdi Benamor <benamor.mehdi@ensi.rnu.tn>
- */
 
 #include "radvd.h"
 
@@ -177,7 +157,6 @@ void Radvd::Send(Ptr<RadvdInterface> config, Ipv6Address dst, bool reschedule) {
   Ptr<Packet> p = Create<Packet>();
   Ptr<Ipv6> ipv6 = GetNode()->GetObject<Ipv6>();
 
-  /* set RA header information */
   raHdr.SetFlagM(config->IsManagedFlag());
   raHdr.SetFlagO(config->IsOtherConfigFlag());
   raHdr.SetFlagH(config->IsHomeAgentFlag());
@@ -187,7 +166,6 @@ void Radvd::Send(Ptr<RadvdInterface> config, Ipv6Address dst, bool reschedule) {
   raHdr.SetRetransmissionTime(config->GetRetransTimer());
 
   if (config->IsSourceLLAddress()) {
-    /* Get L2 address from NetDevice */
     Address addr = ipv6->GetNetDevice(config->GetInterface())->GetAddress();
     llaHdr = Icmpv6OptionLinkLayerAddress(true, addr);
     p->AddHeader(llaHdr);
@@ -199,7 +177,6 @@ void Radvd::Send(Ptr<RadvdInterface> config, Ipv6Address dst, bool reschedule) {
     p->AddHeader(mtuHdr);
   }
 
-  /* add list of prefixes */
   for (auto jt = prefixes.begin(); jt != prefixes.end(); jt++) {
     uint8_t flags = 0;
     prefixHdr = Icmpv6OptionPrefixInformation();
@@ -229,23 +206,14 @@ void Radvd::Send(Ptr<RadvdInterface> config, Ipv6Address dst, bool reschedule) {
   m_sendSockets[config->GetInterface()]->GetSockName(sockAddr);
   Ipv6Address src = Inet6SocketAddress::ConvertFrom(sockAddr).GetIpv6();
 
-  /* as we know interface index that will be used to send RA and
-   * we always send RA with router's link-local address, we can
-   * calculate checksum here.
-   */
   raHdr.CalculatePseudoHeaderChecksum(
-      src, dst, p->GetSize() + raHdr.GetSerializedSize(), 58 /* ICMPv6 */);
+      src, dst, p->GetSize() + raHdr.GetSerializedSize(), 58);
   p->AddHeader(raHdr);
 
-  /* Router advertisements MUST always have a ttl of 255
-   * The ttl value should be set as a socket option, but this is not yet
-   * implemented
-   */
   SocketIpTtlTag ttl;
   ttl.SetTtl(255);
   p->AddPacketTag(ttl);
 
-  /* send RA */
   NS_LOG_LOGIC("Send RA to " << dst);
   m_sendSockets[config->GetInterface()]->SendTo(p, 0,
                                                 Inet6SocketAddress(dst, 0));
@@ -304,19 +272,15 @@ void Radvd::HandleRead(Ptr<Socket> socket) {
         for (auto it = m_configurations.begin(); it != m_configurations.end();
              it++) {
           if (ipInterfaceIndex == (*it)->GetInterface()) {
-            /* calculate minimum delay between RA */
             delay = static_cast<uint64_t>(
                 m_jitter->GetValue(0, MAX_RA_DELAY_TIME) + 0.5);
-            t = Simulator::Now() +
-                MilliSeconds(delay); /* absolute time of solicited RA */
+            t = Simulator::Now() + MilliSeconds(delay);
 
             if (Simulator::Now() < (*it)->GetLastRaTxTime() +
                                        MilliSeconds(MIN_DELAY_BETWEEN_RAS)) {
               t += MilliSeconds(MIN_DELAY_BETWEEN_RAS);
             }
 
-            /* if our solicited RA is before the next periodic RA, we schedule
-             * it */
             bool scheduleSingle = true;
 
             if (m_solicitedEventIds.find((*it)->GetInterface()) !=
@@ -351,4 +315,4 @@ void Radvd::HandleRead(Ptr<Socket> socket) {
   }
 }
 
-} /* namespace ns3 */
+} // namespace ns3

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Gustavo J. A. M. Carneiro  <gjc@inescporto.pt>
- */
 
 #include "virtual-net-device.h"
 
@@ -67,10 +49,6 @@ TypeId VirtualNetDevice::GetTypeId() {
               "This is a non-promiscuous trace,",
               MakeTraceSourceAccessor(&VirtualNetDevice::m_macRxTrace),
               "ns3::Packet::TracedCallback")
-          //
-          // Trace sources designed to simulate a packet sniffer facility
-          // (tcpdump).
-          //
           .AddTraceSource(
               "Sniffer",
               "Trace source simulating a non-promiscuous "
@@ -123,11 +101,6 @@ bool VirtualNetDevice::Receive(Ptr<Packet> packet, uint16_t protocol,
                                const Address &source,
                                const Address &destination,
                                PacketType packetType) {
-  //
-  // For all kinds of packetType we receive, we hit the promiscuous sniffer
-  // hook and pass a copy up to the promiscuous callback.  Pass a copy to
-  // make sure that nobody messes with our packet.
-  //
   m_promiscSnifferTrace(packet);
   if (!m_promiscRxCallback.IsNull()) {
     m_macPromiscRxTrace(packet);
@@ -135,11 +108,6 @@ bool VirtualNetDevice::Receive(Ptr<Packet> packet, uint16_t protocol,
                         packetType);
   }
 
-  //
-  // If this packet is not destined for some other host, it must be for us
-  // as either a broadcast, multicast or unicast.  We need to hit the mac
-  // packet received trace hook and forward the packet up the stack.
-  //
   if (packetType != PACKET_OTHERHOST) {
     m_snifferTrace(packet);
     m_macRxTrace(packet);

@@ -1,25 +1,3 @@
-/* vim: set ts=2 sw=2 sta expandtab ai si cin: */
-/*
- * Copyright (c) 2009 Drexel University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tom Wambold <tom5760@gmail.com>
- */
-/* These classes implement RFC 5444 - The Generalized Mobile Ad Hoc Network
- * (MANET) Packet/PbbMessage Format
- * See: https://datatracker.ietf.org/doc/html/rfc5444 for details */
 
 #include "packetbb.h"
 
@@ -30,24 +8,20 @@
 #include "ns3/log.h"
 
 static const uint8_t VERSION = 0;
-/* Packet flags */
 static const uint8_t PHAS_SEQ_NUM = 0x8;
 static const uint8_t PHAS_TLV = 0x4;
 
-/* PbbMessage flags */
 static const uint8_t MHAS_ORIG = 0x80;
 static const uint8_t MHAS_HOP_LIMIT = 0x40;
 static const uint8_t MHAS_HOP_COUNT = 0x20;
 static const uint8_t MHAS_SEQ_NUM = 0x10;
 
-/* Address block flags */
 static const uint8_t AHAS_HEAD = 0x80;
 static const uint8_t AHAS_FULL_TAIL = 0x40;
 static const uint8_t AHAS_ZERO_TAIL = 0x20;
 static const uint8_t AHAS_SINGLE_PRE_LEN = 0x10;
 static const uint8_t AHAS_MULTI_PRE_LEN = 0x08;
 
-/* TLV Flags */
 static const uint8_t THAS_TYPE_EXT = 0x80;
 static const uint8_t THAS_SINGLE_INDEX = 0x40;
 static const uint8_t THAS_MULTI_INDEX = 0x20;
@@ -155,7 +129,6 @@ void PbbTlvBlock::Clear() {
 
 uint32_t PbbTlvBlock::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* tlv size */
   uint32_t size = 2;
   for (auto iter = Begin(); iter != End(); iter++) {
     size += (*iter)->GetSerializedSize();
@@ -170,14 +143,11 @@ void PbbTlvBlock::Serialize(Buffer::Iterator &start) const {
     return;
   }
 
-  /* We need to write the size of the TLV block in front, so save its
-   * position. */
   Buffer::Iterator tlvsize = start;
   start.Next(2);
   for (auto iter = Begin(); iter != End(); iter++) {
     (*iter)->Serialize(start);
   }
-  /* - 2 to not include the size field */
   uint16_t size = start.GetDistanceFrom(tlvsize) - 2;
   tlvsize.WriteHtonU16(size);
 }
@@ -239,8 +209,6 @@ bool PbbTlvBlock::operator==(const PbbTlvBlock &other) const {
 bool PbbTlvBlock::operator!=(const PbbTlvBlock &other) const {
   return !(*this == other);
 }
-
-/* End PbbTlvBlock class */
 
 PbbAddressTlvBlock::PbbAddressTlvBlock() { NS_LOG_FUNCTION(this); }
 
@@ -339,7 +307,6 @@ void PbbAddressTlvBlock::Clear() {
 
 uint32_t PbbAddressTlvBlock::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* tlv size */
   uint32_t size = 2;
   for (auto iter = Begin(); iter != End(); iter++) {
     size += (*iter)->GetSerializedSize();
@@ -354,14 +321,11 @@ void PbbAddressTlvBlock::Serialize(Buffer::Iterator &start) const {
     return;
   }
 
-  /* We need to write the size of the TLV block in front, so save its
-   * position. */
   Buffer::Iterator tlvsize = start;
   start.Next(2);
   for (auto iter = Begin(); iter != End(); iter++) {
     (*iter)->Serialize(start);
   }
-  /* - 2 to not include the size field */
   uint16_t size = start.GetDistanceFrom(tlvsize) - 2;
   tlvsize.WriteHtonU16(size);
 }
@@ -424,8 +388,6 @@ bool PbbAddressTlvBlock::operator!=(const PbbAddressTlvBlock &other) const {
   return !(*this == other);
 }
 
-/* End PbbAddressTlvBlock Class */
-
 PbbPacket::PbbPacket() {
   NS_LOG_FUNCTION(this);
   m_version = VERSION;
@@ -458,8 +420,6 @@ bool PbbPacket::HasSequenceNumber() const {
   NS_LOG_FUNCTION(this);
   return m_hasseqnum;
 }
-
-/* Manipulating Packet TLVs */
 
 PbbPacket::TlvIterator PbbPacket::TlvBegin() {
   NS_LOG_FUNCTION(this);
@@ -546,8 +506,6 @@ void PbbPacket::TlvClear() {
   NS_LOG_FUNCTION(this);
   m_tlvList.Clear();
 }
-
-/* Manipulating Packet Messages */
 
 PbbPacket::MessageIterator PbbPacket::MessageBegin() {
   NS_LOG_FUNCTION(this);
@@ -651,7 +609,6 @@ TypeId PbbPacket::GetInstanceTypeId() const { return GetTypeId(); }
 
 uint32_t PbbPacket::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* Version number + flags */
   uint32_t size = 1;
 
   if (HasSequenceNumber()) {
@@ -671,13 +628,10 @@ uint32_t PbbPacket::GetSerializedSize() const {
 
 void PbbPacket::Serialize(Buffer::Iterator start) const {
   NS_LOG_FUNCTION(this << &start);
-  /* We remember the start, so we can write the flags after we check for a
-   * sequence number and TLV. */
   Buffer::Iterator bufref = start;
   start.Next();
 
   uint8_t flags = VERSION;
-  /* Make room for 4 bit flags */
   flags <<= 4;
 
   if (HasSequenceNumber()) {
@@ -782,11 +736,8 @@ bool PbbPacket::operator!=(const PbbPacket &other) const {
   return !(*this == other);
 }
 
-/* End PbbPacket class */
-
 PbbMessage::PbbMessage() {
   NS_LOG_FUNCTION(this);
-  /* Default to IPv4 */
   m_addrSize = IPV4;
   m_hasOriginatorAddress = false;
   m_hasHopLimit = false;
@@ -882,8 +833,6 @@ bool PbbMessage::HasSequenceNumber() const {
   return m_hasSequenceNumber;
 }
 
-/* Manipulating PbbMessage TLVs */
-
 PbbMessage::TlvIterator PbbMessage::TlvBegin() {
   NS_LOG_FUNCTION(this);
   return m_tlvList.Begin();
@@ -969,8 +918,6 @@ void PbbMessage::TlvClear() {
   NS_LOG_FUNCTION(this);
   m_tlvList.Clear();
 }
-
-/* Manipulating Address Block and Address TLV pairs */
 
 PbbMessage::AddressBlockIterator PbbMessage::AddressBlockBegin() {
   NS_LOG_FUNCTION(this);
@@ -1065,7 +1012,6 @@ void PbbMessage::AddressBlockClear() {
 
 uint32_t PbbMessage::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* msg-type + (msg-flags + msg-addr-length) + 2msg-size */
   uint32_t size = 4;
 
   if (HasOriginatorAddress()) {
@@ -1099,7 +1045,6 @@ void PbbMessage::Serialize(Buffer::Iterator &start) const {
 
   start.WriteU8(GetType());
 
-  /* Save a reference to the spot where we will later write the flags */
   Buffer::Iterator bufref = start;
   start.Next(1);
 
@@ -1143,14 +1088,10 @@ void PbbMessage::Serialize(Buffer::Iterator &start) const {
 
 Ptr<PbbMessage> PbbMessage::DeserializeMessage(Buffer::Iterator &start) {
   NS_LOG_FUNCTION(&start);
-  /* We need to read the msg-addr-len field to determine what kind of object to
-   * construct. */
   start.Next();
   uint8_t addrlen = start.ReadU8();
-  start.Prev(2); /* Go back to the start */
+  start.Prev(2);
 
-  /* The first four bytes of the flag is the address length.  Set the last four
-   * bytes to 0 to read it. */
   addrlen = (addrlen & 0xf);
 
   Ptr<PbbMessage> newmsg;
@@ -1320,8 +1261,6 @@ bool PbbMessage::operator!=(const PbbMessage &other) const {
   return !(*this == other);
 }
 
-/* End PbbMessage Class */
-
 PbbMessageIpv4::PbbMessageIpv4() { NS_LOG_FUNCTION(this); }
 
 PbbAddressLength PbbMessageIpv4::GetAddressLength() const {
@@ -1359,8 +1298,6 @@ PbbMessageIpv4::AddressBlockDeserialize(Buffer::Iterator &start) const {
   newab->Deserialize(start);
   return newab;
 }
-
-/* End PbbMessageIpv4 Class */
 
 PbbMessageIpv6::PbbMessageIpv6() { NS_LOG_FUNCTION(this); }
 
@@ -1400,13 +1337,9 @@ PbbMessageIpv6::AddressBlockDeserialize(Buffer::Iterator &start) const {
   return newab;
 }
 
-/* End PbbMessageIpv6 Class */
-
 PbbAddressBlock::PbbAddressBlock() { NS_LOG_FUNCTION(this); }
 
 PbbAddressBlock::~PbbAddressBlock() { NS_LOG_FUNCTION(this); }
-
-/* Manipulating the address block */
 
 PbbAddressBlock::AddressIterator PbbAddressBlock::AddressBegin() {
   NS_LOG_FUNCTION(this);
@@ -1485,8 +1418,6 @@ void PbbAddressBlock::AddressClear() {
   NS_LOG_FUNCTION(this);
   return m_addressList.clear();
 }
-
-/* Manipulating the prefix list */
 
 PbbAddressBlock::PrefixIterator PbbAddressBlock::PrefixBegin() {
   NS_LOG_FUNCTION(this);
@@ -1572,8 +1503,6 @@ void PbbAddressBlock::PrefixClear() {
   NS_LOG_FUNCTION(this);
   m_prefixList.clear();
 }
-
-/* Manipulating the TLV block */
 
 PbbAddressBlock::TlvIterator PbbAddressBlock::TlvBegin() {
   NS_LOG_FUNCTION(this);
@@ -1665,7 +1594,6 @@ void PbbAddressBlock::TlvClear() {
 
 uint32_t PbbAddressBlock::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* num-addr + flags */
   uint32_t size = 2;
 
   if (AddressSize() == 1) {
@@ -1689,7 +1617,6 @@ uint32_t PbbAddressBlock::GetSerializedSize() const {
       }
     }
 
-    /* mid size */
     size += (GetAddressLength() - headlen - taillen) * AddressSize();
 
     size += PrefixSize();
@@ -1885,7 +1812,6 @@ uint8_t PbbAddressBlock::GetPrefixFlags() const {
     return AHAS_MULTI_PRE_LEN;
   }
 
-  /* Quiet compiler */
   return 0;
 }
 
@@ -1896,14 +1822,12 @@ void PbbAddressBlock::GetHeadTail(uint8_t *head, uint8_t &headlen,
   headlen = GetAddressLength();
   taillen = headlen;
 
-  /* Temporary automatic buffers to store serialized addresses */
   auto buflast = new uint8_t[GetAddressLength()];
   auto bufcur = new uint8_t[GetAddressLength()];
   uint8_t *tmp;
 
   SerializeAddress(buflast, AddressBegin());
 
-  /* Skip the first item */
   for (auto iter = AddressBegin()++; iter != AddressEnd(); iter++) {
     SerializeAddress(bufcur, iter);
 
@@ -1915,7 +1839,6 @@ void PbbAddressBlock::GetHeadTail(uint8_t *head, uint8_t &headlen,
       }
     }
 
-    /* If headlen == fulllen - 1, then tail is 0 */
     if (GetAddressLength() - headlen > 0) {
       for (i = GetAddressLength() - 1;
            GetAddressLength() - 1 - i <= taillen && i > headlen; i--) {
@@ -1952,8 +1875,6 @@ bool PbbAddressBlock::HasZeroTail(const uint8_t *tail, uint8_t taillen) const {
   return i == taillen;
 }
 
-/* End PbbAddressBlock Class */
-
 PbbAddressBlockIpv4::PbbAddressBlockIpv4() { NS_LOG_FUNCTION(this); }
 
 PbbAddressBlockIpv4::~PbbAddressBlockIpv4() { NS_LOG_FUNCTION(this); }
@@ -1980,8 +1901,6 @@ void PbbAddressBlockIpv4::PrintAddress(std::ostream &os,
   Ipv4Address::ConvertFrom(*iter).Print(os);
 }
 
-/* End PbbAddressBlockIpv4 Class */
-
 PbbAddressBlockIpv6::PbbAddressBlockIpv6() { NS_LOG_FUNCTION(this); }
 
 PbbAddressBlockIpv6::~PbbAddressBlockIpv6() { NS_LOG_FUNCTION(this); }
@@ -2007,8 +1926,6 @@ void PbbAddressBlockIpv6::PrintAddress(std::ostream &os,
   NS_LOG_FUNCTION(this << &os << &iter);
   Ipv6Address::ConvertFrom(*iter).Print(os);
 }
-
-/* End PbbAddressBlockIpv6 Class */
 
 PbbTlv::PbbTlv() {
   NS_LOG_FUNCTION(this);
@@ -2121,7 +2038,6 @@ bool PbbTlv::HasValue() const {
 
 uint32_t PbbTlv::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  /* type + flags */
   uint32_t size = 2;
 
   if (HasTypeExt()) {
@@ -2290,8 +2206,6 @@ bool PbbTlv::operator==(const PbbTlv &other) const {
       return false;
     }
 
-    /* The docs say I probably shouldn't use Buffer::PeekData, but I think it
-     * is justified in this case. */
     if (memcmp(tv.PeekData(), ov.PeekData(), tv.GetSize()) != 0) {
       return false;
     }
@@ -2300,8 +2214,6 @@ bool PbbTlv::operator==(const PbbTlv &other) const {
 }
 
 bool PbbTlv::operator!=(const PbbTlv &other) const { return !(*this == other); }
-
-/* End PbbTlv Class */
 
 void PbbAddressTlv::SetIndexStart(uint8_t index) {
   NS_LOG_FUNCTION(this << static_cast<uint32_t>(index));
@@ -2343,4 +2255,4 @@ bool PbbAddressTlv::IsMultivalue() const {
   return PbbTlv::IsMultivalue();
 }
 
-} /* namespace ns3 */
+} // namespace ns3

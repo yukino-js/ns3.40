@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/boolean.h"
@@ -42,35 +24,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Forwarding Test
- */
 class Ipv4ForwardingTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv4ForwardingTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -100,9 +63,7 @@ void Ipv4ForwardingTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv4ForwardingTest::DoRun() {
-  // Create topology
 
-  // Receiver Node
   Ptr<Node> rxNode = CreateObject<Node>();
 
   InternetStackHelper internet;
@@ -110,7 +71,7 @@ void Ipv4ForwardingTest::DoRun() {
 
   internet.Install(rxNode);
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address::ConvertFrom(Mac48Address::Allocate()));
     rxNode->AddDevice(rxDev);
@@ -122,13 +83,12 @@ void Ipv4ForwardingTest::DoRun() {
     ipv4->SetUp(netdev_idx);
   }
 
-  // Forwarding Node
   Ptr<Node> fwNode = CreateObject<Node>();
 
   internet.Install(fwNode);
   Ptr<SimpleNetDevice> fwDev1;
   Ptr<SimpleNetDevice> fwDev2;
-  { // first interface
+  {
     fwDev1 = CreateObject<SimpleNetDevice>();
     fwDev1->SetAddress(Mac48Address::ConvertFrom(Mac48Address::Allocate()));
     fwNode->AddDevice(fwDev1);
@@ -140,7 +100,7 @@ void Ipv4ForwardingTest::DoRun() {
     ipv4->SetUp(netdev_idx);
   }
 
-  { // second interface
+  {
     fwDev2 = CreateObject<SimpleNetDevice>();
     fwDev2->SetAddress(Mac48Address::ConvertFrom(Mac48Address::Allocate()));
     fwNode->AddDevice(fwDev2);
@@ -152,7 +112,6 @@ void Ipv4ForwardingTest::DoRun() {
     ipv4->SetUp(netdev_idx);
   }
 
-  // Sender Node
   Ptr<Node> txNode = CreateObject<Node>();
 
   internet.Install(txNode);
@@ -173,7 +132,6 @@ void Ipv4ForwardingTest::DoRun() {
     ipv4StaticRouting->SetDefaultRoute(Ipv4Address("10.1.0.1"), netdev_idx);
   }
 
-  // link the two nodes
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   rxDev->SetChannel(channel1);
   fwDev1->SetChannel(channel1);
@@ -182,7 +140,6 @@ void Ipv4ForwardingTest::DoRun() {
   fwDev2->SetChannel(channel2);
   txDev->SetChannel(channel2);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -195,9 +152,6 @@ void Ipv4ForwardingTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "10.0.0.2");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 123, "IPv4 Forwarding on");
 
@@ -212,11 +166,6 @@ void Ipv4ForwardingTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Forwarding TestSuite
- */
 class Ipv4ForwardingTestSuite : public TestSuite {
 public:
   Ipv4ForwardingTestSuite();
@@ -229,5 +178,4 @@ Ipv4ForwardingTestSuite::Ipv4ForwardingTestSuite()
   AddTestCase(new Ipv4ForwardingTest, TestCase::QUICK);
 }
 
-static Ipv4ForwardingTestSuite
-    g_ipv4forwardingTestSuite; //!< Static variable for test initialization
+static Ipv4ForwardingTestSuite g_ipv4forwardingTestSuite;

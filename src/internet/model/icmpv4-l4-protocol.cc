@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@cutebugs.net>
- */
 
 #include "icmpv4-l4-protocol.h"
 
@@ -38,7 +20,6 @@ NS_LOG_COMPONENT_DEFINE("Icmpv4L4Protocol");
 
 NS_OBJECT_ENSURE_REGISTERED(Icmpv4L4Protocol);
 
-// see rfc 792
 const uint8_t Icmpv4L4Protocol::PROT_NUMBER = 1;
 
 TypeId Icmpv4L4Protocol::GetTypeId() {
@@ -63,11 +44,6 @@ void Icmpv4L4Protocol::SetNode(Ptr<Node> node) {
   m_node = node;
 }
 
-/*
- * This method is called by AggregateObject and completes the aggregation
- * by setting the node in the ICMP stack and adding ICMP factory to
- * IPv4 stack connected to the node
- */
 void Icmpv4L4Protocol::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
   if (!m_node) {
@@ -108,7 +84,7 @@ void Icmpv4L4Protocol::SendMessage(Ptr<Packet> packet, Ipv4Address dest,
   header.SetProtocol(PROT_NUMBER);
   Socket::SocketErrno errno_;
   Ptr<Ipv4Route> route;
-  Ptr<NetDevice> oif(nullptr); // specify non-zero if bound to a source address
+  Ptr<NetDevice> oif(nullptr);
   route = ipv4->GetRoutingProtocol()->RouteOutput(packet, header, oif, errno_);
   if (route) {
     NS_LOG_LOGIC("Route exists");
@@ -231,7 +207,6 @@ void Icmpv4L4Protocol::HandleTimeExceeded(Ptr<Packet> p, Icmpv4Header icmp,
   uint8_t payload[8];
   time.GetData(payload);
   Ipv4Header ipHeader = time.GetHeader();
-  // info field is zero for TimeExceeded on linux
   Forward(source, icmp, 0, ipHeader, payload);
 }
 
@@ -245,7 +220,6 @@ Icmpv4L4Protocol::Receive(Ptr<Packet> p, const Ipv4Header &header,
   switch (icmp.GetType()) {
   case Icmpv4Header::ICMPV4_ECHO: {
     Ipv4Address dst = header.GetDestination();
-    // We could have received an Echo request to a broadcast-type address.
     if (dst.IsBroadcast()) {
       Ipv4Address src = header.GetSource();
       for (uint32_t index = 0; index < incomingInterface->GetNAddresses();

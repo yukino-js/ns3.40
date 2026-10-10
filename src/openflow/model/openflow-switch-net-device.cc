@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Blake Hurd  <naimorai@gmail.com>
- */
 
 #include "openflow-switch-net-device.h"
 
@@ -40,11 +11,6 @@ NS_LOG_COMPONENT_DEFINE("OpenFlowSwitchNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED(OpenFlowSwitchNetDevice);
 
-/**
- * Generate an ID.
- *
- * \return Generated ID.
- */
 static uint64_t GenerateId() {
   uint8_t ea[ETH_ADDR_LEN];
   eth_addr_random(ea);
@@ -85,23 +51,19 @@ TypeId OpenFlowSwitchNetDevice::GetTypeId() {
               MakeTimeAccessor(&OpenFlowSwitchNetDevice::m_lookupDelay),
               MakeTimeChecker())
           .AddAttribute(
-              "Flags", // Note: The Controller can configure this value,
-                       // overriding the user's setting.
+              "Flags",
               "Flags to turn different functionality on/off, such as whether "
               "to inform "
               "the controller when a flow expires, or how to handle fragments.",
-              UintegerValue(0), // Look at the ofp_config_flags enum in
-                                // openflow/include/openflow.h for options.
+              UintegerValue(0),
               MakeUintegerAccessor(&OpenFlowSwitchNetDevice::m_flags),
               MakeUintegerChecker<uint16_t>())
           .AddAttribute(
-              "FlowTableMissSendLength", // Note: The Controller can configure
-                                         // this value, overriding the user's
-                                         // setting.
+              "FlowTableMissSendLength",
               "When forwarding a packet the switch didn't match up to the "
               "controller, "
               "it can be more efficient to forward only the first x bytes.",
-              UintegerValue(OFP_DEFAULT_MISS_SEND_LEN), // 128 bytes
+              UintegerValue(OFP_DEFAULT_MISS_SEND_LEN),
               MakeUintegerAccessor(&OpenFlowSwitchNetDevice::m_missSendLen),
               MakeUintegerChecker<uint16_t>());
   return tid;
@@ -113,11 +75,9 @@ OpenFlowSwitchNetDevice::OpenFlowSwitchNetDevice()
 
   m_channel = CreateObject<BridgeChannel>();
 
-  time_init(); // OFSI's clock; needed to use the buffer storage system.
-  // m_lastTimeout = time_now ();
+  time_init();
 
   m_controller = nullptr;
-  // m_listenPVConn = 0;
 
   m_chain = chain_create();
   if (!m_chain) {
@@ -181,7 +141,6 @@ int OpenFlowSwitchNetDevice::AddSwitchPort(Ptr<NetDevice> switchPort) {
     p.netdev = switchPort;
     m_ports.push_back(p);
 
-    // Notify the controller that this port has been added
     SendPortStatus(p, OFPPR_ADD);
 
     NS_LOG_DEBUG("RegisterProtocolHandler for "
@@ -347,13 +306,11 @@ Address OpenFlowSwitchNetDevice::GetMulticast(Ipv6Address addr) const {
   return Mac48Address::GetMulticast(addr);
 }
 
-// Add a virtual port table entry.
 int OpenFlowSwitchNetDevice::AddVPort(const ofp_vport_mod *ovpm) {
   size_t actions_len = ntohs(ovpm->header.length) - sizeof *ovpm;
   unsigned int vport = ntohl(ovpm->vport);
   unsigned int parent_port = ntohl(ovpm->parent_port);
 
-  // check whether port table entry exists for specified port number
   vport_table_entry *vpe = vport_table_lookup(&m_vportTable, vport);
   if (vpe) {
     NS_LOG_ERROR("vport " << vport << " already exists!");
@@ -362,7 +319,6 @@ int OpenFlowSwitchNetDevice::AddVPort(const ofp_vport_mod *ovpm) {
     return EINVAL;
   }
 
-  // check whether actions are valid
   uint16_t v_code = ofi::ValidateVPortActions(ovpm->actions, actions_len);
   if (v_code != ACT_VALIDATION_OK) {
     SendErrorMsg(OFPET_BAD_ACTION, v_code, ovpm, ntohs(ovpm->header.length));
@@ -378,7 +334,7 @@ int OpenFlowSwitchNetDevice::AddVPort(const ofp_vport_mod *ovpm) {
                          << OFPP_VP_START << "-" << OFPP_VP_END << ")");
     SendErrorMsg(OFPET_BAD_ACTION, OFPET_VPORT_MOD_FAILED, ovpm,
                  ntohs(ovpm->header.length));
-    free_vport_table_entry(vpe); // free allocated entry
+    free_vport_table_entry(vpe);
     return EINVAL;
   }
 
@@ -399,11 +355,6 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
   NS_LOG_INFO("Creating Openflow buffer from packet.");
 
   Ptr<Packet> packet = constPacket->Copy();
-  /*
-   * Allocate buffer with some headroom to add headers in forwarding
-   * to the controller or adding a vlan tag, plus an extra 2 bytes to
-   * allow IP headers to be aligned on a 4-byte boundary.
-   */
   const int headroom = 128 + 2;
   const int hard_header = VLAN_ETH_HEADER_LEN;
   ofpbuf *buffer = ofpbuf_new(headroom + hard_header + mtu);
@@ -413,15 +364,14 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
   int l3_length = 0;
   int l4_length = 0;
 
-  // Parse Ethernet header
   buffer->l2 = new eth_header;
   eth_header *eth_h = (eth_header *)buffer->l2;
-  dst.CopyTo(eth_h->eth_dst); // Destination Mac Address
-  src.CopyTo(eth_h->eth_src); // Source Mac Address
+  dst.CopyTo(eth_h->eth_dst);
+  src.CopyTo(eth_h->eth_src);
   if (protocol == ArpL3Protocol::PROT_NUMBER) {
-    eth_h->eth_type = htons(ETH_TYPE_ARP); // Ether Type
+    eth_h->eth_type = htons(ETH_TYPE_ARP);
   } else if (protocol == Ipv4L3Protocol::PROT_NUMBER) {
-    eth_h->eth_type = htons(ETH_TYPE_IP); // Ether Type
+    eth_h->eth_type = htons(ETH_TYPE_IP);
   } else {
     NS_LOG_WARN("Protocol unsupported: " << protocol);
   }
@@ -429,48 +379,40 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
 
   l2_length = ETH_HEADER_LEN;
 
-  // We have to wrap this because PeekHeader has an assert fail if we check for
-  // an Ipv4Header that isn't there.
   if (protocol == Ipv4L3Protocol::PROT_NUMBER) {
     Ipv4Header ip_hd;
     if (packet->PeekHeader(ip_hd)) {
       buffer->l3 = new ip_header;
       ip_header *ip_h = (ip_header *)buffer->l3;
-      ip_h->ip_ihl_ver = IP_IHL_VER(5, IP_VERSION); // Version
-      ip_h->ip_tos = ip_hd.GetTos(); // Type of Service/Differentiated Services
-      ip_h->ip_tot_len = packet->GetSize();               // Total Length
-      ip_h->ip_id = ip_hd.GetIdentification();            // Identification
-      ip_h->ip_frag_off = ip_hd.GetFragmentOffset();      // Fragment Offset
-      ip_h->ip_ttl = ip_hd.GetTtl();                      // Time to Live
-      ip_h->ip_proto = ip_hd.GetProtocol();               // Protocol
-      ip_h->ip_src = htonl(ip_hd.GetSource().Get());      // Source Address
-      ip_h->ip_dst = htonl(ip_hd.GetDestination().Get()); // Destination Address
-      ip_h->ip_csum = csum(&ip_h, sizeof ip_h);           // Header Checksum
+      ip_h->ip_ihl_ver = IP_IHL_VER(5, IP_VERSION);
+      ip_h->ip_tos = ip_hd.GetTos();
+      ip_h->ip_tot_len = packet->GetSize();
+      ip_h->ip_id = ip_hd.GetIdentification();
+      ip_h->ip_frag_off = ip_hd.GetFragmentOffset();
+      ip_h->ip_ttl = ip_hd.GetTtl();
+      ip_h->ip_proto = ip_hd.GetProtocol();
+      ip_h->ip_src = htonl(ip_hd.GetSource().Get());
+      ip_h->ip_dst = htonl(ip_hd.GetDestination().Get());
+      ip_h->ip_csum = csum(&ip_h, sizeof ip_h);
       NS_LOG_INFO("Parsed Ipv4Header");
       packet->RemoveHeader(ip_hd);
 
       l3_length = IP_HEADER_LEN;
     }
   } else {
-    // ARP Packet; the underlying OpenFlow header isn't used to match, so this
-    // is probably superfluous.
     ArpHeader arp_hd;
     if (packet->PeekHeader(arp_hd)) {
       buffer->l3 = new arp_eth_header;
       arp_eth_header *arp_h = (arp_eth_header *)buffer->l3;
-      arp_h->ar_hrd = ARP_HRD_ETHERNET; // Hardware type.
-      arp_h->ar_pro = ARP_PRO_IP;       // Protocol type.
-      arp_h->ar_op = arp_hd.m_type;     // Opcode.
-      arp_hd.GetDestinationHardwareAddress().CopyTo(
-          arp_h->ar_tha); // Target hardware address.
-      arp_hd.GetSourceHardwareAddress().CopyTo(
-          arp_h->ar_sha); // Sender hardware address.
-      arp_h->ar_tpa =
-          arp_hd.GetDestinationIpv4Address().Get(); // Target protocol address.
-      arp_h->ar_spa =
-          arp_hd.GetSourceIpv4Address().Get(); // Sender protocol address.
-      arp_h->ar_hln = sizeof arp_h->ar_tha;    // Hardware address length.
-      arp_h->ar_pln = sizeof arp_h->ar_tpa;    // Protocol address length.
+      arp_h->ar_hrd = ARP_HRD_ETHERNET;
+      arp_h->ar_pro = ARP_PRO_IP;
+      arp_h->ar_op = arp_hd.m_type;
+      arp_hd.GetDestinationHardwareAddress().CopyTo(arp_h->ar_tha);
+      arp_hd.GetSourceHardwareAddress().CopyTo(arp_h->ar_sha);
+      arp_h->ar_tpa = arp_hd.GetDestinationIpv4Address().Get();
+      arp_h->ar_spa = arp_hd.GetSourceIpv4Address().Get();
+      arp_h->ar_hln = sizeof arp_h->ar_tha;
+      arp_h->ar_pln = sizeof arp_h->ar_tpa;
       NS_LOG_INFO("Parsed ArpHeader");
       packet->RemoveHeader(arp_hd);
 
@@ -485,16 +427,14 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
       if (packet->PeekHeader(tcp_hd)) {
         buffer->l4 = new tcp_header;
         tcp_header *tcp_h = (tcp_header *)buffer->l4;
-        tcp_h->tcp_src = htons(tcp_hd.GetSourcePort());      // Source Port
-        tcp_h->tcp_dst = htons(tcp_hd.GetDestinationPort()); // Destination Port
-        tcp_h->tcp_seq =
-            tcp_hd.GetSequenceNumber().GetValue();         // Sequence Number
-        tcp_h->tcp_ack = tcp_hd.GetAckNumber().GetValue(); // ACK Number
-        tcp_h->tcp_ctl =
-            TCP_FLAGS(tcp_hd.GetFlags()); // Data Offset + Reserved + Flags
-        tcp_h->tcp_winsz = tcp_hd.GetWindowSize();    // Window Size
-        tcp_h->tcp_urg = tcp_hd.GetUrgentPointer();   // Urgent Pointer
-        tcp_h->tcp_csum = csum(&tcp_h, sizeof tcp_h); // Header Checksum
+        tcp_h->tcp_src = htons(tcp_hd.GetSourcePort());
+        tcp_h->tcp_dst = htons(tcp_hd.GetDestinationPort());
+        tcp_h->tcp_seq = tcp_hd.GetSequenceNumber().GetValue();
+        tcp_h->tcp_ack = tcp_hd.GetAckNumber().GetValue();
+        tcp_h->tcp_ctl = TCP_FLAGS(tcp_hd.GetFlags());
+        tcp_h->tcp_winsz = tcp_hd.GetWindowSize();
+        tcp_h->tcp_urg = tcp_hd.GetUrgentPointer();
+        tcp_h->tcp_csum = csum(&tcp_h, sizeof tcp_h);
         NS_LOG_INFO("Parsed TcpHeader");
         packet->RemoveHeader(tcp_hd);
 
@@ -505,8 +445,8 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
       if (packet->PeekHeader(udp_hd)) {
         buffer->l4 = new udp_header;
         udp_header *udp_h = (udp_header *)buffer->l4;
-        udp_h->udp_src = htons(udp_hd.GetSourcePort());      // Source Port
-        udp_h->udp_dst = htons(udp_hd.GetDestinationPort()); // Destination Port
+        udp_h->udp_src = htons(udp_hd.GetSourcePort());
+        udp_h->udp_dst = htons(udp_hd.GetDestinationPort());
         udp_h->udp_len = htons(UDP_HEADER_LEN + packet->GetSize());
 
         ip_header *ip_h = (ip_header *)buffer->l3;
@@ -515,8 +455,8 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
         udp_csum = csum_add16(udp_csum, IP_TYPE_UDP << 8);
         udp_csum = csum_add16(udp_csum, udp_h->udp_len);
         udp_csum = csum_continue(udp_csum, udp_h, sizeof udp_h);
-        udp_h->udp_csum = csum_finish(csum_continue(
-            udp_csum, buffer->data, buffer->size)); // Header Checksum
+        udp_h->udp_csum =
+            csum_finish(csum_continue(udp_csum, buffer->data, buffer->size));
         NS_LOG_INFO("Parsed UdpHeader");
         packet->RemoveHeader(udp_hd);
 
@@ -525,7 +465,6 @@ ofpbuf *OpenFlowSwitchNetDevice::BufferFromPacket(Ptr<const Packet> constPacket,
     }
   }
 
-  // Load any remaining packet data into buffer data
   packet->CopyData((uint8_t *)buffer->data, packet->GetSize());
 
   if (buffer->l4) {
@@ -596,20 +535,14 @@ void OpenFlowSwitchNetDevice::ReceiveFromDevice(
     }
   }
 
-  // Run periodic execution.
   Time now = Simulator::Now();
-  if (now >= Seconds(m_lastExecute.GetSeconds() +
-                     1)) // If a second or more has passed from the simulation
-                         // time, execute.
-  {
-    // If port status is modified in any way, notify the controller.
+  if (now >= Seconds(m_lastExecute.GetSeconds() + 1)) {
     for (size_t i = 0; i < m_ports.size(); i++) {
       if (UpdatePortStatus(m_ports[i])) {
         SendPortStatus(m_ports[i], OFPPR_MODIFY);
       }
     }
 
-    // If any flows have expired, delete them and notify the controller.
     List deleted = LIST_INITIALIZER(&deleted);
     sw_flow *f;
     sw_flow *n;
@@ -645,13 +578,10 @@ int OpenFlowSwitchNetDevice::OutputAll(uint32_t packet_uid, int in_port,
 
   int prev_port = -1;
   for (size_t i = 0; i < m_ports.size(); i++) {
-    if (i == (unsigned)in_port) // Originating port
-    {
+    if (i == (unsigned)in_port) {
       continue;
     }
-    if (flood && m_ports[i].config &
-                     OFPPC_NO_FLOOD) // Port configured to not allow flooding
-    {
+    if (flood && m_ports[i].config & OFPPC_NO_FLOOD) {
       continue;
     }
     if (prev_port != -1) {
@@ -704,7 +634,6 @@ void OpenFlowSwitchNetDevice::OutputPort(uint32_t packet_uid, int in_port,
     RunThroughFlowTable(packet_uid, in_port < DP_MAX_PORTS ? in_port : -1,
                         false);
   } else if (out_port >= OFPP_VP_START && out_port <= OFPP_VP_END) {
-    // port is a virtual port
     NS_LOG_INFO("packet sent to virtual port " << out_port);
     if (in_port < DP_MAX_PORTS) {
       RunThroughVPortTable(packet_uid, in_port, out_port);
@@ -769,14 +698,10 @@ void OpenFlowSwitchNetDevice::FillPortDesc(ofi::Port p, ofp_phy_port *desc) {
   desc->config = htonl(p.config);
   desc->state = htonl(p.state);
 
-  /// \todo This should probably be fixed eventually to specify different
-  /// available features.
-  desc->curr = 0; // htonl(netdev_get_features(p->netdev, NETDEV_FEAT_CURRENT));
-  desc->supported =
-      0; // htonl(netdev_get_features(p->netdev, NETDEV_FEAT_SUPPORTED));
-  desc->advertised =
-      0; // htonl(netdev_get_features(p->netdev, NETDEV_FEAT_ADVERTISED));
-  desc->peer = 0; // htonl(netdev_get_features(p->netdev, NETDEV_FEAT_PEER));
+  desc->curr = 0;
+  desc->supported = 0;
+  desc->advertised = 0;
+  desc->peer = 0;
 }
 
 void OpenFlowSwitchNetDevice::SendFeaturesReply() {
@@ -804,7 +729,7 @@ void OpenFlowSwitchNetDevice::SendVPortTableFeatures() {
           sizeof *ovtfr, OFPT_VPORT_TABLE_FEATURES_REPLY, &buffer);
   ovtfr->actions = htonl(OFP_SUPPORTED_VPORT_TABLE_ACTIONS);
   ovtfr->max_vports = htonl(m_vportTable.max_vports);
-  ovtfr->max_chain_depth = htons(-1); // support a chain depth of 2^16
+  ovtfr->max_chain_depth = htons(-1);
   ovtfr->mixed_chaining = true;
   SendOpenflowBuffer(buffer);
 }
@@ -813,7 +738,6 @@ int OpenFlowSwitchNetDevice::UpdatePortStatus(ofi::Port &p) {
   uint32_t orig_config = p.config;
   uint32_t orig_state = p.state;
 
-  // Port is always enabled because the Net Device is always enabled.
   p.config &= ~OFPPC_PORT_DOWN;
 
   if (p.netdev->IsLinkUp()) {
@@ -883,7 +807,6 @@ void OpenFlowSwitchNetDevice::FlowTableLookup(sw_flow_key key, ofpbuf *buffer,
     }
   }
 
-  // Clean up; at this point we're done with the packet.
   m_packetData.erase(packet_uid);
   discard_buffer(packet_uid);
   ofpbuf_delete(buffer);
@@ -895,21 +818,17 @@ void OpenFlowSwitchNetDevice::RunThroughFlowTable(uint32_t packet_uid, int port,
   ofpbuf *buffer = data.buffer;
 
   sw_flow_key key;
-  key.wildcards = 0; // Lookup cannot take wildcards.
-  // Extract the matching key's flow data from the packet's headers; if the
-  // policy is to drop fragments and the message is a fragment, drop it.
+  key.wildcards = 0;
   if (flow_extract(buffer, port != -1 ? port : OFPP_NONE, &key.flow) &&
       (m_flags & OFPC_FRAG_MASK) == OFPC_FRAG_DROP) {
     ofpbuf_delete(buffer);
     return;
   }
 
-  // drop MPLS packets with TTL 1
   if (buffer->l2_5) {
     mpls_header mpls_h;
     mpls_h.value = ntohl(*((uint32_t *)buffer->l2_5));
     if (mpls_h.ttl == 1) {
-      // increment mpls drop counter
       if (port != -1) {
         m_ports[port].mpls_ttl0_dropped++;
       }
@@ -917,8 +836,6 @@ void OpenFlowSwitchNetDevice::RunThroughFlowTable(uint32_t packet_uid, int port,
     }
   }
 
-  // If we received the packet on a port, and opted not to receive any messages
-  // from it...
   if (port != -1) {
     uint32_t config = m_ports[port].config;
     if (config & (OFPPC_NO_RECV | OFPPC_NO_RECV_STP) &&
@@ -938,8 +855,6 @@ int OpenFlowSwitchNetDevice::RunThroughVPortTable(uint32_t packet_uid, int port,
                                                   uint32_t vport) {
   ofpbuf *buffer = m_packetData.find(packet_uid)->second.buffer;
 
-  // extract the flow again since we need it
-  // and the layer pointers may changed
   sw_flow_key key;
   key.wildcards = 0;
   if (flow_extract(buffer, port != -1 ? port : OFPP_NONE, &key.flow) &&
@@ -947,7 +862,6 @@ int OpenFlowSwitchNetDevice::RunThroughVPortTable(uint32_t packet_uid, int port,
     return 0;
   }
 
-  // run through the chain of port table entries
   vport_table_entry *vpe = vport_table_lookup(&m_vportTable, vport);
   m_vportTable.lookup_count++;
   if (vpe) {
@@ -957,23 +871,17 @@ int OpenFlowSwitchNetDevice::RunThroughVPortTable(uint32_t packet_uid, int port,
     ofi::ExecuteVPortActions(
         this, packet_uid, m_packetData.find(packet_uid)->second.buffer, &key,
         vpe->port_acts->actions, vpe->port_acts->actions_len);
-    vport_used(vpe, buffer); // update counters for virtual port
+    vport_used(vpe, buffer);
     if (!vpe->parent_port_ptr) {
-      // if a port table's parent_port_ptr is 0 then
-      // the parent_port should be a physical port
-      if (vpe->parent_port <= OFPP_VP_START) // done traversing port chain, send
-                                             // packet to output port
-      {
+      if (vpe->parent_port <= OFPP_VP_START) {
         OutputPort(packet_uid, port != -1 ? port : OFPP_NONE, vpe->parent_port,
                    false);
       } else {
         NS_LOG_ERROR("virtual port points to parent port\n");
       }
-    } else // increment the number of port entries accessed by chaining
-    {
+    } else {
       m_vportTable.chain_match_count++;
     }
-    // move to the parent port entry
     vpe = vpe->parent_port_ptr;
   }
 
@@ -983,11 +891,10 @@ int OpenFlowSwitchNetDevice::RunThroughVPortTable(uint32_t packet_uid, int port,
 int OpenFlowSwitchNetDevice::ReceivePortMod(const void *msg) {
   ofp_port_mod *opm = (ofp_port_mod *)msg;
 
-  int port = opm->port_no; // ntohs(opm->port_no);
+  int port = opm->port_no;
   if (port < DP_MAX_PORTS) {
     ofi::Port &p = m_ports[port];
 
-    // Make sure the port id hasn't changed since this was sent
     Mac48Address hw_addr = Mac48Address();
     hw_addr.CopyFrom(opm->hw_addr);
     if (p.netdev->GetAddress() != hw_addr) {
@@ -1004,13 +911,9 @@ int OpenFlowSwitchNetDevice::ReceivePortMod(const void *msg) {
       if ((opm->config & htonl(OFPPC_PORT_DOWN)) &&
           (p.config & OFPPC_PORT_DOWN) == 0) {
         p.config |= OFPPC_PORT_DOWN;
-        /// \todo Possibly disable the Port's Net Device via the appropriate
-        /// interface.
       } else if ((opm->config & htonl(OFPPC_PORT_DOWN)) == 0 &&
                  (p.config & OFPPC_PORT_DOWN)) {
         p.config &= ~OFPPC_PORT_DOWN;
-        /// \todo Possibly enable the Port's Net Device via the appropriate
-        /// interface.
       }
     }
   }
@@ -1063,7 +966,6 @@ int OpenFlowSwitchNetDevice::ReceivePacketOut(const void *msg) {
   }
 
   if (ntohl(opo->buffer_id) == (uint32_t)-1) {
-    // FIXME: can we avoid copying data here?
     int data_len = ntohs(opo->header.length) - sizeof *opo - actions_len;
     buffer = ofpbuf_new(data_len);
     ofpbuf_put(buffer, (uint8_t *)opo->actions + actions_len, data_len);
@@ -1075,7 +977,7 @@ int OpenFlowSwitchNetDevice::ReceivePacketOut(const void *msg) {
   }
 
   sw_flow_key key;
-  flow_extract(buffer, ntohs(opo->in_port), &key.flow); // ntohs(opo->in_port)
+  flow_extract(buffer, ntohs(opo->in_port), &key.flow);
 
   uint16_t v_code = ofi::ValidateActions(&key, opo->actions, actions_len);
   if (v_code != ACT_VALIDATION_OK) {
@@ -1089,7 +991,6 @@ int OpenFlowSwitchNetDevice::ReceivePacketOut(const void *msg) {
   return 0;
 }
 
-// add or remove a virtual port table entry
 int OpenFlowSwitchNetDevice::ReceiveVPortMod(const void *msg) {
   const ofp_vport_mod *ovpm = (ofp_vport_mod *)msg;
 
@@ -1109,7 +1010,6 @@ int OpenFlowSwitchNetDevice::ReceiveVPortMod(const void *msg) {
 int OpenFlowSwitchNetDevice::AddFlow(const ofp_flow_mod *ofm) {
   size_t actions_len = ntohs(ofm->header.length) - sizeof *ofm;
 
-  // Allocate memory.
   sw_flow *flow = flow_alloc(actions_len);
   if (!flow) {
     if (ntohl(ofm->buffer_id) != (uint32_t)-1) {
@@ -1130,7 +1030,6 @@ int OpenFlowSwitchNetDevice::AddFlow(const ofp_flow_mod *ofm) {
     return -ENOMEM;
   }
 
-  // Fill out flow.
   flow->priority = flow->key.wildcards ? ntohs(ofm->priority) : -1;
   flow->idle_timeout = ntohs(ofm->idle_timeout);
   flow->hard_timeout = ntohs(ofm->hard_timeout);
@@ -1140,7 +1039,6 @@ int OpenFlowSwitchNetDevice::AddFlow(const ofp_flow_mod *ofm) {
   flow->packet_count = 0;
   memcpy(flow->sf_acts->actions, ofm->actions, actions_len);
 
-  // Act.
   int error = chain_insert(m_chain, flow);
   if (error) {
     if (error == -ENOBUFS) {
@@ -1156,12 +1054,11 @@ int OpenFlowSwitchNetDevice::AddFlow(const ofp_flow_mod *ofm) {
 
   NS_LOG_INFO("Added new flow.");
   if (ntohl(ofm->buffer_id) != std::numeric_limits<uint32_t>::max()) {
-    ofpbuf *buffer = retrieve_buffer(ofm->buffer_id); // ntohl(ofm->buffer_id)
+    ofpbuf *buffer = retrieve_buffer(ofm->buffer_id);
     if (buffer) {
       sw_flow_key key;
       flow_used(flow, buffer);
-      flow_extract(buffer, ntohs(ofm->match.in_port),
-                   &key.flow); // ntohs(ofm->match.in_port);
+      flow_extract(buffer, ntohs(ofm->match.in_port), &key.flow);
       ofi::ExecuteActions(this, ofm->buffer_id, buffer, &key, ofm->actions,
                           actions_len, false);
       ofpbuf_delete(buffer);
@@ -1193,11 +1090,10 @@ int OpenFlowSwitchNetDevice::ModFlow(const ofp_flow_mod *ofm) {
   chain_modify(m_chain, &key, priority, strict, ofm->actions, actions_len);
 
   if (ntohl(ofm->buffer_id) != std::numeric_limits<uint32_t>::max()) {
-    ofpbuf *buffer = retrieve_buffer(ofm->buffer_id); // ntohl (ofm->buffer_id)
+    ofpbuf *buffer = retrieve_buffer(ofm->buffer_id);
     if (buffer) {
       sw_flow_key skb_key;
-      flow_extract(buffer, ntohs(ofm->match.in_port),
-                   &skb_key.flow); // ntohs(ofm->match.in_port);
+      flow_extract(buffer, ntohs(ofm->match.in_port), &skb_key.flow);
       ofi::ExecuteActions(this, ofm->buffer_id, buffer, &skb_key, ofm->actions,
                           actions_len, false);
       ofpbuf_delete(buffer);
@@ -1251,7 +1147,6 @@ int OpenFlowSwitchNetDevice::StatsDump(ofi::StatsDumpCallback *cb) {
     if (err == 0) {
       cb->done = true;
     } else {
-      // Buffer might have been reallocated, so find our data again.
       osr = (ofp_stats_reply *)ofpbuf_at_assert(buffer, 0, sizeof *osr);
       osr->flags = ntohs(OFPSF_REPLY_MORE);
     }
@@ -1319,7 +1214,6 @@ int OpenFlowSwitchNetDevice::ReceiveEchoReply(const void *oh) { return 0; }
 
 int OpenFlowSwitchNetDevice::ForwardControlInput(const void *msg,
                                                  size_t length) {
-  // Check encapsulated length.
   ofp_header *oh = (ofp_header *)msg;
   if (ntohs(oh->length) > length) {
     return -EINVAL;
@@ -1328,7 +1222,6 @@ int OpenFlowSwitchNetDevice::ForwardControlInput(const void *msg,
 
   int error = 0;
 
-  // Figure out how to handle it.
   switch (oh->type) {
   case OFPT_FEATURES_REQUEST:
     error = length < sizeof(ofp_header) ? -EFAULT : ReceiveFeaturesRequest(msg);

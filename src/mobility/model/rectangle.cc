@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "rectangle.h"
 
 #include "ns3/assert.h"
@@ -47,10 +29,10 @@ bool Rectangle::IsOnTheBorder(const Vector &position) const {
 Rectangle::Side
 Rectangle::GetClosestSideOrCorner(const Vector &position) const {
   std::array<double, 4> distanceFromBorders{
-      std::abs(position.x - this->xMin), // left border
-      std::abs(this->xMax - position.x), // right border
-      std::abs(position.y - this->yMin), // bottom border
-      std::abs(this->yMax - position.y), // top border
+      std::abs(position.x - this->xMin),
+      std::abs(this->xMax - position.x),
+      std::abs(position.y - this->yMin),
+      std::abs(this->yMax - position.y),
   };
   uint8_t flags = 0;
   double minDist = std::numeric_limits<double>::max();
@@ -58,8 +40,6 @@ Rectangle::GetClosestSideOrCorner(const Vector &position) const {
     if (distanceFromBorders[i] > minDist) {
       continue;
     }
-    // In case we find a border closer to the position,
-    // we replace it and mark the flag
     if (distanceFromBorders[i] < minDist) {
       minDist = distanceFromBorders[i];
       flags = 0;
@@ -69,14 +49,10 @@ Rectangle::GetClosestSideOrCorner(const Vector &position) const {
   NS_ASSERT(minDist != std::numeric_limits<double>::max());
   Rectangle::Side side;
   switch (flags) {
-  //     LRBT
   case 0b1111:
-    // Every side is equally distant, so choose any
     side = TOPSIDE;
     break;
   case 0b0011:
-    // Opposing sides are equally distant, so we need to check the other two
-    // We also need to check if we're inside or outside.
     side = TOPSIDE;
     if (!IsInside(position)) {
       side = (distanceFromBorders[0] > distanceFromBorders[1]) ? RIGHTSIDE
@@ -84,8 +60,6 @@ Rectangle::GetClosestSideOrCorner(const Vector &position) const {
     }
     break;
   case 0b1100:
-    // Opposing sides are equally distant, so we need to check the other two
-    // We also need to check if we're inside or outside.
     side = RIGHTSIDE;
     if (!IsInside(position)) {
       side = (distanceFromBorders[2] > distanceFromBorders[3]) ? TOPSIDE
@@ -148,33 +122,18 @@ Vector Rectangle::CalculateIntersection(const Vector &current,
     return Vector(yMinX, this->yMin, 0.0);
   } else {
     NS_ASSERT(false);
-    // quiet compiler
     return Vector(0.0, 0.0, 0.0);
   }
 }
 
 ATTRIBUTE_HELPER_CPP(Rectangle);
 
-/**
- * \brief Stream insertion operator.
- *
- * \param os the stream
- * \param rectangle the rectangle
- * \returns a reference to the stream
- */
 std::ostream &operator<<(std::ostream &os, const Rectangle &rectangle) {
   os << rectangle.xMin << "|" << rectangle.xMax << "|" << rectangle.yMin << "|"
      << rectangle.yMax;
   return os;
 }
 
-/**
- * \brief Stream extraction operator.
- *
- * \param is the stream
- * \param rectangle the rectangle
- * \returns a reference to the stream
- */
 std::istream &operator>>(std::istream &is, Rectangle &rectangle) {
   char c1;
   char c2;
@@ -187,13 +146,6 @@ std::istream &operator>>(std::istream &is, Rectangle &rectangle) {
   return is;
 }
 
-/**
- * \brief Stream insertion operator.
- *
- * \param os the stream
- * \param side the rectangle side
- * \returns a reference to the stream
- */
 std::ostream &operator<<(std::ostream &os, const Rectangle::Side &side) {
   switch (side) {
   case Rectangle::RIGHTSIDE:

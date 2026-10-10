@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/core-module.h"
 #include "ns3/tcp-option-ts.h"
@@ -26,35 +9,19 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Window Scaling option Test
- */
 class TcpOptionWSTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param name Test description.
-   * \param scale Window scaling.
-   */
   TcpOptionWSTestCase(std::string name, uint8_t scale);
 
-  /**
-   * \brief Serialization test.
-   */
   void TestSerialize();
-  /**
-   * \brief Deserialization test.
-   */
   void TestDeserialize();
 
 private:
   void DoRun() override;
   void DoTeardown() override;
 
-  uint8_t m_scale; //!< Window scaling.
-  Buffer m_buffer; //!< Buffer.
+  uint8_t m_scale;
+  Buffer m_buffer;
 };
 
 TcpOptionWSTestCase::TcpOptionWSTestCase(std::string name, uint8_t scale)
@@ -93,35 +60,20 @@ void TcpOptionWSTestCase::TestDeserialize() {
 
 void TcpOptionWSTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP TimeStamp option Test
- */
 class TcpOptionTSTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param name Test description.
-   */
   TcpOptionTSTestCase(std::string name);
 
-  /**
-   * \brief Serialization test.
-   */
   void TestSerialize();
-  /**
-   * \brief Deserialization test.
-   */
   void TestDeserialize();
 
 private:
   void DoRun() override;
   void DoTeardown() override;
 
-  uint32_t m_timestamp; //!< TimeStamp.
-  uint32_t m_echo;      //!< Echoed TimeStamp.
-  Buffer m_buffer;      //!< Buffer.
+  uint32_t m_timestamp;
+  uint32_t m_echo;
+  Buffer m_buffer;
 };
 
 TcpOptionTSTestCase::TcpOptionTSTestCase(std::string name) : TestCase(name) {
@@ -171,11 +123,6 @@ void TcpOptionTSTestCase::TestDeserialize() {
 
 void TcpOptionTSTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP options TestSuite
- */
 class TcpOptionTestSuite : public TestSuite {
 public:
   TcpOptionTestSuite() : TestSuite("tcp-option", UNIT) {
@@ -189,5 +136,4 @@ public:
   }
 };
 
-static TcpOptionTestSuite
-    g_TcpOptionTestSuite; //!< Static variable for test initialization
+static TcpOptionTestSuite g_TcpOptionTestSuite;

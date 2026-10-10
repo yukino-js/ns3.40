@@ -5,14 +5,10 @@ CONVERT = convert
 SOURCE = source
 FIGURES = $(SOURCE)/figures
 
-# specify figures from which .png and .pdf figures need to be
-# generated (all dia and eps figures)
 IMAGES_EPS = ${FIGURES}/antenna-coordinate-system.eps
 
-# specify figures for build process (all eps figures)
 GRAPHS_EPS =
 
-# rescale pdf figures as necessary
 $(FIGURES)/antenna-coordinate-system.pdf_width = 3in
 
 IMAGES_PNG = ${IMAGES_EPS:.eps=.png}
@@ -39,13 +35,11 @@ GRAPHS = $(GRAPHS_EPS) $(GRAPHS_PNG) $(GRAPHS_PDF)
 	$(EPSTOPDF) $< -o=$@
 	@if test x$($@_width) != x; then $(RESCALE) $($@_width) $@ ; fi
 
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         =
 BUILDDIR      = build
 
-# Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) $(SOURCE)

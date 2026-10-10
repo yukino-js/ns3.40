@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2012 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
- */
-/**
- * This is the test code for ipv6-raw-socket-impl.cc.
- */
 
 #include "ns3/boolean.h"
 #include "ns3/icmpv6-l4-protocol.h"
@@ -54,57 +33,22 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RAW Socket Test
- */
 class Ipv6RawSocketImplTest : public TestCase {
-  Ptr<Packet> m_receivedPacket;  //!< Received packet (1).
-  Ptr<Packet> m_receivedPacket2; //!< Received packet (2).
+  Ptr<Packet> m_receivedPacket;
+  Ptr<Packet> m_receivedPacket2;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv6RawSocketImplTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   * \param packet The received packet.
-   * \param from The sender.
-   */
   void ReceivePacket(Ptr<Socket> socket, Ptr<Packet> packet,
                      const Address &from);
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   * \param packet The received packet.
-   * \param from The sender.
-   */
   void ReceivePacket2(Ptr<Socket> socket, Ptr<Packet> packet,
                       const Address &from);
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt2(Ptr<Socket> socket);
 };
 
@@ -166,11 +110,8 @@ void Ipv6RawSocketImplTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv6RawSocketImplTest::DoRun() {
-  // Create topology
 
-  // Receiver Node
   Ptr<Node> rxNode = CreateObject<Node>();
-  // Sender Node
   Ptr<Node> txNode = CreateObject<Node>();
 
   NodeContainer nodes(rxNode, txNode);
@@ -224,7 +165,6 @@ void Ipv6RawSocketImplTest::DoRun() {
   ipv6->AddAddress(ifIndex, ipv6Addr);
   ipv6->SetForwarding(ifIndex, true);
 
-  // Create the Ipv6 Raw sockets
   Ptr<SocketFactory> rxSocketFactory =
       rxNode->GetObject<Ipv6RawSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
@@ -248,9 +188,6 @@ void Ipv6RawSocketImplTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAttribute("Protocol", UintegerValue(Ipv6Header::IPV6_ICMPV6));
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "2001:db8::1");
 
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 163, "recv: 2001:db8::1");
@@ -260,7 +197,6 @@ void Ipv6RawSocketImplTest::DoRun() {
   m_receivedPacket->RemoveAllByteTags();
   m_receivedPacket2->RemoveAllByteTags();
 
-  // Simple Link-local multicast test
   txSocket->Bind(Inet6SocketAddress(Ipv6Address("2001:db8::2"), 0));
   SendData(txSocket, "ff02::1");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 163, "recv: ff02::1");
@@ -272,11 +208,6 @@ void Ipv6RawSocketImplTest::DoRun() {
   m_receivedPacket->RemoveAllByteTags();
   m_receivedPacket2->RemoveAllByteTags();
 
-  // Broadcast test with multiple receiving sockets
-
-  // When receiving broadcast packets, all sockets sockets bound to
-  // the address/port should receive a copy of the same packet -- if
-  // the socket address matches.
   rxSocket2->Dispose();
   rxSocket2 = rxSocketFactory->CreateSocket();
   rxSocket2->SetRecvCallback(
@@ -292,8 +223,6 @@ void Ipv6RawSocketImplTest::DoRun() {
 
   m_receivedPacket = nullptr;
   m_receivedPacket2 = nullptr;
-
-  // Simple getpeername tests
 
   Address peerAddress;
   int err = txSocket->GetPeerName(peerAddress);
@@ -317,11 +246,6 @@ void Ipv6RawSocketImplTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RAW Socket TestSuite
- */
 class Ipv6RawTestSuite : public TestSuite {
 public:
   Ipv6RawTestSuite() : TestSuite("ipv6-raw", UNIT) {
@@ -329,5 +253,4 @@ public:
   }
 };
 
-static Ipv6RawTestSuite
-    g_ipv6rawTestSuite; //!< Static variable for test initialization
+static Ipv6RawTestSuite g_ipv6rawTestSuite;

@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2020 Tom Henderson (tomh@tomh.org)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/application-container.h"
 #include "ns3/boolean.h"
@@ -38,12 +21,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup applications-test
- * \ingroup tests
- *
- * Basic test, checks that the right quantity of packets are sent and received.
- */
 class BulkSendBasicTestCase : public TestCase {
 public:
   BulkSendBasicTestCase();
@@ -51,19 +28,10 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Record a packet successfully sent
-   * \param p the packet
-   */
   void SendTx(Ptr<const Packet> p);
-  /**
-   * Record a packet successfully received
-   * \param p the packet
-   * \param addr the sender's address
-   */
   void ReceiveRx(Ptr<const Packet> p, const Address &addr);
-  uint64_t m_sent{0};     //!< number of bytes sent
-  uint64_t m_received{0}; //!< number of bytes received
+  uint64_t m_sent{0};
+  uint64_t m_received{0};
 };
 
 BulkSendBasicTestCase::BulkSendBasicTestCase()
@@ -125,14 +93,6 @@ void BulkSendBasicTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(m_received, 300000, "Received the full 300000 bytes");
 }
 
-/**
- * \ingroup applications-test
- * \ingroup tests
- *
- * This test checks that the sequence number is sent and received in sequence
- * despite the sending application having to pause and restart its sending
- * due to a temporarily full transmit buffer.
- */
 class BulkSendSeqTsSizeTestCase : public TestCase {
 public:
   BulkSendSeqTsSizeTestCase();
@@ -140,30 +100,16 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Record a packet successfully sent
-   * \param p the packet
-   * \param from source address
-   * \param to destination address
-   * \param header the SeqTsSizeHeader
-   */
   void SendTx(Ptr<const Packet> p, const Address &from, const Address &to,
               const SeqTsSizeHeader &header);
-  /**
-   * Record a packet successfully received
-   * \param p the packet
-   * \param from source address
-   * \param to destination address
-   * \param header the SeqTsSizeHeader
-   */
   void ReceiveRx(Ptr<const Packet> p, const Address &from, const Address &to,
                  const SeqTsSizeHeader &header);
-  uint64_t m_sent{0};          //!< number of bytes sent
-  uint64_t m_received{0};      //!< number of bytes received
-  uint64_t m_seqTxCounter{0};  //!< Counter for Sequences on Tx
-  uint64_t m_seqRxCounter{0};  //!< Counter for Sequences on Rx
-  Time m_lastTxTs{Seconds(0)}; //!< Last recorded timestamp on Tx
-  Time m_lastRxTs{Seconds(0)}; //!< Last recorded timestamp on Rx
+  uint64_t m_sent{0};
+  uint64_t m_received{0};
+  uint64_t m_seqTxCounter{0};
+  uint64_t m_seqRxCounter{0};
+  Time m_lastTxTs{Seconds(0)};
+  Time m_lastRxTs{Seconds(0)};
 };
 
 BulkSendSeqTsSizeTestCase::BulkSendSeqTsSizeTestCase()
@@ -174,7 +120,6 @@ BulkSendSeqTsSizeTestCase::~BulkSendSeqTsSizeTestCase() {}
 void BulkSendSeqTsSizeTestCase::SendTx(Ptr<const Packet> p, const Address &from,
                                        const Address &to,
                                        const SeqTsSizeHeader &header) {
-  // The header is not serialized onto the packet in this trace
   m_sent += p->GetSize() + header.GetSerializedSize();
   NS_TEST_ASSERT_MSG_EQ(header.GetSeq(), m_seqTxCounter,
                         "Missing sequence number");
@@ -188,7 +133,6 @@ void BulkSendSeqTsSizeTestCase::ReceiveRx(Ptr<const Packet> p,
                                           const Address &from,
                                           const Address &to,
                                           const SeqTsSizeHeader &header) {
-  // The header is not serialized onto the packet in this trace
   m_received += p->GetSize() + header.GetSerializedSize();
   NS_TEST_ASSERT_MSG_EQ(header.GetSeq(), m_seqRxCounter,
                         "Missing sequence number");
@@ -247,12 +191,6 @@ void BulkSendSeqTsSizeTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(m_received, 300000, "Received the full 300000 bytes");
 }
 
-/**
- * \ingroup applications-test
- * \ingroup tests
- *
- * \brief BulkSend TestSuite
- */
 class BulkSendTestSuite : public TestSuite {
 public:
   BulkSendTestSuite();
@@ -264,5 +202,4 @@ BulkSendTestSuite::BulkSendTestSuite()
   AddTestCase(new BulkSendSeqTsSizeTestCase, TestCase::QUICK);
 }
 
-static BulkSendTestSuite
-    g_bulkSendTestSuite; //!< Static variable for test initialization
+static BulkSendTestSuite g_bulkSendTestSuite;

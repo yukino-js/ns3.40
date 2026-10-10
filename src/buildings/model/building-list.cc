@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jaume.nin@cttc,cat>
- * Based on BuildingList implementation by Mathieu Lacage
- * <mathieu.lacage@sophia.inria.fr>
- *
- */
 #include "building-list.h"
 
 #include "building.h"
@@ -33,71 +12,25 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("BuildingList");
 
-/**
- * \brief private implementation detail of the BuildingList API.
- */
 class BuildingListPriv : public Object {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return The object TypeId.
-   */
   static TypeId GetTypeId();
   BuildingListPriv();
   ~BuildingListPriv() override;
 
-  /**
-   * Add a Building to the list.
-   *
-   * \param building building to add
-   * \returns index of building in list.
-   */
   uint32_t Add(Ptr<Building> building);
-  /**
-   * Returns an iterator to the start of the list.
-   *
-   * \returns iterator to the begin of the container.
-   */
   BuildingList::Iterator Begin() const;
-  /**
-   * Returns an iterator to the end of the list.
-   *
-   * \returns iterator to the end of the container.
-   */
   BuildingList::Iterator End() const;
-  /**
-   * Gets the n-th Building in the container
-   * \param n Building position
-   * \returns a pointer to the Building
-   */
   Ptr<Building> GetBuilding(uint32_t n);
-  /**
-   * Gets the number of Building in the container
-   * \returns the container size
-   */
   uint32_t GetNBuildings();
 
-  /**
-   * Get the Singleton instance of BuildingListPriv (or create one)
-   * \return the BuildingListPriv instance
-   */
   static Ptr<BuildingListPriv> Get();
 
 private:
   void DoDispose() override;
-  /**
-   * Get the Singleton instance of BuildingListPriv (or create one)
-   * \return the BuildingListPriv instance
-   */
   static Ptr<BuildingListPriv> *DoGet();
-  /**
-   * Dispose the Singleton instance of BuildingListPriv.
-   *
-   * \note: this function is automatically called at the simulation end.
-   *
-   */
   static void Delete();
-  std::vector<Ptr<Building>> m_buildings; //!< Container of Building
+  std::vector<Ptr<Building>> m_buildings;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(BuildingListPriv);
@@ -176,11 +109,6 @@ Ptr<Building> BuildingListPriv::GetBuilding(uint32_t n) {
 
 } // namespace ns3
 
-/**
- * The implementation of the public static-based API
- * which calls into the private implementation through
- * the simulation singleton.
- */
 namespace ns3 {
 
 uint32_t BuildingList::Add(Ptr<Building> building) {

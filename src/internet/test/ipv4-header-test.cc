@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: John Abraham <john.abraham@gatech.edu>
- * Adapted from: ipv4-raw-test.cc
- */
 
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/boolean.h"
@@ -51,33 +32,14 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Header Test
- */
 class Ipv4HeaderTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet.
-  Ipv4Header m_receivedHeader;  //!< Received header.
+  Ptr<Packet> m_receivedPacket;
+  Ipv4Header m_receivedHeader;
 
-  /**
-   * \brief Send a packet with specific DSCP and ECN fields.
-   * \param socket The source socket.
-   * \param to The destination address.
-   * \param dscp The DSCP field.
-   * \param ecn The ECN field.
-   */
   void DoSendData_IpHdr_Dscp(Ptr<Socket> socket, std::string to,
                              Ipv4Header::DscpType dscp,
                              Ipv4Header::EcnType ecn);
 
-  /**
-   * \brief Send a packet with specific DSCP and ECN fields.
-   * \param socket The source socket.
-   * \param to The destination address.
-   * \param dscp The DSCP field.
-   * \param ecn The ECN field.
-   */
   void SendData_IpHdr_Dscp(Ptr<Socket> socket, std::string to,
                            Ipv4Header::DscpType dscp, Ipv4Header::EcnType ecn);
 
@@ -85,18 +47,8 @@ public:
   void DoRun() override;
   Ipv4HeaderTest();
 
-  /**
-   * \brief Receives a packet.
-   * \param socket The receiving socket.
-   * \param packet The packet.
-   * \param from The source address.
-   */
   void ReceivePacket(Ptr<Socket> socket, Ptr<Packet> packet,
                      const Address &from);
-  /**
-   * \brief Receives a packet.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -150,18 +102,16 @@ void Ipv4HeaderTest::SendData_IpHdr_Dscp(Ptr<Socket> socket, std::string to,
 }
 
 void Ipv4HeaderTest::DoRun() {
-  // Create topology
 
   InternetStackHelper internet;
   internet.SetIpv6StackInstall(false);
 
-  // Receiver Node
   Ptr<Node> rxNode = CreateObject<Node>();
   internet.Install(rxNode);
 
   Ptr<SimpleNetDevice> rxDev1;
   Ptr<SimpleNetDevice> rxDev2;
-  { // first interface
+  {
     rxDev1 = CreateObject<SimpleNetDevice>();
     rxDev1->SetAddress(Mac48Address::ConvertFrom(Mac48Address::Allocate()));
     rxNode->AddDevice(rxDev1);
@@ -173,7 +123,6 @@ void Ipv4HeaderTest::DoRun() {
     ipv4->SetUp(netdev_idx);
   }
 
-  // Sender Node
   Ptr<Node> txNode = CreateObject<Node>();
   internet.Install(txNode);
   Ptr<SimpleNetDevice> txDev1;
@@ -189,12 +138,10 @@ void Ipv4HeaderTest::DoRun() {
     ipv4->SetUp(netdev_idx);
   }
 
-  // link the two nodes
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   rxDev1->SetChannel(channel1);
   txDev1->SetChannel(channel1);
 
-  // Create the IPv4 Raw sockets
   Ptr<SocketFactory> rxSocketFactory =
       rxNode->GetObject<Ipv4RawSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
@@ -207,9 +154,6 @@ void Ipv4HeaderTest::DoRun() {
       txNode->GetObject<Ipv4RawSocketFactory>();
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
 
-  // ------ Now the tests ------------
-
-  // Dscp Tests
   std::cout << "Dscp Test\n";
 
   std::vector<Ipv4Header::DscpType> vDscpTypes;
@@ -248,7 +192,6 @@ void Ipv4HeaderTest::DoRun() {
     m_receivedPacket = nullptr;
   }
 
-  // Ecn tests
   std::cout << "Ecn Test\n";
   std::vector<Ipv4Header::EcnType> vEcnTypes;
   vEcnTypes.push_back(Ipv4Header::ECN_NotECT);
@@ -272,11 +215,6 @@ void Ipv4HeaderTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Header TestSuite
- */
 class Ipv4HeaderTestSuite : public TestSuite {
 public:
   Ipv4HeaderTestSuite() : TestSuite("ipv4-header", UNIT) {
@@ -284,5 +222,4 @@ public:
   }
 };
 
-static Ipv4HeaderTestSuite
-    g_ipv4HeaderTestSuite; //!< Static variable for test initialization
+static Ipv4HeaderTestSuite g_ipv4HeaderTestSuite;

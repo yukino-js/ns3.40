@@ -1,63 +1,4 @@
-/*
- * Copyright (c) 2019 Ritsumeikan University, Shiga, Japan.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alberto Gallegos Ramonet <ramonet@fc.ritsumei.ac.jp>
- */
 
-// Test program for the Internet Control Message Protocol (ICMP) responses.
-//
-// IcmpEchoReplyTestCase scenario:
-//
-//               n0 <------------------> n1
-//              i(0,0)                 i(1,0)
-//
-//        Test that sends a single ICMP echo packet with TTL = 1 from n0 to n1,
-//        n1 receives the packet and send an ICMP echo reply.
-//
-//
-// IcmpTimeExceedTestCase scenario:
-//
-//                           channel1            channel2
-//               n0 <------------------> n1 <---------------------> n2
-//              i(0,0)                 i(1,0)                     i2(1,0)
-//                                     i2(0,0)
-//
-//         Test that sends a single ICMP echo packet with TTL = 1 from n0 to n4,
-//         however, the TTL is not enough and n1 reply to n0 with an ICMP time
-//         exceed.
-//
-//
-// IcmpV6EchoReplyTestCase scenario:
-//
-//               n0 <-------------------> n1
-//              i(0,1)                  i(1,1)
-//
-//         Test that sends a single ICMPV6 ECHO request with hopLimit = 1 from
-//         n0 to n1, n1 receives the packet and send an ICMPV6 echo reply.
-//
-// IcmpV6TimeExceedTestCase scenario:
-//
-//                        channel1                channel2
-//               n0 <------------------> n1 <---------------------> n2
-//              i(0,0)                  i(1,0)                    i2(1,0)
-//                                      i2(0,0)
-//
-//         Test that sends a single ICMPV6 echo packet with hopLimit = 1 from n0
-//         to n4, however, the hopLimit is not enough and n1 reply to n0 with an
-//         ICMPV6 time exceed error.
 
 #include "ns3/assert.h"
 #include "ns3/icmpv4.h"
@@ -80,37 +21,17 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-apps
- * \defgroup icmp-test ICMP protocol tests
- */
-
-/**
- * \ingroup icmp-test
- * \ingroup tests
- *
- * \brief ICMP  Echo Reply Test
- */
 class IcmpEchoReplyTestCase : public TestCase {
 public:
   IcmpEchoReplyTestCase();
   ~IcmpEchoReplyTestCase() override;
 
-  /**
-   * Send data
-   * \param socket output socket
-   * \param dst destination address
-   */
   void SendData(Ptr<Socket> socket, Ipv4Address dst);
-  /**
-   * Receive data
-   * \param socket input socket
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
 private:
   void DoRun() override;
-  Ptr<Packet> m_receivedPacket; //!< received packet
+  Ptr<Packet> m_receivedPacket;
 };
 
 IcmpEchoReplyTestCase::IcmpEchoReplyTestCase()
@@ -160,7 +81,6 @@ void IcmpEchoReplyTestCase::DoRun() {
   InternetStackHelper internet;
   internet.Install(n);
 
-  // link the two nodes
   Ptr<SimpleNetDevice> txDev = CreateObject<SimpleNetDevice>();
   Ptr<SimpleNetDevice> rxDev = CreateObject<SimpleNetDevice>();
   n.Get(0)->AddDevice(txDev);
@@ -180,14 +100,13 @@ void IcmpEchoReplyTestCase::DoRun() {
   Ptr<Socket> socket;
   socket = Socket::CreateSocket(
       n.Get(0), TypeId::LookupByName("ns3::Ipv4RawSocketFactory"));
-  socket->SetAttribute("Protocol", UintegerValue(1)); // ICMP protocol
+  socket->SetAttribute("Protocol", UintegerValue(1));
   socket->SetRecvCallback(
       MakeCallback(&IcmpEchoReplyTestCase::ReceivePkt, this));
 
   InetSocketAddress src = InetSocketAddress(Ipv4Address::GetAny(), 0);
   NS_TEST_EXPECT_MSG_EQ(socket->Bind(src), 0, " Socket Binding failed");
 
-  // Set a TTL big enough
   socket->SetIpTtl(1);
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &IcmpEchoReplyTestCase::SendData, this, socket,
@@ -200,32 +119,17 @@ void IcmpEchoReplyTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup icmp-test
- * \ingroup tests
- *
- * \brief ICMP Time Exceed Reply Test
- */
 class IcmpTimeExceedTestCase : public TestCase {
 public:
   IcmpTimeExceedTestCase();
   ~IcmpTimeExceedTestCase() override;
 
-  /**
-   * Send data
-   * \param socket output socket
-   * \param dst destination address
-   */
   void SendData(Ptr<Socket> socket, Ipv4Address dst);
-  /**
-   * Receive data
-   * \param socket input socket
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
 private:
   void DoRun() override;
-  Ptr<Packet> m_receivedPacket; //!< received packet
+  Ptr<Packet> m_receivedPacket;
 };
 
 IcmpTimeExceedTestCase::IcmpTimeExceedTestCase()
@@ -311,14 +215,13 @@ void IcmpTimeExceedTestCase::DoRun() {
   Ptr<Socket> socket;
   socket = Socket::CreateSocket(
       n.Get(0), TypeId::LookupByName("ns3::Ipv4RawSocketFactory"));
-  socket->SetAttribute("Protocol", UintegerValue(1)); // ICMP protocol
+  socket->SetAttribute("Protocol", UintegerValue(1));
   socket->SetRecvCallback(
       MakeCallback(&IcmpTimeExceedTestCase::ReceivePkt, this));
 
   InetSocketAddress src = InetSocketAddress(Ipv4Address::GetAny(), 0);
   NS_TEST_EXPECT_MSG_EQ(socket->Bind(src), 0, " Socket Binding failed");
 
-  // The ttl is not big enough , causing an ICMP Time Exceeded response
   socket->SetIpTtl(1);
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &IcmpTimeExceedTestCase::SendData, this,
@@ -331,32 +234,17 @@ void IcmpTimeExceedTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup icmp-test
- * \ingroup tests
- *
- * \brief ICMPV6  Echo Reply Test
- */
 class IcmpV6EchoReplyTestCase : public TestCase {
 public:
   IcmpV6EchoReplyTestCase();
   ~IcmpV6EchoReplyTestCase() override;
 
-  /**
-   * Send data
-   * \param socket output socket
-   * \param dst destination address
-   */
   void SendData(Ptr<Socket> socket, Ipv6Address dst);
-  /**
-   * Receive data
-   * \param socket input socket
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
 private:
   void DoRun() override;
-  Ptr<Packet> m_receivedPacket; //!< received packet
+  Ptr<Packet> m_receivedPacket;
 };
 
 IcmpV6EchoReplyTestCase::IcmpV6EchoReplyTestCase()
@@ -409,7 +297,6 @@ void IcmpV6EchoReplyTestCase::DoRun() {
   InternetStackHelper internet;
   internet.Install(n);
 
-  // link the two nodes
   Ptr<SimpleNetDevice> txDev = CreateObject<SimpleNetDevice>();
   Ptr<SimpleNetDevice> rxDev = CreateObject<SimpleNetDevice>();
   txDev->SetAddress(Mac48Address("00:00:00:00:00:01"));
@@ -438,7 +325,6 @@ void IcmpV6EchoReplyTestCase::DoRun() {
   Inet6SocketAddress src = Inet6SocketAddress(Ipv6Address::GetAny(), 0);
   NS_TEST_EXPECT_MSG_EQ(socket->Bind(src), 0, " SocketV6 Binding failed");
 
-  // Set a TTL big enough
   socket->SetIpTtl(1);
 
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
@@ -452,32 +338,17 @@ void IcmpV6EchoReplyTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup icmp-test
- * \ingroup tests
- *
- * \brief ICMPV6  Time Exceed response test
- */
 class IcmpV6TimeExceedTestCase : public TestCase {
 public:
   IcmpV6TimeExceedTestCase();
   ~IcmpV6TimeExceedTestCase() override;
 
-  /**
-   * Send data
-   * \param socket output socket
-   * \param dst destination address
-   */
   void SendData(Ptr<Socket> socket, Ipv6Address dst);
-  /**
-   * Receive data
-   * \param socket input socket
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
 private:
   void DoRun() override;
-  Ptr<Packet> m_receivedPacket; //!< received packet
+  Ptr<Packet> m_receivedPacket;
 };
 
 IcmpV6TimeExceedTestCase::IcmpV6TimeExceedTestCase()
@@ -517,7 +388,6 @@ void IcmpV6TimeExceedTestCase::ReceivePkt(Ptr<Socket> socket) {
     Icmpv6Header icmpv6;
     p->RemoveHeader(icmpv6);
 
-    // Ignore any packet except ICMPV6_ERROR_TIME_EXCEEDED
     if (icmpv6.GetType() == Icmpv6Header::ICMPV6_ERROR_TIME_EXCEEDED) {
       m_receivedPacket = pkt->Copy();
     }
@@ -576,8 +446,6 @@ void IcmpV6TimeExceedTestCase::DoRun() {
   Inet6SocketAddress src = Inet6SocketAddress(Ipv6Address::GetAny(), 0);
   NS_TEST_EXPECT_MSG_EQ(socket->Bind(src), 0, " SocketV6 Binding failed");
 
-  // In Ipv6 TTL is renamed hop limit in IPV6.
-  // The hop limit is not big enough , causing an ICMPV6 Time Exceeded error
   socket->SetIpv6HopLimit(1);
 
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
@@ -591,13 +459,6 @@ void IcmpV6TimeExceedTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup icmp-test
- * \ingroup tests
- *
- * \brief ICMP TestSuite
- */
-
 class IcmpTestSuite : public TestSuite {
 public:
   IcmpTestSuite();
@@ -610,4 +471,4 @@ IcmpTestSuite::IcmpTestSuite() : TestSuite("icmp", UNIT) {
   AddTestCase(new IcmpV6TimeExceedTestCase, TestCase::QUICK);
 }
 
-static IcmpTestSuite icmpTestSuite; //!< Static variable for test initialization
+static IcmpTestSuite icmpTestSuite;

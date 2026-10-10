@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-fr-no-op-algorithm.h"
 
@@ -124,8 +105,7 @@ void LteFrNoOpAlgorithm::DoReportUlCqiInfo(
 
 uint8_t LteFrNoOpAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
-  return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute mode
-            // TS36.213 Table 5.1.1.1-2
+  return 1;
 }
 
 uint16_t LteFrNoOpAlgorithm::DoGetMinContinuousUlBandwidth() {
@@ -145,4 +125,4 @@ void LteFrNoOpAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, because it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

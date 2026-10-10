@@ -1,27 +1,11 @@
 # -*-  Mode: Python; -*-
-#  Copyright (c) 2009 INESC Porto
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License version 2 as
-#  published by the Free Software Foundation;
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-#  Authors: Gustavo Carneiro <gjc@inescporto.pt>
 
 from __future__ import print_function
 import sys
 
 from ns import ns
 
-DISTANCE = 20  # (m)
+DISTANCE = 20
 NUM_NODES_SIDE = 3
 
 
@@ -65,7 +49,7 @@ def main(argv):
         ns.network.Ipv4Address("10.0.0.0"), ns.network.Ipv4Mask("255.255.255.0")
     )
 
-    port = 9  # Discard port(RFC 863)
+    port = 9
     inetAddress = ns.network.InetSocketAddress(ns.network.Ipv4Address("10.0.0.1"), port)
     onOffHelper = ns.applications.OnOffHelper(
         "ns3::UdpSocketFactory", inetAddress.ConvertTo()
@@ -107,7 +91,6 @@ def main(argv):
 
     for i, node in [(i, nodes.Get(i)) for i in range(nodes.GetN())]:
         destaddr = addresses[(len(addresses) - 1 - i) % len(addresses)]
-        # print (i, destaddr)
         onOffHelper.SetAttribute(
             "Remote",
             ns.network.AddressValue(
@@ -116,13 +99,11 @@ def main(argv):
         )
         container = ns.network.NodeContainer(node)
         app = onOffHelper.Install(container)
-        urv = ns.CreateObject("UniformRandomVariable")  # ns.cppyy.gbl.get_rng()
+        urv = ns.CreateObject("UniformRandomVariable")
         startDelay = ns.Seconds(urv.GetValue(20, 30))
         app.Start(startDelay)
 
-    # internet.EnablePcapAll("wifi-olsr")
     flowmon_helper = ns.flow_monitor.FlowMonitorHelper()
-    # flowmon_helper.SetMonitorAttribute("StartTime", ns.core.TimeValue(ns.core.Seconds(31)))
     monitor = flowmon_helper.InstallAll()
     monitor = flowmon_helper.GetMonitor()
     monitor.SetAttribute("DelayBinWidth", ns.core.DoubleValue(0.001))
@@ -194,8 +175,6 @@ def main(argv):
 
         for reason, drops in enumerate(st.packetsDropped):
             print("  Packets dropped by reason %i: %i" % (reason, drops), file=os)
-        # for reason, drops in enumerate(st.bytesDropped):
-        #    print "Bytes dropped by reason %i: %i" % (reason, drops)
 
     monitor.CheckForLostPackets()
     classifier = flowmon_helper.GetClassifier()

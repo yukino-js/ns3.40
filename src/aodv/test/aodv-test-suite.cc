@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 #include "ns3/aodv-neighbor.h"
 #include "ns3/aodv-packet.h"
 #include "ns3/aodv-rqueue.h"
@@ -26,27 +8,14 @@
 namespace ns3 {
 namespace aodv {
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for neighbors
- */
 struct NeighborTest : public TestCase {
   NeighborTest() : TestCase("Neighbor"), neighbor(nullptr) {}
 
   void DoRun() override;
-  /**
-   * Handler test function
-   * \param addr the IPv4 address of the neighbor
-   */
   void Handler(Ipv4Address addr);
-  /// Check timeout function 1
   void CheckTimeout1();
-  /// Check timeout function 2
   void CheckTimeout2();
-  /// Check timeout function 3
   void CheckTimeout3();
-  /// The Neighbors
   Neighbors *neighbor;
 };
 
@@ -112,11 +81,6 @@ void NeighborTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup aodv-test
- *
- * \brief Type header test case
- */
 struct TypeHeaderTest : public TestCase {
   TypeHeaderTest() : TestCase("AODV TypeHeader") {}
 
@@ -134,23 +98,12 @@ struct TypeHeaderTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for RREQ
- */
 struct RreqHeaderTest : public TestCase {
   RreqHeaderTest() : TestCase("AODV RREQ") {}
 
   void DoRun() override {
-    RreqHeader h(/*flags*/ 0,
-                 /*reserved*/ 0,
-                 /*hopCount*/ 6,
-                 /*requestID*/ 1,
-                 /*dst*/ Ipv4Address("1.2.3.4"),
-                 /*dstSeqNo*/ 40,
-                 /*origin*/ Ipv4Address("4.3.2.1"),
-                 /*originSeqNo*/ 10);
+    RreqHeader h(0, 0, 6, 1, Ipv4Address("1.2.3.4"), 40, Ipv4Address("4.3.2.1"),
+                 10);
     NS_TEST_EXPECT_MSG_EQ(h.GetGratuitousRrep(), false, "trivial");
     NS_TEST_EXPECT_MSG_EQ(h.GetDestinationOnly(), false, "trivial");
     NS_TEST_EXPECT_MSG_EQ(h.GetHopCount(), 6, "trivial");
@@ -188,21 +141,12 @@ struct RreqHeaderTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for RREP
- */
 struct RrepHeaderTest : public TestCase {
   RrepHeaderTest() : TestCase("AODV RREP") {}
 
   void DoRun() override {
-    RrepHeader h(/*prefixSize*/ 0,
-                 /*hopCount*/ 12,
-                 /*dst*/ Ipv4Address("1.2.3.4"),
-                 /*dstSeqNo*/ 2,
-                 /*origin*/ Ipv4Address("4.3.2.1"),
-                 /*lifetime*/ Seconds(3));
+    RrepHeader h(0, 12, Ipv4Address("1.2.3.4"), 2, Ipv4Address("4.3.2.1"),
+                 Seconds(3));
     NS_TEST_EXPECT_MSG_EQ(h.GetPrefixSize(), 0, "trivial");
     NS_TEST_EXPECT_MSG_EQ(h.GetHopCount(), 12, "trivial");
     NS_TEST_EXPECT_MSG_EQ(h.GetDst(), Ipv4Address("1.2.3.4"), "trivial");
@@ -240,11 +184,6 @@ struct RrepHeaderTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for RREP-ACK
- */
 struct RrepAckHeaderTest : public TestCase {
   RrepAckHeaderTest() : TestCase("AODV RREP-ACK") {}
 
@@ -259,11 +198,6 @@ struct RrepAckHeaderTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for RERR
- */
 struct RerrHeaderTest : public TestCase {
   RerrHeaderTest() : TestCase("AODV RERR") {}
 
@@ -289,46 +223,17 @@ struct RerrHeaderTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for AODV routing table entry
- */
 struct QueueEntryTest : public TestCase {
   QueueEntryTest() : TestCase("QueueEntry") {}
 
-  /**
-   * Unicast test function
-   * \param route the IPv4 route
-   * \param packet the packet
-   * \param header the IPv4 header
-   */
   void Unicast(Ptr<Ipv4Route> route, Ptr<const Packet> packet,
                const Ipv4Header &header) {}
 
-  /**
-   * Error test function
-   * \param p The packet
-   * \param h The header
-   * \param e the socket error
-   */
   void Error(Ptr<const Packet> p, const Ipv4Header &h, Socket::SocketErrno e) {}
 
-  /**
-   * Unicast 2 testfunction
-   * \param route The IPv4 route
-   * \param packet The packet
-   * \param header The header
-   */
   void Unicast2(Ptr<Ipv4Route> route, Ptr<const Packet> packet,
                 const Ipv4Header &header) {}
 
-  /**
-   * Error2 test function
-   * \param p The packet
-   * \param h The header
-   * \param e the socket error
-   */
   void Error2(Ptr<const Packet> p, const Ipv4Header &h, Socket::SocketErrno e) {
   }
 
@@ -372,36 +277,19 @@ struct QueueEntryTest : public TestCase {
   }
 };
 
-//-----------------------------------------------------------------------------
-/// Unit test for RequestQueue
 struct AodvRqueueTest : public TestCase {
   AodvRqueueTest() : TestCase("Rqueue"), q(64, Seconds(30)) {}
 
   void DoRun() override;
 
-  /**
-   * Unicast test function
-   * \param route the IPv4 route
-   * \param packet the packet
-   * \param header the IPv4 header
-   */
   void Unicast(Ptr<Ipv4Route> route, Ptr<const Packet> packet,
                const Ipv4Header &header) {}
 
-  /**
-   * Error test function
-   * \param p The packet
-   * \param h The header
-   * \param e the socket error
-   */
   void Error(Ptr<const Packet> p, const Ipv4Header &h, Socket::SocketErrno e) {}
 
-  /// Check size limit function
   void CheckSizeLimit();
-  /// Check timeout function
   void CheckTimeout();
 
-  /// Request queue
   RequestQueue q;
 };
 
@@ -490,25 +378,14 @@ void AodvRqueueTest::CheckTimeout() {
   NS_TEST_EXPECT_MSG_EQ(q.GetSize(), 0, "Must be empty now");
 }
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for AODV routing table entry
- */
 struct AodvRtableEntryTest : public TestCase {
   AodvRtableEntryTest() : TestCase("RtableEntry") {}
 
   void DoRun() override {
     Ptr<NetDevice> dev;
     Ipv4InterfaceAddress iface;
-    RoutingTableEntry rt(/*output device*/ dev,
-                         /*dst*/ Ipv4Address("1.2.3.4"),
-                         /*validSeqNo*/ true,
-                         /*seqNo*/ 10,
-                         /*interface*/ iface,
-                         /*hop*/ 5,
-                         /*next hop*/ Ipv4Address("3.3.3.3"),
-                         /*lifetime*/ Seconds(10));
+    RoutingTableEntry rt(dev, Ipv4Address("1.2.3.4"), true, 10, iface, 5,
+                         Ipv4Address("3.3.3.3"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rt.GetOutputDevice(), dev, "trivial");
     NS_TEST_EXPECT_MSG_EQ(rt.GetDestination(), Ipv4Address("1.2.3.4"),
                           "trivial");
@@ -589,11 +466,6 @@ struct AodvRtableEntryTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief Unit test for AODV routing table
- */
 struct AodvRtableTest : public TestCase {
   AodvRtableTest() : TestCase("Rtable") {}
 
@@ -604,24 +476,12 @@ struct AodvRtableTest : public TestCase {
     NS_TEST_EXPECT_MSG_EQ(rtable.GetBadLinkLifetime(), Seconds(1), "trivial");
     Ptr<NetDevice> dev;
     Ipv4InterfaceAddress iface;
-    RoutingTableEntry rt(/*output device*/ dev,
-                         /*dst*/ Ipv4Address("1.2.3.4"),
-                         /*validSeqNo*/ true,
-                         /*seqNo*/ 10,
-                         /*interface*/ iface,
-                         /*hop*/ 5,
-                         /*next hop*/ Ipv4Address("1.1.1.1"),
-                         /*lifetime*/ Seconds(10));
+    RoutingTableEntry rt(dev, Ipv4Address("1.2.3.4"), true, 10, iface, 5,
+                         Ipv4Address("1.1.1.1"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rt), true, "trivial");
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rt), false, "trivial");
-    RoutingTableEntry rt2(/*output device*/ dev,
-                          /*dst*/ Ipv4Address("4.3.2.1"),
-                          /*validSeqNo*/ false,
-                          /*seqNo*/ 0,
-                          /*interface*/ iface,
-                          /*hop*/ 15,
-                          /*next hop*/ Ipv4Address("1.1.1.1"),
-                          /*lifetime*/ Seconds(1));
+    RoutingTableEntry rt2(dev, Ipv4Address("4.3.2.1"), false, 0, iface, 15,
+                          Ipv4Address("1.1.1.1"), Seconds(1));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rt2), true, "trivial");
     NS_TEST_EXPECT_MSG_EQ(rtable.LookupRoute(rt2.GetDestination(), rt), true,
                           "trivial");
@@ -641,14 +501,8 @@ struct AodvRtableTest : public TestCase {
         "trivial");
     NS_TEST_EXPECT_MSG_EQ(rtable.DeleteRoute(Ipv4Address("5.5.5.5")), false,
                           "trivial");
-    RoutingTableEntry rt4(/*output device*/ dev,
-                          /*dst*/ Ipv4Address("5.5.5.5"),
-                          /*validSeqNo*/ false,
-                          /*seqNo*/ 0,
-                          /*interface*/ iface,
-                          /*hop*/ 15,
-                          /*next hop*/ Ipv4Address("1.1.1.1"),
-                          /*lifetime*/ Seconds(-10));
+    RoutingTableEntry rt4(dev, Ipv4Address("5.5.5.5"), false, 0, iface, 15,
+                          Ipv4Address("1.1.1.1"), Seconds(-10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rt4), true, "trivial");
     NS_TEST_EXPECT_MSG_EQ(rtable.SetEntryState(Ipv4Address("5.5.5.5"), INVALID),
                           true, "trivial");
@@ -678,11 +532,6 @@ struct AodvRtableTest : public TestCase {
   }
 };
 
-/**
- * \ingroup aodv-test
- *
- * \brief AODV test suite
- */
 class AodvTestSuite : public TestSuite {
 public:
   AodvTestSuite() : TestSuite("routing-aodv", UNIT) {
@@ -697,7 +546,7 @@ public:
     AddTestCase(new AodvRtableEntryTest, TestCase::QUICK);
     AddTestCase(new AodvRtableTest, TestCase::QUICK);
   }
-} g_aodvTestSuite; ///< the test suite
+} g_aodvTestSuite;
 
 } // namespace aodv
 } // namespace ns3

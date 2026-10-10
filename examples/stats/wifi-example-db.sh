@@ -1,17 +1,4 @@
 #!/bin/sh
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 DISTANCES="25 50 75 100 125 145 147 150 152 155 157 160 162 165 167 170 172 175 177 180"
 TRIALS="1 2 3 4 5"
@@ -55,16 +42,6 @@ for trial in $TRIALS; do
 		../../ns3 run wifi-example-sim --no-build -- --format=db --distance=$distance --run=run-$distance-$trial
 	done
 done
-
-#
-#Another SQL command which just collects raw numbers of frames received.
-#
-#CMD="select Experiments.input,avg(Singletons.value) \
-#    from Singletons,Experiments \
-#    where Singletons.run = Experiments.run AND \
-#          Singletons.variable='wifi-rx-frames' \
-#    group by Experiments.input \
-#    order by abs(Experiments.input) ASC;"
 
 mv ../../data.db .
 

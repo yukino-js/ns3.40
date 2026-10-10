@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015 SEBASTIEN DERONNE
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -37,25 +19,6 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This is a simple example in order to show how to configure an IEEE 802.11ac
-// Wi-Fi network.
-//
-// It outputs the UDP or TCP goodput for every VHT MCS value, which depends on
-// the MCS value (0 to 9, where 9 is forbidden when the channel width is 20
-// MHz), the channel width (20, 40, 80 or 160 MHz) and the guard interval (long
-// or short). The PHY bitrate is constant over all the simulation run. The user
-// can also specify the distance between the access point and the station: the
-// larger the distance the smaller the goodput.
-//
-// The simulation assumes a single station in an infrastructure network:
-//
-//  STA     AP
-//    *     *
-//    |     |
-//   n1     n2
-//
-// Packets in this simulation belong to BestEffort Access Class (AC_BE).
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("vht-wifi-network");
@@ -63,9 +26,9 @@ NS_LOG_COMPONENT_DEFINE("vht-wifi-network");
 int main(int argc, char *argv[]) {
   bool udp = true;
   bool useRts = false;
-  double simulationTime = 10; // seconds
-  double distance = 1.0;      // meters
-  int mcs = -1;               // -1 indicates an unset value
+  double simulationTime = 10;
+  double distance = 1.0;
+  int mcs = -1;
   double minExpectedThroughput = 0;
   double maxExpectedThroughput = 0;
 
@@ -116,11 +79,11 @@ int main(int argc, char *argv[]) {
         continue;
       }
       for (auto sgi : {false, true}) {
-        uint32_t payloadSize; // 1500 byte IP packet
+        uint32_t payloadSize;
         if (udp) {
-          payloadSize = 1472; // bytes
+          payloadSize = 1472;
         } else {
-          payloadSize = 1448; // bytes
+          payloadSize = 1448;
           Config::SetDefault("ns3::TcpSocket::SegmentSize",
                              UintegerValue(payloadSize));
         }
@@ -153,7 +116,6 @@ int main(int argc, char *argv[]) {
                                      "ControlMode",
                                      StringValue(ossControlMode.str()));
 
-        // Set guard interval
         wifi.ConfigHtOptions("ShortGuardIntervalSupported", BooleanValue(sgi));
 
         Ssid ssid = Ssid("ns3-80211ac");
@@ -169,7 +131,6 @@ int main(int argc, char *argv[]) {
         NetDeviceContainer apDevice;
         apDevice = wifi.Install(phy, mac, wifiApNode);
 
-        // mobility.
         MobilityHelper mobility;
         Ptr<ListPositionAllocator> positionAlloc =
             CreateObject<ListPositionAllocator>();
@@ -183,7 +144,6 @@ int main(int argc, char *argv[]) {
         mobility.Install(wifiApNode);
         mobility.Install(wifiStaNode);
 
-        /* Internet stack*/
         InternetStackHelper stack;
         stack.Install(wifiApNode);
         stack.Install(wifiStaNode);
@@ -196,10 +156,8 @@ int main(int argc, char *argv[]) {
         staNodeInterface = address.Assign(staDevice);
         apNodeInterface = address.Assign(apDevice);
 
-        /* Setting applications */
         ApplicationContainer serverApp;
         if (udp) {
-          // UDP flow
           uint16_t port = 9;
           UdpServerHelper server(port);
           serverApp = server.Install(wifiStaNode.Get(0));
@@ -208,14 +166,12 @@ int main(int argc, char *argv[]) {
 
           UdpClientHelper client(staNodeInterface.GetAddress(0), port);
           client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-          client.SetAttribute("Interval",
-                              TimeValue(Time("0.00002"))); // packets/s
+          client.SetAttribute("Interval", TimeValue(Time("0.00002")));
           client.SetAttribute("PacketSize", UintegerValue(payloadSize));
           ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
           clientApp.Start(Seconds(1.0));
           clientApp.Stop(Seconds(simulationTime + 1));
         } else {
-          // TCP flow
           uint16_t port = 50000;
           Address localAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
           PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory",
@@ -231,7 +187,7 @@ int main(int argc, char *argv[]) {
               "OffTime",
               StringValue("ns3::ConstantRandomVariable[Constant=0]"));
           onoff.SetAttribute("PacketSize", UintegerValue(payloadSize));
-          onoff.SetAttribute("DataRate", DataRateValue(1000000000)); // bit/s
+          onoff.SetAttribute("DataRate", DataRateValue(1000000000));
           AddressValue remoteAddress(
               InetSocketAddress(staNodeInterface.GetAddress(0), port));
           onoff.SetAttribute("Remote", remoteAddress);
@@ -252,8 +208,7 @@ int main(int argc, char *argv[]) {
         } else {
           rxBytes = DynamicCast<PacketSink>(serverApp.Get(0))->GetTotalRx();
         }
-        double throughput =
-            (rxBytes * 8) / (simulationTime * 1000000.0); // Mbit/s
+        double throughput = (rxBytes * 8) / (simulationTime * 1000000.0);
 
         Simulator::Destroy();
 
@@ -261,7 +216,6 @@ int main(int argc, char *argv[]) {
                   << std::boolalpha << sgi << "\t\t\t" << throughput
                   << " Mbit/s" << std::endl;
 
-        // test first element
         if (mcs == 0 && channelWidth == 20 && !sgi) {
           if (throughput < minExpectedThroughput) {
             NS_LOG_ERROR("Obtained throughput " << throughput
@@ -269,7 +223,6 @@ int main(int argc, char *argv[]) {
             exit(1);
           }
         }
-        // test last element
         if (mcs == 9 && channelWidth == 160 && sgi) {
           if (maxExpectedThroughput > 0 && throughput > maxExpectedThroughput) {
             NS_LOG_ERROR("Obtained throughput " << throughput
@@ -277,7 +230,6 @@ int main(int argc, char *argv[]) {
             exit(1);
           }
         }
-        // test previous throughput is smaller (for the same mcs)
         if (throughput > previous) {
           previous = throughput;
         } else {
@@ -285,8 +237,6 @@ int main(int argc, char *argv[]) {
                                               << " is not expected!");
           exit(1);
         }
-        // test previous throughput is smaller (for the same channel width and
-        // GI)
         if (throughput > prevThroughput[index]) {
           prevThroughput[index] = throughput;
         } else {

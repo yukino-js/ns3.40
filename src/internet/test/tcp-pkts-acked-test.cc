@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2016 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-general-test.h"
 
@@ -28,33 +11,10 @@ NS_LOG_COMPONENT_DEFINE("TcpPktsAckedTestSuite");
 
 class DummyCongControl;
 
-/**
- * \ingroup internet-test
- *
- * \brief Check the number of times that PktsAcked is called
- *
- * Set a custom congestion control class, which calls PktsAckedCalled
- * each time the TCP implementation calls PktsAcked.
- *
- * The checks are performed in FinalChecks: the number of bytes acked divided
- * by segment size should be the same as the number of segments passed through
- * PktsAcked in the congestion control.
- *
- * \see DummyCongControl
- * \see FinalChecks
- */
 class TcpPktsAckedOpenTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param desc Test description.
-   */
   TcpPktsAckedOpenTest(const std::string &desc);
 
-  /**
-   * \brief Called when an ACK is received.
-   * \param segmentsAcked The segment ACKed.
-   */
   void PktsAckedCalled(uint32_t segmentsAcked);
 
 protected:
@@ -67,33 +27,18 @@ protected:
   void FinalChecks() override;
 
 private:
-  uint32_t
-      m_segmentsAcked; //!< Contains the number of times PktsAcked is called
-  uint32_t m_segmentsReceived; //!< Contains the ack number received
+  uint32_t m_segmentsAcked;
+  uint32_t m_segmentsReceived;
 
-  Ptr<DummyCongControl> m_congCtl; //!< Dummy congestion control.
+  Ptr<DummyCongControl> m_congCtl;
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief Behaves as NewReno, except that each time PktsAcked is called,
- * a notification is sent to TcpPktsAckedOpenTest.
- */
 class DummyCongControl : public TcpNewReno {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
   DummyCongControl() {}
 
-  /**
-   * \brief Set the callback to be used when an ACK is received.
-   * \param test The callback.
-   */
   void SetCallback(Callback<void, uint32_t> test) { m_test = test; }
 
   void PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
@@ -102,8 +47,7 @@ public:
   }
 
 private:
-  Callback<void, uint32_t>
-      m_test; //!< Callback to be used when an ACK is received.
+  Callback<void, uint32_t> m_test;
 };
 
 TypeId DummyCongControl::GetTypeId() {
@@ -150,19 +94,12 @@ void TcpPktsAckedOpenTest::FinalChecks() {
       "Not all acked segments have been passed to PktsAcked method");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief PktsAcked is calls TestSuite.
- */
 class TcpPktsAckedTestSuite : public TestSuite {
 public:
   TcpPktsAckedTestSuite() : TestSuite("tcp-pkts-acked-test", UNIT) {
     AddTestCase(new TcpPktsAckedOpenTest("PktsAcked check while in OPEN state"),
                 TestCase::QUICK);
-    // Add DISORDER, RECOVERY and LOSS state check
   }
 };
 
-static TcpPktsAckedTestSuite
-    g_TcpPktsAckedTestSuite; //!< Static variable for test initialization
+static TcpPktsAckedTestSuite g_TcpPktsAckedTestSuite;

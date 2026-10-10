@@ -1,54 +1,4 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 
-//
-// Default network topology includes a base station (BS) and some number of
-// subscriber station (SS) specified by the variable nbSS (defaults to six).
-// The SSs are grouped into two groups: senders and receivers. SSs from 0 to
-// nbSS/2 are designed as senders and SSs from (nbSS/2 + 1) to nbSS-1 will
-// designed as receivers.
-// Each SS creates 3 transport connection with the BS. the fist one has as QoS
-// scheduling type UGS, the second one rtPS and the third one BE.
-// Senders SSs send some stamped IP packets with variable bitrate to receiver
-// SSs through the BS station. receiver SSs receive the IP packets analyze them
-// and based on a sequence number decide if all the packets are coorectly
-// received
-
-//      +-----+    +-----+    +-----+
-//      | SS0 |    | SS1 |    | SS2 |
-//      +-----+    +-----+    +-----+
-//     10.1.1.1   10.1.1.2   10.1.1.3
-//      --------  --------    -------
-//        ((*))    ((*))       ((*))
-//
-//                  10.1.1.7
-//               +------------+
-//               |Base Station| ==((*))
-//               +------------+
-//
-//        ((*))    ((*))       ((*))
-//       -------   --------   --------
-//      10.1.1.4   10.1.1.5   10.1.1.6
-//       +-----+    +-----+    +-----+
-//       | SS3 |    | SS4 |    | SS5 |
-//       +-----+    +-----+    +-----+
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -65,7 +15,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("wimaxIpV4Simulation");
 
 int main(int argc, char *argv[]) {
-  // default values
   int nbSS = 4;
   int duration = 7;
   int schedType = 0;
@@ -136,16 +85,14 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer SSinterfaces = address.Assign(ssDevs);
   Ipv4InterfaceContainer BSinterface = address.Assign(bsDevs);
   if (verbose) {
-    WimaxHelper::EnableLogComponents(); // Turn on all wimax logging
+    WimaxHelper::EnableLogComponents();
   }
-  /*------------------------------*/
   auto udpServer = new UdpServerHelper[nbSS / 2];
   auto serverApps = new ApplicationContainer[nbSS / 2];
   auto udpClient = new UdpClientHelper[nbSS / 2];
   auto clientApps = new ApplicationContainer[nbSS / 2];
 
   for (int i = 0; i < nbSS / 2; i++) {
-    // set server port to 100+(i*10)
     udpServer[i] = UdpServerHelper(100 + (i * 10));
     serverApps[i] = udpServer[i].Install(ssNodes.Get(i));
     serverApps[i].Start(Seconds(6));
@@ -162,9 +109,6 @@ int main(int argc, char *argv[]) {
   }
 
   Simulator::Stop(Seconds(duration + 0.1));
-  /*
-   * Setup 1 transport connections between each SS and the BS
-   */
   for (int i = 0; i < nbSS / 2; i++) {
     IpcsClassifierRecord DlClassifierBe(
         Ipv4Address("0.0.0.0"), Ipv4Mask("0.0.0.0"), SSinterfaces.GetAddress(i),

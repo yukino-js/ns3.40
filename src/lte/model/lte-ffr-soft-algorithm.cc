@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-ffr-soft-algorithm.h"
 
@@ -29,16 +10,14 @@ NS_LOG_COMPONENT_DEFINE("LteFfrSoftAlgorithm");
 
 NS_OBJECT_ENSURE_REGISTERED(LteFfrSoftAlgorithm);
 
-/// FfrSoftDownlinkDefaultConfiguration structure
 struct FfrSoftDownlinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t dlBandwidth;          ///< DL bandwidth
-  uint8_t dlCommonSubBandwidth; ///< DL common subbandwidth
-  uint8_t dlEdgeSubBandOffset;  ///< DL edge subband offset
-  uint8_t dlEdgeSubBandwidth;   ///< DL edge subbandwidth
+  uint8_t cellId;
+  uint8_t dlBandwidth;
+  uint8_t dlCommonSubBandwidth;
+  uint8_t dlEdgeSubBandOffset;
+  uint8_t dlEdgeSubBandwidth;
 };
 
-/// The soft downlink default configuration
 static const FfrSoftDownlinkDefaultConfiguration
     g_ffrSoftDownlinkDefaultConfiguration[]{
         {1, 15, 2, 0, 4},    {2, 15, 2, 4, 4},     {3, 15, 2, 8, 4},
@@ -48,16 +27,14 @@ static const FfrSoftDownlinkDefaultConfiguration
         {1, 100, 28, 0, 24}, {2, 100, 28, 24, 24}, {3, 100, 28, 48, 24},
     };
 
-/// FfrSoftUplinkDefaultConfiguration structure
 struct FfrSoftUplinkDefaultConfiguration {
-  uint8_t cellId;               ///< cell ID
-  uint8_t ulBandwidth;          ///< UL bandwidth
-  uint8_t ulCommonSubBandwidth; ///< UL common subbandwidth
-  uint8_t ulEdgeSubBandOffset;  ///< UL edge subband offset
-  uint8_t ulEdgeSubBandwidth;   ///< edge subbandwidth
+  uint8_t cellId;
+  uint8_t ulBandwidth;
+  uint8_t ulCommonSubBandwidth;
+  uint8_t ulEdgeSubBandOffset;
+  uint8_t ulEdgeSubBandwidth;
 };
 
-/// The soft uplink default configuration
 static const FfrSoftUplinkDefaultConfiguration
     g_ffrSoftUplinkDefaultConfiguration[]{
         {1, 15, 3, 0, 4},    {2, 15, 3, 4, 4},     {3, 15, 3, 8, 4},
@@ -67,11 +44,9 @@ static const FfrSoftUplinkDefaultConfiguration
         {1, 100, 28, 0, 24}, {2, 100, 28, 24, 24}, {3, 100, 28, 48, 24},
     };
 
-/** \returns number of downlink configurations */
 const uint16_t
     NUM_DOWNLINK_CONFS(sizeof(g_ffrSoftDownlinkDefaultConfiguration) /
                        sizeof(FfrSoftDownlinkDefaultConfiguration));
-/** \returns number of uplink configurations */
 const uint16_t NUM_UPLINK_CONFS(sizeof(g_ffrSoftUplinkDefaultConfiguration) /
                                 sizeof(FfrSoftUplinkDefaultConfiguration));
 
@@ -406,7 +381,6 @@ bool LteFfrSoftAlgorithm::DoIsDlRbgAvailableForUe(int rbgId, uint16_t rnti) {
 
   it = m_ues.find(rnti);
 
-  // if UE area is unknown, serve UE in medium (common) RBGs
   if (it->second == AreaUnset) {
     return isMediumRbg;
   }
@@ -455,7 +429,6 @@ bool LteFfrSoftAlgorithm::DoIsUlRbgAvailableForUe(int rbgId, uint16_t rnti) {
 
   it = m_ues.find(rnti);
 
-  // if UE area is unknown, serve UE in medium (common) RBGs
   if (it->second == AreaUnset) {
     return isMediumRbg;
   }
@@ -498,19 +471,8 @@ uint8_t LteFfrSoftAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
 
   if (!m_enabledInUplink) {
-    return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute
-              // mode TS36.213 Table 5.1.1.1-2
+    return 1;
   }
-
-  // TS36.213 Table 5.1.1.1-2
-  //    TPC   |   Accumulated Mode  |  Absolute Mode
-  //------------------------------------------------
-  //     0    |         -1          |      -4
-  //     1    |          0          |      -1
-  //     2    |          1          |       1
-  //     3    |          3          |       4
-  //------------------------------------------------
-  //  here Absolute mode is used
 
   auto it = m_ues.find(rnti);
   if (it == m_ues.end()) {
@@ -641,4 +603,4 @@ void LteFfrSoftAlgorithm::DoRecvLoadInformation(
   NS_LOG_WARN("Method should not be called, because it is empty");
 }
 
-} // end of namespace ns3
+} // namespace ns3

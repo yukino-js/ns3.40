@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "radvd-interface.h"
 
@@ -27,16 +9,15 @@ NS_LOG_COMPONENT_DEFINE("RadvdInterface");
 
 RadvdInterface::RadvdInterface(uint32_t interface) : m_interface(interface) {
   NS_LOG_FUNCTION(this << interface);
-  /* initialize default value as specified in radvd.conf manpage */
   m_sendAdvert = true;
   m_maxRtrAdvInterval = 600000;
   m_minRtrAdvInterval = (uint32_t)(double)(0.33 * m_maxRtrAdvInterval);
   m_minDelayBetweenRAs = 3000;
   m_managedFlag = false;
   m_otherConfigFlag = false;
-  m_linkMtu = 0;       /* 0 means not sending MTU option in RA */
-  m_reachableTime = 0; /* means unspecified for the router */
-  m_retransTimer = 0;  /* means unspecified for the router */
+  m_linkMtu = 0;
+  m_reachableTime = 0;
+  m_retransTimer = 0;
   m_curHopLimit = 64;
   m_defaultLifeTime = (3 * m_maxRtrAdvInterval) / 1000;
   m_defaultPreference = 1;
@@ -61,9 +42,9 @@ RadvdInterface::RadvdInterface(uint32_t interface, uint32_t maxRtrAdvInterval,
   m_minDelayBetweenRAs = 3000;
   m_managedFlag = false;
   m_otherConfigFlag = false;
-  m_linkMtu = 0;       /* 0 means not sending MTU option in RA */
-  m_reachableTime = 0; /* means unspecified for the router */
-  m_retransTimer = 0;  /* means unspecified for the router */
+  m_linkMtu = 0;
+  m_reachableTime = 0;
+  m_retransTimer = 0;
   m_curHopLimit = 64;
   m_defaultLifeTime = 3 * m_maxRtrAdvInterval;
   m_defaultPreference = 1;
@@ -79,7 +60,6 @@ RadvdInterface::RadvdInterface(uint32_t interface, uint32_t maxRtrAdvInterval,
 
 RadvdInterface::~RadvdInterface() {
   NS_LOG_FUNCTION(this);
-  /* clear prefixes */
   for (auto it = m_prefixes.begin(); it != m_prefixes.end(); ++it) {
     (*it) = nullptr;
   }
@@ -304,4 +284,4 @@ bool RadvdInterface::IsInitialRtrAdv() const {
   return m_initialRtrAdvertisementsLeft;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

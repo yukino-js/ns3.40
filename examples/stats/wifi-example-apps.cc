@@ -1,42 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Joe Kopena <tjkopena@cs.drexel.edu>
- *
- * These applications are used in the WiFi Distance Test experiment,
- * described and implemented in test02.cc.  That file should be in the
- * same place as this file.  The applications have two very simple
- * jobs, they just generate and receive packets.  We could use the
- * standard Application classes included in the NS-3 distribution.
- * These have been written just to change the behavior a little, and
- * provide more examples.
- *
- */
 
 #include "wifi-example-apps.h"
 
@@ -50,10 +12,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WiFiDistanceApps");
-
-// ==============================================
-// SENDER
-// ==============================================
 
 TypeId Sender::GetTypeId() {
   static TypeId tid =
@@ -97,7 +55,6 @@ void Sender::DoDispose() {
   NS_LOG_FUNCTION_NOARGS();
 
   m_socket = nullptr;
-  // chain up
   Application::DoDispose();
 }
 
@@ -123,7 +80,6 @@ void Sender::StopApplication() {
 }
 
 void Sender::SendPacket() {
-  // NS_LOG_FUNCTION_NOARGS();
   NS_LOG_INFO("Sending packet at " << Simulator::Now() << " to " << m_destAddr);
 
   Ptr<Packet> packet = Create<Packet>(m_packetSize);
@@ -132,11 +88,8 @@ void Sender::SendPacket() {
   timestamp.SetTimestamp(Simulator::Now());
   packet->AddByteTag(timestamp);
 
-  // Could connect the socket since the address never changes; using SendTo
-  // here simply because all of the standard apps do not.
   m_socket->SendTo(packet, 0, InetSocketAddress(m_destAddr, m_destPort));
 
-  // Report the event to the trace.
   m_txTrace(packet);
 
   if (++m_count < m_nPackets) {
@@ -144,10 +97,6 @@ void Sender::SendPacket() {
                                       &Sender::SendPacket, this);
   }
 }
-
-// ==============================================
-// RECEIVER
-// ==============================================
 
 TypeId Receiver::GetTypeId() {
   static TypeId tid =
@@ -168,7 +117,6 @@ void Receiver::DoDispose() {
   NS_LOG_FUNCTION_NOARGS();
 
   m_socket = nullptr;
-  // chain up
   Application::DoDispose();
 }
 
@@ -201,7 +149,6 @@ void Receiver::SetDelayTracker(Ptr<TimeMinMaxAvgTotalCalculator> delay) {
 }
 
 void Receiver::Receive(Ptr<Socket> socket) {
-  // NS_LOG_FUNCTION (this << socket << packet << from);
 
   Ptr<Packet> packet;
   Address from;
@@ -213,8 +160,6 @@ void Receiver::Receive(Ptr<Socket> socket) {
     }
 
     TimestampTag timestamp;
-    // Should never not be found since the sender is adding it, but
-    // you never know.
     if (packet->FindFirstMatchingByteTag(timestamp)) {
       Time tx = timestamp.GetTimestamp();
 

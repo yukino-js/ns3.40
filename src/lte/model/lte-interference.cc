@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-interference.h"
 
@@ -73,9 +55,7 @@ void LteInterference::StartRx(Ptr<const SpectrumValue> rxPsd) {
     }
   } else {
     NS_LOG_LOGIC("additional signal" << *m_rxSignal);
-    // receiving multiple simultaneous signals, make sure they are synchronized
     NS_ASSERT(m_lastChangeTime == Now());
-    // make sure they use orthogonal resource blocks
     NS_ASSERT(Sum((*rxPsd) * (*m_rxSignal)) == 0.0);
     (*m_rxSignal) += (*rxPsd);
   }
@@ -109,10 +89,6 @@ void LteInterference::AddSignal(Ptr<const SpectrumValue> spd,
   DoAddSignal(spd);
   uint32_t signalId = ++m_lastSignalId;
   if (signalId == m_lastSignalIdBeforeReset) {
-    // This happens when m_lastSignalId eventually wraps around. Given that so
-    // many signals have elapsed since the last reset, we hope that by now there
-    // is no stale pending signal (i.e., a signal that was scheduled for
-    // subtraction before the reset). So we just move the boundary further.
     m_lastSignalIdBeforeReset += 0x10000000;
   }
   Simulator::Schedule(duration, &LteInterference::DoSubtractSignal, this, spd,
@@ -172,15 +148,10 @@ void LteInterference::SetNoisePowerSpectralDensity(
   NS_LOG_FUNCTION(this << *noisePsd);
   ConditionallyEvaluateChunk();
   m_noise = noisePsd;
-  // reset m_allSignals (will reset if already set previously)
-  // this is needed since this method can potentially change the SpectrumModel
   m_allSignals = Create<SpectrumValue>(noisePsd->GetSpectrumModel());
   if (m_receiving) {
-    // abort rx
     m_receiving = false;
   }
-  // record the last SignalId so that we can ignore all signals that
-  // were scheduled for subtraction before m_allSignal
   m_lastSignalIdBeforeReset = m_lastSignalId;
 }
 

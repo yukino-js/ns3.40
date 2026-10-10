@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "ns3/abort.h"
 #include "ns3/aodv-helper.h"
@@ -44,33 +26,16 @@
 namespace ns3 {
 namespace aodv {
 
-/**
- * \ingroup aodv
- *
- * \brief AODV loopback UDP echo test case
- */
 class LoopbackTestCase : public TestCase {
-  uint32_t m_count;         //!< number of packet received;
-  Ptr<Socket> m_txSocket;   //!< transmit socket;
-  Ptr<Socket> m_echoSocket; //!< echo socket;
-  Ptr<Socket> m_rxSocket;   //!< receive socket;
-  uint16_t m_echoSendPort;  //!< echo send port;
-  uint16_t m_echoReplyPort; //!< echo reply port;
+  uint32_t m_count;
+  Ptr<Socket> m_txSocket;
+  Ptr<Socket> m_echoSocket;
+  Ptr<Socket> m_rxSocket;
+  uint16_t m_echoSendPort;
+  uint16_t m_echoReplyPort;
 
-  /**
-   * Send data function
-   * \param socket The socket to send data
-   */
   void SendData(Ptr<Socket> socket);
-  /**
-   * Receive packet function
-   * \param socket The socket to receive data
-   */
   void ReceivePkt(Ptr<Socket> socket);
-  /**
-   * Echo data function
-   * \param socket The socket to echo data
-   */
   void EchoData(Ptr<Socket> socket) const;
 
 public:
@@ -120,7 +85,6 @@ void LoopbackTestCase::DoRun() {
   Ptr<MobilityModel> m = CreateObject<ConstantPositionMobilityModel>();
   m->SetPosition(Vector(0, 0, 0));
   nodes.Get(0)->AggregateObject(m);
-  // Setup WiFi
   WifiMacHelper wifiMac;
   wifiMac.SetType("ns3::AdhocWifiMac");
   YansWifiPhyHelper wifiPhy;
@@ -133,8 +97,7 @@ void LoopbackTestCase::DoRun() {
                                StringValue("2200"));
   NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, nodes);
 
-  // Setup TCP/IP & AODV
-  AodvHelper aodv; // Use default parameters here
+  AodvHelper aodv;
   InternetStackHelper internetStack;
   internetStack.SetRoutingHelper(aodv);
   internetStack.Install(nodes);
@@ -142,7 +105,6 @@ void LoopbackTestCase::DoRun() {
   address.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-  // Setup echos
   Ptr<SocketFactory> socketFactory =
       nodes.Get(0)->GetObject<UdpSocketFactory>();
   m_rxSocket = socketFactory->CreateSocket();
@@ -162,7 +124,6 @@ void LoopbackTestCase::DoRun() {
   Simulator::ScheduleWithContext(m_txSocket->GetNode()->GetId(), Seconds(1.0),
                                  &LoopbackTestCase::SendData, this, m_txSocket);
 
-  // Run
   Simulator::Stop(Seconds(5));
   Simulator::Run();
 
@@ -172,24 +133,17 @@ void LoopbackTestCase::DoRun() {
 
   Simulator::Destroy();
 
-  // Check that 4 packets delivered
   NS_TEST_ASSERT_MSG_EQ(m_count, 4,
                         "Exactly 4 echo replies must be delivered.");
 }
 
-/**
- * \ingroup aodv-test
- *
- * \brief AODV Loopback test suite
- */
 class AodvLoopbackTestSuite : public TestSuite {
 public:
   AodvLoopbackTestSuite() : TestSuite("routing-aodv-loopback", SYSTEM) {
     SetDataDir(NS_TEST_SOURCEDIR);
-    // UDP Echo loopback test case
     AddTestCase(new LoopbackTestCase(), TestCase::QUICK);
   }
-} g_aodvLoopbackTestSuite; ///< the test suite
+} g_aodvLoopbackTestSuite;
 
 } // namespace aodv
 } // namespace ns3

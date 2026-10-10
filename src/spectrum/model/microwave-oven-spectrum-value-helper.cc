@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "microwave-oven-spectrum-value-helper.h"
 
@@ -25,15 +7,9 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("MicrowaveOvenSpectrumValue");
 
-/// Spectrum model for the 5MHz model (model #2)
 static Ptr<SpectrumModel> g_MicrowaveOvenSpectrumModel5Mhz;
-/// Spectrum model for the 6MHz model (model #1)
 static Ptr<SpectrumModel> g_MicrowaveOvenSpectrumModel6Mhz;
 
-/**
- * \ingroup spectrum
- * Init a static class containing the MWO #2 model (5Mhz)
- */
 static class MicrowaveOvenSpectrumModel5MhzInitializer {
 public:
   MicrowaveOvenSpectrumModel5MhzInitializer() {
@@ -49,12 +25,8 @@ public:
     NS_LOG_LOGIC("bands.size () :" << bands.size());
     g_MicrowaveOvenSpectrumModel5Mhz = Create<SpectrumModel>(bands);
   }
-} g_MicrowaveOvenSpectrumModel5MhzInitializerInstance; //!< MWO model #2
+} g_MicrowaveOvenSpectrumModel5MhzInitializerInstance;
 
-/**
- * \ingroup spectrum
- * Init a static class containing the MWO #1 model (6Mhz)
- */
 static class MicrowaveOvenSpectrumModel6MhzInitializer {
 public:
   MicrowaveOvenSpectrumModel6MhzInitializer() {
@@ -70,21 +42,12 @@ public:
     NS_LOG_LOGIC("bands.size () :" << bands.size());
     g_MicrowaveOvenSpectrumModel6Mhz = Create<SpectrumModel>(bands);
   }
-} g_MicrowaveOvenSpectrumModel6MhzInitializerInstance; //!< MWO model #1
+} g_MicrowaveOvenSpectrumModel6MhzInitializerInstance;
 
 Ptr<SpectrumValue>
 MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo1() {
   Ptr<SpectrumValue> psd =
       Create<SpectrumValue>(g_MicrowaveOvenSpectrumModel6Mhz);
-
-  // values from this paper:
-  // Tanim M. Taher, Matthew J. Misurac, Joseph L. LoCicero, and Donald R. Ucci,
-  // "MICROWAVE OVEN SIGNAL MODELING", in Proc. of IEEE WCNC, 2008,
-  // see Figure 3, "Experimental PSD of MWO #1"
-  // the figure has a resolution of 12 MHz per division; we use a
-  // SpectrumModel with a per-subband bandwidth of 6MHz, so we have
-  // two samples per division. The values used here are an approximation
-  // of what appears in the figure.
 
   (*psd)[0] = -67.5;
   (*psd)[1] = -67.5;
@@ -107,7 +70,6 @@ MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo1() {
   (*psd)[18] = -67.5;
   (*psd)[19] = -67.5;
 
-  // convert to W/Hz
   (*psd) = Pow(10.0, ((*psd) - 30) / 10.0);
 
   return psd;
@@ -115,14 +77,6 @@ MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo1() {
 
 Ptr<SpectrumValue>
 MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo2() {
-  // values from this paper:
-  // Tanim M. Taher, Matthew J. Misurac, Joseph L. LoCicero, and Donald R. Ucci,
-  // "MICROWAVE OVEN SIGNAL MODELING", in Proc. of IEEE WCNC, 2008,
-  // see Figure 9, "Experimental PSD of actual MWO #2"
-  // the figure has a resolution of 10 MHz per division; we use a
-  // SpectrumModel with a per-subband bandwidth of 5MHz, so we have
-  // two samples per division. The values used here are an approximation
-  // of what appears in the figure.
 
   Ptr<SpectrumValue> psd =
       Create<SpectrumValue>(g_MicrowaveOvenSpectrumModel5Mhz);
@@ -148,7 +102,6 @@ MicrowaveOvenSpectrumValueHelper::CreatePowerSpectralDensityMwo2() {
   (*psd)[18] = -68;
   (*psd)[19] = -68;
 
-  // convert to W/Hz
   (*psd) = Pow(10.0, ((*psd) - 30) / 10.0);
 
   return psd;

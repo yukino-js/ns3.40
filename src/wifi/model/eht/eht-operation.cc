@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sharan Naribole <sharan.naribole@gmail.com>
- */
 
 #include "eht-operation.h"
 
@@ -62,13 +44,6 @@ uint16_t EhtOperation::EhtOpParams::Deserialize(Buffer::Iterator start) {
   return WIFI_EHT_OP_PARAMS_SIZE_B;
 }
 
-/**
- * set the max Tx/Rx NSS for input MCS index range
- * \param vec vector of max NSS per MCS
- * \param maxNss max NSS for input MCS range
- * \param mcsStart MCS index start
- * \param mcsEnd MCS index end
- */
 void SetMaxNss(std::vector<uint8_t> &vec, uint8_t maxNss, uint8_t mcsStart,
                uint8_t mcsEnd) {
   NS_ASSERT(mcsStart <= mcsEnd);
@@ -79,13 +54,6 @@ void SetMaxNss(std::vector<uint8_t> &vec, uint8_t maxNss, uint8_t mcsStart,
   }
 }
 
-/**
- * Get the max Tx/Rx NSS for input MCS index range
- * \param vec vector of max NSS per MCS
- * \param mcsStart MCS index start
- * \param mcsEnd MCS index end
- * \return max Rx NSS
- */
 uint32_t GetMaxNss(const std::vector<uint8_t> &vec, uint8_t mcsStart,
                    uint8_t mcsEnd) {
   NS_ASSERT(mcsStart <= mcsEnd);
@@ -111,29 +79,29 @@ void EhtOperation::EhtBasicMcsNssSet::Serialize(Buffer::Iterator &start) const {
 
 uint16_t EhtOperation::EhtBasicMcsNssSet::Deserialize(Buffer::Iterator start) {
   auto subfield = start.ReadLsbtohU32();
-  auto rxNssMcs0_7 = subfield & 0xf; // Max Rx NSS MCS 0-7
+  auto rxNssMcs0_7 = subfield & 0xf;
   SetMaxNss(maxRxNss, rxNssMcs0_7, 0, 7);
-  auto txNssMcs0_7 = (subfield >> 4) & 0xf; // Max Tx NSS MCS 0-7
+  auto txNssMcs0_7 = (subfield >> 4) & 0xf;
   SetMaxNss(maxTxNss, txNssMcs0_7, 0, 7);
-  auto rxNssMcs8_9 = (subfield >> 8) & 0xf; // Max Rx NSS MCS 8-9
+  auto rxNssMcs8_9 = (subfield >> 8) & 0xf;
   SetMaxNss(maxRxNss, rxNssMcs8_9, 8, 9);
-  auto txNssMcs8_9 = (subfield >> 12) & 0xf; // Max Tx NSS MCS 8-9
+  auto txNssMcs8_9 = (subfield >> 12) & 0xf;
   SetMaxNss(maxTxNss, txNssMcs8_9, 8, 9);
-  auto rxNssMcs10_11 = (subfield >> 16) & 0xf; // Max Rx NSS MCS 10-11
+  auto rxNssMcs10_11 = (subfield >> 16) & 0xf;
   SetMaxNss(maxRxNss, rxNssMcs10_11, 10, 11);
-  auto txNssMcs10_11 = (subfield >> 20) & 0xf; // Max Tx NSS MCS 10-11
+  auto txNssMcs10_11 = (subfield >> 20) & 0xf;
   SetMaxNss(maxTxNss, txNssMcs10_11, 10, 11);
-  auto rxNssMcs12_13 = (subfield >> 24) & 0xf; // Max Rx NSS MCS 12-13
+  auto rxNssMcs12_13 = (subfield >> 24) & 0xf;
   SetMaxNss(maxRxNss, rxNssMcs12_13, 12, 13);
-  auto txNssMcs12_13 = (subfield >> 28) & 0xf; // Max Tx NSS MCS 12-13
+  auto txNssMcs12_13 = (subfield >> 28) & 0xf;
   SetMaxNss(maxTxNss, txNssMcs12_13, 12, 13);
   return WIFI_EHT_BASIC_MCS_NSS_SET_SIZE_B;
 }
 
 void EhtOperation::EhtOpInfo::Serialize(Buffer::Iterator &start) const {
-  start.WriteU8(control.channelWidth); // Control
-  start.WriteU8(ccfs0);                // CCFS 0
-  start.WriteU8(ccfs1);                // CCFS 1
+  start.WriteU8(control.channelWidth);
+  start.WriteU8(ccfs0);
+  start.WriteU8(ccfs1);
   if (disabledSubchBm.has_value()) {
     start.WriteU16(disabledSubchBm.value());
   }
@@ -179,7 +147,6 @@ WifiInformationElementId EhtOperation::ElementIdExt() const {
 }
 
 uint16_t EhtOperation::GetInformationFieldSize() const {
-  // IEEE 802.11be D2.0 9.4.2.311
   auto ret = WIFI_IE_ELEMENT_ID_EXT_SIZE + WIFI_EHT_OP_PARAMS_SIZE_B +
              WIFI_EHT_BASIC_MCS_NSS_SET_SIZE_B;
   if (!m_params.opInfoPresent) {
@@ -214,7 +181,7 @@ void EhtOperation::SerializeInformationField(Buffer::Iterator start) const {
   NS_ASSERT_MSG(m_params.opInfoPresent == m_opInfo.has_value(),
                 "Incorrect setting of EHT Operation Information Present bit");
 
-  if (!m_params.opInfoPresent) { // EHT Operation Information Present not set
+  if (!m_params.opInfoPresent) {
     return;
   }
 

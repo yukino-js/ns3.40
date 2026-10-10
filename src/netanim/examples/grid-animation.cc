@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Josh Pelkey <jpelkey@gatech.edu>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -63,14 +34,11 @@ int main(int argc, char *argv[]) {
   pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
   pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
 
-  // Create Grid
   PointToPointGridHelper grid(xSize, ySize, pointToPoint);
 
-  // Install stack on Grid
   InternetStackHelper stack;
   grid.InstallStack(stack);
 
-  // Assign Addresses to Grid
   grid.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"),
                            Ipv4AddressHelper("10.2.1.0", "255.255.255.0"));
 
@@ -81,7 +49,6 @@ int main(int argc, char *argv[]) {
       "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
   ApplicationContainer clientApps;
 
-  // Create an on/off app sending packets
   AddressValue remoteAddress(
       InetSocketAddress(grid.GetIpv4Address(xSize - 1, ySize - 1), 1000));
   clientHelper.SetAttribute("Remote", remoteAddress);
@@ -90,13 +57,10 @@ int main(int argc, char *argv[]) {
   clientApps.Start(Seconds(0.0));
   clientApps.Stop(Seconds(1.5));
 
-  // Set the bounding box for animation
   grid.BoundingBox(1, 1, 100, 100);
 
-  // Create the animation object and configure for specified output
   AnimationInterface anim(animFile);
 
-  // Set up the actual simulation
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
   Simulator::Run();

@@ -1,21 +1,3 @@
-//
-// Copyright (c) 2006 Georgia Tech Research Corporation
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: George F. Riley<riley@ece.gatech.edu>
-//         Gustavo Carneiro <gjc@inescporto.pt>
 
 #define NS_LOG_APPEND_CONTEXT                                                  \
   if (m_ipv4 && m_ipv4->GetObject<Node>()) {                                   \
@@ -119,9 +101,6 @@ void Ipv4StaticRouting::AddMulticastRoute(
   m_multicastRoutes.push_back(route);
 }
 
-// default multicast routes are stored as a network route
-// these routes are _not_ consulted in the forwarding process-- only
-// for originating packets
 void Ipv4StaticRouting::SetDefaultMulticastRoute(uint32_t outputInterface) {
   NS_LOG_FUNCTION(this << outputInterface);
   auto route = new Ipv4RoutingTableEntry();
@@ -207,7 +186,6 @@ Ptr<Ipv4Route> Ipv4StaticRouting::LookupStatic(Ipv4Address dest,
   Ptr<Ipv4Route> rtentry = nullptr;
   uint16_t longest_mask = 0;
   uint32_t shortest_metric = 0xffffffff;
-  /* when sending on local multicast, there have to be interface specified */
   if (dest.IsLocalMulticast()) {
     NS_ASSERT_MSG(oif, "Try to send on link-local multicast address, and no "
                        "interface index is given!");
@@ -240,13 +218,11 @@ Ptr<Ipv4Route> Ipv4StaticRouting::LookupStatic(Ipv4Address dest,
           continue;
         }
       }
-      if (masklen < longest_mask) // Not interested if got shorter mask
-      {
+      if (masklen < longest_mask) {
         NS_LOG_LOGIC("Previous match longer, skipping");
         continue;
       }
-      if (masklen > longest_mask) // Reset metric if longer masklen
-      {
+      if (masklen > longest_mask) {
         shortest_metric = 0xffffffff;
       }
       longest_mask = masklen;
@@ -286,16 +262,7 @@ Ptr<Ipv4MulticastRoute> Ipv4StaticRouting::LookupStatic(Ipv4Address origin,
 
   for (auto i = m_multicastRoutes.begin(); i != m_multicastRoutes.end(); i++) {
     Ipv4MulticastRoutingTableEntry *route = *i;
-    //
-    // We've been passed an origin address, a multicast group address and an
-    // interface index.  We have to decide if the current route in the list is
-    // a match.
-    //
-    // The first case is the restrictive case where the origin, group and index
-    // matches.
-    //
     if (origin == route->GetOrigin() && group == route->GetGroup()) {
-      // Skipping this case (SSM) for now
       NS_LOG_LOGIC("Found multicast source specific route" << *i);
     }
     if (group == route->GetGroup()) {
@@ -328,7 +295,6 @@ uint32_t Ipv4StaticRouting::GetNRoutes() const {
 
 Ipv4RoutingTableEntry Ipv4StaticRouting::GetDefaultRoute() {
   NS_LOG_FUNCTION(this);
-  // Basically a repeat of LookupStatic, retained for backward compatibility
   Ipv4Address dest("0.0.0.0");
   uint32_t shortest_metric = 0xffffffff;
   Ipv4RoutingTableEntry *result = nullptr;
@@ -363,7 +329,6 @@ Ipv4RoutingTableEntry Ipv4StaticRouting::GetRoute(uint32_t index) const {
     tmp++;
   }
   NS_ASSERT(false);
-  // quiet compiler.
   return nullptr;
 }
 
@@ -377,7 +342,6 @@ uint32_t Ipv4StaticRouting::GetMetric(uint32_t index) const {
     tmp++;
   }
   NS_ASSERT(false);
-  // quiet compiler.
   return 0;
 }
 
@@ -403,14 +367,7 @@ Ptr<Ipv4Route> Ipv4StaticRouting::RouteOutput(Ptr<Packet> p,
   Ipv4Address destination = header.GetDestination();
   Ptr<Ipv4Route> rtentry = nullptr;
 
-  // Multicast goes here
   if (destination.IsMulticast()) {
-    // Note:  Multicast routes for outbound packets are stored in the
-    // normal unicast table.  An implication of this is that it is not
-    // possible to source multicast datagrams on multiple interfaces.
-    // This is a well-known property of sockets implementation on
-    // many Unix variants.
-    // So, we just log it and fall through to LookupStatic ()
     NS_LOG_LOGIC("RouteOutput()::Multicast destination");
   }
   rtentry = LookupStatic(destination, oif);
@@ -431,11 +388,8 @@ bool Ipv4StaticRouting::RouteInput(
                        << &lcb << &ecb);
 
   NS_ASSERT(m_ipv4);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv4->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice(idev);
-
-  // Multicast recognition; handle local delivery here
 
   if (ipHeader.GetDestination().IsMulticast()) {
     NS_LOG_LOGIC("Multicast destination");
@@ -445,11 +399,11 @@ bool Ipv4StaticRouting::RouteInput(
 
     if (mrtentry) {
       NS_LOG_LOGIC("Multicast route found");
-      mcb(mrtentry, p, ipHeader); // multicast forwarding callback
+      mcb(mrtentry, p, ipHeader);
       return true;
     } else {
       NS_LOG_LOGIC("Multicast route not found");
-      return false; // Let other routing protocols try to handle this
+      return false;
     }
   }
 
@@ -459,30 +413,23 @@ bool Ipv4StaticRouting::RouteInput(
       lcb(p, ipHeader, iif);
       return true;
     } else {
-      // The local delivery callback is null.  This may be a multicast
-      // or broadcast packet, so return false so that another
-      // multicast routing protocol can handle it.  It should be possible
-      // to extend this to explicitly check whether it is a unicast
-      // packet, and invoke the error callback if so
       return false;
     }
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv4->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     ecb(p, ipHeader, Socket::ERROR_NOROUTETOHOST);
     return true;
   }
-  // Next, try to find a route
   Ptr<Ipv4Route> rtentry = LookupStatic(ipHeader.GetDestination());
   if (rtentry) {
     NS_LOG_LOGIC("Found unicast destination- calling unicast callback");
-    ucb(rtentry, p, ipHeader); // unicast forwarding callback
+    ucb(rtentry, p, ipHeader);
     return true;
   } else {
     NS_LOG_LOGIC("Did not find unicast destination- returning false");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 }
 
@@ -504,9 +451,6 @@ void Ipv4StaticRouting::DoDispose() {
 
 void Ipv4StaticRouting::NotifyInterfaceUp(uint32_t i) {
   NS_LOG_FUNCTION(this << i);
-  // If interface address and network mask have been set, add a route
-  // to the network of the interface (like e.g. ifconfig does on a
-  // Linux box)
   for (uint32_t j = 0; j < m_ipv4->GetNAddresses(i); j++) {
     if (m_ipv4->GetAddress(i, j).GetLocal() != Ipv4Address() &&
         m_ipv4->GetAddress(i, j).GetMask() != Ipv4Mask() &&
@@ -520,7 +464,6 @@ void Ipv4StaticRouting::NotifyInterfaceUp(uint32_t i) {
 
 void Ipv4StaticRouting::NotifyInterfaceDown(uint32_t i) {
   NS_LOG_FUNCTION(this << i);
-  // Remove all static routes that are going through this interface
   for (auto it = m_networkRoutes.begin(); it != m_networkRoutes.end();) {
     if (it->first->GetInterface() == i) {
       delete it->first;
@@ -555,8 +498,6 @@ void Ipv4StaticRouting::NotifyRemoveAddress(uint32_t interface,
   Ipv4Address networkAddress =
       address.GetLocal().CombineMask(address.GetMask());
   Ipv4Mask networkMask = address.GetMask();
-  // Remove all static routes that are going through this interface
-  // which reference this network
   for (auto it = m_networkRoutes.begin(); it != m_networkRoutes.end();) {
     if (it->first->GetInterface() == interface && it->first->IsNetwork() &&
         it->first->GetDestNetwork() == networkAddress &&
@@ -582,12 +523,10 @@ void Ipv4StaticRouting::SetIpv4(Ptr<Ipv4> ipv4) {
   }
 }
 
-// Formatted like output of "route -n" command
 void Ipv4StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
                                           Time::Unit unit) const {
   NS_LOG_FUNCTION(this << stream);
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -623,10 +562,8 @@ void Ipv4StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
       }
       *os << std::setw(6) << flags.str();
       *os << std::setw(7) << GetMetric(j);
-      // Ref ct not implemented
       *os << "-"
           << "      ";
-      // Use not implemented
       *os << "-"
           << "   ";
       if (!Names::FindName(m_ipv4->GetNetDevice(route.GetInterface()))
@@ -639,7 +576,6 @@ void Ipv4StaticRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
     }
   }
   *os << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 

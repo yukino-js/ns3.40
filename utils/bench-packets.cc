@@ -1,25 +1,4 @@
-/*
- * Copyright (c) 2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
-// This program can be used to benchmark packet serialization/deserialization
-// operations using Headers and Tags, for various numbers of packets 'n'
-// Sample usage:  ./ns3 run 'bench-packets --n=10000'
 
 #include "ns3/command-line.h"
 #include "ns3/packet-metadata.h"
@@ -30,28 +9,16 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include <stdlib.h> // for exit ()
+#include <stdlib.h>
 #include <string>
 
 using namespace ns3;
 
-/// BenchHeader class used for benchmarking packet serialization/deserialization
 template <int N> class BenchHeader : public Header {
 public:
   BenchHeader();
-  /**
-   * Returns true if the header has been deserialized and the
-   * deserialization was correct.  If Deserialize() has not yet been
-   * called on the header, will return false.
-   *
-   * \returns true if success, false if failed or if deserialization not tried
-   */
   bool IsOk() const;
 
-  /**
-   * Register this type.
-   * \return The TypeId.
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   void Print(std::ostream &os) const override;
@@ -60,12 +27,8 @@ public:
   uint32_t Deserialize(Buffer::Iterator start) override;
 
 private:
-  /**
-   * Get type name function
-   * \returns the type name string
-   */
   static std::string GetTypeName();
-  bool m_ok; ///< variable to track whether deserialization succeeded
+  bool m_ok;
 };
 
 template <int N> BenchHeader<N>::BenchHeader() : m_ok(false) {}
@@ -113,23 +76,14 @@ template <int N> uint32_t BenchHeader<N>::Deserialize(Buffer::Iterator start) {
   return N;
 }
 
-/// BenchTag class used for benchmarking packet serialization/deserialization
 template <int N> class BenchTag : public Tag {
 public:
-  /**
-   * Get the bench tag name.
-   * \return the name.
-   */
   static std::string GetName() {
     std::ostringstream oss;
     oss << "anon::BenchTag<" << N << ">";
     return oss.str();
   }
 
-  /**
-   * Register this type.
-   * \return The TypeId.
-   */
   static TypeId GetTypeId() {
     static TypeId tid = TypeId(GetName())
                             .SetParent<Tag>()
@@ -184,8 +138,6 @@ static void benchA(uint32_t n) {
   BenchHeader<25> ipv4;
   BenchHeader<8> udp;
 
-  // The original version of this program did not use BenchHeader::IsOK ()
-  // Below are two asserts that suggest how it can be used.
   NS_ASSERT_MSG(ipv4.IsOk() == false,
                 "IsOk() should be false before deserialization");
   for (uint32_t i = 0; i < n; i++) {
@@ -250,7 +202,6 @@ static void benchFragment(uint32_t n) {
     Ptr<Packet> frag3 = p->CreateFragment(1000, 500);
     Ptr<Packet> frag4 = p->CreateFragment(1500, 500);
 
-    /* Mix fragments in different order */
     frag2->AddAtEnd(frag3);
     frag4->AddAtEnd(frag1);
     frag2->AddAtEnd(frag4);
@@ -270,7 +221,6 @@ static void benchByteTags(uint32_t n) {
     }
     Ptr<Packet> q = Create<Packet>(1000);
 
-    // This should trigger adjustment of all byte tags
     q->AddAtEnd(p);
   }
 }

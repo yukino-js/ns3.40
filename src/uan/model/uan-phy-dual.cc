@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- *         Andrea Sacco <andrea.sacco85@gmail.com>
- */
 
 #include "uan-phy-dual.h"
 
@@ -65,10 +46,9 @@ double UanPhyCalcSinrDual::CalcSinrDb(
     NS_LOG_WARN("Calculating SINR for unsupported modulation type");
   }
 
-  double intKp = -DbToKp(rxPowerDb); // This packet is in the arrivalList
+  double intKp = -DbToKp(rxPowerDb);
   auto it = arrivalList.begin();
   for (; it != arrivalList.end(); it++) {
-    // Only count interference if there is overlap in incoming frequency
     if (std::abs((double)it->GetTxMode().GetCenterFreqHz() -
                  (double)mode.GetCenterFreqHz()) <
         (double)(it->GetTxMode().GetBandwidthHz() / 2 +
@@ -255,11 +235,7 @@ void UanPhyDual::RegisterListener(UanPhyListener *listener) {
   m_phy2->RegisterListener(listener);
 }
 
-void UanPhyDual::StartRxPacket(Ptr<Packet> /* pkt */, double /* rxPowerDb */,
-                               UanTxMode /* txMode */, UanPdp /* pdp */) {
-  // Not called.  StartRxPacket in m_phy1 and m_phy2 are called directly from
-  // Transducer.
-}
+void UanPhyDual::StartRxPacket(Ptr<Packet>, double, UanTxMode, UanPdp) {}
 
 void UanPhyDual::SetReceiveOkCallback(RxOkCallback cb) {
   m_phy1->SetReceiveOkCallback(cb);
@@ -383,9 +359,7 @@ void UanPhyDual::SetMac(Ptr<UanMac> mac) {
   m_phy2->SetMac(mac);
 }
 
-void UanPhyDual::NotifyTransStartTx(Ptr<Packet> /* packet */,
-                                    double /* txPowerDb */,
-                                    UanTxMode /* txMode */) {}
+void UanPhyDual::NotifyTransStartTx(Ptr<Packet>, double, UanTxMode) {}
 
 void UanPhyDual::NotifyIntChange() {
   m_phy1->NotifyIntChange();

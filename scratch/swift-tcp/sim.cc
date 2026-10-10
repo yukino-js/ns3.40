@@ -1,35 +1,4 @@
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
-/*
- * Copyright (c) 2025 Tiancheng Hang
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tiancheng Hang <1224045520@njupt.edu.cn>
- * Based on script: ./examples/tcp/tcp-variants-comparison.cc
- *
- * Topology:
- *
- *   Right Leafs (Clients)                      Left Leafs (Sinks)
- *           |            \                    /        |
- *           |             \    bottleneck    /         |
- *           |              R0--------------R1          |
- *           |             /                  \         |
- *           |   access   /                    \ access |
- *           N -----------                      --------N
- */
 
-/* -*-  Mode: C++; c-file-style: "gnu"; indent-tabs-mode:nil; -*- */
 
 #include "tcp-swift.h"
 
@@ -134,7 +103,6 @@ int main(int argc, char *argv[]) {
   NS_LOG_UNCOND("AccessBW: " << access_bandwidth);
   NS_LOG_UNCOND("BottleneckBW: " << bottleneck_bandwidth);
 
-  // Calculate the ADU size
   Header *temp_header = new Ipv4Header();
   uint32_t ip_header = temp_header->GetSerializedSize();
   NS_LOG_LOGIC("IP Header size is: " << ip_header);
@@ -146,12 +114,10 @@ int main(int argc, char *argv[]) {
   uint32_t tcp_adu_size = mtu_bytes - 20 - (ip_header + tcp_header);
   NS_LOG_LOGIC("TCP ADU size is: " << tcp_adu_size);
 
-  // Stop senders first, then leave one second for in-flight packets to drain.
   double start_time = 0.1;
   double traffic_stop_time = start_time + duration;
   double simulation_stop_time = traffic_stop_time + 1.0;
 
-  // 16 MB of TCP buffer (sufficient for 10Gbps+ high-BDP paths)
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 24));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 24));
   Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(sack));
@@ -159,7 +125,6 @@ int main(int argc, char *argv[]) {
 
   Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                      TypeIdValue(TypeId::LookupByName(recovery)));
-  // Select TCP variant
   TypeId tcpTid;
   if (!TypeId::LookupByNameFailSafe(transport_prot, &tcpTid)) {
     std::cerr << "Unsupported TCP protocol: " << transport_prot << std::endl;
@@ -167,13 +132,9 @@ int main(int argc, char *argv[]) {
   }
   Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(tcpTid));
 
-  // ECN is enabled for ALL variants so baseline algorithms receive the same
-  // in-network congestion signal as TcpSwift; the previous Swift-only
-  // setting biased the comparison.
   Config::SetDefault("ns3::TcpSocketBase::UseEcn",
                      EnumValue(TcpSocketState::On));
 
-  // Random packet corruption on the bottleneck receive side (error_p > 0)
   Ptr<RateErrorModel> errorModel;
   if (error_p > 0.0) {
     Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
@@ -184,7 +145,6 @@ int main(int argc, char *argv[]) {
     errorModel->SetRate(error_p);
   }
 
-  // Create the point-to-point link helpers
   PointToPointHelper bottleNeckLink;
   bottleNeckLink.SetDeviceAttribute("DataRate",
                                     StringValue(bottleneck_bandwidth));
@@ -202,11 +162,9 @@ int main(int argc, char *argv[]) {
   PointToPointDumbbellHelper d(nLeaf, pointToPointLeaf, nLeaf, pointToPointLeaf,
                                bottleNeckLink);
 
-  // Install IP stack
   InternetStackHelper stack;
   stack.InstallAll();
 
-  // Traffic Control
   TrafficControlHelper tchPfifo;
   tchPfifo.SetRootQueueDisc("ns3::PfifoFastQueueDisc");
 
@@ -221,7 +179,6 @@ int main(int argc, char *argv[]) {
   Time access_d(access_delay);
   Time bottle_d(bottleneck_delay);
 
-  // BDP = bottleneck_bw * full_RTT, queue = max(BDP * nLeaf, 100 packets)
   double fullRtt = ((access_d + bottle_d + access_d) * 2).GetSeconds();
   uint32_t bdp_bytes = static_cast<uint32_t>(
       static_cast<double>(bottle_b.GetBitRate()) / 8.0 * fullRtt);
@@ -239,8 +196,6 @@ int main(int argc, char *argv[]) {
       "ns3::CoDelQueueDisc::MaxSize",
       QueueSizeValue(QueueSize(QueueSizeUnit::BYTES, queue_bytes)));
 
-  // RED with ECN marking: mark from 30% of the queue (documented design),
-  // hard limit at the same size as the other queue discs.
   Config::SetDefault(
       "ns3::RedQueueDisc::MaxSize",
       QueueSizeValue(QueueSize(QueueSizeUnit::PACKETS, queue_packets)));
@@ -270,7 +225,6 @@ int main(int argc, char *argv[]) {
         "ns3::CoDelQueueDisc or ns3::PfifoFastQueueDisc");
   }
 
-  // Assign IP Addresses
   d.AssignIpv4Addresses(Ipv4AddressHelper("10.1.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.2.1.0", "255.255.255.0"),
                         Ipv4AddressHelper("10.3.1.0", "255.255.255.0"));
@@ -278,7 +232,6 @@ int main(int argc, char *argv[]) {
   NS_LOG_INFO("Initialize Global Routing.");
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Install apps in left and right nodes
   Address sinkLocalAddress(
       InetSocketAddress(Ipv4Address::GetAny(), tcpTrafficPort));
   PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
@@ -293,7 +246,6 @@ int main(int argc, char *argv[]) {
   Ptr<PacketSink> sink = StaticCast<PacketSink>(sinkApps.Get(0));
 
   for (uint32_t i = 0; i < d.LeftCount(); ++i) {
-    // Create an on/off app sending packets to the left side
     AddressValue remoteAddress(
         InetSocketAddress(d.GetRightIpv4Address(i), tcpTrafficPort));
     Config::SetDefault("ns3::TcpSocket::SegmentSize",
@@ -309,7 +261,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (enable_udp_burst) {
-    // >>> UDP Burst >>>
     Address udpSinkLocalAddress(
         InetSocketAddress(Ipv4Address::GetAny(), udpTrafficPort));
     PacketSinkHelper udpSinkHelper("ns3::UdpSocketFactory",
@@ -333,17 +284,14 @@ int main(int argc, char *argv[]) {
     ApplicationContainer udpBurstApp = udpBurstHelper.Install(d.GetLeft(0));
     udpBurstApp.Start(Seconds(0.5));
     udpBurstApp.Stop(Seconds(traffic_stop_time));
-    //  <<< UDP Burst <<<
   }
 
-  // Flow monitor
   FlowMonitorHelper flowHelper;
   Ptr<FlowMonitor> monitor;
   if (flow_monitor) {
     monitor = flowHelper.InstallAll();
   }
 
-  // Count RX packets
   for (uint32_t i = 0; i < d.RightCount(); ++i) {
     rxPkts.push_back(0);
     Ptr<PacketSink> pktSink = DynamicCast<PacketSink>(sinkApps.Get(i));

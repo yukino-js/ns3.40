@@ -9,12 +9,12 @@ to the TcpSwift agent (`contrib/opengym/examples/swift-tcp/tcp_swift.py`).
 ### Added
 
 - `docs/plots/patent.js`, the patent figure pipeline. It reads the native
-  ns-3.40 artifacts in `logs/real/{comparison,comparison-udp}` for seven
+  ns-3.40 artifacts in `logs/{comparison,comparison-udp}` for seven
   scenarios (long-haul WAN, metro WAN, GEO satellite, 802.11n WLAN, poor-coverage
   LTE, congested aggregation, low-bandwidth data centre) × four protocols × three
   RngRun seeds (42/43/44) × {pure TCP, UDP burst}, validates every run with the
   same acceptance rules as `main.js summary`, writes
-  `logs/real/summary/patent_kpi_forward.csv` and `patent_kpi_aggregate.csv`, and
+  `logs/summary/patent_kpi_forward.csv` and `patent_kpi_aggregate.csv`, and
   renders five figures: `fig08_patent_state_flow`, `fig09_patent_window_flow`
   (flowcharts) plus `fig10_patent_goodput`, `fig11_patent_delay`,
   `fig12_patent_robustness` (results). Incomplete batches abort the rendering
@@ -78,7 +78,7 @@ to the TcpSwift agent (`contrib/opengym/examples/swift-tcp/tcp_swift.py`).
 - Removed references to repository-local CSV, manifest, log, and FlowMonitor
   artifact paths from the paper, graduate thesis, and patent. These documents
   now describe only the ns-3.40 experiment configuration and metric definitions.
-- Refreshed the aggregate summary with `python ./main.py summary`; the new
+- Refreshed the aggregate summary with `node ./main.jy summary`; the new
   288-row result is value-identical to the previous summary.
 - Recorded one new metadata-integrity entry in `logs/error.txt`: three generated
   CSV files no longer match the stale size and SHA-256 entries in

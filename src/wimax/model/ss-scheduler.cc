@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- */
 
 #include "ss-scheduler.h"
 
@@ -86,7 +68,6 @@ Ptr<PacketBurst> SSScheduler::Schedule(uint16_t availableSymbols,
                                       << ", requiredByte = " << requiredByte);
 
     if (availableByte >= requiredByte) {
-      // The SS could sent a packet without a other fragmentation
       NS_LOG_INFO("\t availableByte >= requiredByte"
                   "\n\t Send packet without other fragmentation"
                   << std::endl);
@@ -154,7 +135,6 @@ Ptr<WimaxConnection> SSScheduler::SelectConnection() {
   auto serviceFlows =
       m_ss->GetServiceFlowManager()->GetServiceFlows(ServiceFlow::SF_TYPE_UGS);
   for (auto iter = serviceFlows.begin(); iter != serviceFlows.end(); ++iter) {
-    // making sure that this grant was actually intended for this UGS
 
     if ((*iter)->HasPackets() &&
         (currentTime + m_ss->GetPhy()->GetFrameDuration() >
@@ -164,10 +144,6 @@ Ptr<WimaxConnection> SSScheduler::SelectConnection() {
       return (*iter)->GetConnection();
     }
   }
-
-  /* In the following cases (rtPS, nrtPS and BE flows) connection is seletected
-   only for data packets, for bandwidth request packets connection will itself
-   be passed to Schedule () and hence this function will never be called. */
 
   serviceFlows =
       m_ss->GetServiceFlowManager()->GetServiceFlows(ServiceFlow::SF_TYPE_RTPS);

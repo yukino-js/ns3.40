@@ -1,21 +1,3 @@
-//
-// Copyright (c) 2009 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt> <gjcarneiro@gmail.com>
-//
 
 #include "flow-monitor.h"
 
@@ -252,7 +234,6 @@ void FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe, uint32_t flowId,
   if (stats.rxPackets == 1) {
     stats.timeFirstRxPacket = now;
   } else {
-    // measure possible flow interruptions
     Time interArrivalTime = now - stats.timeLastRxPacket;
     if (interArrivalTime > m_flowInterruptionsMinTime) {
       stats.flowInterruptionsHistogram.AddValue(interArrivalTime.GetSeconds());
@@ -264,7 +245,7 @@ void FlowMonitor::ReportLastRx(Ptr<FlowProbe> probe, uint32_t flowId,
   NS_LOG_DEBUG("ReportLastTx: removing tracked packet (flowId="
                << flowId << ", packetId=" << packetId << ").");
 
-  m_trackedPackets.erase(tracked); // we don't need to track this packet anymore
+  m_trackedPackets.erase(tracked);
 
 #ifdef NS3_MTP
   m_lock.store(false, std::memory_order_release);
@@ -301,8 +282,6 @@ void FlowMonitor::ReportDrop(Ptr<FlowProbe> probe, uint32_t flowId,
 
   auto tracked = m_trackedPackets.find(std::make_pair(flowId, packetId));
   if (tracked != m_trackedPackets.end()) {
-    // we don't need to track this packet anymore
-    // FIXME: this will not necessarily be true with broadcast/multicast
     NS_LOG_DEBUG("ReportDrop: removing tracked packet (flowId="
                  << flowId << ", packetId=" << packetId << ").");
     m_trackedPackets.erase(tracked);
@@ -323,12 +302,10 @@ void FlowMonitor::CheckForLostPackets(Time maxDelay) {
 
   for (auto iter = m_trackedPackets.begin(); iter != m_trackedPackets.end();) {
     if (now - iter->second.lastSeenTime >= maxDelay) {
-      // packet is considered lost, add it to the loss statistics
       auto flow = m_flowStats.find(iter->first.first);
       NS_ASSERT(flow != m_flowStats.end());
       flow->second.lostPackets++;
 
-      // we won't track it anymore
       m_trackedPackets.erase(iter++);
     } else {
       iter++;

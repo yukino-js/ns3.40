@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- *         Marco Miozzo <mmiozzo@cttc.es>
- */
 
 #include "trace-fading-loss-model.h"
 
@@ -115,9 +96,6 @@ void TraceFadingLossModel::LoadTrace() {
     NS_ASSERT_MSG(ifTraceFile.good(), " Fading trace file not found");
   }
 
-  //   NS_LOG_INFO (this << " length " << m_traceLength.GetSeconds ());
-  //   NS_LOG_INFO (this << " RB " << (uint32_t)m_rbNum << " samples " <<
-  //   m_samplesNum);
   for (uint32_t i = 0; i < m_rbNum; i++) {
     FadingTraceSample rbTimeFadingTrace;
     for (uint32_t j = 0; j < m_samplesNum; j++) {
@@ -141,7 +119,6 @@ Ptr<SpectrumValue> TraceFadingLossModel::DoCalcRxPowerSpectralDensity(
   if (itOff != m_windowOffsetsMap.end()) {
     if (Simulator::Now().GetSeconds() >=
         m_lastWindowUpdate.GetSeconds() + m_windowSize.GetSeconds()) {
-      // update all the offsets
       NS_LOG_INFO("Fading Windows Updated");
       for (auto itOff2 = m_windowOffsetsMap.begin();
            itOff2 != m_windowOffsetsMap.end(); itOff2++) {
@@ -179,12 +156,6 @@ Ptr<SpectrumValue> TraceFadingLossModel::DoCalcRxPowerSpectralDensity(
   Ptr<SpectrumValue> rxPsd = Copy<SpectrumValue>(params->psd);
   auto vit = rxPsd->ValuesBegin();
 
-  // Vector aSpeedVector = a->GetVelocity ();
-  // Vector bSpeedVector = b->GetVelocity ();
-
-  // double speed = std::sqrt (std::pow (aSpeedVector.x-bSpeedVector.x,2) +
-  // std::pow (aSpeedVector.y-bSpeedVector.y,2));
-
   NS_LOG_LOGIC(this << *rxPsd);
   NS_ASSERT(!m_fadingTrace.empty());
   int now_ms =
@@ -200,12 +171,12 @@ Ptr<SpectrumValue> TraceFadingLossModel::DoCalcRxPowerSpectralDensity(
       NS_LOG_INFO(this << " FADING now " << now_ms << " offset "
                        << (*itOff).second << " id " << index << " fading "
                        << fading);
-      double power = *vit;                     // in Watt/Hz
-      power = 10 * std::log10(180000 * power); // in dB
+      double power = *vit;
+      power = 10 * std::log10(180000 * power);
 
       NS_LOG_LOGIC(this << subChannel << *vit << power << fading);
 
-      *vit = std::pow(10., ((power + fading) / 10)) / 180000; // in Watt
+      *vit = std::pow(10., ((power + fading) / 10)) / 180000;
 
       NS_LOG_LOGIC(this << subChannel << *vit);
     }
@@ -225,8 +196,6 @@ int64_t TraceFadingLossModel::AssignStreams(int64_t stream) {
   m_currentStream = stream;
   m_lastStream = stream + m_streamSetSize - 1;
   auto itVar = m_startVariableMap.begin();
-  // the following loop is for eventually pre-existing ChannelRealization
-  // instances note that more instances are expected to be created at run time
   while (itVar != m_startVariableMap.end()) {
     NS_ASSERT_MSG(
         m_currentStream <= m_lastStream,

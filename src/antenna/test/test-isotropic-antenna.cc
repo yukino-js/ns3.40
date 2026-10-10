@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/isotropic-antenna-model.h>
 #include <ns3/log.h>
@@ -28,31 +10,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup antenna-tests
- *
- * \brief IsotropicAntennaModel Test
- */
 class IsotropicAntennaModelTestCase : public TestCase {
 public:
-  /**
-   * Build the test name
-   * \param a Antenna angle
-   * \return the test name
-   */
   static std::string BuildNameString(Angles a);
-  /**
-   * Constructor
-   * \param a Antenna angle
-   * \param expectedGainDb Expected antenna gain
-   */
   IsotropicAntennaModelTestCase(Angles a, double expectedGainDb);
 
 private:
   void DoRun() override;
 
-  Angles m_a;            //!< Antenna angle
-  double m_expectedGain; //!< Expected gain
+  Angles m_a;
+  double m_expectedGain;
 };
 
 std::string IsotropicAntennaModelTestCase::BuildNameString(Angles a) {
@@ -72,11 +39,6 @@ void IsotropicAntennaModelTestCase::DoRun() {
                             "wrong value of the radiation pattern");
 }
 
-/**
- * \ingroup antenna-tests
- *
- * \brief IsotropicAntennaModel TestSuite
- */
 class IsotropicAntennaModelTestSuite : public TestSuite {
 public:
   IsotropicAntennaModelTestSuite();
@@ -104,6 +66,5 @@ IsotropicAntennaModelTestSuite::IsotropicAntennaModelTestSuite()
               TestCase::QUICK);
 };
 
-/// Static variable for test initialization
 static IsotropicAntennaModelTestSuite
     g_staticIsotropicAntennaModelTestSuiteInstance;

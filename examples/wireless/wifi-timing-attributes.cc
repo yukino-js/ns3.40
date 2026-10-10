@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -33,32 +15,15 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This example shows how to set Wi-Fi timing parameters through WifiMac
-// attributes.
-//
-// Example: set slot time to 20 microseconds, while keeping other values as
-// defined in the simulation script:
-//
-//          ./ns3 run "wifi-timing-attributes --slot=20"
-//
-// Network topology:
-//
-//  Wifi 192.168.1.0
-//
-//       AP
-//  *    *
-//  |    |
-//  n1   n2
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("wifi-timing-attributes");
 
 int main(int argc, char *argv[]) {
-  uint32_t slot = 9;          // slot time in microseconds
-  uint32_t sifs = 10;         // SIFS duration in microseconds
-  uint32_t pifs = 19;         // PIFS duration in microseconds
-  double simulationTime = 10; // simulation time in seconds
+  uint32_t slot = 9;
+  uint32_t sifs = 10;
+  uint32_t pifs = 19;
+  double simulationTime = 10;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("slot", "Slot time in microseconds", slot);
@@ -67,23 +32,18 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("simulationTime", "Simulation time in seconds", simulationTime);
   cmd.Parse(argc, argv);
 
-  // Since default reference loss is defined for 5 GHz, it needs to be changed
-  // when operating at 2.4 GHz
   Config::SetDefault("ns3::LogDistancePropagationLossModel::ReferenceLoss",
                      DoubleValue(40.046));
 
-  // Create nodes
   NodeContainer wifiStaNode;
   wifiStaNode.Create(1);
   NodeContainer wifiApNode;
   wifiApNode.Create(1);
 
-  // Create wireless channel
   YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
   YansWifiPhyHelper phy;
   phy.SetChannel(channel.Create());
 
-  // Default IEEE 802.11n (2.4 GHz)
   WifiHelper wifi;
   wifi.SetStandard(WIFI_STANDARD_80211n);
   wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode",
@@ -91,7 +51,6 @@ int main(int argc, char *argv[]) {
                                StringValue("HtMcs0"));
   WifiMacHelper mac;
 
-  // Install PHY and MAC
   Ssid ssid = Ssid("ns3-wifi");
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
 
@@ -103,7 +62,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer apDevice;
   apDevice = wifi.Install(phy, mac, wifiApNode);
 
-  // Once install is done, we overwrite the standard timing values
   Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/Slot",
               TimeValue(MicroSeconds(slot)));
   Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/Sifs",
@@ -111,7 +69,6 @@ int main(int argc, char *argv[]) {
   Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/Pifs",
               TimeValue(MicroSeconds(pifs)));
 
-  // Mobility
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -125,7 +82,6 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNode);
   mobility.Install(wifiStaNode);
 
-  // Internet stack
   InternetStackHelper stack;
   stack.Install(wifiApNode);
   stack.Install(wifiStaNode);
@@ -139,7 +95,6 @@ int main(int argc, char *argv[]) {
   staNodeInterface = address.Assign(staDevice);
   apNodeInterface = address.Assign(apDevice);
 
-  // Setting applications
   uint16_t port = 9;
   UdpServerHelper server(port);
   ApplicationContainer serverApp = server.Install(wifiStaNode.Get(0));
@@ -148,25 +103,22 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper client(staNodeInterface.GetAddress(0), port);
   client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  client.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
-  client.SetAttribute("PacketSize", UintegerValue(1472));     // bytes
+  client.SetAttribute("Interval", TimeValue(Time("0.0001")));
+  client.SetAttribute("PacketSize", UintegerValue(1472));
 
   ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
   clientApp.Start(Seconds(1.0));
   clientApp.Stop(Seconds(simulationTime + 1));
 
-  // Populate routing table
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Set simulation time and launch simulation
   Simulator::Stop(Seconds(simulationTime + 1));
   Simulator::Run();
 
-  // Get and print results
   uint64_t totalPacketsThrough =
       DynamicCast<UdpServer>(serverApp.Get(0))->GetReceived();
   double throughput =
-      totalPacketsThrough * 1472 * 8 / (simulationTime * 1000000.0); // Mbit/s
+      totalPacketsThrough * 1472 * 8 / (simulationTime * 1000000.0);
   std::cout << "Throughput: " << throughput << " Mbit/s" << std::endl;
 
   Simulator::Destroy();

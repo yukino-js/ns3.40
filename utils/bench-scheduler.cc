@@ -1,25 +1,7 @@
-/*
- * Copyright (c) 2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/core-module.h"
 
-#include <cmath> // sqrt
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -28,91 +10,46 @@
 
 using namespace ns3;
 
-/** Flag to write debugging output. */
 bool g_debug = false;
 
-/** Name of this program. */
 std::string g_me;
-/** Log to std::cout */
 #define LOG(x) std::cout << x << std::endl
-/** Log with program name prefix. */
 #define LOGME(x) LOG(g_me << x)
-/** Log debugging output. */
 #define DEB(x)                                                                 \
   if (g_debug) {                                                               \
     LOGME(x);                                                                  \
   }
 
-/** Output field width for numeric data. */
 int g_fwidth = 6;
 
-/**
- *  Benchmark instance which can do a single run.
- *
- *  The run is controlled by the event population size and
- *  total number of events, which are set at construction.
- *
- *  The event distribution in time is set by SetRandomStream()
- */
 class Bench {
 public:
-  /**
-   * Constructor
-   * \param [in] population The number of events to keep in the scheduler.
-   * \param [in] total The total number of events to execute.
-   */
   Bench(const uint64_t population, const uint64_t total)
       : m_population(population), m_total(total), m_count(0) {}
 
-  /**
-   * Set the event delay interval random stream.
-   *
-   * \param [in] stream The random variable stream to be used to generate
-   *              delays for future events.
-   */
   void SetRandomStream(Ptr<RandomVariableStream> stream) { m_rand = stream; }
 
-  /**
-   * Set the number of events to populate the scheduler with.
-   * Each event executed schedules a new event, maintaining the population.
-   * \param [in] population The number of events to keep in the scheduler.
-   */
   void SetPopulation(const uint64_t population) { m_population = population; }
 
-  /**
-   * Set the total number of events to execute.
-   * \param [in] total The total number of events to execute.
-   */
   void SetTotal(const uint64_t total) { m_total = total; }
 
-  /** The output. */
   struct Result {
-    double init;     /**< Time (s) for initialization. */
-    double simu;     /**< Time (s) for simulation. */
-    uint64_t pop;    /**< Event population. */
-    uint64_t events; /**< Number of events executed. */
+    double init;
+    double simu;
+    uint64_t pop;
+    uint64_t events;
   };
 
-  /**
-   *  Run the benchmark as configured.
-   *
-   * \returns The Result.
-   */
   Result Run();
 
 private:
-  /**
-   *  Event function. This checks for completion (total number of events
-   *  executed) and schedules a new event if not complete.
-   */
   void Cb();
 
-  Ptr<RandomVariableStream> m_rand; /**< Stream for event delays. */
-  uint64_t m_population;            /**< Event population size. */
-  uint64_t m_total;                 /**< Total number of events to execute. */
-  uint64_t m_count;                 /**< Count of events executed so far. */
-
-}; // class Bench
+  Ptr<RandomVariableStream> m_rand;
+  uint64_t m_population;
+  uint64_t m_total;
+  uint64_t m_count;
+};
 
 Bench::Result Bench::Run() {
   SystemWallClockMs timer;
@@ -153,76 +90,40 @@ void Bench::Cb() {
   ++m_count;
 }
 
-/** Benchmark which performs an ensemble of runs. */
 class BenchSuite {
 public:
-  /**
-   * Perform the runs for a single scheduler type.
-   *
-   * This will create and set the scheduler, then execute a priming run
-   * followed by the number of data runs requested.
-   *
-   * Output will be in the form of a table showing performance for each run.
-   *
-   * \param [in] factory Factory pre-configured to create the desired Scheduler.
-   * \param [in] pop The event population size.
-   * \param [in] total The total number of events to execute.
-   * \param [in] runs The number of replications.
-   * \param [in] eventStream The random stream of event delays.
-   * \param [in] calRev For the CalendarScheduler, whether the Reverse attribute
-   * was set.
-   */
   BenchSuite(ObjectFactory &factory, uint64_t pop, uint64_t total,
              uint64_t runs, Ptr<RandomVariableStream> eventStream, bool calRev);
 
-  /** Write the results to \c LOG() */
   void Log() const;
 
 private:
-  /** Print the table header. */
   void Header() const;
 
-  /** Statistics from a single phase, init or run. */
   struct PhaseResult {
-    double time;   /**< Phase run time time (s). */
-    double rate;   /**< Phase event rate (events/s). */
-    double period; /**< Phase period (s/event). */
+    double time;
+    double rate;
+    double period;
   };
 
-  /** Results from initialization and execution of a single run. */
   struct Result {
-    PhaseResult init; /**< Initialization phase results. */
-    PhaseResult run;  /**< Run (simulation) phase results. */
-    /**
-     * Construct from the individual run result.
-     *
-     * \param [in] r The result from a single run.
-     * \returns The run result.
-     */
+    PhaseResult init;
+    PhaseResult run;
     static Result Bench(Bench::Result r);
 
-    /**
-     * Log this result.
-     *
-     * \tparam T The type of the label.
-     * \param label The label for the line.
-     */
     template <typename T> void Log(T label) const;
-  }; // struct Result
+  };
 
-  std::string m_scheduler;       /**< Descriptive string for the scheduler. */
-  std::vector<Result> m_results; /**< Store for the run results. */
+  std::string m_scheduler;
+  std::vector<Result> m_results;
+};
 
-}; // BenchSuite
-
-/* static */
 BenchSuite::Result BenchSuite::Result::Bench(Bench::Result r) {
   return Result{{r.init, r.pop / r.init, r.init / r.pop},
                 {r.simu, r.events / r.simu, r.simu / r.events}};
 }
 
 template <typename T> void BenchSuite::Result::Log(T label) const {
-  // Need std::left for string labels
 
   LOG(std::left << std::setw(g_fwidth) << label << std::setw(g_fwidth)
                 << init.time << std::setw(g_fwidth) << init.rate
@@ -253,12 +154,10 @@ BenchSuite::BenchSuite(ObjectFactory &factory, uint64_t pop, uint64_t total,
   m_results.reserve(runs);
   Header();
 
-  // Prime
   DEB("priming");
   auto prime = bench.Run();
   Result::Bench(prime).Log("prime");
 
-  // Perform the actual runs
   for (uint64_t i = 0; i < runs; i++) {
     auto run = bench.Run();
     m_results.push_back(Result::Bench(run));
@@ -266,11 +165,9 @@ BenchSuite::BenchSuite(ObjectFactory &factory, uint64_t pop, uint64_t total,
   }
 
   Simulator::Destroy();
-
-} // BenchSuite::Run
+}
 
 void BenchSuite::Header() const {
-  // table header
   LOG("");
   LOG(m_scheduler);
   LOG(std::left << std::setw(g_fwidth) << "Run #" << std::left
@@ -298,16 +195,9 @@ void BenchSuite::Log() const {
     return;
   }
 
-  // Average the results
-
-  // See Welford's online algorithm for these expressions,
-  // which avoid subtracting large numbers.
-  // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm
-
-  uint64_t n{0};                // number of samples
-  Result average{m_results[0]}; // average
-  Result moment2{{0, 0, 0},     // 2nd moment, to calculate stdev
-                 {0, 0, 0}};
+  uint64_t n{0};
+  Result average{m_results[0]};
+  Result moment2{{0, 0, 0}, {0, 0, 0}};
 
   for (; n < m_results.size(); ++n) {
     double deltaPre;
@@ -342,20 +232,8 @@ void BenchSuite::Log() const {
   stdev.Log("stdev");
 
   LOG("");
+}
 
-} // BenchSuite::Log()
-
-/**
- *  Create a RandomVariableStream to generate next event delays.
- *
- *  If the \p filename parameter is empty a default exponential time
- *  distribution will be used, with mean delay of 100 ns.
- *
- *  If the \p filename is `-` standard input will be used.
- *
- *  \param [in] filename The delay interval source file name.
- *  \returns The RandomVariableStream.
- */
 Ptr<RandomVariableStream> GetRandomStream(std::string filename) {
   Ptr<RandomVariableStream> stream = nullptr;
 
@@ -402,7 +280,7 @@ int main(int argc, char *argv[]) {
   bool schedCal = false;
   bool schedHeap = false;
   bool schedList = false;
-  bool schedMap = false; // default scheduler
+  bool schedMap = false;
   bool schedPQ = false;
 
   uint64_t pop = 100000;
@@ -438,9 +316,9 @@ int main(int argc, char *argv[]) {
   cmd.Parse(argc, argv);
 
   g_me = cmd.GetName() + ": ";
-  g_fwidth += 6; // 5 extra chars in '2.000002e+07 ': . e+0 _
+  g_fwidth += 6;
 
-  LOG(std::setprecision(g_fwidth - 6)); // prints blank line
+  LOG(std::setprecision(g_fwidth - 6));
   LOGME(" Benchmark the simulator scheduler");
   LOG("  Event population size:        " << pop);
   LOG("  Total events per run:         " << total);
@@ -450,7 +328,6 @@ int main(int argc, char *argv[]) {
   if (allSched) {
     schedCal = schedHeap = schedList = schedMap = schedPQ = true;
   }
-  // Set the default case if nothing else is set
   if (!(schedCal || schedHeap || schedList || schedMap || schedPQ)) {
     schedMap = true;
   }

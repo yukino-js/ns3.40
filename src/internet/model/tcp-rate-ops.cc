@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2018 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #include "tcp-rate-ops.h"
 
 #include "ns3/log.h"
@@ -55,7 +38,6 @@ TcpRateLinux::GenerateSample(uint32_t delivered, uint32_t lost,
                              const Time &minRtt) {
   NS_LOG_FUNCTION(this << delivered << lost << is_sack_reneg);
 
-  /* Clear app limited if bubble is acked and gone. */
   if (m_rate.m_appLimited != 0 && m_rate.m_delivered > m_rate.m_appLimited) {
     NS_LOG_INFO("Updating Rate m_appLimited to zero");
     m_rate.m_appLimited = 0;
@@ -64,15 +46,10 @@ TcpRateLinux::GenerateSample(uint32_t delivered, uint32_t lost,
   NS_LOG_INFO("Updating RateSample m_ackedSacked="
               << delivered << ", m_bytesLoss=" << lost << " and m_priorInFlight"
               << priorInFlight);
-  m_rateSample.m_ackedSacked = delivered; /* freshly ACKed or SACKed */
-  m_rateSample.m_bytesLoss = lost;        /* freshly marked lost */
+  m_rateSample.m_ackedSacked = delivered;
+  m_rateSample.m_bytesLoss = lost;
   m_rateSample.m_priorInFlight = priorInFlight;
 
-  /* Return an invalid sample if no timing information is available or
-   * in recovery from loss with SACK reneging. Rate samples taken during
-   * a SACK reneging event may overestimate bw by including packets that
-   * were SACKed before the reneg.
-   */
   if (m_rateSample.m_priorTime == Seconds(0) || is_sack_reneg) {
     NS_LOG_INFO("PriorTime is zero, invalidating sample");
     m_rateSample.m_delivered = -1;
@@ -81,16 +58,6 @@ TcpRateLinux::GenerateSample(uint32_t delivered, uint32_t lost,
     return m_rateSample;
   }
 
-  // LINUX:
-  //  /* Model sending data and receiving ACKs as separate pipeline phases
-  //   * for a window. Usually the ACK phase is longer, but with ACK
-  //   * compression the send phase can be longer. To be safe we use the
-  //   * longer phase.
-  //   */
-  //  auto snd_us = m_rateSample.m_interval;  /* send phase */
-  //  auto ack_us = Simulator::Now () - m_rateSample.m_prior_mstamp;
-  //  m_rateSample.m_interval = std::max (snd_us, ack_us);
-
   m_rateSample.m_interval =
       std::max(m_rateSample.m_sendElapsed, m_rateSample.m_ackElapsed);
   m_rateSample.m_delivered = m_rate.m_delivered - m_rateSample.m_priorDelivered;
@@ -98,22 +65,14 @@ TcpRateLinux::GenerateSample(uint32_t delivered, uint32_t lost,
                                           << " and delivered data"
                                           << m_rateSample.m_delivered);
 
-  /* Normally we expect m_interval >= minRtt.
-   * Note that rate may still be over-estimated when a spuriously
-   * retransmistted skb was first (s)acked because "interval_us"
-   * is under-estimated (up to an RTT). However continuously
-   * measuring the delivery rate during loss recovery is crucial
-   * for connections suffer heavy or prolonged losses.
-   */
   if (m_rateSample.m_interval < minRtt) {
     NS_LOG_INFO("Sampling interval is invalid");
     m_rateSample.m_interval = Seconds(0);
-    m_rateSample.m_priorTime = Seconds(0); // To make rate sample invalid
+    m_rateSample.m_priorTime = Seconds(0);
     m_rateSampleTrace(m_rateSample);
     return m_rateSample;
   }
 
-  /* Record the last non-app-limited or the highest app-limited bw */
   if (!m_rateSample.m_isAppLimited ||
       (m_rateSample.m_delivered * m_rate.m_rateInterval >=
        m_rate.m_rateDelivered * m_rateSample.m_interval)) {
@@ -137,24 +96,11 @@ void TcpRateLinux::CalculateAppLimited(uint32_t cWnd, uint32_t in_flight,
                                        const uint32_t retransOut) {
   NS_LOG_FUNCTION(this);
 
-  /* Missing checks from Linux:
-   * - Nothing in sending host's qdisc queues or NIC tx queue. NOT IMPLEMENTED
-   */
-  if (tailSeq - nextTx <
-          static_cast<int32_t>(
-              segmentSize)      // We have less than one packet to send.
-      && in_flight < cWnd       // We are not limited by CWND.
-      && lostOut <= retransOut) // All lost packets have been retransmitted.
-  {
+  if (tailSeq - nextTx < static_cast<int32_t>(segmentSize) &&
+      in_flight < cWnd && lostOut <= retransOut) {
     m_rate.m_appLimited = std::max<uint32_t>(m_rate.m_delivered + in_flight, 1);
     m_rateTrace(m_rate);
   }
-
-  // m_appLimited will be reset once in GenerateSample, if it has to be.
-  // else
-  //  {
-  //    m_rate.m_appLimited = 0;
-  //  }
 }
 
 void TcpRateLinux::SkbDelivered(TcpTxItem *skb) {
@@ -182,9 +128,6 @@ void TcpRateLinux::SkbDelivered(TcpTxItem *skb) {
     m_rate.m_firstSentTime = skb->GetLastSent();
   }
 
-  /* Mark off the skb delivered once it's taken into account to avoid being
-   * used again when it's cumulatively acked, in case it was SACKed.
-   */
   skbInfo.m_deliveredTime = Time::Max();
   m_rate.m_txItemDelivered = skbInfo.m_delivered;
   m_rateTrace(m_rate);
@@ -195,20 +138,6 @@ void TcpRateLinux::SkbSent(TcpTxItem *skb, bool isStartOfTransmission) {
 
   TcpTxItem::RateInformation &skbInfo = skb->GetRateInformation();
 
-  /* In general we need to start delivery rate samples from the
-   * time we received the most recent ACK, to ensure we include
-   * the full time the network needs to deliver all in-flight
-   * packets. If there are no packets in flight yet, then we
-   * know that any ACKs after now indicate that the network was
-   * able to deliver those packets completely in the sampling
-   * interval between now and the next ACK.
-   *
-   * Note that we use the entire window size instead of bytes_in_flight
-   * because the latter is a guess based on RTO and loss-marking
-   * heuristics. We don't want spurious RTOs or loss markings to cause
-   * a spuriously small time interval, causing a spuriously high
-   * bandwidth estimate.
-   */
   if (isStartOfTransmission) {
     NS_LOG_INFO("Starting of a transmission at time "
                 << Simulator::Now().GetSeconds());

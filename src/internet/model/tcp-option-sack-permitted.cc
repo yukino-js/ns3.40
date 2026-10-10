@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011 Adrian Sai-wah Tam
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Original Author: Adrian Sai-wah Tam <adrian.sw.tam@gmail.com>
- * Documentation, test cases: Truc Anh N. Nguyen   <annguyen@ittc.ku.edu>
- *                            ResiliNets Research Group https://resilinets.org/
- *                            The University of Kansas
- *                            James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- */
 
 #include "tcp-option-sack-permitted.h"
 
@@ -53,8 +31,8 @@ uint32_t TcpOptionSackPermitted::GetSerializedSize() const { return 2; }
 
 void TcpOptionSackPermitted::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
-  i.WriteU8(GetKind()); // Kind
-  i.WriteU8(2);         // Length
+  i.WriteU8(GetKind());
+  i.WriteU8(2);
 }
 
 uint32_t TcpOptionSackPermitted::Deserialize(Buffer::Iterator start) {

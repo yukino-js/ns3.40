@@ -1,27 +1,4 @@
-/*
- *  Copyright 2013. Lawrence Livermore National Security, LLC.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Steven Smith <smith84@llnl.gov>
- */
 
-/**
- * \file
- * \ingroup mpi
- * Implementation of class ns3::NullMessageSimulatorImpl.
- */
 
 #include "null-message-simulator-impl.h"
 
@@ -130,7 +107,6 @@ void NullMessageSimulatorImpl::CalculateLookAhead() {
 
       for (uint32_t i = 0; i < (*iter)->GetNDevices(); ++i) {
         Ptr<NetDevice> localNetDevice = (*iter)->GetDevice(i);
-        // only works for p2p links currently
         if (!localNetDevice->IsPointToPoint()) {
           continue;
         }
@@ -139,7 +115,6 @@ void NullMessageSimulatorImpl::CalculateLookAhead() {
           continue;
         }
 
-        // grab the adjacent node
         Ptr<Node> remoteNode;
         if (channel->GetDevice(0) == localNetDevice) {
           remoteNode = (channel->GetDevice(1))->GetNode();
@@ -147,15 +122,10 @@ void NullMessageSimulatorImpl::CalculateLookAhead() {
           remoteNode = (channel->GetDevice(0))->GetNode();
         }
 
-        // if it's not remote, don't consider it
         if (remoteNode->GetSystemId() == MpiInterface::GetSystemId()) {
           continue;
         }
 
-        /**
-         * Add this channel to the remote channel bundle from this task to MPI
-         * task on other side of the channel.
-         */
         Ptr<RemoteChannelBundle> remoteChannelBundle =
             RemoteChannelBundleManager::Find(remoteNode->GetSystemId());
         if (!remoteChannelBundle) {
@@ -170,10 +140,8 @@ void NullMessageSimulatorImpl::CalculateLookAhead() {
     }
   }
 
-  // Completed setup of remote channel bundles.  Setup send and receive buffers.
   NullMessageMpiInterface::InitializeSendReceiveBuffers();
 
-  // Initialized to 0 as we don't have a simulation start time.
   m_safeTime = Time(0);
 }
 
@@ -264,7 +232,6 @@ void NullMessageSimulatorImpl::Run() {
 
   RemoteChannelBundleManager::InitializeNullMessageEvents();
 
-  // Stop will be set if stop is called by simulation.
   m_stop = false;
   while (!IsFinished()) {
     Time nextTime = Next();
@@ -273,7 +240,6 @@ void NullMessageSimulatorImpl::Run() {
       ProcessOneEvent();
       HandleArrivingMessagesNonBlocking();
     } else {
-      // Block until packet or Null Message has been received.
       HandleArrivingMessagesBlocking();
     }
   }
@@ -286,7 +252,6 @@ void NullMessageSimulatorImpl::HandleArrivingMessagesNonBlocking() {
 
   CalculateSafeTime();
 
-  // Check for send completes
   NullMessageMpiInterface::TestSendComplete();
 }
 
@@ -297,7 +262,6 @@ void NullMessageSimulatorImpl::HandleArrivingMessagesBlocking() {
 
   CalculateSafeTime();
 
-  // Check for send completes
   NullMessageMpiInterface::TestSendComplete();
 }
 
@@ -324,9 +288,6 @@ void NullMessageSimulatorImpl::Stop(const Time &delay) {
   Simulator::Schedule(delay, &Simulator::Stop);
 }
 
-//
-// Schedule an event for a _relative_ time in the future.
-//
 EventId NullMessageSimulatorImpl::Schedule(const Time &delay,
                                            EventImpl *event) {
   NS_LOG_FUNCTION(this << delay.GetTimeStep() << event);
@@ -393,7 +354,6 @@ Time NullMessageSimulatorImpl::GetDelayLeft(const EventId &id) const {
 
 void NullMessageSimulatorImpl::Remove(const EventId &id) {
   if (id.GetUid() == EventId::UID::DESTROY) {
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         m_destroyEvents.erase(i);
@@ -412,7 +372,6 @@ void NullMessageSimulatorImpl::Remove(const EventId &id) {
   event.key.m_uid = id.GetUid();
   m_events->Remove(event);
   event.impl->Cancel();
-  // whenever we remove an event from the event list, we have to unref it.
   event.impl->Unref();
 
   m_unscheduledEvents--;
@@ -429,7 +388,6 @@ bool NullMessageSimulatorImpl::IsExpired(const EventId &id) const {
     if (id.PeekEventImpl() == nullptr || id.PeekEventImpl()->IsCancelled()) {
       return true;
     }
-    // destroy events.
     for (auto i = m_destroyEvents.begin(); i != m_destroyEvents.end(); i++) {
       if (*i == id) {
         return false;
@@ -443,8 +401,6 @@ bool NullMessageSimulatorImpl::IsExpired(const EventId &id) const {
 }
 
 Time NullMessageSimulatorImpl::GetMaximumSimulationTime() const {
-  // XXX: I am fairly certain other compilers use other non-standard
-  // post-fixes to indicate 64 bit constants.
   return TimeStep(0x7fffffffffffffffLL);
 }
 

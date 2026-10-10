@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "command-line.h"
 
@@ -32,30 +14,15 @@
 #include "version.h"
 #endif
 
-#include <algorithm> // transform
-#include <cctype>    // tolower
-#include <cstdlib>   // exit
-#include <cstring>   // strlen
-#include <iomanip>   // setw, boolalpha
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <cstring>
+#include <iomanip>
 #include <set>
 #include <sstream>
 
-/**
- * \file
- * \ingroup commandline
- * ns3::CommandLine implementation.
- */
-
-/** CommandLine anonymous namespace. */
 namespace {
-/**
- * HTML-encode a string, for PrintDoxygenUsage().
- * Usage and help strings, which are intended for text-only display,
- * can contain illegal characters for HTML.  This function
- * encodes '&', '\"', '\'',  and '<'.
- * \param [in] source The original string.
- * \returns The HTML-encoded version.
- */
 std::string Encode(const std::string &source) {
   std::string buffer;
   buffer.reserve(1.1 * source.size());
@@ -71,12 +38,8 @@ std::string Encode(const std::string &source) {
     case '\'':
       buffer.append("&apos;");
       break;
-      // case '>':  buffer.append ("&gt;");           break;
 
     case '<':
-      // Special case:
-      // "...blah <file..." is not allowed
-      // "...foo<bar..."  is allowed
       if (buffer.empty() || buffer.back() == ' ') {
         buffer.append("&lt;");
       } else {
@@ -93,7 +56,7 @@ std::string Encode(const std::string &source) {
   return buffer;
 }
 
-} // anonymous namespace
+} // namespace
 
 namespace ns3 {
 
@@ -162,7 +125,7 @@ void CommandLine::Parse(std::vector<std::string> args) {
   m_nonOptionCount = 0;
 
   if (!args.empty()) {
-    args.erase(args.begin()); // discard the program name
+    args.erase(args.begin());
 
     HandleHardOptions(args);
 
@@ -174,7 +137,6 @@ void CommandLine::Parse(std::vector<std::string> args) {
         continue;
       }
 
-      // is this possible?
       NS_ASSERT_MSG(false, "unexpected error parsing command line parameter: '"
                                << param << "'");
     }
@@ -187,7 +149,6 @@ void CommandLine::Parse(std::vector<std::string> args) {
 
 CommandLine::HasOptionName
 CommandLine::GetOptionName(const std::string &param) const {
-  // remove leading "--" or "-"
   std::string arg = param;
   std::string::size_type cur = arg.find("--");
   if (cur == 0) {
@@ -197,12 +158,10 @@ CommandLine::GetOptionName(const std::string &param) const {
     if (cur == 0) {
       arg = arg.substr(1, arg.size() - 1);
     } else {
-      // non-option argument?
       return {false, param, ""};
     }
   }
 
-  // find any value following '='
   cur = arg.find('=');
   std::string name;
   std::string value;
@@ -227,34 +186,26 @@ void CommandLine::HandleHardOptions(
       continue;
     }
 
-    // Hard-coded options
     if (name == "PrintHelp" || name == "help") {
-      // method below never returns.
       PrintHelp(std::cout);
       std::exit(0);
     }
     if (name == "PrintVersion" || name == "version") {
-      // Print the version, then exit the program
       PrintVersion(std::cout);
       std::exit(0);
     } else if (name == "PrintGroups") {
-      // method below never returns.
       PrintGroups(std::cout);
       std::exit(0);
     } else if (name == "PrintTypeIds") {
-      // method below never returns.
       PrintTypeIds(std::cout);
       std::exit(0);
     } else if (name == "PrintGlobals") {
-      // method below never returns.
       PrintGlobals(std::cout);
       std::exit(0);
     } else if (name == "PrintGroup") {
-      // method below never returns.
       PrintGroup(std::cout, value);
       std::exit(0);
     } else if (name == "PrintAttributes") {
-      // method below never returns.
       PrintAttributes(std::cout, value);
       std::exit(0);
     }
@@ -276,7 +227,6 @@ bool CommandLine::HandleNonOption(const std::string &value) {
   NS_LOG_FUNCTION(this << value);
 
   if (m_nonOptionCount == m_nonOptions.size()) {
-    // Add an unspecified non-option as a string
     NS_LOG_LOGIC("adding StringItem, NOCount:"
                  << m_nonOptionCount << ", NOSize:" << m_nonOptions.size());
     auto item = std::make_shared<StringItem>();
@@ -306,7 +256,6 @@ void CommandLine::Parse(int argc, char *argv[]) {
 void CommandLine::PrintHelp(std::ostream &os) const {
   NS_LOG_FUNCTION(this);
 
-  // Hack to show just the declared non-options
   Items nonOptions(m_nonOptions.begin(), m_nonOptions.begin() + m_NNonOptions);
   os << m_shortName << (!m_options.empty() ? " [Program Options]" : "")
      << (!nonOptions.empty() ? " [Program Arguments]" : "")
@@ -323,7 +272,7 @@ void CommandLine::PrintHelp(std::ostream &os) const {
   };
   std::for_each(m_options.begin(), m_options.end(), max_width);
   std::for_each(nonOptions.begin(), nonOptions.end(), max_width);
-  width += 3; // room for ":  " between option and help
+  width += 3;
 
   auto optionsHelp = [&os, width](const std::string &head, bool option,
                                   const Items &items) {
@@ -386,7 +335,6 @@ void CommandLine::PrintDoxygenUsage() const {
     return;
   }
 
-  // Hack to show just the declared non-options
   Items nonOptions(m_nonOptions.begin(), m_nonOptions.begin() + m_NNonOptions);
 
   std::string outf = SystemPath::Append(path, m_shortName + ".command-line");
@@ -430,7 +378,6 @@ void CommandLine::PrintDoxygenUsage() const {
 
   os << "*/" << std::endl;
 
-  // All done, don't need to actually run the example
   os.close();
   std::exit(0);
 }
@@ -440,7 +387,6 @@ void CommandLine::PrintGlobals(std::ostream &os) const {
 
   os << "Global values:" << std::endl;
 
-  // Sort output
   std::vector<std::string> globals;
 
   for (auto i = GlobalValue::Begin(); i != GlobalValue::End(); ++i) {
@@ -467,7 +413,6 @@ void CommandLine::PrintAttributeList(std::ostream &os, const TypeId tid,
     return;
   }
   os << header.str() << "\n";
-  // To sort output
   std::vector<std::string> attributes;
 
   for (uint32_t i = 0; i < tid.GetAttributeN(); ++i) {
@@ -498,7 +443,6 @@ void CommandLine::PrintAttributes(std::ostream &os,
   PrintAttributeList(os, tid, header);
   header.str("");
 
-  // Parent Attributes
   if (tid.GetParent() != tid) {
     TypeId tmp = tid.GetParent();
     while (tmp.GetParent() != tmp) {
@@ -515,7 +459,6 @@ void CommandLine::PrintGroup(std::ostream &os, const std::string &group) const {
 
   os << "TypeIds in group " << group << ":" << std::endl;
 
-  // Sort output
   std::vector<std::string> groupTypes;
 
   for (uint16_t i = 0; i < TypeId::GetRegisteredN(); ++i) {
@@ -536,7 +479,6 @@ void CommandLine::PrintTypeIds(std::ostream &os) const {
   NS_LOG_FUNCTION(this);
   os << "Registered TypeIds:" << std::endl;
 
-  // Sort output
   std::vector<std::string> types;
 
   for (uint16_t i = 0; i < TypeId::GetRegisteredN(); ++i) {
@@ -561,7 +503,6 @@ void CommandLine::PrintGroups(std::ostream &os) const {
   }
 
   os << "Registered TypeId groups:" << std::endl;
-  // Sets are already sorted
   for (const auto &s : groups) {
     os << "    " << s << std::endl;
   }
@@ -593,7 +534,6 @@ bool CommandLine::HandleArgument(const std::string &name,
     return true;
   }
 
-  // Global or ConfigPath options
   if (!HandleAttribute(name, value)) {
     errorExit();
   }
@@ -626,7 +566,7 @@ void CommandLine::AddValue(const std::string &name, const std::string &help,
 
 void CommandLine::AddValue(const std::string &name, const std::string &help,
                            ns3::Callback<bool, const std::string &> callback,
-                           const std::string &defaultValue /* = "" */)
+                           const std::string &defaultValue)
 
 {
   NS_LOG_FUNCTION(this << &name << &help << &callback);
@@ -641,7 +581,6 @@ void CommandLine::AddValue(const std::string &name, const std::string &help,
 void CommandLine::AddValue(const std::string &name,
                            const std::string &attributePath) {
   NS_LOG_FUNCTION(this << name << attributePath);
-  // Attribute name is last token
   std::size_t colon = attributePath.rfind("::");
   const std::string typeName = attributePath.substr(0, colon);
   NS_LOG_DEBUG("typeName: '" << typeName << "', colon: " << colon);
@@ -686,7 +625,6 @@ std::size_t CommandLine::GetNExtraNonOptions() const {
   }
 }
 
-/* static */
 bool CommandLine::HandleAttribute(const std::string &name,
                                   const std::string &value) {
   return Config::SetGlobalFailSafe(name, StringValue(value)) ||
@@ -696,7 +634,7 @@ bool CommandLine::HandleAttribute(const std::string &name,
 bool CommandLine::Item::HasDefault() const { return false; }
 
 bool CommandLine::StringItem::Parse(const std::string &value) const {
-  m_value = value; // mutable
+  m_value = value;
   return true;
 }
 
@@ -734,7 +672,6 @@ CommandLineHelper::GetDefault<bool>(const std::string &defaultValue) {
 template <>
 bool CommandLineHelper::UserItemParse<bool>(const std::string &value,
                                             bool &dest) {
-  // No new value, so just toggle it
   if (value.empty()) {
     dest = !dest;
     return true;

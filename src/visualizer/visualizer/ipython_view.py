@@ -10,8 +10,6 @@ All rights reserved. This program and the accompanying materials are made
 available under the terms of the BSD which accompanies this distribution, and
 is available at U{http://www.opensource.org/licenses/bsd-license.php}
 """
-# this file is a modified version of source code from the Accerciser project
-# https://wiki.gnome.org/Apps/Accerciser
 
 import gi
 
@@ -30,42 +28,13 @@ import os
 from io import StringIO
 from functools import reduce
 
-## Try to import IPython
 try:
     import IPython
 except ImportError:
-    ##@ var IPython
-    #
     IPython = None
 
 
-## IterableIPShell class
 class IterableIPShell:
-    ## @var IP
-    #  IP
-    ## @var iter_more
-    #  iterate more
-    ## @var history_level
-    #  history level
-    ## @var complete_sep
-    #  separators
-    ## @var no_input_splitter
-    # no input splitter
-    ## @var lines
-    # lines
-    ## @var indent_spaces
-    # indent spaces
-    ## @var prompt
-    #  prompt
-    ## @var header
-    #  header
-    ## @var config
-    #  config
-    ## @var colors
-    #  colors
-    ## @var raw_input
-    #  raw input
-    ## Constructor
     def __init__(
         self,
         argv=[],
@@ -105,8 +74,6 @@ class IterableIPShell:
             if cerr:
                 sys.stderr = cerr
 
-        # This is to get rid of the blockage that occurs during
-        # IPython.Shell.InteractiveShell.user_setup()
         io.raw_input = lambda x: None
 
         os.environ["TERM"] = "dumb"
@@ -119,13 +86,9 @@ class IterableIPShell:
         cfg.Completer.use_jedi = False
 
         if IPython.version_info < (8,):
-            # InteractiveShell's __init__ overwrites io.stdout,io.stderr with
-            # sys.stdout, sys.stderr, this makes sure they are right
             old_stdout, old_stderr = sys.stdout, sys.stderr
             sys.stdout, sys.stderr = io.stdout.stream, io.stderr.stream
 
-        # InteractiveShell inherits from SingletonConfigurable, so use instance()
-        #
         self.IP = IPython.terminal.embed.InteractiveShellEmbed.instance(
             config=cfg, user_ns=user_ns
         )
@@ -136,9 +99,6 @@ class IterableIPShell:
         self.IP.system = lambda cmd: self.shell(
             self.IP.var_expand(cmd), header="IPython system call: "
         )
-        #                                            local_ns=user_ns)
-        # global_ns=user_global_ns)
-        # verbose=self.IP.rc.system_verbose)
 
         self.IP.raw_input = input_func
         sys.excepthook = excepthook
@@ -147,13 +107,8 @@ class IterableIPShell:
         self.complete_sep = re.compile("[\s\{\}\[\]\(\)]")
         self.updateNamespace({"exit": lambda: None})
         self.updateNamespace({"quit": lambda: None})
-        # Workaround for updating namespace with sys.modules
-        #
         self.__update_namespace()
 
-        # Avoid using input splitter when not really needed.
-        # Perhaps it could work even before 5.8.0
-        # But it definitely does not work any more with >= 7.0.0
         self.no_input_splitter = parse_version(
             IPython.release.version
         ) >= parse_version("5.8.0")
@@ -177,9 +132,6 @@ class IterableIPShell:
         self.history_level = 0
 
         if IPython.version_info < (8,):
-            # this is needed because some functions in IPython use 'print' to print
-            # output (like 'who')
-
             orig_stdout = sys.stdout
             sys.stdout = IPython.utils.io.stdout
 
@@ -226,8 +178,6 @@ class IterableIPShell:
                 self.IP.run_cell(source_raw, store_history=True)
                 self.IP.rl_do_indent = False
             else:
-                # TODO: Auto-indent
-                #
                 self.IP.rl_do_indent = True
                 pass
             self.prompt = self.generatePrompt(self.iter_more)
@@ -348,7 +298,6 @@ class IterableIPShell:
         stat = 0
         if verbose or debug:
             print(header + cmd)
-        # flush stdout so we don't mangle python's buffering
         if not debug:
             input, output = os.popen4(cmd)
             print(output.read())
@@ -356,18 +305,7 @@ class IterableIPShell:
             input.close()
 
 
-## ConsoleView class
 class ConsoleView(Gtk.TextView):
-    ## @var ANSI_COLORS
-    #  color list
-    ## @var text_buffer
-    #  text buffer
-    ## @var mark
-    #  scroll mark
-    ## @var color_pat
-    #  color pattern
-    ## @var line_start
-    #  line start
     """
     Specialized text view for console-like workflow.
 
@@ -604,7 +542,6 @@ class ConsoleView(Gtk.TextView):
             ord("L"),
             ord("l"),
         ]:
-            # clear previous output on Ctrl+L, but remember current input line + cursor position
             cursor_offset = self.text_buffer.get_property("cursor-position")
             cursor_pos_in_line = (
                 cursor_offset - start_iter.get_offset() + len(self.prompt)
@@ -624,12 +561,10 @@ class ConsoleView(Gtk.TextView):
             Gdk.KEY_k,
             Gdk.KEY_K,
         ]:
-            # clear text after input cursor on Ctrl+K
             if insert_iter.editable(True):
                 self.text_buffer.delete(insert_iter, self.text_buffer.get_end_iter())
             return True
         elif event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.KEY_C:
-            # copy selection on Ctrl+C (upper-case 'C' only)
             self.text_buffer.copy_clipboard(Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD))
             return True
         elif not event.string:
@@ -660,22 +595,7 @@ class ConsoleView(Gtk.TextView):
         pass
 
 
-## IPythonView class
 class IPythonView(ConsoleView, IterableIPShell):
-    ## @var cout
-    #  cout
-    ## @var interrupt
-    #  interrupt
-    ## @var execute
-    #  execute
-    ## @var prompt
-    #  prompt
-    ## @var showPrompt
-    #  show prompt
-    ## @var history_pos
-    #  history list
-    ## @var window
-    #  GTK Window
     """
     Sub-class of both modified IPython shell and L{ConsoleView} this makes
     a GTK+ IPython console.

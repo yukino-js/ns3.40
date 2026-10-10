@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-test-rlc-am-e2e.h"
 
@@ -43,7 +24,6 @@ NS_LOG_COMPONENT_DEFINE("LteRlcAmE2eTest");
 
 LteRlcAmE2eTestSuite::LteRlcAmE2eTestSuite()
     : TestSuite("lte-rlc-am-e2e", SYSTEM) {
-  // NS_LOG_INFO ("Creating LteRlcAmE2eTestSuite");
 
   double losses[] = {0.0, 0.05, 0.10, 0.15, 0.25, 0.50, 0.75, 0.90, 0.95};
   uint32_t runs[] = {
@@ -89,10 +69,6 @@ LteRlcAmE2eTestSuite::LteRlcAmE2eTestSuite()
   }
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteRlcAmE2eTestSuite lteRlcAmE2eTestSuite;
 
 LteRlcAmE2eTestCase::LteRlcAmE2eTestCase(std::string name, uint32_t run,
@@ -104,30 +80,12 @@ LteRlcAmE2eTestCase::LteRlcAmE2eTestCase(std::string name, uint32_t run,
 
 LteRlcAmE2eTestCase::~LteRlcAmE2eTestCase() {}
 
-void LteRlcAmE2eTestCase::DlDropEvent(Ptr<const Packet> p) {
-  // NS_LOG_FUNCTION (this);
-  m_dlDrops++;
-}
+void LteRlcAmE2eTestCase::DlDropEvent(Ptr<const Packet> p) { m_dlDrops++; }
 
-void LteRlcAmE2eTestCase::UlDropEvent(Ptr<const Packet> p) {
-  // NS_LOG_FUNCTION (this);
-  m_ulDrops++;
-}
+void LteRlcAmE2eTestCase::UlDropEvent(Ptr<const Packet> p) { m_ulDrops++; }
 
 void LteRlcAmE2eTestCase::DoRun() {
   uint16_t numberOfNodes = 1;
-
-  // LogLevel level = (LogLevel) (LOG_LEVEL_ALL | LOG_PREFIX_TIME |
-  // LOG_PREFIX_NODE | LOG_PREFIX_FUNC); LogComponentEnable ("LteRlcAmE2eTest",
-  // level); LogComponentEnable
-  // ("ErrorModel", level); LogComponentEnable ("LteSimpleHelper", level);
-  // LogComponentEnable
-  // ("LteSimpleNetDevice", level); LogComponentEnable ("SimpleNetDevice",
-  // level); LogComponentEnable ("SimpleChannel", level); LogComponentEnable
-  // ("LteTestEntities", level); LogComponentEnable ("LtePdcp", level);
-  // LogComponentEnable ("LteRlc", level);
-  // LogComponentEnable ("LteRlcUm", level);
-  // LogComponentEnable ("LteRlcAm", level);
 
   Config::SetGlobal("RngRun", UintegerValue(m_run));
   Config::SetDefault("ns3::LteRlcAm::PollRetransmitTimer",
@@ -136,60 +94,28 @@ void LteRlcAmE2eTestCase::DoRun() {
                      TimeValue(MilliSeconds(10)));
   Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer",
                      TimeValue(MilliSeconds(40)));
-  // This test was written for an unlimited transmit buffer (special value of 0)
   Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(0));
 
   Ptr<LteSimpleHelper> lteSimpleHelper = CreateObject<LteSimpleHelper>();
-  // lteSimpleHelper->EnableLogComponents ();
-  // lteSimpleHelper->EnableTraces ();
 
   lteSimpleHelper->SetAttribute("RlcEntity", StringValue("RlcAm"));
 
-  // eNB and UE nodes
   NodeContainer ueNodes;
   NodeContainer enbNodes;
   enbNodes.Create(numberOfNodes);
   ueNodes.Create(numberOfNodes);
 
-  // Install LTE Devices to the nodes
   NetDeviceContainer enbLteDevs = lteSimpleHelper->InstallEnbDevice(enbNodes);
   NetDeviceContainer ueLteDevs = lteSimpleHelper->InstallUeDevice(ueNodes);
 
-  // Note: Just one eNB and UE is supported. Everything is done in
-  // InstallEnbDevice and InstallUeDevice
-
-  // Attach one UE per eNodeB
-  // for (uint16_t i = 0; i < numberOfNodes; i++)
-  //   {
-  //     lteSimpleHelper->Attach (ueLteDevs.Get(i), enbLteDevs.Get(i));
-  //   }
-
-  //   lteSimpleHelper->ActivateEpsBearer (ueLteDevs, EpsBearer
-  //   (EpsBearer::NGBR_VIDEO_TCP_DEFAULT), EpcTft::Default ());
-
-  // Error models: downlink and uplink
   Ptr<RateErrorModel> dlEm = CreateObject<RateErrorModel>();
-  // fix the stream so that subsequent test cases get a number from the same
-  // stream if RngRun is different, the number shall then be different
   dlEm->AssignStreams(3);
   dlEm->SetAttribute("ErrorRate", DoubleValue(m_losses));
   dlEm->SetAttribute("ErrorUnit", StringValue("ERROR_UNIT_PACKET"));
 
-  //   Ptr<RateErrorModel> ueEm = CreateObjectWithAttributes<RateErrorModel>
-  //   ("RanVar", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=1.0]"));
-  //   ueEm->SetAttribute
-  //   ("ErrorRate", DoubleValue (m_losses)); ueEm->SetAttribute ("ErrorUnit",
-  //   StringValue
-  //   ("ERROR_UNIT_PACKET"));
-
-  // The below hooks will cause drops and receptions to be counted
   ueLteDevs.Get(0)->SetAttribute("ReceiveErrorModel", PointerValue(dlEm));
   ueLteDevs.Get(0)->TraceConnectWithoutContext(
       "PhyRxDrop", MakeCallback(&LteRlcAmE2eTestCase::DlDropEvent, this));
-  //   enbLteDevs.Get (0)->SetAttribute ("ReceiveErrorModel", PointerValue
-  //   (enbEm)); enbLteDevs.Get (0)->TraceConnectWithoutContext ("PhyRxDrop",
-  //   MakeCallback
-  //   (&LteRlcAmE2eTestCase::EnbDropEvent, this));
 
   uint32_t sduSizeBytes = 100;
   uint32_t numSdu = 1000;
@@ -208,21 +134,17 @@ void LteRlcAmE2eTestCase::DoRun() {
   }
   sduArrivalTimeSeconds = (sduStopTimeSeconds - sduStartTimeSeconds) / numSdu;
 
-  // Sending packets from RRC layer
   lteSimpleHelper->m_enbRrc->SetArrivalTime(Seconds(sduArrivalTimeSeconds));
   lteSimpleHelper->m_enbRrc->SetPduSize(sduSizeBytes);
 
-  // MAC sends transmission opportunities (TxOpp)
   lteSimpleHelper->m_enbMac->SetTxOppSize(dlTxOppSizeBytes);
   lteSimpleHelper->m_enbMac->SetTxOppTime(Seconds(dlTxOpprTimeSeconds));
   lteSimpleHelper->m_enbMac->SetTxOpportunityMode(LteTestMac::AUTOMATIC_MODE);
 
-  // MAC sends transmission opportunities (TxOpp)
   lteSimpleHelper->m_ueMac->SetTxOppSize(ulTxOppSizeBytes);
   lteSimpleHelper->m_ueMac->SetTxOppTime(Seconds(ulTxOpprTimeSeconds));
   lteSimpleHelper->m_ueMac->SetTxOpportunityMode(LteTestMac::AUTOMATIC_MODE);
 
-  // Start/Stop pseudo-application at RRC layer
   Simulator::Schedule(Seconds(sduStartTimeSeconds), &LteTestRrc::Start,
                       lteSimpleHelper->m_enbRrc);
   Simulator::Schedule(Seconds(sduStopTimeSeconds), &LteTestRrc::Stop,
@@ -243,23 +165,6 @@ void LteRlcAmE2eTestCase::DoRun() {
       ((sduSizeBytes) * (sduStopTimeSeconds - sduStartTimeSeconds) /
        sduArrivalTimeSeconds);
 
-  // note: the throughput estimation is valid only for the full buffer
-  // case. However, the test sends a finite number of SDUs. Hence, the
-  // estimated throughput will only be effective at the beginning of
-  // the test. Towards the end of the test, two issues are present:
-  //   1) no new data is transmitted, hence less feedback is sent,
-  //      hence the transmission rate for the last PDUs to be
-  //      retransmitted is much lower. This effect can be best noteed
-  //      at very high loss rates, and can be adjusted by timers and
-  //      params.
-  //   2) throughput is not meaningful, you need to evaluate the time
-  //      it takes for all PDUs to be (re)transmitted successfully,
-  //      i.e., how long it takes for the TX and reTX queues to deplete.
-
-  // Estimating correctly this effect would require a complex stateful
-  // model (e.g., a Markov chain model) so to avoid the hassle we just
-  // use a margin here which we empirically determine as something we
-  // think reasonable based on the PDU loss rate
   Time margin;
   if (m_losses < 0.07) {
     margin = Seconds(0.500);
@@ -271,8 +176,7 @@ void LteRlcAmE2eTestCase::DoRun() {
     margin = Seconds(10);
   } else if (m_losses < 0.91) {
     margin = Seconds(20);
-  } else // 0.95
-  {
+  } else {
     margin = Seconds(30);
   }
   Time stopTime = Seconds(std::max(sduStartTimeSeconds + totBytes / throughput,

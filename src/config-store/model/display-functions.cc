@@ -1,34 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- *  This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Faker Moatamri <faker.moatamri@sophia.inria.fr>
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "display-functions.h"
 
@@ -39,10 +9,6 @@
 #include "ns3/string.h"
 
 namespace ns3 {
-/*
- * This function includes the name of the attribute or the editable value
- * in the second column
- */
 void cell_data_function_col_1(GtkTreeViewColumn *col, GtkCellRenderer *renderer,
                               GtkTreeModel *model, GtkTreeIter *iter,
                               gpointer user_data) {
@@ -62,10 +28,6 @@ void cell_data_function_col_1(GtkTreeViewColumn *col, GtkCellRenderer *renderer,
   }
 }
 
-/*
- * This function includes the name of the object, pointer, vector or vector item
- * in the first column
- */
 void cell_data_function_col_0(GtkTreeViewColumn *col, GtkCellRenderer *renderer,
                               GtkTreeModel *model, GtkTreeIter *iter,
                               gpointer user_data) {
@@ -98,9 +60,6 @@ void cell_data_function_col_0(GtkTreeViewColumn *col, GtkCellRenderer *renderer,
   }
 }
 
-/*
- * This is the callback called when the value of an attribute is changed
- */
 void cell_edited_callback(GtkCellRendererText *cell, gchar *path_string,
                           gchar *new_text, gpointer user_data) {
   GtkTreeModel *model = GTK_TREE_MODEL(user_data);
@@ -115,10 +74,6 @@ void cell_edited_callback(GtkCellRendererText *cell, gchar *path_string,
   node->object->SetAttribute(node->name, StringValue(new_text));
 }
 
-/*
- * This function gets the column number 0 or 1 from the mouse
- * click
- */
 int get_col_number_from_tree_view_column(GtkTreeViewColumn *col) {
   GList *cols;
   int num;
@@ -131,10 +86,6 @@ int get_col_number_from_tree_view_column(GtkTreeViewColumn *col) {
   return num;
 }
 
-/*
- * This function displays the tooltip for an object, pointer, vector
- * item or an attribute
- */
 gboolean cell_tooltip_callback(GtkWidget *widget, gint x, gint y,
                                gboolean keyboard_tip, GtkTooltip *tooltip,
                                gpointer user_data) {
@@ -219,10 +170,6 @@ gboolean cell_tooltip_callback(GtkWidget *widget, gint x, gint y,
   return FALSE;
 }
 
-/*
- * This is the main view opening the widget, getting tooltips and drawing the
- * tree of attributes...
- */
 GtkWidget *create_view(GtkTreeStore *model) {
   GtkTreeViewColumn *col;
   GtkCellRenderer *renderer;
@@ -234,7 +181,6 @@ GtkWidget *create_view(GtkTreeStore *model) {
 
   gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(view),
                                GTK_TREE_VIEW_GRID_LINES_BOTH);
-  // gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
 
   col = gtk_tree_view_column_new();
   gtk_tree_view_column_set_title(col, "Object Attributes");
@@ -256,22 +202,16 @@ GtkWidget *create_view(GtkTreeStore *model) {
 
   gtk_tree_view_set_model(GTK_TREE_VIEW(view), GTK_TREE_MODEL(model));
 
-  g_object_unref(model); /* destroy model automatically with view */
+  g_object_unref(model);
 
   return view;
 }
 
-/*
- * Exit the window when exit button is pressed
- */
 void exit_clicked_callback(GtkButton *button, gpointer user_data) {
   gtk_main_quit();
   gtk_widget_hide(GTK_WIDGET(user_data));
 }
 
-/*
- * Exit the application
- */
 gboolean delete_event_callback(GtkWidget *widget, GdkEvent *event,
                                gpointer user_data) {
   gtk_main_quit();
@@ -279,9 +219,6 @@ gboolean delete_event_callback(GtkWidget *widget, GdkEvent *event,
   return TRUE;
 }
 
-/*
- * Delete the tree model contents
- */
 gboolean clean_model_callback(GtkTreeModel *model, GtkTreePath *path,
                               GtkTreeIter *iter, gpointer data) {
   ModelNode *node = nullptr;
@@ -293,11 +230,6 @@ gboolean clean_model_callback(GtkTreeModel *model, GtkTreePath *path,
   return FALSE;
 }
 
-//     display functions used by default configurator
-/*
- * This function writes data in the second column, this data is going to be
- * editable if it is a NODE_ATTRIBUTE
- */
 void cell_data_function_col_1_config_default(GtkTreeViewColumn *col,
                                              GtkCellRenderer *renderer,
                                              GtkTreeModel *model,
@@ -317,9 +249,6 @@ void cell_data_function_col_1_config_default(GtkTreeViewColumn *col,
   }
 }
 
-/*
- * This function writes the attribute or typeid name in the column 0
- */
 void cell_data_function_col_0_config_default(GtkTreeViewColumn *col,
                                              GtkCellRenderer *renderer,
                                              GtkTreeModel *model,
@@ -342,11 +271,6 @@ void cell_data_function_col_0_config_default(GtkTreeViewColumn *col,
   }
 }
 
-/*
- *  This functions is called whenever there is a change in the value of an
- * attribute If the input value is ok, it will be updated in the default value
- * and in the gui, otherwise, it won't be updated in both.
- */
 void cell_edited_callback_config_default(GtkCellRendererText *cell,
                                          gchar *path_string, gchar *new_text,
                                          gpointer user_data) {
@@ -365,20 +289,6 @@ void cell_edited_callback_config_default(GtkCellRendererText *cell,
   }
 }
 
-/*
- * This function is used to display a tooltip whenever the user puts the mouse
- * over a type ID or an attribute. It will give the type and the possible values
- * of an attribute value and the type of the object for an attribute object or a
- * typeID object
- *
- * \param widget is the display object
- * \param x is the x position
- * \param y is the y position
- * \param keyboard_tip
- * \param tooltip is the tooltip information to be displayed
- * \param user_data
- * \return false if the tooltip is not displayed
- */
 gboolean cell_tooltip_callback_config_default(GtkWidget *widget, gint x, gint y,
                                               gboolean keyboard_tip,
                                               GtkTooltip *tooltip,
@@ -432,13 +342,6 @@ gboolean cell_tooltip_callback_config_default(GtkWidget *widget, gint x, gint y,
   return FALSE;
 }
 
-/*
- * This is the action done when the user presses on the save button.
- * It will save the config to a file.
- *
- * \param button (unused)
- * \param user_data
- */
 void save_clicked_default(GtkButton *button, gpointer user_data) {
   GtkWindow *parent_window = GTK_WINDOW(user_data);
 
@@ -469,13 +372,6 @@ void save_clicked_default(GtkButton *button, gpointer user_data) {
   g_object_unref(native);
 }
 
-/*
- * If the user presses the button load, it will load the config file into
- * memory.
- *
- * \param button (unused)
- * \param user_data
- */
 void load_clicked_default(GtkButton *button, gpointer user_data) {
   GtkWindow *parent_window = GTK_WINDOW(user_data);
   GtkFileChooserNative *native;
@@ -499,13 +395,6 @@ void load_clicked_default(GtkButton *button, gpointer user_data) {
   g_object_unref(native);
 }
 
-/*
- * This is the action done when the user presses on the save button.
- * It will save the config to a file.
- *
- * \param button (unused)
- * \param user_data
- */
 void save_clicked_attribute(GtkButton *button, gpointer user_data) {
   GtkWindow *parent_window = GTK_WINDOW(user_data);
 
@@ -536,13 +425,6 @@ void save_clicked_attribute(GtkButton *button, gpointer user_data) {
   g_object_unref(native);
 }
 
-/*
- * If the user presses the button load, it will load the config file into
- * memory.
- *
- * \param button (unused)
- * \param user_data
- */
 void load_clicked_attribute(GtkButton *button, gpointer user_data) {
   GtkWindow *parent_window = GTK_WINDOW(user_data);
   GtkFileChooserNative *native;
@@ -566,10 +448,6 @@ void load_clicked_attribute(GtkButton *button, gpointer user_data) {
   g_object_unref(native);
 }
 
-/*
- * This is the main view opening the widget, getting tooltips and drawing the
- * tree of attributes
- */
 GtkWidget *create_view_config_default(GtkTreeStore *model) {
   GtkTreeViewColumn *col;
   GtkCellRenderer *renderer;
@@ -582,7 +460,6 @@ GtkWidget *create_view_config_default(GtkTreeStore *model) {
 
   gtk_tree_view_set_grid_lines(GTK_TREE_VIEW(view),
                                GTK_TREE_VIEW_GRID_LINES_BOTH);
-  // gtk_tree_view_set_rules_hint (GTK_TREE_VIEW (view), TRUE);
 
   col = gtk_tree_view_column_new();
   gtk_tree_view_column_set_title(col, "Object Attributes");
@@ -605,14 +482,11 @@ GtkWidget *create_view_config_default(GtkTreeStore *model) {
 
   gtk_tree_view_set_model(GTK_TREE_VIEW(view), GTK_TREE_MODEL(model));
 
-  g_object_unref(model); /* destroy model automatically with view */
+  g_object_unref(model);
 
   return view;
 }
 
-/*
- * Delete the tree model contents
- */
 gboolean clean_model_callback_config_default(GtkTreeModel *model,
                                              GtkTreePath *path,
                                              GtkTreeIter *iter, gpointer data) {

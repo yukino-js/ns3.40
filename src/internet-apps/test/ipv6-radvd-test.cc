@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2021 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- *
- */
 
 #include "ns3/data-rate.h"
 #include "ns3/internet-stack-helper.h"
@@ -31,17 +12,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup radvd
- * \defgroup radvd-test radvd tests
- */
-
-/**
- * \ingroup radvd-test
- * \ingroup tests
- *
- * \brief radvd basic tests
- */
 class RadvdTestCase : public TestCase {
 public:
   RadvdTestCase();
@@ -50,29 +20,14 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Checks the addresses on the selected NetDevices.
-   * \param n0Dev node 0 device
-   * \param r0Dev router device toward node 0
-   * \param r1Dev router device toward node 1
-   * \param n1Dev node 1 device
-   */
   void CheckAddresses(Ptr<NetDevice> n0Dev, Ptr<NetDevice> r0Dev,
                       Ptr<NetDevice> r1Dev, Ptr<NetDevice> n1Dev);
-  /**
-   * Checks the routing between the selected NetDevices.
-   * \param n0Dev node 0 device
-   * \param r0Dev router device toward node 0
-   * \param r1Dev router device toward node 1
-   * \param n1Dev node 1 device
-   */
   void CheckRouting(Ptr<NetDevice> n0Dev, Ptr<NetDevice> r0Dev,
                     Ptr<NetDevice> r1Dev, Ptr<NetDevice> n1Dev);
 
-  std::vector<Ipv6Address> m_addresses; //!< Addresses on the nodes
-  std::vector<Socket::SocketErrno>
-      m_routingResults;                 //!< Routing call return values
-  std::vector<Ptr<Ipv6Route>> m_routes; //!< Routing call results
+  std::vector<Ipv6Address> m_addresses;
+  std::vector<Socket::SocketErrno> m_routingResults;
+  std::vector<Ptr<Ipv6Route>> m_routes;
 };
 
 RadvdTestCase::RadvdTestCase() : TestCase("Radvd test case ") {}
@@ -138,7 +93,6 @@ void RadvdTestCase::CheckRouting(Ptr<NetDevice> n0Dev, Ptr<NetDevice> r0Dev,
 }
 
 void RadvdTestCase::DoRun() {
-  // Create nodes
   Ptr<Node> n0 = CreateObject<Node>();
   Ptr<Node> r = CreateObject<Node>();
   Ptr<Node> n1 = CreateObject<Node>();
@@ -147,53 +101,43 @@ void RadvdTestCase::DoRun() {
   NodeContainer net2(r, n1);
   NodeContainer all(n0, r, n1);
 
-  // Create IPv6 Internet Stack
   InternetStackHelper internetv6;
   internetv6.Install(all);
 
-  // Create channels
   SimpleNetDeviceHelper simpleNetDevice;
   simpleNetDevice.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
   simpleNetDevice.SetDeviceAttribute("DataRate",
                                      DataRateValue(DataRate("5Mbps")));
 
-  NetDeviceContainer d1 = simpleNetDevice.Install(net1); /* n0 - R */
-  NetDeviceContainer d2 = simpleNetDevice.Install(net2); /* R - n1 */
+  NetDeviceContainer d1 = simpleNetDevice.Install(net1);
+  NetDeviceContainer d2 = simpleNetDevice.Install(net2);
 
-  // Create networks and assign IPv6 Addresses
   Ipv6AddressHelper ipv6;
 
-  /* first subnet */
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
   NetDeviceContainer tmp;
-  tmp.Add(d1.Get(0)); /* n0 */
-  Ipv6InterfaceContainer iic1 =
-      ipv6.AssignWithoutAddress(tmp); /* n0 interface */
+  tmp.Add(d1.Get(0));
+  Ipv6InterfaceContainer iic1 = ipv6.AssignWithoutAddress(tmp);
 
   NetDeviceContainer tmp2;
-  tmp2.Add(d1.Get(1)); /* R */
-  Ipv6InterfaceContainer iicr1 = ipv6.AssignWithoutOnLink(
-      tmp2); /* R interface to the first subnet is just statically assigned */
+  tmp2.Add(d1.Get(1));
+  Ipv6InterfaceContainer iicr1 = ipv6.AssignWithoutOnLink(tmp2);
   iicr1.SetForwarding(0, true);
   iic1.Add(iicr1);
 
-  /* second subnet R - n1 */
   ipv6.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
   NetDeviceContainer tmp3;
-  tmp3.Add(d2.Get(0));                              /* R */
-  Ipv6InterfaceContainer iicr2 = ipv6.Assign(tmp3); /* R interface */
+  tmp3.Add(d2.Get(0));
+  Ipv6InterfaceContainer iicr2 = ipv6.Assign(tmp3);
   iicr2.SetForwarding(0, true);
 
   NetDeviceContainer tmp4;
-  tmp4.Add(d2.Get(1)); /* n1 */
+  tmp4.Add(d2.Get(1));
   Ipv6InterfaceContainer iic2 = ipv6.AssignWithoutAddress(tmp4);
   iic2.Add(iicr2);
 
-  /* radvd configuration */
   RadvdHelper radvdHelper;
 
-  /* R interface (n0 - R) */
-  /* n0 will receive unsolicited (periodic) RA */
   radvdHelper.AddAnnouncedPrefix(iic1.GetInterfaceIndex(1),
                                  Ipv6Address("2001:1::0"), 64);
   Ptr<RadvdPrefix> prefix =
@@ -202,8 +146,6 @@ void RadvdTestCase::DoRun() {
             .begin());
   prefix->SetOnLinkFlag(false);
 
-  /* R interface (R - n1) */
-  /* n1 will have to use RS, as RA are not sent automatically */
   radvdHelper.AddAnnouncedPrefix(iic2.GetInterfaceIndex(1),
                                  Ipv6Address("2001:2::0"), 64);
   radvdHelper.GetRadvdInterface(iic2.GetInterfaceIndex(1))
@@ -222,7 +164,6 @@ void RadvdTestCase::DoRun() {
 
   Simulator::Run();
 
-  // Address assignment checks
   NS_TEST_ASSERT_MSG_EQ(m_addresses[0], Ipv6Address("2001:1::200:ff:fe00:1"),
                         m_addresses[0] << " instead of "
                                        << "2001:1::200:ff:fe00:1");
@@ -239,7 +180,6 @@ void RadvdTestCase::DoRun() {
                         m_addresses[3] << " instead of "
                                        << "2001:2::200:ff:fe00:4");
 
-  // Routes checks
   NS_TEST_ASSERT_MSG_EQ(m_routingResults[0], Socket::ERROR_NOTERROR,
                         (int)m_routingResults[0]
                             << " instead of Socket::ERROR_NOTERROR");
@@ -272,12 +212,6 @@ void RadvdTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup radvd-test
- * \ingroup tests
- *
- * \brief radvd TestSuite
- */
 class RadvdTestSuite : public TestSuite {
 public:
   RadvdTestSuite();
@@ -287,5 +221,4 @@ RadvdTestSuite::RadvdTestSuite() : TestSuite("radvd", UNIT) {
   AddTestCase(new RadvdTestCase, TestCase::QUICK);
 }
 
-static RadvdTestSuite
-    radvdTestSuite; //!< Static variable for test initialization
+static RadvdTestSuite radvdTestSuite;

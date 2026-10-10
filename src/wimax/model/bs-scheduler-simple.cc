@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- */
 
 #include "bs-scheduler-simple.h"
 
@@ -59,8 +41,6 @@ BSSchedulerSimple::BSSchedulerSimple()
 BSSchedulerSimple::BSSchedulerSimple(Ptr<BaseStationNetDevice> bs)
     : m_downlinkBursts(
           new std::list<std::pair<OfdmDlMapIe *, Ptr<PacketBurst>>>()) {
-  // m_downlinkBursts is filled by AddDownlinkBurst and emptied by
-  // wimax-bs-net-device::sendBurst and wimax-ss-net-device::sendBurst
   SetBs(bs);
 }
 
@@ -119,8 +99,6 @@ void BSSchedulerSimple::Schedule() {
   while (SelectConnection(connection)) {
     if (connection != GetBs()->GetInitialRangingConnection() &&
         connection != GetBs()->GetBroadcastConnection()) {
-      /* determines modulation/DIUC only once per burst as it is always same for
-       * a particular CID */
       if (connection->GetType() == Cid::MULTICAST) {
         modulationType = connection->GetServiceFlow()->GetModulation();
       } else {
@@ -159,8 +137,7 @@ void BSSchedulerSimple::Schedule() {
         AddDownlinkBurst(connection, diuc, modulationType, burst);
 
         if (availableSymbols <= BurstSizeSymbols) {
-          availableSymbols -=
-              BurstSizeSymbols; /// \todo Overflows but don't know how to fix
+          availableSymbols -= BurstSizeSymbols;
           break;
         }
       }
@@ -263,8 +240,6 @@ bool BSSchedulerSimple::SelectConnection(Ptr<WimaxConnection> &connection) {
                   << MilliSeconds((*iter2)->GetMaximumLatency()) << "Delay = "
                   << ((currentTime - serviceFlowRecord->GetDlTimeStamp()) +
                       GetBs()->GetPhy()->GetFrameDuration()));
-      // if latency would exceed in case grant is allocated in next frame then
-      // allocate in current frame
       if ((*iter2)->HasPackets() &&
           ((currentTime - serviceFlowRecord->GetDlTimeStamp()) +
            GetBs()->GetPhy()->GetFrameDuration()) >
@@ -282,8 +257,6 @@ bool BSSchedulerSimple::SelectConnection(Ptr<WimaxConnection> &connection) {
     for (auto iter2 = serviceFlows.begin(); iter2 != serviceFlows.end();
          ++iter2) {
       serviceFlowRecord = (*iter2)->GetRecord();
-      // if latency would exceed in case poll is allocated in next frame then
-      // allocate in current frame
       if ((*iter2)->HasPackets() &&
           ((currentTime - serviceFlowRecord->GetDlTimeStamp()) +
            GetBs()->GetPhy()->GetFrameDuration()) >
@@ -300,7 +273,6 @@ bool BSSchedulerSimple::SelectConnection(Ptr<WimaxConnection> &connection) {
         ServiceFlow::SF_TYPE_NRTPS);
     for (auto iter2 = serviceFlows.begin(); iter2 != serviceFlows.end();
          ++iter2) {
-      // unused: serviceFlowRecord = (*iter2)->GetRecord ();
       if ((*iter2)->HasPackets()) {
         NS_LOG_INFO("Return NRTPS SF: CID = " << (*iter2)->GetCid() << "SFID = "
                                               << (*iter2)->GetSfid());
@@ -313,7 +285,6 @@ bool BSSchedulerSimple::SelectConnection(Ptr<WimaxConnection> &connection) {
         ServiceFlow::SF_TYPE_BE);
     for (auto iter2 = serviceFlows.begin(); iter2 != serviceFlows.end();
          ++iter2) {
-      // unused: serviceFlowRecord = (*iter2)->GetRecord ();
       if ((*iter2)->HasPackets()) {
         NS_LOG_INFO("Return BE SF: CID = " << (*iter2)->GetCid()
                                            << "SFID = " << (*iter2)->GetSfid());
@@ -336,7 +307,6 @@ BSSchedulerSimple::CreateUgsBurst(ServiceFlow *serviceFlow,
   Ptr<PacketBurst> burst = Create<PacketBurst>();
   uint32_t nrSymbolsRequired = 0;
 
-  // serviceFlow->CleanUpQueue ();
   Ptr<WimaxConnection> connection = serviceFlow->GetConnection();
   while (serviceFlow->HasPackets()) {
     uint32_t FirstPacketSize =

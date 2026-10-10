@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2018 Fraunhofer ESK
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Vignesh Babu <ns3-dev@esk.fraunhofer.de>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -34,18 +16,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LenaRadioLinkFailure");
 
-// Global values to check the simulation
-// behavior during and after the simulation.
-uint16_t counterN310FirsteNB = 0;        //!< Counter of N310 indications.
-Time t310StartTimeFirstEnb = Seconds(0); //!< Time of first N310 indication.
-uint32_t ByteCounter = 0;                //!< Byte counter.
-uint32_t oldByteCounter = 0;             //!< Old Byte counter,
+uint16_t counterN310FirsteNB = 0;
+Time t310StartTimeFirstEnb = Seconds(0);
+uint32_t ByteCounter = 0;
+uint32_t oldByteCounter = 0;
 
-/**
- * Print the position of a UE with given IMSI.
- *
- * \param imsi The IMSI.
- */
 void PrintUePosition(uint64_t imsi) {
   for (auto it = NodeList::Begin(); it != NodeList::End(); ++it) {
     Ptr<Node> node = *it;
@@ -64,14 +39,6 @@ void PrintUePosition(uint64_t imsi) {
   }
 }
 
-/**
- * UE Notify connection established.
- *
- * \param context The context.
- * \param imsi The IMSI.
- * \param cellid The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyConnectionEstablishedUe(std::string context, uint64_t imsi,
                                    uint16_t cellid, uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " UE IMSI "
@@ -79,32 +46,16 @@ void NotifyConnectionEstablishedUe(std::string context, uint64_t imsi,
             << rnti << std::endl;
 }
 
-/**
- * eNB Notify connection established.
- *
- * \param context The context.
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyConnectionEstablishedEnb(std::string context, uint64_t imsi,
                                     uint16_t cellId, uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " " << context << " eNB cell id "
             << cellId << ": successful connection of UE with IMSI " << imsi
             << " RNTI " << rnti << std::endl;
-  // In this example, a UE should experience RLF at least one time in
-  // cell 1. For the case, when there is only one eNB with ideal RRC,
-  // a UE might reconnects to the eNB multiple times due to more than
-  // one RLF. To handle this, we reset the counter here so, even if the UE
-  // connects multiple time to cell 1 we count N310
-  // indication correctly, i.e., for each RLF UE RRC should receive
-  // configured number of N310 indications.
   if (cellId == 1) {
     counterN310FirsteNB = 0;
   }
 }
 
-/// Map each of UE RRC states to its string representation.
 static const std::string g_ueRrcStateName[LteUeRrc::NUM_STATES] = {
     "IDLE_START",
     "IDLE_CELL_SEARCH",
@@ -121,23 +72,10 @@ static const std::string g_ueRrcStateName[LteUeRrc::NUM_STATES] = {
     "CONNECTED_REESTABLISHING",
 };
 
-/**
- * \param s The UE RRC state.
- * \return The string representation of the given state.
- */
 static const std::string &ToString(LteUeRrc::State s) {
   return g_ueRrcStateName[s];
 }
 
-/**
- * UE state transition tracer.
- *
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- * \param oldState The old state.
- * \param newState The new state.
- */
 void UeStateTransition(uint64_t imsi, uint16_t cellId, uint16_t rnti,
                        LteUeRrc::State oldState, LteUeRrc::State newState) {
   std::cout << Simulator::Now().As(Time::S) << " UE with IMSI " << imsi
@@ -146,14 +84,6 @@ void UeStateTransition(uint64_t imsi, uint16_t cellId, uint16_t rnti,
             << ToString(newState) << std::endl;
 }
 
-/**
- * eNB RRC timeout tracer.
- *
- * \param imsi The IMSI.
- * \param rnti The RNTI.
- * \param cellId The Cell ID.
- * \param cause The reason for timeout.
- */
 void EnbRrcTimeout(uint64_t imsi, uint16_t rnti, uint16_t cellId,
                    std::string cause) {
   std::cout << Simulator::Now().As(Time::S) << " IMSI " << imsi << ", RNTI "
@@ -161,13 +91,6 @@ void EnbRrcTimeout(uint64_t imsi, uint16_t rnti, uint16_t cellId,
             << std::endl;
 }
 
-/**
- * Notification of connection release at eNB.
- *
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyConnectionReleaseAtEnodeB(uint64_t imsi, uint16_t cellId,
                                      uint16_t rnti) {
   std::cout << Simulator::Now() << " IMSI " << imsi << ", RNTI " << rnti
@@ -175,16 +98,6 @@ void NotifyConnectionReleaseAtEnodeB(uint64_t imsi, uint16_t cellId,
             << std::endl;
 }
 
-/**
- * PHY sync detection tracer.
- *
- * \param n310 310 data.
- * \param imsi The IMSI.
- * \param rnti The RNTI.
- * \param cellId The Cell ID.
- * \param type The type.
- * \param count The count.
- */
 void PhySyncDetection(uint16_t n310, uint64_t imsi, uint16_t rnti,
                       uint16_t cellId, std::string type, uint8_t count) {
   std::cout << Simulator::Now().As(Time::S) << " IMSI " << imsi << ", RNTI "
@@ -200,14 +113,6 @@ void PhySyncDetection(uint16_t n310, uint64_t imsi, uint16_t rnti,
   }
 }
 
-/**
- * Radio link failure tracer.
- *
- * \param t310 310 data.
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- */
 void RadioLinkFailure(Time t310, uint64_t imsi, uint16_t cellId,
                       uint16_t rnti) {
   std::cout << Simulator::Now() << " IMSI " << imsi << ", RNTI " << rnti
@@ -223,27 +128,12 @@ void RadioLinkFailure(Time t310, uint64_t imsi, uint16_t cellId,
   }
 }
 
-/**
- * UE Random access error notification.
- *
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- */
 void NotifyRandomAccessErrorUe(uint64_t imsi, uint16_t cellId, uint16_t rnti) {
   std::cout << Simulator::Now().As(Time::S) << " IMSI " << imsi << ", RNTI "
             << rnti << ", Cell id " << cellId << ", UE RRC Random access Failed"
             << std::endl;
 }
 
-/**
- * UE Connection timeout notification.
- *
- * \param imsi The IMSI.
- * \param cellId The Cell ID.
- * \param rnti The RNTI.
- * \param connEstFailCount Connection failure count.
- */
 void NotifyConnectionTimeoutUe(uint64_t imsi, uint16_t cellId, uint16_t rnti,
                                uint8_t connEstFailCount) {
   std::cout << Simulator::Now().As(Time::S) << " IMSI " << imsi << ", RNTI "
@@ -252,14 +142,6 @@ void NotifyConnectionTimeoutUe(uint64_t imsi, uint16_t cellId, uint16_t rnti,
             << std::endl;
 }
 
-/**
- * UE RA response timeout notification.
- *
- * \param imsi The IMSI.
- * \param contention Contention flag.
- * \param preambleTxCounter Preamble Tx counter.
- * \param maxPreambleTxLimit Max preamble Ts limit.
- */
 void NotifyRaResponseTimeoutUe(uint64_t imsi, bool contention,
                                uint8_t preambleTxCounter,
                                uint8_t maxPreambleTxLimit) {
@@ -270,22 +152,10 @@ void NotifyRaResponseTimeoutUe(uint64_t imsi, bool contention,
             << std::endl;
 }
 
-/**
- * Receive a packet.
- *
- * \param packet The packet.
- */
 void ReceivePacket(Ptr<const Packet> packet, const Address &) {
   ByteCounter += packet->GetSize();
 }
 
-/**
- * Write the throughput to file.
- *
- * \param firstWrite True if first time writing.
- * \param binSize Bin size.
- * \param fileName Output filename.
- */
 void Throughput(bool firstWrite, Time binSize, std::string fileName) {
   std::ofstream output;
 
@@ -296,8 +166,6 @@ void Throughput(bool firstWrite, Time binSize, std::string fileName) {
     output.open(fileName, std::ofstream::app);
   }
 
-  // Instantaneous throughput every 200 ms
-
   double throughput =
       (ByteCounter - oldByteCounter) * 8 / binSize.GetSeconds() / 1024 / 1024;
   output << Simulator::Now().As(Time::S) << " " << throughput << std::endl;
@@ -305,23 +173,7 @@ void Throughput(bool firstWrite, Time binSize, std::string fileName) {
   Simulator::Schedule(binSize, &Throughput, firstWrite, binSize, fileName);
 }
 
-/**
- * Sample simulation script for radio link failure.
- * By default, only one eNodeB and one UE is considered for verifying
- * radio link failure. The UE is initially in the coverage of
- * eNodeB and a RRC connection gets established.
- * As the UE moves away from the eNodeB, the signal degrades
- * and out-of-sync indications are counted. When the T310 timer
- * expires, radio link is considered to have failed and UE
- * leaves the CONNECTED_NORMALLY state and performs cell
- * selection again.
- *
- * The example can be run as follows:
- *
- * ./ns3 run "lena-radio-link-failure --numberOfEnbs=1 --simTime=25"
- */
 int main(int argc, char *argv[]) {
-  // Configurable parameters
   Time simTime = Seconds(25);
   uint16_t numberOfEnbs = 1;
   double interSiteDistance = 1200;
@@ -386,12 +238,9 @@ int main(int argc, char *argv[]) {
   lteHelper->SetPathlossModelType(
       TypeId::LookupByName("ns3::LogDistancePropagationLossModel"));
   lteHelper->SetPathlossModelAttribute("Exponent", DoubleValue(3.9));
-  lteHelper->SetPathlossModelAttribute(
-      "ReferenceLoss",
-      DoubleValue(38.57)); // ref. loss in dB at 1m for 2.025GHz
+  lteHelper->SetPathlossModelAttribute("ReferenceLoss", DoubleValue(38.57));
   lteHelper->SetPathlossModelAttribute("ReferenceDistance", DoubleValue(1));
 
-  //----power related (equal for all base stations)----
   Config::SetDefault("ns3::LteEnbPhy::TxPower", DoubleValue(eNodeB_txPower));
   Config::SetDefault("ns3::LteUePhy::TxPower", DoubleValue(23));
   Config::SetDefault("ns3::LteUePhy::NoiseFigure", DoubleValue(7));
@@ -402,13 +251,11 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                      BooleanValue(true));
 
-  //----frequency related----
-  lteHelper->SetEnbDeviceAttribute("DlEarfcn", UintegerValue(100));   // 2120MHz
-  lteHelper->SetEnbDeviceAttribute("UlEarfcn", UintegerValue(18100)); // 1930MHz
-  lteHelper->SetEnbDeviceAttribute("DlBandwidth", UintegerValue(25)); // 5MHz
-  lteHelper->SetEnbDeviceAttribute("UlBandwidth", UintegerValue(25)); // 5MHz
+  lteHelper->SetEnbDeviceAttribute("DlEarfcn", UintegerValue(100));
+  lteHelper->SetEnbDeviceAttribute("UlEarfcn", UintegerValue(18100));
+  lteHelper->SetEnbDeviceAttribute("DlBandwidth", UintegerValue(25));
+  lteHelper->SetEnbDeviceAttribute("UlBandwidth", UintegerValue(25));
 
-  //----others----
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
   Config::SetDefault("ns3::LteAmc::AmcModel", EnumValue(LteAmc::PiroEW2010));
   Config::SetDefault("ns3::LteAmc::Ber", DoubleValue(0.01));
@@ -417,14 +264,12 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::FfMacScheduler::UlCqiFilter",
                      EnumValue(FfMacScheduler::SRS_UL_CQI));
 
-  // Radio link failure detection parameters
   Config::SetDefault("ns3::LteUeRrc::N310", UintegerValue(n310));
   Config::SetDefault("ns3::LteUeRrc::N311", UintegerValue(n311));
   Config::SetDefault("ns3::LteUeRrc::T310", TimeValue(t310));
 
   NS_LOG_INFO("Create the internet");
   Ptr<Node> pgw = epcHelper->GetPgwNode();
-  // Create a single RemoteHost0x18ab460
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
@@ -507,7 +352,7 @@ int main(int argc, char *argv[]) {
 
   uint64_t bitRate = dataRateValue.Get().GetBitRate();
 
-  uint32_t packetSize = 1024; // bytes
+  uint32_t packetSize = 1024;
 
   NS_LOG_DEBUG("bit rate " << bitRate);
 
@@ -520,7 +365,6 @@ int main(int argc, char *argv[]) {
 
   for (uint32_t u = 0; u < numberOfUes; ++u) {
     Ptr<Node> ue = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -575,7 +419,7 @@ int main(int argc, char *argv[]) {
       dlClientApps.Start(Seconds(0.27));
       ulServerApps.Start(Seconds(0.27));
       ulClientApps.Start(Seconds(0.27));
-    } // end for b
+    }
   }
   NS_LOG_INFO("Enable Lte traces and connect custom trace sinks");
 
@@ -614,7 +458,6 @@ int main(int argc, char *argv[]) {
       "ComponentCarrierMapUe/*/LteUeMac/RaResponseTimeout",
       MakeCallback(&NotifyRaResponseTimeoutUe));
 
-  // Trace sink for the packet sink of UE
   std::ostringstream oss;
   oss << "/NodeList/" << ueNodes.Get(0)->GetId()
       << "/ApplicationList/0/$ns3::PacketSink/Rx";

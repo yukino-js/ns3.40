@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Cobalt, the CoDel - BLUE - Alternate Queueing discipline
- * Based on linux code.
- *
- * Ported to ns-3 by: Vignesh Kannan <vignesh2496@gmail.com>
- *                    Harsh Lara <harshapplefan@gmail.com>
- *                    Jendaipou Palmei <jendaipoupalmei@gmail.com>
- *                    Shefali Gupta <shefaligups11@gmail.com>
- *                    Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
 #include "cobalt-queue-disc.h"
 
@@ -109,22 +84,10 @@ TypeId CobaltQueueDisc::GetTypeId() {
   return tid;
 }
 
-/**
- * Performs a reciprocal divide, similar to the
- * Linux kernel reciprocal_divide function
- * \param A numerator
- * \param R reciprocal of the denominator B
- * \return the value of A/B
- */
-/* borrowed from the linux kernel */
 static inline uint32_t ReciprocalDivide(uint32_t A, uint32_t R) {
   return (uint32_t)(((uint64_t)A * R) >> 32);
 }
 
-/**
- * Returns the current time translated in CoDel time representation
- * \return the current time
- */
 static int64_t CoDelGetTime() {
   Time time = Simulator::Now();
   int64_t ns = time.GetNanoSeconds();
@@ -149,7 +112,6 @@ int64_t CobaltQueueDisc::AssignStreams(int64_t stream) {
 }
 
 void CobaltQueueDisc::InitializeParams() {
-  // Cobalt parameters
   NS_LOG_FUNCTION(this);
   m_recInvSqrtCache[0] = ~0;
   CacheInit();
@@ -184,7 +146,7 @@ void CobaltQueueDisc::NewtonStep() {
   uint32_t invsqrt2 = ((uint64_t)invsqrt * invsqrt) >> 32;
   uint64_t val = (3LL << 32) - ((uint64_t)m_count * invsqrt2);
 
-  val >>= 2; /* avoid overflow */
+  val >>= 2;
   val = (val * invsqrt) >> (32 - 2 + 1);
   m_recInvSqrt = val;
 }
@@ -266,16 +228,12 @@ bool CobaltQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   if (GetCurrentSize() + item > GetMaxSize()) {
     NS_LOG_LOGIC("Queue full -- dropping pkt");
     int64_t now = CoDelGetTime();
-    // Call this to update Blue's drop probability
     CobaltQueueFull(now);
     DropBeforeEnqueue(item, OVERLIMIT_DROP);
     return false;
   }
 
   bool retval = GetInternalQueue(0)->Enqueue(item);
-
-  // If Queue::Enqueue fails, QueueDisc::Drop is called by the internal queue
-  // because QueueDisc::AddInternalQueue sets the drop callback
 
   NS_LOG_LOGIC("Number packets " << GetInternalQueue(0)->GetNPackets());
   NS_LOG_LOGIC("Number bytes " << GetInternalQueue(0)->GetNBytes());
@@ -289,11 +247,9 @@ Ptr<QueueDiscItem> CobaltQueueDisc::DoDequeue() {
   while (true) {
     Ptr<QueueDiscItem> item = GetInternalQueue(0)->Dequeue();
     if (!item) {
-      // Leave dropping state when queue is empty (derived from Codel)
       m_dropping = false;
       NS_LOG_LOGIC("Queue empty");
       int64_t now = CoDelGetTime();
-      // Call this to update Blue's drop probability
       CobaltQueueEmpty(now);
       return nullptr;
     }
@@ -305,8 +261,6 @@ Ptr<QueueDiscItem> CobaltQueueDisc::DoDequeue() {
                  << GetInternalQueue(0)->GetNPackets());
     NS_LOG_LOGIC("Number bytes remaining " << GetInternalQueue(0)->GetNBytes());
 
-    // Determine if item should be dropped
-    // ECN marking happens inside this function, so it need not be done here
     bool drop = CobaltShouldDrop(item, now);
 
     if (drop) {
@@ -317,7 +271,6 @@ Ptr<QueueDiscItem> CobaltQueueDisc::DoDequeue() {
   }
 }
 
-// Call this when a packet had to be dropped due to queue overflow.
 void CobaltQueueDisc::CobaltQueueFull(int64_t now) {
   NS_LOG_FUNCTION(this);
   NS_LOG_LOGIC("Outside IF block");
@@ -333,7 +286,6 @@ void CobaltQueueDisc::CobaltQueueFull(int64_t now) {
   }
 }
 
-// Call this when the queue was serviced but turned out to be empty.
 void CobaltQueueDisc::CobaltQueueEmpty(int64_t now) {
   NS_LOG_FUNCTION(this);
   if (m_pDrop &&
@@ -350,12 +302,10 @@ void CobaltQueueDisc::CobaltQueueEmpty(int64_t now) {
   }
 }
 
-// Determines if Cobalt should drop the packet
 bool CobaltQueueDisc::CobaltShouldDrop(Ptr<QueueDiscItem> item, int64_t now) {
   NS_LOG_FUNCTION(this);
   bool drop = false;
 
-  /* Simplified Codel implementation */
   Time delta = Simulator::Now() - item->GetTimeStamp();
   NS_LOG_INFO("Sojourn time " << delta.As(Time::S));
   int64_t sojournTime = Time2CoDel(delta);
@@ -364,9 +314,6 @@ bool CobaltQueueDisc::CobaltShouldDrop(Ptr<QueueDiscItem> item, int64_t now) {
   bool next_due = m_count && schedule >= 0;
   bool isMarked = false;
 
-  // If L4S mode is enabled then check if the packet is ECT1 or CE and
-  // if sojourn time is greater than CE threshold then the packet is marked.
-  // If packet is marked successfully then the CoDel steps can be skipped.
   if (item && m_useL4s) {
     uint8_t tosByte = 0;
     if (item->GetUint8Value(QueueItem::IP_DSFIELD, tosByte) &&
@@ -398,10 +345,6 @@ bool CobaltQueueDisc::CobaltShouldDrop(Ptr<QueueDiscItem> item, int64_t now) {
   }
 
   if (next_due && m_dropping) {
-    /* Check for marking possibility only if BLUE decides NOT to drop. */
-    /* Check if router and packet, both have ECN enabled. Only if this is true,
-     * mark the packet.
-     */
     isMarked = (m_useEcn && Mark(item, FORCED_MARK));
     drop = !isMarked;
 
@@ -420,31 +363,23 @@ bool CobaltQueueDisc::CobaltShouldDrop(Ptr<QueueDiscItem> item, int64_t now) {
     }
   }
 
-  // If CE threshold is enabled then isMarked flag is used to determine whether
-  // packet is marked and if the packet is marked then a second attempt at
-  // marking should be suppressed. If UseL4S attribute is enabled then ECT0
-  // packets should not be marked.
   if (!isMarked && !m_useL4s && m_useEcn &&
       CoDelTimeAfter(sojournTime, Time2CoDel(m_ceThreshold)) &&
       Mark(item, CE_THRESHOLD_EXCEEDED_MARK)) {
     NS_LOG_LOGIC("Marking due to CeThreshold " << m_ceThreshold.GetSeconds());
   }
 
-  // Enable Blue Enhancement if sojourn time is greater than blueThreshold and
-  // its been m_target time until the last time blue was updated
   if (CoDelTimeAfter(sojournTime, Time2CoDel(m_blueThreshold)) &&
       CoDelTimeAfter((now - m_lastUpdateTimeBlue), Time2CoDel(m_target))) {
     m_pDrop = std::min(m_pDrop + m_increment, 1.0);
     m_lastUpdateTimeBlue = now;
   }
 
-  /* Simple BLUE implementation. Lack of ECN is deliberate. */
   if (m_pDrop) {
     double u = m_uv->GetValue();
     drop = drop || (u < m_pDrop);
   }
 
-  /* Overload the drop_next field as an activity timeout */
   if (!m_count) {
     m_dropNext = now + Time2CoDel(m_interval);
   } else if (schedule > 0 && !drop) {

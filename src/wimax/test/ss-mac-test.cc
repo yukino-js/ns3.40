@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 #include "ns3/log.h"
 #include "ns3/net-device-container.h"
 #include "ns3/node-container.h"
@@ -26,15 +7,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the network entry procedure.
- * Create a network with a BS and 10 SS and check that all the SS perform the
- * network entry correctly
- *
- */
 class Ns3WimaxNetworkEntryTestCase : public TestCase {
 public:
   Ns3WimaxNetworkEntryTestCase();
@@ -76,15 +48,6 @@ void Ns3WimaxNetworkEntryTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test if the management connections are correctly setup.
- * Create a network with a BS and 10 SS and check that the management
- * connections are correctly setup for all SS
- *
- */
 class Ns3WimaxManagementConnectionsTestCase : public TestCase {
 public:
   Ns3WimaxManagementConnectionsTestCase();
@@ -129,12 +92,6 @@ void Ns3WimaxManagementConnectionsTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax SS Mac Test Suite
- */
 class Ns3WimaxSSMacTestSuite : public TestSuite {
 public:
   Ns3WimaxSSMacTestSuite();
@@ -146,4 +103,4 @@ Ns3WimaxSSMacTestSuite::Ns3WimaxSSMacTestSuite()
   AddTestCase(new Ns3WimaxManagementConnectionsTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxSSMacTestSuite ns3WimaxSSMacTestSuite; ///< the test suite
+static Ns3WimaxSSMacTestSuite ns3WimaxSSMacTestSuite;

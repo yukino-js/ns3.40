@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 The Georgia Institute of Technology
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Josh Pelkey <jpelkey@gatech.edu>
- */
 
 #include "nix-vector.h"
 
@@ -26,7 +8,7 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("NixVector");
 
-typedef std::vector<uint32_t> NixBits_t; //!< typedef for the nixVector
+typedef std::vector<uint32_t> NixBits_t;
 
 NixVector::NixVector()
     : m_nixVector(0), m_used(0), m_totalBitSize(0), m_epoch(0) {
@@ -52,13 +34,9 @@ NixVector &NixVector::operator=(const NixVector &o) {
 
 Ptr<NixVector> NixVector::Copy() const {
   NS_LOG_FUNCTION(this);
-  // we need to invoke the copy constructor directly
-  // rather than calling Create because the copy constructor
-  // is private.
   return Ptr<NixVector>(new NixVector(*this), false);
 }
 
-/* For printing the nix vector */
 std::ostream &operator<<(std::ostream &os, const NixVector &nix) {
   nix.DumpNixVector(os);
   os << " (" << nix.GetRemainingBits() << " bits left)";
@@ -72,43 +50,24 @@ void NixVector::AddNeighborIndex(uint32_t newBits, uint32_t numberOfBits) {
     NS_FATAL_ERROR("Can't add more than 32 bits to a nix-vector at one time");
   }
 
-  // This can be in the range [0,31]
   uint32_t currentVectorBitSize = m_totalBitSize % 32;
 
   if (currentVectorBitSize == 0) {
     m_nixVector.push_back(0);
   }
 
-  // Check to see if the number
-  // of new bits forces the creation of
-  // a new entry into the NixVector vector
-  // i.e., we will overflow int o.w.
   if (currentVectorBitSize + numberOfBits > 32) {
-    // Put what we can in the remaining portion of the
-    // vector entry
     uint32_t tempBits = newBits;
     tempBits = newBits << currentVectorBitSize;
     tempBits |= m_nixVector.back();
     m_nixVector.back() = tempBits;
 
-    // Now start a new vector entry
-    // and push the remaining bits
-    // there
     newBits = newBits >> (32 - currentVectorBitSize);
     m_nixVector.push_back(newBits);
   } else {
-    // Shift over the newbits by the
-    // number of current bits.  This allows
-    // us to logically OR with the present
-    // NixVector, resulting in the new
-    // NixVector
     newBits = newBits << currentVectorBitSize;
     newBits |= m_nixVector.back();
 
-    // Now insert the new NixVector and
-    // increment number of bits for
-    // currentVectorBitSize and m_totalBitSize
-    // accordingly
     m_nixVector.back() = newBits;
   }
   m_totalBitSize += numberOfBits;
@@ -136,19 +95,10 @@ uint32_t NixVector::ExtractNeighborIndex(uint32_t numberOfBits) {
     NS_FATAL_ERROR("You've specified a number of bits for Nix-vector <= 0!");
   }
 
-  // First determine where in the NixVector
-  // vector we need to extract which depends
-  // on the number of used bits and the total
-  // number of bits
   vectorIndex = ((totalRemainingBits - 1) / 32);
 
-  // Next, determine if this extraction will
-  // span multiple vector entries
-  if (vectorIndex > 0) // we could span more than one
-  {
-    if ((numberOfBits - 1) >
-        ((totalRemainingBits - 1) % 32)) // we do span more than one
-    {
+  if (vectorIndex > 0) {
+    if ((numberOfBits - 1) > ((totalRemainingBits - 1) % 32)) {
       extractedBits = m_nixVector.at(vectorIndex)
                       << (32 - (totalRemainingBits % 32));
       extractedBits =
@@ -161,7 +111,6 @@ uint32_t NixVector::ExtractNeighborIndex(uint32_t numberOfBits) {
     }
   }
 
-  // we don't span more than one
   extractedBits = m_nixVector.at(vectorIndex)
                   << (32 - (totalRemainingBits % 32));
   extractedBits = extractedBits >> (32 - (numberOfBits));
@@ -209,8 +158,6 @@ uint32_t NixVector::Deserialize(const uint32_t *buffer, uint32_t size) {
                 "NixVector minimum serialized length is "
                     << sizeof(m_totalBitSize) << " bytes");
   if (size < sizeof(m_totalBitSize)) {
-    // return zero if an entire nix-vector was
-    // not deserialized
     return 0;
   }
 
@@ -219,7 +166,6 @@ uint32_t NixVector::Deserialize(const uint32_t *buffer, uint32_t size) {
   if (m_totalBitSize) {
     m_used = *p++;
 
-    // NixVector is packed in 32-bit unsigned ints.
     uint32_t nixVectorLength = m_totalBitSize / 32;
     nixVectorLength += (m_totalBitSize % 32) ? 1 : 0;
 
@@ -227,13 +173,9 @@ uint32_t NixVector::Deserialize(const uint32_t *buffer, uint32_t size) {
                   "NixVector serialized length should have been "
                       << 16 + nixVectorLength << " but buffer is shorter");
     if (size < 16 + nixVectorLength * 4) {
-      // return zero if an entire nix-vector was
-      // not deserialized
       return 0;
     }
 
-    // make sure the nix-vector
-    // is empty
     m_nixVector.clear();
     for (uint32_t j = 0; j < nixVectorLength; j++) {
       uint32_t nix = *p++;
@@ -281,8 +223,6 @@ uint32_t NixVector::GetRemainingBits() const {
 uint32_t NixVector::BitCount(uint32_t numberOfNeighbors) const {
   NS_LOG_FUNCTION(this << numberOfNeighbors);
 
-  // Given the numberOfNeighbors, return the number
-  // of bits needed (essentially, log2(numberOfNeighbors-1)
   uint32_t bitCount = 0;
 
   if (numberOfNeighbors < 2) {

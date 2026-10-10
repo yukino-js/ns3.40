@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Ameya Deshpande <ameyanrd@outlook.com>
- */
 
 #include "ns3/icmpv4-l4-protocol.h"
 #include "ns3/icmpv6-l4-protocol.h"
@@ -35,77 +17,24 @@
 
 using namespace ns3;
 
-/**
- * \defgroup nix-vector-routing-test Nix-Vector Routing Tests
- */
-
-/**
- * \ingroup nix-vector-routing-test
- * \ingroup tests
- *
- * The topology is of the form:
- * \verbatim
-              __________
-             /          \
-    nSrc -- nA -- nB -- nC -- nDst
-   \endverbatim
- *
- * Following are the tests in this test case:
- * - Test the routing from nSrc to nDst.
- * - Test if the path taken is the shortest path.
- * (Set down the interface of nA on nA-nC channel.)
- * - Test if the NixCache and Ipv4RouteCache are empty.
- * - Test the routing from nSrc to nDst again.
- * - Test if the new shortest path is taken.
- * (Set down the interface of nC on nB-nC channel.)
- * - Test that routing is not possible from nSrc to nDst.
- *
- * \brief IPv4 Nix-Vector Routing Test
- */
 class NixVectorRoutingTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data immediately after being called.
-   * \param socket The sending socket.
-   * \param to IPv4 Destination address.
-   */
   void DoSendDatav4(Ptr<Socket> socket, Ipv4Address to);
 
-  /**
-   * \brief Send data immediately after being called.
-   * \param socket The sending socket.
-   * \param to IPv6 Destination address.
-   */
   void DoSendDatav6(Ptr<Socket> socket, Ipv6Address to);
 
-  /**
-   * \brief Schedules the DoSendData () function to send the data.
-   * \param delay The scheduled time to send data.
-   * \param socket The sending socket.
-   * \param to IPv4 Destination address.
-   */
   void SendData(Time delay, Ptr<Socket> socket, Ipv4Address to);
 
-  /**
-   * \brief Schedules the DoSendData () function to send the data.
-   * \param delay The scheduled time to send data.
-   * \param socket The sending socket.
-   * \param to IPv6 Destination address.
-   */
   void SendData(Time delay, Ptr<Socket> socket, Ipv6Address to);
 
 public:
   void DoRun() override;
   NixVectorRoutingTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 
-  std::vector<uint32_t> m_receivedPacketSizes; //!< Received packet sizes
+  std::vector<uint32_t> m_receivedPacketSizes;
 };
 
 NixVectorRoutingTest::NixVectorRoutingTest()
@@ -147,7 +76,6 @@ void NixVectorRoutingTest::SendData(Time delay, Ptr<Socket> socket,
 }
 
 void NixVectorRoutingTest::DoRun() {
-  // Create topology
   NodeContainer nSrcnA;
   NodeContainer nAnB;
   NodeContainer nBnC;
@@ -192,12 +120,11 @@ void NixVectorRoutingTest::DoRun() {
   Ptr<OutputStreamWrapper> routingStream3v6 =
       Create<OutputStreamWrapper>(&stringStream3v6);
 
-  // NixHelper to install nix-vector routing on all nodes
   Ipv4NixVectorHelper ipv4NixRouting;
   Ipv6NixVectorHelper ipv6NixRouting;
   InternetStackHelper stack;
-  stack.SetRoutingHelper(ipv4NixRouting); // has effect on the next Install ()
-  stack.SetRoutingHelper(ipv6NixRouting); // has effect on the next Install ()
+  stack.SetRoutingHelper(ipv4NixRouting);
+  stack.SetRoutingHelper(ipv6NixRouting);
   stack.Install(allNodes);
 
   NetDeviceContainer dSrcdA;
@@ -245,7 +172,6 @@ void NixVectorRoutingTest::DoRun() {
   Ipv6InterfaceContainer iCiDstv6 = aCaDstv6.Assign(dCdDst);
   Ipv6InterfaceContainer iAiCv6 = aAaCv6.Assign(dAdC);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory =
       nCnDst.Get(1)->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocketv4 = rxSocketFactory->CreateSocket();
@@ -274,12 +200,10 @@ void NixVectorRoutingTest::DoRun() {
   ipv6NixRouting.PrintRoutingPathAt(
       Seconds(3), nSrcnA.Get(0), iCiDstv6.GetAddress(1, 1), routingStream1v6);
 
-  // Set the IPv4 nA interface on nA - nC channel down.
   Ptr<Ipv4> ipv4 = nAnC.Get(0)->GetObject<Ipv4>();
   int32_t ifIndex = ipv4->GetInterfaceForDevice(dAdC.Get(0));
   Simulator::Schedule(Seconds(5), &Ipv4::SetDown, ipv4, ifIndex);
 
-  // Set the IPv6 nA interface on nA - nC channel down.
   Ptr<Ipv6> ipv6 = nAnC.Get(0)->GetObject<Ipv6>();
   ifIndex = ipv6->GetInterfaceForDevice(dAdC.Get(0));
   Simulator::Schedule(Seconds(5), &Ipv6::SetDown, ipv6, ifIndex);
@@ -295,12 +219,10 @@ void NixVectorRoutingTest::DoRun() {
   ipv6NixRouting.PrintRoutingPathAt(
       Seconds(9), nSrcnA.Get(0), iCiDstv6.GetAddress(1, 1), routingStream3v6);
 
-  // Set the IPv4 nC interface on nB - nC channel down.
   ipv4 = nBnC.Get(1)->GetObject<Ipv4>();
   ifIndex = ipv4->GetInterfaceForDevice(dBdC.Get(1));
   Simulator::Schedule(Seconds(10), &Ipv4::SetDown, ipv4, ifIndex);
 
-  // Set the IPv6 nC interface on nB - nC channel down.
   ipv6 = nBnC.Get(1)->GetObject<Ipv6>();
   ifIndex = ipv6->GetInterfaceForDevice(dBdC.Get(1));
   Simulator::Schedule(Seconds(10), &Ipv6::SetDown, ipv6, ifIndex);
@@ -311,9 +233,6 @@ void NixVectorRoutingTest::DoRun() {
   Simulator::Stop(Seconds(66));
   Simulator::Run();
 
-  // ------ Now the tests ------------
-
-  // Test the Routing
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacketSizes[0], 123,
                         "IPv4 Nix-Vector Routing should work.");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacketSizes[1], 123,
@@ -322,7 +241,6 @@ void NixVectorRoutingTest::DoRun() {
       m_receivedPacketSizes.size(), 4,
       "IPv4 and IPv6 Nix-Vector Routing should have received only 1 packet.");
 
-  // Test the Path
   const std::string p_nSrcnAnCnDstv4 =
       "Time: +3s, Nix Routing\n"
       "Route path from Node 0 to Node 4, Nix Vector: 01001 (5 bits left)\n"
@@ -399,12 +317,6 @@ void NixVectorRoutingTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup nix-vector-routing-test
- * \ingroup tests
- *
- * \brief IPv4 Nix-Vector Routing TestSuite
- */
 class NixVectorRoutingTestSuite : public TestSuite {
 public:
   NixVectorRoutingTestSuite() : TestSuite("nix-vector-routing", UNIT) {
@@ -412,5 +324,4 @@ public:
   }
 };
 
-/// Static variable for test initialization
 static NixVectorRoutingTestSuite g_nixVectorRoutingTestSuite;

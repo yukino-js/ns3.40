@@ -1,32 +1,4 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pasquale Imputato <p.imputato@gmail.com>
- */
 
-/*
- * This example builds a node with a device in emulation mode in {raw, netmap}.
- * The aim is to measure the maximum tx rate in pps achievable with
- * NetmapNetDevice and FdNetDevice on a specific machine.
- * The emulated device must be connected and in promiscuous mode.
- *
- * If you run emulation in netmap mode, you need before to load the
- * netmap.ko module.  The user is responsible for configuring and building
- * netmap separately.
- */
 
 #include "ns3/abort.h"
 #include "ns3/applications-module.h"
@@ -45,10 +17,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("NetmapEmulationSendExample");
-
-// This function sends a number of packets by means of the SendFrom method or
-// the Write method (depending on the level value) of a FdNetDevice or
-// of a NetmapNetDevice (depending on the emulation mode value).
 
 static void Send(Ptr<NetDevice> dev, int level, std::string emuMode) {
   Ptr<FdNetDevice> device = DynamicCast<FdNetDevice>(dev);
@@ -78,14 +46,11 @@ static void Send(Ptr<NetDevice> dev, int level, std::string emuMode) {
 
   std::cout << ((level == 0) ? "Writing" : "Sending") << std::endl;
 
-  // period to print the stats
   std::chrono::milliseconds period(1000);
 
   auto t1 = std::chrono::high_resolution_clock::now();
 
   while (packets > 0) {
-    // in case of netmap emulated device we check for
-    // available slot in the netmap transmission ring
     if (ndq) {
       while (ndq->IsStopped()) {
         usleep(10);
@@ -110,10 +75,8 @@ static void Send(Ptr<NetDevice> dev, int level, std::string emuMode) {
     auto t2 = std::chrono::high_resolution_clock::now();
 
     if (t2 - t1 >= period) {
-      // print stats
-      std::chrono::duration<double, std::milli> dur = (t2 - t1); // in ms
-      double estimatedThr =
-          ((sent - failed) * packetsSize * 8) / 1000000; // in Mbps
+      std::chrono::duration<double, std::milli> dur = (t2 - t1);
+      double estimatedThr = ((sent - failed) * packetsSize * 8) / 1000000;
       std::cout << sent << " packets sent in " << dur.count() << " ms, failed "
                 << failed << " (" << estimatedThr
                 << " Mbps estimated throughput)" << std::endl;
@@ -131,7 +94,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef HAVE_PACKET_H
   std::string emuMode("raw");
-#else // HAVE_NETMAP_USER_H is true (otherwise this example is not compiled)
+#else
   std::string emuMode("netmap");
 #endif
 

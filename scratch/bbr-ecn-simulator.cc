@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -30,13 +17,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("BbrEcnSimulator");
-
-// ============================================================================
-// 实验目标：研究 BBR + RED/ECN 的交互。
-// 与 dctcp-ecn-simulator.cc 用同一拓扑/RED 参数，方便横向比较：
-//   * DCTCP: 对 ECN-echo 做加权 cwnd 缩减
-//   * BBR:   不主动响应 ECE，这里观察 BBR 在 RED 标记/丢包下的表现
-// ============================================================================
 
 static void QueueLengthTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                               uint32_t newVal) {
@@ -95,7 +75,7 @@ int main(int argc, char *argv[]) {
   uint32_t queueSizePkts = 100;
   uint32_t redMinTh = 20;
   uint32_t redMaxTh = 60;
-  bool useEcn = true; // 想看 BBR 在 RED-ECN / RED-drop 两种情况下的差异，可切换
+  bool useEcn = true;
   double simTime = 20.0;
 
   CommandLine cmd;
@@ -109,16 +89,13 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("simTime", "Simulation time (s)", simTime);
   cmd.Parse(argc, argv);
 
-  //! 使用 BBR
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      TypeIdValue(TcpBbr::GetTypeId()));
   Config::SetDefault("ns3::TcpSocketState::EnablePacing", BooleanValue(true));
 
-  //! TCP ECN（对 BBR 来说，这里主要是让 sender/receiver 协商 ECN 能力）
   Config::SetDefault("ns3::TcpSocketBase::UseEcn",
                      StringValue(useEcn ? "On" : "Off"));
 
-  //! RED 全局配置
   Config::SetDefault("ns3::RedQueueDisc::UseEcn", BooleanValue(useEcn));
   Config::SetDefault("ns3::RedQueueDisc::UseHardDrop", BooleanValue(false));
   Config::SetDefault("ns3::RedQueueDisc::MeanPktSize", UintegerValue(1500));

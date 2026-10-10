@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "mac16-address.h"
 
@@ -41,11 +23,6 @@ ATTRIBUTE_HELPER_CPP(Mac16Address);
 #define ASCII_COLON (0x3a)
 #define ASCII_ZERO (0x30)
 
-/**
- * Converts a char to lower case.
- * \param c the char
- * \returns the lower case
- */
 static char AsciiToLowCase(char c) {
   if (c >= ASCII_a && c <= ASCII_z) {
     return c;
@@ -202,7 +179,6 @@ std::ostream &operator<<(std::ostream &os, const Mac16Address &address) {
   for (uint8_t i = 0; i < 1; i++) {
     os << std::setw(2) << (uint32_t)ad[i] << ":";
   }
-  // Final byte not suffixed by ":"
   os << std::setw(2) << (uint32_t)ad[1];
   os.setf(std::ios::dec, std::ios::basefield);
   os.fill(' ');

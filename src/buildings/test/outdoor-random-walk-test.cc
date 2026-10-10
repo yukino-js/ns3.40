@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2019 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/building-position-allocator.h"
@@ -33,13 +16,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("OutdoorRandomWalkTest");
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * Test case for the class OutdoorRandomWalkTestCase. It checks if the
- * positions visited by the user are outside buildings
- */
 class OutdoorRandomWalkTestCase : public TestCase {
 public:
   OutdoorRandomWalkTestCase();
@@ -48,13 +24,9 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Check that the position is the expected one
-   * \param model Mobility model
-   */
   void CheckPositionOutdoor(Ptr<RandomWalk2dOutdoorMobilityModel> model);
 
-  std::vector<Ptr<Building>> m_buildings; //!< Buildings
+  std::vector<Ptr<Building>> m_buildings;
 };
 
 OutdoorRandomWalkTestCase::OutdoorRandomWalkTestCase()
@@ -73,15 +45,13 @@ void OutdoorRandomWalkTestCase::CheckPositionOutdoor(
 }
 
 void OutdoorRandomWalkTestCase::DoRun() {
-  // Samples to test and time steps
-  constexpr double TEST_STEP_S = 10; // s
+  constexpr double TEST_STEP_S = 10;
   constexpr int MAX_CHECKS = 1000;
 
-  // create a grid of buildings
-  double buildingSizeX = 100; // m
-  double buildingSizeY = 50;  // m
-  double streetWidth = 25;    // m
-  double buildingHeight = 10; // m
+  double buildingSizeX = 100;
+  double buildingSizeY = 50;
+  double streetWidth = 25;
+  double buildingHeight = 10;
   uint32_t numBuildingsX = 20;
   uint32_t numBuildingsY = 20;
   double maxAxisX = (buildingSizeX + streetWidth) * numBuildingsX;
@@ -105,19 +75,15 @@ void OutdoorRandomWalkTestCase::DoRun() {
     }
   }
 
-  // create one node
   NodeContainer nodes;
   nodes.Create(1);
 
-  // set the RandomWalk2dOutdoorMobilityModel mobility model
   MobilityHelper mobility;
   mobility.SetMobilityModel(
       "ns3::RandomWalk2dOutdoorMobilityModel", "Bounds",
       RectangleValue(Rectangle(-streetWidth, maxAxisX, -streetWidth, maxAxisY)),
       "Mode", EnumValue(RandomWalk2dOutdoorMobilityModel::MODE_TIME), "Time",
       TimeValue(Seconds(TEST_STEP_S * MAX_CHECKS)));
-  // create an OutdoorPositionAllocator and set its boundaries to match those of
-  // the mobility model
   Ptr<OutdoorPositionAllocator> position =
       CreateObject<OutdoorPositionAllocator>();
   Ptr<UniformRandomVariable> xPos = CreateObject<UniformRandomVariable>();
@@ -129,13 +95,11 @@ void OutdoorRandomWalkTestCase::DoRun() {
   position->SetAttribute("X", PointerValue(xPos));
   position->SetAttribute("Y", PointerValue(yPos));
   mobility.SetPositionAllocator(position);
-  // install the mobility model
   mobility.Install(nodes.Get(0));
 
   auto mobilityModel =
       nodes.Get(0)->GetObject<RandomWalk2dOutdoorMobilityModel>();
 
-  // get MAX_CHECKS positions, check if they are outdoors
   for (int i = 0; i < MAX_CHECKS; i++) {
     Simulator::Schedule(Seconds(i * TEST_STEP_S),
                         &OutdoorRandomWalkTestCase::CheckPositionOutdoor, this,
@@ -147,12 +111,6 @@ void OutdoorRandomWalkTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * Test suite for the buildings channel condition model
- */
 class OutdoorRandomWalkTestSuite : public TestSuite {
 public:
   OutdoorRandomWalkTestSuite();
@@ -163,5 +121,4 @@ OutdoorRandomWalkTestSuite::OutdoorRandomWalkTestSuite()
   AddTestCase(new OutdoorRandomWalkTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static OutdoorRandomWalkTestSuite OutdoorRandomWalkTestSuite;

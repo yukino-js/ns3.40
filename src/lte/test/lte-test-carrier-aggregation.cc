@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2016 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Biljana Bojovic <bbojovic@cttc.es>
- *
- */
 
 #include "lte-test-carrier-aggregation.h"
 
@@ -55,8 +36,7 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TestCarrierAggregation");
 
-bool CarrierAggregationTestCase::s_writeResults =
-    false; // set to true to write response vectors
+bool CarrierAggregationTestCase::s_writeResults = false;
 const std::string dlResultsFileName = "carrier_aggregation_results_dl.txt";
 const std::string ulResultsFileName = "carrier_aggregation_results_ul.txt";
 
@@ -77,9 +57,7 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
     : TestSuite("lte-carrier-aggregation", SYSTEM) {
   NS_LOG_INFO("creating CarrierAggregationTestCase");
 
-  if (CarrierAggregationTestCase::s_writeResults) // write result vectors to
-                                                  // file
-  {
+  if (CarrierAggregationTestCase::s_writeResults) {
     std::cout << "\n Running TestCarrierAggregationSuite with activated option "
                  "to write "
                  "results to files."
@@ -149,7 +127,6 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
     AddTestCase(new CarrierAggregationTestCase(15, 0, 100, 100, 3),
                 TestCase::QUICK);
   } else {
-    // bandwidth is 25 and there are 2 carriers
     AddTestCase(new CarrierAggregationTestCase(1, 0, 25, 25, 2),
                 TestCase::EXTENSIVE);
     AddTestCase(new CarrierAggregationTestCase(3, 0, 25, 25, 2),
@@ -202,7 +179,6 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
     AddTestCase(new CarrierAggregationTestCase(15, 20000, 25, 25, 2),
                 TestCase::QUICK);
 
-    // bandwidth is 25 and there are 3 carriers
     AddTestCase(new CarrierAggregationTestCase(1, 0, 25, 25, 3),
                 TestCase::EXTENSIVE);
     AddTestCase(new CarrierAggregationTestCase(3, 0, 25, 25, 3),
@@ -255,7 +231,6 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
     AddTestCase(new CarrierAggregationTestCase(15, 20000, 25, 25, 3),
                 TestCase::EXTENSIVE);
 
-    // bandwidth = 6 RB and there are 3 carriers
     AddTestCase(new CarrierAggregationTestCase(1, 0, 6, 6, 3),
                 TestCase::EXTENSIVE);
     AddTestCase(new CarrierAggregationTestCase(3, 0, 6, 6, 3),
@@ -306,7 +281,6 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
     AddTestCase(new CarrierAggregationTestCase(15, 20000, 6, 6, 3),
                 TestCase::EXTENSIVE);
 
-    // bandwidth = 6 RB and there are 2 carriers
     AddTestCase(new CarrierAggregationTestCase(1, 0, 6, 6, 2),
                 TestCase::EXTENSIVE);
     AddTestCase(new CarrierAggregationTestCase(3, 0, 6, 6, 2),
@@ -361,10 +335,6 @@ TestCarrierAggregationSuite::TestCarrierAggregationSuite()
   }
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static TestCarrierAggregationSuite lenaTestRrFfMacSchedulerSuite;
 
 std::string CarrierAggregationTestCase::BuildNameString(
@@ -443,29 +413,22 @@ void CarrierAggregationTestCase::DoRun() {
   Config::SetDefault("ns3::PhyTxStatsCalculator::UlTxOutputFilename",
                      StringValue(CreateTempDirFilename("UlTxPhyStats.txt")));
 
-  /**
-   * Initialize Simulation Scenario: 1 eNB and m_nUser UEs
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
   lteHelper->SetAttribute(
       "PathlossModel", StringValue("ns3::FriisSpectrumPropagationLossModel"));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(m_nUser);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(enbNodes);
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(ueNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
@@ -474,10 +437,8 @@ void CarrierAggregationTestCase::DoRun() {
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate an EPS bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
@@ -487,7 +448,6 @@ void CarrierAggregationTestCase::DoRun() {
   enbPhy->SetAttribute("TxPower", DoubleValue(30.0));
   enbPhy->SetAttribute("NoiseFigure", DoubleValue(5.0));
 
-  // Set UEs' position and power
   for (int i = 0; i < m_nUser; i++) {
     Ptr<ConstantPositionMobilityModel> mm =
         ueNodes.Get(i)->GetObject<ConstantPositionMobilityModel>();
@@ -498,8 +458,7 @@ void CarrierAggregationTestCase::DoRun() {
     uePhy->SetAttribute("NoiseFigure", DoubleValue(9.0));
   }
 
-  double statsStartTime =
-      0.300; // need to allow for RRC connection establishment + SRS
+  double statsStartTime = 0.300;
 
   Simulator::Stop(Seconds(statsStartTime + m_statsDuration - 0.0001));
 
@@ -515,16 +474,9 @@ void CarrierAggregationTestCase::DoRun() {
 
   Simulator::Run();
 
-  /**
-   * Check that the assignment is done in a RR fashion
-   */
   NS_LOG_INFO("DL - Test with " << m_nUser << " user(s) at distance "
                                 << m_dist);
   std::vector<uint64_t> dlDataRxed;
-
-  // tolerance increases with the number of users because the lc 0 and lc 1 will
-  // go always over primary carrier, so as the number of users increases the
-  // difference between primary and secondary carrier will increase
 
   bool testDownlinkShare = true;
 
@@ -577,11 +529,6 @@ void CarrierAggregationTestCase::DoRun() {
 }
 
 void CarrierAggregationTestCase::DlScheduling(DlSchedulingCallbackInfo dlInfo) {
-  // NS_LOG_FUNCTION (dlInfo.frameNo << dlInfo.subframeNo << dlInfo.rnti <<
-  // (uint32_t) dlInfo.mcsTb1 << dlInfo.sizeTb1 << (uint32_t) dlInfo.mcsTb2 <<
-  // dlInfo.sizeTb2<<(uint16_t)dlInfo.componentCarrierId);
-  //  need to allow for RRC connection establishment + CQI feedback reception +
-  //  persistent data transmission
   if (Simulator::Now() > MilliSeconds(300)) {
     if (m_ccDownlinkTraffic.find(dlInfo.componentCarrierId) ==
         m_ccDownlinkTraffic.end()) {
@@ -601,9 +548,6 @@ void CarrierAggregationTestCase::UlScheduling(uint32_t frameNo,
                                               uint16_t rnti, uint8_t mcs,
                                               uint16_t sizeTb,
                                               uint8_t componentCarrierId) {
-  // NS_LOG_FUNCTION (frameNo << subframeNo << rnti << (uint32_t) mcs <<
-  // sizeTb);
-  //  need to allow for RRC connection establishment + SRS transmission
   if (Simulator::Now() > MilliSeconds(300)) {
     if (m_ccUplinkTraffic.find(componentCarrierId) == m_ccUplinkTraffic.end()) {
       m_ccUplinkTraffic.insert(

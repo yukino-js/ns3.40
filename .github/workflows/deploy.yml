@@ -1,4 +1,4 @@
-name: Deploy https://tianchenghang.github.io/ns3.40 lark
+name: Deploy https://tianchenghang.github.io/ns3.40 flowmonitor
 
 on:
   push:

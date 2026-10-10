@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *
- */
 
 #include "three-gpp-http-variables.h"
 
@@ -45,14 +26,12 @@ ThreeGppHttpVariables::ThreeGppHttpVariables() {
   m_parsingTimeRng = CreateObject<ExponentialRandomVariable>();
 }
 
-// static
 TypeId ThreeGppHttpVariables::GetTypeId() {
   static TypeId tid =
       TypeId("ns3::ThreeGppHttpVariables")
           .SetParent<Object>()
           .AddConstructor<ThreeGppHttpVariables>()
 
-          // REQUEST SIZE
           .AddAttribute(
               "RequestSize",
               "The constant size of HTTP request packet (in bytes).",
@@ -60,7 +39,6 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
               MakeUintegerAccessor(&ThreeGppHttpVariables::SetRequestSize),
               MakeUintegerChecker<uint32_t>())
 
-          // MAIN OBJECT GENERATION DELAY
           .AddAttribute(
               "MainObjectGenerationDelay",
               "The constant time needed by HTTP server "
@@ -70,7 +48,6 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
                   &ThreeGppHttpVariables::SetMainObjectGenerationDelay),
               MakeTimeChecker())
 
-          // MAIN OBJECT SIZE
           .AddAttribute("MainObjectSizeMean",
                         "The mean of main object sizes (in bytes).",
                         UintegerValue(10710),
@@ -93,11 +70,10 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
           .AddAttribute(
               "MainObjectSizeMax",
               "The maximum value of main object sizes (in bytes).",
-              UintegerValue(2000000), // 2 MB
+              UintegerValue(2000000),
               MakeUintegerAccessor(&ThreeGppHttpVariables::m_mainObjectSizeMax),
               MakeUintegerChecker<uint32_t>())
 
-          // EMBEDDED OBJECT GENERATION DELAY
           .AddAttribute(
               "EmbeddedObjectGenerationDelay",
               "The constant time needed by HTTP server "
@@ -107,7 +83,6 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
                   &ThreeGppHttpVariables::SetEmbeddedObjectGenerationDelay),
               MakeTimeChecker())
 
-          // EMBEDDED OBJECT SIZE
           .AddAttribute("EmbeddedObjectSizeMean",
                         "The mean of embedded object sizes (in bytes).",
                         UintegerValue(7758),
@@ -131,12 +106,11 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
           .AddAttribute(
               "EmbeddedObjectSizeMax",
               "The maximum value of embedded object sizes (in bytes).",
-              UintegerValue(2000000), // 2 MB
+              UintegerValue(2000000),
               MakeUintegerAccessor(
                   &ThreeGppHttpVariables::m_embeddedObjectSizeMax),
               MakeUintegerChecker<uint32_t>())
 
-          // NUMBER OF EMBEDDED OBJECTS PER PAGE
           .AddAttribute(
               "NumOfEmbeddedObjectsMax",
               "The upper bound parameter of Pareto distribution for "
@@ -163,21 +137,18 @@ TypeId ThreeGppHttpVariables::GetTypeId() {
                   &ThreeGppHttpVariables::SetNumOfEmbeddedObjectsScale),
               MakeUintegerChecker<uint32_t>())
 
-          // READING TIME
           .AddAttribute(
               "ReadingTimeMean", "The mean of reading time.",
               TimeValue(Seconds(30)),
               MakeTimeAccessor(&ThreeGppHttpVariables::SetReadingTimeMean),
               MakeTimeChecker())
 
-          // PARSING TIME
           .AddAttribute(
               "ParsingTimeMean", "The mean of parsing time.",
               TimeValue(MilliSeconds(130)),
               MakeTimeAccessor(&ThreeGppHttpVariables::SetParsingTimeMean),
               MakeTimeChecker())
 
-          // MTU SIZE
           .AddAttribute("LowMtuSize", "The lower MTU size.", UintegerValue(536),
                         MakeUintegerAccessor(&ThreeGppHttpVariables::m_lowMtu),
                         MakeUintegerChecker<uint32_t>(0))
@@ -199,9 +170,9 @@ uint32_t ThreeGppHttpVariables::GetMtuSize() {
   NS_ASSERT(r >= 0.0);
   NS_ASSERT(r < 1.0);
   if (r < m_highMtuProbability) {
-    return m_highMtu; // 1500 bytes if including TCP header.
+    return m_highMtu;
   } else {
-    return m_lowMtu; // 576 bytes if including TCP header.
+    return m_lowMtu;
   }
 }
 
@@ -214,18 +185,12 @@ Time ThreeGppHttpVariables::GetMainObjectGenerationDelay() {
 }
 
 uint32_t ThreeGppHttpVariables::GetMainObjectSize() {
-  // Validate parameters.
   if (m_mainObjectSizeMax <= m_mainObjectSizeMin) {
     NS_FATAL_ERROR("`MainObjectSizeMax` attribute "
                    << " must be greater than"
                    << " the `MainObjectSizeMin` attribute.");
   }
 
-  /*
-   * Repeatedly draw one new random value until it falls in the interval
-   * [min, max). The previous validation ensures this process does not loop
-   * indefinitely.
-   */
   uint32_t value;
   do {
     value = m_mainObjectSizeRng->GetInteger();
@@ -239,18 +204,12 @@ Time ThreeGppHttpVariables::GetEmbeddedObjectGenerationDelay() {
 }
 
 uint32_t ThreeGppHttpVariables::GetEmbeddedObjectSize() {
-  // Validate parameters.
   if (m_embeddedObjectSizeMax <= m_embeddedObjectSizeMin) {
     NS_FATAL_ERROR("`EmbeddedObjectSizeMax` attribute "
                    << " must be greater than"
                    << " the `EmbeddedObjectSizeMin` attribute.");
   }
 
-  /*
-   * Repeatedly draw one new random value until it falls in the interval
-   * [min, max). The previous validation ensures this process does not loop
-   * indefinitely.
-   */
   uint32_t value;
   do {
     value = m_embeddedObjectSizeRng->GetInteger();
@@ -261,7 +220,6 @@ uint32_t ThreeGppHttpVariables::GetEmbeddedObjectSize() {
 }
 
 uint32_t ThreeGppHttpVariables::GetNumOfEmbeddedObjects() {
-  // Validate parameters.
   const auto upperBound =
       static_cast<uint32_t>(m_numOfEmbeddedObjectsRng->GetBound());
   if (upperBound <= m_numOfEmbeddedObjectsScale) {
@@ -270,20 +228,11 @@ uint32_t ThreeGppHttpVariables::GetNumOfEmbeddedObjects() {
                    << " the `NumOfEmbeddedObjectsScale` attribute.");
   }
 
-  /*
-   * Repeatedly draw one new random value until it falls in the interval
-   * [scale, upperBound). The previous validation ensures this process does
-   * not loop indefinitely.
-   */
   uint32_t value;
   do {
     value = m_numOfEmbeddedObjectsRng->GetInteger();
   } while ((value < m_numOfEmbeddedObjectsScale) || (value >= upperBound));
 
-  /*
-   * Normalize the random value with the scale parameter. The returned value
-   * shall now be within the interval [0, (upperBound - scale)).
-   */
   return (value - m_numOfEmbeddedObjectsScale);
 }
 
@@ -316,8 +265,6 @@ void ThreeGppHttpVariables::DoInitialize() {
   UpdateMainObjectMuAndSigma();
   UpdateEmbeddedObjectMuAndSigma();
 }
-
-// SETTER METHODS /////////////////////////////////////////////////////////////
 
 void ThreeGppHttpVariables::SetRequestSize(uint32_t constant) {
   NS_LOG_FUNCTION(this << constant);

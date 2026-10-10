@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2011 Yufei Cheng
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Yufei Cheng   <yfcheng@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "ns3/boolean.h"
 #include "ns3/double.h"
@@ -52,19 +22,6 @@
 using namespace ns3;
 using namespace dsr;
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr
- * \defgroup dsr-test DSR routing module tests
- */
-
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrFsHeaderTest
- * \brief Unit test for DSR Fixed Size Header
- */
 class DsrFsHeaderTest : public TestCase {
 public:
   DsrFsHeaderTest();
@@ -79,7 +36,7 @@ DsrFsHeaderTest::~DsrFsHeaderTest() {}
 void DsrFsHeaderTest::DoRun() {
   dsr::DsrRoutingHeader header;
   dsr::DsrOptionRreqHeader rreqHeader;
-  header.AddDsrOption(rreqHeader); // has an alignment of 4n+0
+  header.AddDsrOption(rreqHeader);
 
   NS_TEST_EXPECT_MSG_EQ(header.GetSerializedSize() % 2, 0,
                         "length of routing header is not a multiple of 4");
@@ -92,14 +49,6 @@ void DsrFsHeaderTest::DoRun() {
                         "expect the rreqHeader after fixed size header");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrRreqHeaderTest
- * \brief Unit test for RREQ
- */
 class DsrRreqHeaderTest : public TestCase {
 public:
   DsrRreqHeaderTest();
@@ -140,14 +89,6 @@ void DsrRreqHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 20, "Total RREP is 20 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrRrepHeaderTest
- * \brief Unit test for RREP
- */
 class DsrRrepHeaderTest : public TestCase {
 public:
   DsrRrepHeaderTest();
@@ -184,14 +125,6 @@ void DsrRrepHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 16, "Total RREP is 16 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrSRHeaderTest
- * \brief Unit test for Source Route
- */
 class DsrSRHeaderTest : public TestCase {
 public:
   DsrSRHeaderTest();
@@ -233,14 +166,6 @@ void DsrSRHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 16, "Total RREP is 16 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrRerrHeaderTest
- * \brief Unit test for RERR
- */
 class DsrRerrHeaderTest : public TestCase {
 public:
   DsrRerrHeaderTest();
@@ -273,14 +198,6 @@ void DsrRerrHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 20, "Total RREP is 20 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrAckReqHeaderTest
- * \brief Unit test for ACK-REQ
- */
 class DsrAckReqHeaderTest : public TestCase {
 public:
   DsrAckReqHeaderTest();
@@ -310,14 +227,6 @@ void DsrAckReqHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 4, "Total RREP is 4 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrAckHeaderTest
- * \brief Unit test for ACK
- */
 class DsrAckHeaderTest : public TestCase {
 public:
   DsrAckHeaderTest();
@@ -351,14 +260,6 @@ void DsrAckHeaderTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(bytes, 12, "Total RREP is 12 bytes long");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrCacheEntryTest
- * \brief Unit test for DSR route cache entry
- */
 class DsrCacheEntryTest : public TestCase {
 public:
   DsrCacheEntryTest();
@@ -415,25 +316,15 @@ void DsrCacheEntryTest::DoRun() {
                         "trivial");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrSendBuffTest
- * \brief Unit test for Send Buffer
- */
 class DsrSendBuffTest : public TestCase {
 public:
   DsrSendBuffTest();
   ~DsrSendBuffTest() override;
   void DoRun() override;
-  /// Check size limit function
   void CheckSizeLimit();
-  /// Check timeout function
   void CheckTimeout();
 
-  dsr::DsrSendBuffer q; ///< send buffer
+  dsr::DsrSendBuffer q;
 };
 
 DsrSendBuffTest::DsrSendBuffTest() : TestCase("DSR SendBuff"), q() {}
@@ -509,14 +400,6 @@ void DsrSendBuffTest::CheckTimeout() {
   NS_TEST_EXPECT_MSG_EQ(q.GetSize(), 0, "Must be empty now");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrRreqTableTest
- * \brief Unit test for DSR routing table entry
- */
 class DsrRreqTableTest : public TestCase {
 public:
   DsrRreqTableTest();
@@ -535,14 +418,6 @@ void DsrRreqTableTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(rt.m_reqNo, 2, "trivial");
 }
 
-// -----------------------------------------------------------------------------
-/**
- * \ingroup dsr-test
- * \ingroup tests
- *
- * \class DsrTestSuite
- * \brief DSR test suite
- */
 class DsrTestSuite : public TestSuite {
 public:
   DsrTestSuite() : TestSuite("routing-dsr", UNIT) {

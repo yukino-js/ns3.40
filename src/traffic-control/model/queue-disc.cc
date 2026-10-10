@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2007, 2014 University of Washington
- *               2015 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "queue-disc.h"
 
@@ -268,18 +251,10 @@ TypeId QueueDisc::GetTypeId() {
 }
 
 QueueDisc::QueueDisc(QueueDiscSizePolicy policy)
-    : m_nPackets(0), m_nBytes(0),
-      m_maxSize(QueueSize("1p")), // to avoid that setting the mode at
-                                  // construction time is ignored
-      m_running(false), m_peeked(false), m_sizePolicy(policy),
-      m_prohibitChangeMode(false) {
+    : m_nPackets(0), m_nBytes(0), m_maxSize(QueueSize("1p")), m_running(false),
+      m_peeked(false), m_sizePolicy(policy), m_prohibitChangeMode(false) {
   NS_LOG_FUNCTION(this << (uint16_t)policy);
 
-  // These lambdas call the DropBeforeEnqueue or DropAfterDequeue methods of
-  // this QueueDisc object. Given that a callback to the operator() of these
-  // lambdas is connected to the DropBeforeEnqueue and DropAfterDequeue traces
-  // of the internal queues, the INTERNAL_QUEUE_DROP constant is passed as the
-  // reason why the packet is dropped.
   m_internalQueueDbeFunctor = [this](Ptr<const QueueDiscItem> item) {
     return DropBeforeEnqueue(item, INTERNAL_QUEUE_DROP);
   };
@@ -287,12 +262,6 @@ QueueDisc::QueueDisc(QueueDiscSizePolicy policy)
     return DropAfterDequeue(item, INTERNAL_QUEUE_DROP);
   };
 
-  // These lambdas call the DropBeforeEnqueue or DropAfterDequeue methods of
-  // this QueueDisc object. Given that a callback to the operator() of these
-  // lambdas is connected to the DropBeforeEnqueue and DropAfterDequeue traces
-  // of the child queue discs, the concatenation of the CHILD_QUEUE_DISC_DROP
-  // constant and the second argument provided by such traces is passed as the
-  // reason why the packet is dropped.
   m_childQueueDiscDbeFunctor = [this](Ptr<const QueueDiscItem> item,
                                       const char *r) {
     return DropBeforeEnqueue(
@@ -339,13 +308,10 @@ void QueueDisc::DoDispose() {
 void QueueDisc::DoInitialize() {
   NS_LOG_FUNCTION(this);
 
-  // Check the configuration and initialize the parameters of this queue disc
   bool ok [[maybe_unused]] = CheckConfig();
   NS_ASSERT_MSG(ok, "The queue disc configuration is not correct");
   InitializeParams();
 
-  // Check the configuration and initialize the parameters of the child queue
-  // discs
   for (auto cl = m_classes.begin(); cl != m_classes.end(); cl++) {
     (*cl)->GetQueueDisc()->Initialize();
   }
@@ -361,9 +327,6 @@ const QueueDisc::Stats &QueueDisc::GetStats() {
             m_stats.nTotalDroppedBytesBeforeEnqueue +
                 m_stats.nTotalDroppedBytesAfterDequeue);
 
-  // the total number of sent packets is only updated here to avoid to increase
-  // it after a dequeue and then having to decrease it if the packet is dropped
-  // after dequeue or requeued
   m_stats.nTotalSentPackets = m_stats.nTotalDequeuedPackets -
                               (m_requeued ? 1 : 0) -
                               m_stats.nTotalDroppedPacketsAfterDequeue;
@@ -410,7 +373,6 @@ QueueSize QueueDisc::GetMaxSize() const {
 bool QueueDisc::SetMaxSize(QueueSize size) {
   NS_LOG_FUNCTION(this << size);
 
-  // do nothing if the limit is null
   if (!size.GetValue()) {
     return false;
   }
@@ -486,8 +448,6 @@ uint32_t QueueDisc::GetQuota() const {
 void QueueDisc::AddInternalQueue(Ptr<InternalQueue> queue) {
   NS_LOG_FUNCTION(this);
 
-  // set various callbacks on the internal queue, so that the queue disc is
-  // notified of packets enqueued, dequeued or dropped by the internal queue
   queue->TraceConnectWithoutContext(
       "Enqueue", MakeCallback(&QueueDisc::PacketEnqueued, this));
   queue->TraceConnectWithoutContext(
@@ -524,14 +484,10 @@ void QueueDisc::AddQueueDiscClass(Ptr<QueueDiscClass> qdClass) {
   NS_LOG_FUNCTION(this);
   NS_ABORT_MSG_IF(!qdClass->GetQueueDisc(),
                   "Cannot add a class with no attached queue disc");
-  // the child queue disc cannot be one with wake mode equal to WAKE_CHILD
-  // because such queue discs do not implement the enqueue/dequeue methods
   NS_ABORT_MSG_IF(qdClass->GetQueueDisc()->GetWakeMode() == WAKE_CHILD,
                   "A queue disc with WAKE_CHILD as wake mode can only be a "
                   "root queue disc");
 
-  // set the parent callbacks on the child queue disc, so that it can notify
-  // the parent queue disc of packets enqueued, dequeued, dropped, or marked
   qdClass->GetQueueDisc()->TraceConnectWithoutContext(
       "Enqueue", MakeCallback(&QueueDisc::PacketEnqueued, this));
   qdClass->GetQueueDisc()->TraceConnectWithoutContext(
@@ -579,11 +535,6 @@ void QueueDisc::PacketEnqueued(Ptr<const QueueDiscItem> item) {
 }
 
 void QueueDisc::PacketDequeued(Ptr<const QueueDiscItem> item) {
-  // If the queue disc asked the internal queue or the child queue disc to
-  // dequeue a packet because a peek operation was requested, the packet is
-  // still held by the queue disc, hence we do not need to update statistics
-  // and fire the dequeue trace. This function will be explicitly called when
-  // the packet will be actually dequeued.
   if (!m_peeked) {
     m_nPackets--;
     m_nBytes -= item->GetSize();
@@ -606,14 +557,12 @@ void QueueDisc::DropBeforeEnqueue(Ptr<const QueueDiscItem> item,
   m_stats.nTotalDroppedPacketsBeforeEnqueue++;
   m_stats.nTotalDroppedBytesBeforeEnqueue += item->GetSize();
 
-  // update the number of packets dropped for the given reason
   auto itp = m_stats.nDroppedPacketsBeforeEnqueue.find(reason);
   if (itp != m_stats.nDroppedPacketsBeforeEnqueue.end()) {
     itp->second++;
   } else {
     m_stats.nDroppedPacketsBeforeEnqueue[reason] = 1;
   }
-  // update the amount of bytes dropped for the given reason
   auto itb = m_stats.nDroppedBytesBeforeEnqueue.find(reason);
   if (itb != m_stats.nDroppedBytesBeforeEnqueue.end()) {
     itb->second += item->GetSize();
@@ -638,14 +587,12 @@ void QueueDisc::DropAfterDequeue(Ptr<const QueueDiscItem> item,
   m_stats.nTotalDroppedPacketsAfterDequeue++;
   m_stats.nTotalDroppedBytesAfterDequeue += item->GetSize();
 
-  // update the number of packets dropped for the given reason
   auto itp = m_stats.nDroppedPacketsAfterDequeue.find(reason);
   if (itp != m_stats.nDroppedPacketsAfterDequeue.end()) {
     itp->second++;
   } else {
     m_stats.nDroppedPacketsAfterDequeue[reason] = 1;
   }
-  // update the amount of bytes dropped for the given reason
   auto itb = m_stats.nDroppedBytesAfterDequeue.find(reason);
   if (itb != m_stats.nDroppedBytesAfterDequeue.end()) {
     itb->second += item->GetSize();
@@ -653,11 +600,7 @@ void QueueDisc::DropAfterDequeue(Ptr<const QueueDiscItem> item,
     m_stats.nDroppedBytesAfterDequeue[reason] = item->GetSize();
   }
 
-  // if in the context of a peek request a dequeued packet is dropped, we need
-  // to update the statistics and fire the dequeue trace before firing the drop
-  // after dequeue trace
   if (m_peeked) {
-    // temporarily set m_peeked to false, otherwise PacketDequeued does nothing
     m_peeked = false;
     PacketDequeued(item);
     m_peeked = true;
@@ -683,14 +626,12 @@ bool QueueDisc::Mark(Ptr<QueueDiscItem> item, const char *reason) {
   m_stats.nTotalMarkedPackets++;
   m_stats.nTotalMarkedBytes += item->GetSize();
 
-  // update the number of packets marked for the given reason
   auto itp = m_stats.nMarkedPackets.find(reason);
   if (itp != m_stats.nMarkedPackets.end()) {
     itp->second++;
   } else {
     m_stats.nMarkedPackets[reason] = 1;
   }
-  // update the amount of bytes marked for the given reason
   auto itb = m_stats.nMarkedBytes.find(reason);
   if (itb != m_stats.nMarkedBytes.end()) {
     itb->second += item->GetSize();
@@ -717,20 +658,6 @@ bool QueueDisc::Enqueue(Ptr<QueueDiscItem> item) {
     item->SetTimeStamp(Simulator::Now());
   }
 
-  // DoEnqueue may return false because:
-  // 1) the internal queue is full
-  //    -> the DropBeforeEnqueue method of this queue disc is automatically
-  //    called
-  //       because QueueDisc::AddInternalQueue sets the trace callback
-  // 2) the child queue disc dropped the packet
-  //    -> the DropBeforeEnqueue method of this queue disc is automatically
-  //    called
-  //       because QueueDisc::AddQueueDiscClass sets the trace callback
-  // 3) it dropped the packet
-  //    -> DoEnqueue has to explicitly call DropBeforeEnqueue
-  // Thus, we do not have to call DropBeforeEnqueue here.
-
-  // check that the received packet was either enqueued or dropped
   NS_ASSERT(m_stats.nTotalReceivedPackets ==
             m_stats.nTotalDroppedPacketsBeforeEnqueue +
                 m_stats.nTotalEnqueuedPackets);
@@ -744,18 +671,11 @@ bool QueueDisc::Enqueue(Ptr<QueueDiscItem> item) {
 Ptr<QueueDiscItem> QueueDisc::Dequeue() {
   NS_LOG_FUNCTION(this);
 
-  // The QueueDisc::DoPeek method dequeues a packet and keeps it as a requeued
-  // packet. Thus, first check whether a peeked packet exists. Otherwise, call
-  // the private DoDequeue method.
   Ptr<QueueDiscItem> item = m_requeued;
 
   if (item) {
     m_requeued = nullptr;
     if (m_peeked) {
-      // If the packet was requeued because a peek operation was requested
-      // (which is the case here because DequeuePacket calls Dequeue only
-      // when m_requeued is null), we need to explicitly call PacketDequeued
-      // to update statistics about dequeued packets and fire the dequeue trace.
       m_peeked = false;
       PacketDequeued(item);
     }
@@ -782,7 +702,6 @@ Ptr<const QueueDiscItem> QueueDisc::DoPeek() {
   if (!m_requeued) {
     m_peeked = true;
     m_requeued = Dequeue();
-    // if no packet is returned, reset the m_peeked flag
     if (!m_requeued) {
       m_peeked = false;
     }
@@ -798,7 +717,6 @@ void QueueDisc::Run() {
     while (Restart()) {
       quota -= 1;
       if (quota <= 0) {
-        /// \todo netif_schedule (q);
         break;
       }
     }
@@ -837,38 +755,24 @@ Ptr<QueueDiscItem> QueueDisc::DequeuePacket() {
 
   Ptr<QueueDiscItem> item;
 
-  // First check if there is a requeued packet
   if (m_requeued) {
-    // If the queue where the requeued packet is destined to is not stopped,
-    // return the requeued packet; otherwise, return an empty packet. If the
-    // device does not support flow control, the device queue is never stopped
     if (!m_devQueueIface ||
         !m_devQueueIface->GetTxQueue(m_requeued->GetTxQueueIndex())
              ->IsStopped()) {
       item = m_requeued;
       m_requeued = nullptr;
       if (m_peeked) {
-        // If the packet was requeued because a peek operation was requested
-        // we need to explicitly call PacketDequeued to update statistics
-        // about dequeued packets and fire the dequeue trace.
         m_peeked = false;
         PacketDequeued(item);
       }
     }
   } else {
-    // If the device is multi-queue (actually, Linux checks if the queue disc
-    // has multiple queues), ask the queue disc to dequeue a packet (a
-    // multi-queue aware queue disc should try not to dequeue a packet destined
-    // to a stopped queue). Otherwise, ask the queue disc to dequeue a packet
-    // only if the (unique) queue is not stopped.
     if (!m_devQueueIface || m_devQueueIface->GetNTxQueues() > 1 ||
         !m_devQueueIface->GetTxQueue(0)->IsStopped()) {
       item = Dequeue();
-      // If the item is not null, add the header to the packet.
       if (item) {
         item->AddHeader();
       }
-      // Here, Linux tries bulk dequeues
     }
   }
   return item;
@@ -877,7 +781,6 @@ Ptr<QueueDiscItem> QueueDisc::DequeuePacket() {
 void QueueDisc::Requeue(Ptr<QueueDiscItem> item) {
   NS_LOG_FUNCTION(this << item);
   m_requeued = item;
-  /// \todo netif_schedule (q);
 
   m_stats.nTotalRequeuedPackets++;
   m_stats.nTotalRequeuedBytes += item->GetSize();
@@ -889,18 +792,12 @@ void QueueDisc::Requeue(Ptr<QueueDiscItem> item) {
 bool QueueDisc::Transmit(Ptr<QueueDiscItem> item) {
   NS_LOG_FUNCTION(this << item);
 
-  // if the device queue is stopped, requeue the packet and return false.
-  // Note that if the underlying device is tc-unaware, packets are never
-  // requeued because the queues of tc-unaware devices are never stopped
   if (m_devQueueIface &&
       m_devQueueIface->GetTxQueue(item->GetTxQueueIndex())->IsStopped()) {
     Requeue(item);
     return false;
   }
 
-  // a single queue device makes no use of the priority tag
-  // a device that does not install a device queue interface likely makes no use
-  // of it as well
   if (!m_devQueueIface || m_devQueueIface->GetNTxQueues() == 1) {
     SocketPriorityTag priorityTag;
     item->GetPacket()->RemovePacketTag(priorityTag);
@@ -908,22 +805,6 @@ bool QueueDisc::Transmit(Ptr<QueueDiscItem> item) {
   NS_ASSERT_MSG(m_send, "Send callback not set");
   m_send(item);
 
-  // the behavior here slightly diverges from Linux. In Linux, it is advised
-  // that the function called when a packet needs to be transmitted
-  // (ndo_start_xmit) should always return NETDEV_TX_OK, which means that the
-  // packet is consumed by the device driver and thus is not requeued. However,
-  // the ndo_start_xmit function of the device driver is allowed to return
-  // NETDEV_TX_BUSY (and hence the packet is requeued) when there is no room for
-  // the received packet in the device queue, despite the queue is not stopped.
-  // This case is considered as a corner case or an hard error, and should be
-  // avoided. Here, we do not handle such corner case and always assume that the
-  // packet is consumed by the netdevice. Thus, we ignore the value returned by
-  // Send and a packet sent to a netdevice is never requeued. The reason is that
-  // the semantics of the value returned by NetDevice::Send does not match that
-  // of the value returned by ndo_start_xmit.
-
-  // if the queue disc is empty or the device queue is now stopped, return false
-  // so that the Run method does not attempt to dequeue other packets and exits
   return !(GetNPackets() == 0 ||
            (m_devQueueIface &&
             m_devQueueIface->GetTxQueue(item->GetTxQueueIndex())->IsStopped()));

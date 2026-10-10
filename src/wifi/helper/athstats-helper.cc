@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "athstats-helper.h"
 
@@ -251,26 +233,21 @@ void AthstatsWifiTraceSink::WriteStats() {
     return;
   }
 
-  // The comments below refer to how each value maps to madwifi's athstats.
-  // Format: "%8lu %8lu %7u %7u %7u %6u %6u %6u %7u %4u %3uM"
   std::stringstream ss;
 
-  // /proc/net/dev transmitted packets to which we should subtract management
-  // frames
   ss << std::setw(8) << m_txCount << " ";
 
-  // /proc/net/dev received packets but subtracts management frames from it
   ss << std::setw(8) << m_rxCount << " ";
 
-  ss << std::setw(7) << 0 << " ";                    // ast_tx_altrate
-  ss << std::setw(7) << m_shortRetryCount << " ";    // ast_tx_shortretry
-  ss << std::setw(7) << m_longRetryCount << " ";     // ast_tx_longretry
-  ss << std::setw(6) << m_exceededRetryCount << " "; // ast_tx_xretries
-  ss << std::setw(6) << m_phyRxErrorCount << " ";    // ast_rx_crcerr
-  ss << std::setw(6) << 0 << " ";                    // ast_rx_badcrypt
-  ss << std::setw(7) << 0 << " ";                    // ast_rx_phyerr
-  ss << std::setw(4) << 0 << " ";                    // ast_rx_rssi
-  ss << std::setw(3) << 0 << "M";                    // rate
+  ss << std::setw(7) << 0 << " ";
+  ss << std::setw(7) << m_shortRetryCount << " ";
+  ss << std::setw(7) << m_longRetryCount << " ";
+  ss << std::setw(6) << m_exceededRetryCount << " ";
+  ss << std::setw(6) << m_phyRxErrorCount << " ";
+  ss << std::setw(6) << 0 << " ";
+  ss << std::setw(7) << 0 << " ";
+  ss << std::setw(4) << 0 << " ";
+  ss << std::setw(3) << 0 << "M";
 
   *m_writer << ss.str() << std::endl;
 

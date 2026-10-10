@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "spectrum-interference.h"
 
@@ -112,10 +94,6 @@ void SpectrumInterference::SetNoisePowerSpectralDensity(
     Ptr<const SpectrumValue> noisePsd) {
   NS_LOG_FUNCTION(this << noisePsd);
   m_noise = noisePsd;
-  // we can initialize m_allSignal only now, because earlier we
-  // didn't know what spectrum model was going to be used.
-  // we'll now create a zeroed SpectrumValue using the same
-  // SpectrumModel which is being specified for the noise.
   m_allSignals = Create<SpectrumValue>(noisePsd->GetSpectrumModel());
 }
 

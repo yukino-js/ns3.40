@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- * Modified by Marco Miozzo <mmiozzo@ctt.es>
- *     Extend to Data and SRS frames
- */
 
 #include "lte-test-uplink-sinr.h"
 
@@ -35,18 +15,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteUplinkSinrTest");
 
-/**
- * Test 1.2 SINR calculation in uplink
- */
-
-/**
- * TestSuite
- */
 LteUplinkSinrTestSuite::LteUplinkSinrTestSuite()
     : TestSuite("lte-uplink-sinr", SYSTEM) {
-  /**
-   * Build Spectrum Model values for the TX signal
-   */
   Ptr<SpectrumModel> sm;
 
   Bands bands;
@@ -64,11 +34,6 @@ LteUplinkSinrTestSuite::LteUplinkSinrTestSuite()
 
   sm = Create<SpectrumModel>(bands);
 
-  /**
-   * TX signals #1: Power Spectral Density (W/Hz) of the signals of interest =
-   * [-46 -inf] and
-   * [-inf -48] dBm and BW = [20 22] MHz
-   */
   Ptr<SpectrumValue> rxPsd1 = Create<SpectrumValue>(sm);
   (*rxPsd1)[0] = 1.255943215755e-15;
   (*rxPsd1)[1] = 0.0;
@@ -89,10 +54,6 @@ LteUplinkSinrTestSuite::LteUplinkSinrTestSuite()
                                            "sdBm = [-46 -inf] and [-inf -48]"),
               TestCase::QUICK);
 
-  /**
-   * TX signals #2: Power Spectral Density of the signals of interest = [-63
-   * -inf] and [-inf -61] dBm and BW = [20 22] MHz
-   */
   Ptr<SpectrumValue> rxPsd3 = Create<SpectrumValue>(sm);
   (*rxPsd3)[0] = 2.505936168136e-17;
   (*rxPsd3)[1] = 0.0;
@@ -114,15 +75,7 @@ LteUplinkSinrTestSuite::LteUplinkSinrTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteUplinkSinrTestSuite lteUplinkSinrTestSuite;
-
-/**
- * TestCase Data
- */
 
 LteUplinkDataSinrTestCase::LteUplinkDataSinrTestCase(Ptr<SpectrumValue> sv1,
                                                      Ptr<SpectrumValue> sv2,
@@ -136,9 +89,6 @@ LteUplinkDataSinrTestCase::LteUplinkDataSinrTestCase(Ptr<SpectrumValue> sv1,
 LteUplinkDataSinrTestCase::~LteUplinkDataSinrTestCase() {}
 
 void LteUplinkDataSinrTestCase::DoRun() {
-  /**
-   * Instantiate a single receiving LteSpectrumPhy
-   */
   Ptr<LteSpectrumPhy> dlPhy = CreateObject<LteSpectrumPhy>();
   Ptr<LteSpectrumPhy> ulPhy = CreateObject<LteSpectrumPhy>();
   Ptr<LteTestUePhy> uePhy = CreateObject<LteTestUePhy>(dlPhy, ulPhy);
@@ -152,40 +102,22 @@ void LteUplinkDataSinrTestCase::DoRun() {
       MakeCallback(&LteSpectrumValueCatcher::ReportValue, &actualSinrCatcher));
   ulPhy->AddDataSinrChunkProcessor(chunkProcessor);
 
-  /**
-   * Generate several calls to LteSpectrumPhy::StartRx corresponding to
-   * several signals. One will be the signal of interest, i.e., the
-   *  LteSpectrumSignalParametersDataFrame of the Packet burst
-   * will have the same CellId of the receiving PHY; the others will have
-   * a different CellId and hence will be the interfering signals
-   */
-
-  // Number of packet bursts (2 data + 4 interferences)
   const int numOfDataPbs = 2;
   const int numOfIntfPbs = 4;
   const int numOfPbs = numOfDataPbs + numOfIntfPbs;
 
-  // Number of packets in the packet bursts
   const int numOfPkts = 10;
 
-  // Packet bursts
   Ptr<PacketBurst> packetBursts[numOfPbs];
 
-  // Packets
   Ptr<Packet> pkt[numOfPbs][numOfPkts];
 
-  // Bursts cellId
   uint16_t pbCellId[numOfPbs];
 
-  /**
-   * Build packet burst (Data and interference)
-   */
   int pb = 0;
   for (int dataPb = 0; dataPb < numOfDataPbs; dataPb++, pb++) {
-    // Create packet burst
     packetBursts[pb] = CreateObject<PacketBurst>();
     pbCellId[pb] = cellId;
-    // Create packets and add them to the burst
     for (int i = 0; i < numOfPkts; i++) {
       pkt[pb][i] = Create<Packet>(1000);
 
@@ -193,11 +125,9 @@ void LteUplinkDataSinrTestCase::DoRun() {
     }
   }
   for (int intfPb = 0; intfPb < numOfIntfPbs; intfPb++, pb++) {
-    // Create packet burst
     packetBursts[pb] = CreateObject<PacketBurst>();
     pbCellId[pb] = cellId * (pb + 1);
 
-    // Create packets and add them to the burst
     for (int i = 0; i < numOfPkts; i++) {
       pkt[pb][i] = Create<Packet>(1000);
 
@@ -236,11 +166,6 @@ void LteUplinkDataSinrTestCase::DoRun() {
 
   ulPhy->SetNoisePowerSpectralDensity(noisePsd);
 
-  /**
-   * Schedule the reception of the data signals plus the interference signals
-   */
-
-  // 2 UEs send data to the eNB through 2 subcarriers
   Ptr<LteSpectrumSignalParametersDataFrame> sp1 =
       Create<LteSpectrumSignalParametersDataFrame>();
   sp1->psd = m_sv1;
@@ -312,10 +237,6 @@ void LteUplinkDataSinrTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * TestCase Srs
- */
-
 LteUplinkSrsSinrTestCase::LteUplinkSrsSinrTestCase(Ptr<SpectrumValue> sv1,
                                                    Ptr<SpectrumValue> sv2,
                                                    Ptr<SpectrumValue> sinr,
@@ -332,12 +253,8 @@ void LteUplinkSrsSinrTestCase::ReportSinr(const SpectrumValue &sinr) {
 }
 
 void LteUplinkSrsSinrTestCase::DoRun() {
-  /**
-   * Instantiate a single receiving LteSpectrumPhy
-   */
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
-  // lteHelper->EnableLogComponents ();
   Ptr<LteSpectrumPhy> dlPhy = CreateObject<LteSpectrumPhy>();
   Ptr<LteSpectrumPhy> ulPhy = CreateObject<LteSpectrumPhy>();
   Ptr<LteTestUePhy> uePhy = CreateObject<LteTestUePhy>(dlPhy, ulPhy);
@@ -350,25 +267,12 @@ void LteUplinkSrsSinrTestCase::DoRun() {
       MakeCallback(&LteUplinkSrsSinrTestCase::ReportSinr, this));
   ulPhy->AddCtrlSinrChunkProcessor(chunkProcessor);
 
-  /**
-   * Generate several calls to LteSpectrumPhy::StartRx corresponding to
-   * several signals.
-   * One will be the signal of interest, i.e., the
-   *  LteSpectrumSignalParametersUlSrsFrame of the first signal will have the
-   *   same CellId of the receiving PHY; the others will have a different
-   *   CellId and hence will be the interfering signals
-   */
-
-  // Number of packet bursts (2 data + 4 interferences)
   int numOfDataSignals = 2;
   int numOfIntfSignals = 4;
   int numOfSignals = numOfDataSignals + numOfIntfSignals;
 
   uint16_t pbCellId[numOfSignals];
 
-  /**
-   * Build packet burst (Data and interference)
-   */
   int pb = 0;
   for (int dataPb = 0; dataPb < numOfDataSignals; dataPb++, pb++) {
     pbCellId[pb] = cellId;
@@ -408,11 +312,6 @@ void LteUplinkSrsSinrTestCase::DoRun() {
 
   ulPhy->SetNoisePowerSpectralDensity(noisePsd);
 
-  /**
-   * Schedule the reception of the data signals plus the interference signals
-   */
-
-  // 2 UEs send data to the eNB through 2 subcarriers
   Ptr<LteSpectrumSignalParametersUlSrsFrame> sp1 =
       Create<LteSpectrumSignalParametersUlSrsFrame>();
   sp1->psd = m_sv1;

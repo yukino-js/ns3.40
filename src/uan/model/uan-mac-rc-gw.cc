@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Leonard Tracy <lentracy@gmail.com>
- */
 
 #include "uan-mac-rc-gw.h"
 
@@ -154,9 +136,7 @@ TypeId UanMacRcGw::GetTypeId() {
   return tid;
 }
 
-bool UanMacRcGw::Enqueue(Ptr<Packet> /* packet */,
-                         uint16_t /* protocolNumber */,
-                         const Address & /* dest */) {
+bool UanMacRcGw::Enqueue(Ptr<Packet>, uint16_t, const Address &) {
   NS_LOG_WARN(
       "RCMAC Gateway transmission to acoustic nodes is not yet implemented");
   return false;
@@ -173,10 +153,9 @@ void UanMacRcGw::AttachPhy(Ptr<UanPhy> phy) {
   phy->SetReceiveErrorCallback(MakeCallback(&UanMacRcGw::ReceiveError, this));
 }
 
-void UanMacRcGw::ReceiveError(Ptr<Packet> /* pkt */, double /* sinr */) {}
+void UanMacRcGw::ReceiveError(Ptr<Packet>, double) {}
 
-void UanMacRcGw::ReceivePacket(Ptr<Packet> pkt, double /* sinr */,
-                               UanTxMode mode) {
+void UanMacRcGw::ReceivePacket(Ptr<Packet> pkt, double, UanTxMode mode) {
   UanHeaderCommon ch;
   pkt->PeekHeader(ch);
 
@@ -260,7 +239,6 @@ void UanMacRcGw::StartCycle() {
     NS_LOG_DEBUG(Now().As(Time::S) << " Simulator starting EMPTY cycle");
   }
 
-  // Calculate dataRate
   uint32_t totalBytes = 0;
   uint32_t totalFrames = 0;
   Time pDelay = Seconds(0);
@@ -319,7 +297,6 @@ void UanMacRcGw::StartCycle() {
   Time effWinSize =
       winSize - Seconds(m_rtsSize * 8.0 / ctlRate) - (2 * m_maxDelta);
 
-  // Before fast CTS/ACK(below)
   Time ctsTxTimeG = Seconds(m_ctsSizeG * 8.0 / dataRate);
   Time cycleSeconds = winSize + ((totalFrames + 1.0) * m_sifs) + ctsTxTimeG +
                       Seconds((m_ctsSizeN + m_ackSize) * 8.0 / dataRate);
@@ -493,7 +470,7 @@ void UanMacRcGw::SendPacket(Ptr<Packet> pkt, uint32_t rate) {
 }
 
 double UanMacRcGw::ComputeAlpha(uint32_t totalFrames, uint32_t totalBytes,
-                                uint32_t /* n */, uint32_t a, double deltaK) {
+                                uint32_t, uint32_t a, double deltaK) {
   double alpha;
   double lrae = m_rtsSize * 8.0 * a * std::exp(1.0);
   if (totalFrames == 0) {
@@ -541,7 +518,6 @@ std::vector<double> UanMacRcGw::GetExpPdk() {
   }
 
   std::sort(pds.begin(), pds.end());
-  // Find expected min. prop. delay for k nodes
   std::vector<double> exppdk;
   exppdk.push_back(m_maxDelta.GetSeconds());
   for (uint32_t k = 1; k <= n; k++) {
@@ -560,10 +536,8 @@ double UanMacRcGw::ComputeExpS(uint32_t a, uint32_t ld,
   double expk = n * (1 - std::exp(-((double)a) / (double)n));
   NS_LOG_DEBUG("expk = " << expk);
 
-  // Compute expected data per cycle
   double expdata = 8 * ld * expk;
 
-  // Compute expected time per cycle
   double alpha0 = ComputeAlpha(0, 0, n, a, exppdk[0]);
   double c0 =
       8.0 * m_ctsSizeG / (m_totalRate * (1 - alpha0)) +

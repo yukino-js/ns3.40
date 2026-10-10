@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015, NYU WIRELESS, Tandon School of Engineering, New York
- * University
- * Copyright (c) 2019 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "buildings-channel-condition-model.h"
 
@@ -59,13 +40,9 @@ Ptr<ChannelCondition> BuildingsChannelConditionModel::GetChannelCondition(
   bool isAIndoor = a1->IsIndoor();
   bool isBIndoor = b1->IsIndoor();
 
-  if (!isAIndoor && !isBIndoor) // a and b are outdoor
-  {
+  if (!isAIndoor && !isBIndoor) {
     cond->SetO2iCondition(ChannelCondition::O2iConditionValue::O2O);
 
-    // The outdoor case, determine LOS/NLOS
-    // The channel condition should be LOS if the line of sight is not blocked,
-    // otherwise NLOS
     bool blocked = IsLineOfSightBlocked(a->GetPosition(), b->GetPosition());
     NS_LOG_DEBUG("a and b are outdoor, blocked " << blocked);
     if (!blocked) {
@@ -74,12 +51,9 @@ Ptr<ChannelCondition> BuildingsChannelConditionModel::GetChannelCondition(
     } else {
       cond->SetLosCondition(ChannelCondition::LosConditionValue::NLOS);
     }
-  } else if (isAIndoor && isBIndoor) // a and b are indoor
-  {
+  } else if (isAIndoor && isBIndoor) {
     cond->SetO2iCondition(ChannelCondition::O2iConditionValue::I2I);
 
-    // Indoor case, determine is the two nodes are inside the same building
-    // or not
     if (a1->GetBuilding() == b1->GetBuilding()) {
       NS_LOG_DEBUG("a and b are indoor in the same building");
       cond->SetLosCondition(ChannelCondition::LosConditionValue::LOS);
@@ -90,8 +64,6 @@ Ptr<ChannelCondition> BuildingsChannelConditionModel::GetChannelCondition(
       ChannelCondition::O2iLowHighConditionValue lowHighLossConditionA1;
       ChannelCondition::O2iLowHighConditionValue lowHighLossConditionB1;
 
-      // Low losses considered for Wood or ConcreteWithWindows, while
-      // high losses for ConcreteWithoutWindows and StoneBlocks
       lowHighLossConditionA1 =
           a1->GetBuilding()->GetExtWallsType() ==
                       Building::ExtWallsType_t::Wood ||
@@ -119,8 +91,7 @@ Ptr<ChannelCondition> BuildingsChannelConditionModel::GetChannelCondition(
             ChannelCondition::O2iLowHighConditionValue::LOW);
       }
     }
-  } else // outdoor to indoor case
-  {
+  } else {
     cond->SetO2iCondition(ChannelCondition::O2iConditionValue::O2I);
 
     NS_LOG_DEBUG("a is indoor and b outdoor or vice-versa");
@@ -128,8 +99,6 @@ Ptr<ChannelCondition> BuildingsChannelConditionModel::GetChannelCondition(
 
     ChannelCondition::O2iLowHighConditionValue lowHighLossCondition;
     if (isAIndoor) {
-      // Low losses considered for Wood or ConcreteWithWindows, while
-      // high losses for ConcreteWithoutWindows and StoneBlocks
       lowHighLossCondition =
           a1->GetBuilding()->GetExtWallsType() ==
                       Building::ExtWallsType_t::Wood ||
@@ -158,19 +127,13 @@ bool BuildingsChannelConditionModel::IsLineOfSightBlocked(
     const ns3::Vector &l1, const ns3::Vector &l2) const {
   for (auto bit = BuildingList::Begin(); bit != BuildingList::End(); ++bit) {
     if ((*bit)->IsIntersect(l1, l2)) {
-      // The line of sight should be blocked if the line-segment between
-      // l1 and l2 intersects one of the buildings.
       return true;
     }
   }
 
-  // The line of sight should not be blocked if the line-segment between
-  // l1 and l2 did not intersect any building.
   return false;
 }
 
-int64_t BuildingsChannelConditionModel::AssignStreams(int64_t /* stream */) {
-  return 0;
-}
+int64_t BuildingsChannelConditionModel::AssignStreams(int64_t) { return 0; }
 
-} // end namespace ns3
+} // namespace ns3

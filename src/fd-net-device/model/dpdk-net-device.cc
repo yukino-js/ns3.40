@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Harsh Patel <thadodaharsh10@gmail.com>
- *         Hrishikesh Hiraskar <hrishihiraskar@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
 #include "dpdk-net-device.h"
 
@@ -102,8 +82,8 @@ void DpdkNetDevice::SetDeviceName(std::string deviceName) {
 void DpdkNetDevice::CheckAllPortsLinkStatus() {
   NS_LOG_FUNCTION(this);
 
-#define CHECK_INTERVAL 100 /* 100ms */
-#define MAX_CHECK_TIME 90  /* 9s (90 * 100ms) in total */
+#define CHECK_INTERVAL 100
+#define MAX_CHECK_TIME 90
 
   uint8_t printFlag = 0;
   struct rte_eth_link link;
@@ -119,7 +99,6 @@ void DpdkNetDevice::CheckAllPortsLinkStatus() {
     }
     memset(&link, 0, sizeof(link));
     rte_eth_link_get(m_portId, &link);
-    /* print link status if flag set */
     if (printFlag == 1) {
       if (!link.link_status) {
         NS_LOG_INFO("Port " << +m_portId << " Link Down");
@@ -127,13 +106,11 @@ void DpdkNetDevice::CheckAllPortsLinkStatus() {
 
       continue;
     }
-    /* clear allPortsUp flag if any link down */
     if (link.link_status == ETH_LINK_DOWN) {
       allPortsUp = 0;
       break;
     }
 
-    /* after finally printing all link status, get out */
     if (printFlag == 1) {
       break;
     }
@@ -143,7 +120,6 @@ void DpdkNetDevice::CheckAllPortsLinkStatus() {
       rte_delay_ms(CHECK_INTERVAL);
     }
 
-    /* set the printFlag if all ports up or timeout */
     if (allPortsUp == 1 || count == (MAX_CHECK_TIME - 1)) {
       printFlag = 1;
     }
@@ -198,10 +174,7 @@ int DpdkNetDevice::LaunchCore(void *arg) {
   return 0;
 }
 
-bool DpdkNetDevice::IsLinkUp() const {
-  // Refer https://mails.dpdk.org/archives/users/2018-December/003822.html
-  return true;
-}
+bool DpdkNetDevice::IsLinkUp() const { return true; }
 
 void DpdkNetDevice::InitDpdk(int argc, char **argv, std::string dpdkDriver) {
   NS_LOG_FUNCTION(this << argc << argv);
@@ -218,8 +191,7 @@ void DpdkNetDevice::InitDpdk(int argc, char **argv, std::string dpdkDriver) {
     rte_exit(EXIT_FAILURE, "Execution failed - bye\n");
   }
 
-  // wait for the device to bind to Dpdk
-  sleep(5); /* 5 seconds */
+  sleep(5);
 
   NS_LOG_INFO("Initialize DPDK EAL");
   int ret = rte_eal_init(argc, argv);
@@ -241,7 +213,6 @@ void DpdkNetDevice::InitDpdk(int argc, char **argv, std::string dpdkDriver) {
     rte_exit(EXIT_FAILURE, "Cannot get port id - bye\n");
   }
 
-  // Set number of logical cores to 2
   unsigned int nbLcores = 2;
 
   unsigned int nbMbufs =
@@ -380,7 +351,6 @@ ssize_t DpdkNetDevice::Write(uint8_t *buffer, size_t length) {
   rte_eth_tx_buffer(m_portId, queueId, m_txBuffer, pkt[0]);
 
   if (m_txBuffer->length == 1) {
-    // If this is a first packet in buffer, schedule a tx.
     Simulator::Cancel(m_txEvent);
     m_txEvent =
         Simulator::Schedule(m_txTimeout, &DpdkNetDevice::HandleTx, this);

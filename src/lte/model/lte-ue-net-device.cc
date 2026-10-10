@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- *         Nicola Baldo <nbaldo@cttc.es>
- *         Marco Miozzo <mmiozzo@cttc.es>
- * Modified by:
- *          Danilo Abrignani <danilo.abrignani@unibo.it> (Carrier Aggregation -
- * GSoC 2015) Biljana Bojovic <biljana.bojovic@cttc.es> (Carrier Aggregation)
- */
 
 #include "lte-ue-net-device.h"
 
@@ -142,12 +119,8 @@ void LteUeNetDevice::UpdateConfig() {
                       << " CSG ID " << m_csgId);
     m_nas->SetImsi(m_imsi);
     m_rrc->SetImsi(m_imsi);
-    m_nas->SetCsgId(m_csgId); // this also handles propagation to RRC
+    m_nas->SetCsgId(m_csgId);
   } else {
-    /*
-     * NAS and RRC instances are not be ready yet, so do nothing now and
-     * expect ``DoInitialize`` to re-invoke this function.
-     */
   }
 }
 
@@ -200,7 +173,7 @@ uint32_t LteUeNetDevice::GetCsgId() const {
 void LteUeNetDevice::SetCsgId(uint32_t csgId) {
   NS_LOG_FUNCTION(this << csgId);
   m_csgId = csgId;
-  UpdateConfig(); // propagate the change down to NAS and RRC
+  UpdateConfig();
 }
 
 void LteUeNetDevice::SetTargetEnb(Ptr<LteEnbNetDevice> enb) {

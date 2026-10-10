@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Kirill Andreev <andreev@iitp.ru>
- *          Aleksey Kovalenko <kovalenko@iitp.ru>
- *          Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "peer-link.h"
 
@@ -75,9 +55,6 @@ TypeId PeerLink::GetTypeId() {
 const char *const PeerLink::PeerStateNames[6] = {
     "IDLE", "OPN_SNT", "CNF_RCVD", "OPN_RCVD", "ESTAB", "HOLDING"};
 
-//-----------------------------------------------------------------------------
-// PeerLink public interface
-//-----------------------------------------------------------------------------
 PeerLink::PeerLink()
     : m_peerAddress(Mac48Address::GetBroadcast()),
       m_peerMeshPointAddress(Mac48Address::GetBroadcast()), m_localLinkId(0),
@@ -266,9 +243,6 @@ void PeerLink::SetMacPlugin(Ptr<PeerManagementProtocolMac> plugin) {
   m_macPlugin = plugin;
 }
 
-//-----------------------------------------------------------------------------
-// Private
-//-----------------------------------------------------------------------------
 void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
   switch (m_state) {
   case IDLE:
@@ -298,8 +272,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SetRetryTimer();
       break;
     default:
-      // 11B.5.3.4 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;
@@ -357,8 +329,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SetHoldingTimer();
       break;
     default:
-      // 11B.5.3.5 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;
@@ -407,8 +377,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SetHoldingTimer();
       break;
     default:
-      // 11B.5.3.6 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;
@@ -460,8 +428,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SetHoldingTimer();
       break;
     default:
-      // 11B.5.3.7 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;
@@ -494,8 +460,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SetHoldingTimer();
       break;
     default:
-      // 11B.5.3.8 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;
@@ -503,7 +467,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
     switch (event) {
     case CLS_ACPT:
       ClearHoldingTimer();
-      // fall through:
     case TOH:
       m_state = IDLE;
       m_linkStatusCallback(m_interface, m_peerAddress, m_peerMeshPointAddress,
@@ -514,7 +477,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       m_state = HOLDING;
       m_linkStatusCallback(m_interface, m_peerAddress, m_peerMeshPointAddress,
                            HOLDING, HOLDING);
-      // reason not spec in D2.0
       SendPeerLinkClose(REASON11S_PEERING_CANCELLED);
       break;
     case OPN_RJCT:
@@ -525,8 +487,6 @@ void PeerLink::StateMachine(PeerEvent event, PmpReasonCode reasoncode) {
       SendPeerLinkClose(reasoncode);
       break;
     default:
-      // 11B.5.3.9 of 802.11s Draft D3.0
-      // All other events shall be ignored in this state
       break;
     }
     break;

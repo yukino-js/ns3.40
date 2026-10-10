@@ -1,30 +1,6 @@
-/*
- * Copyright (c) 2011 Mathieu Lacage
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@gmail.com>
- */
 #include "attribute-construction-list.h"
 
 #include "log.h"
-
-/**
- * \file
- * \ingroup object
- * ns3::AttributeConstructionList implementation.
- */
 
 namespace ns3 {
 
@@ -37,8 +13,6 @@ AttributeConstructionList::AttributeConstructionList() {
 void AttributeConstructionList::Add(std::string name,
                                     Ptr<const AttributeChecker> checker,
                                     Ptr<AttributeValue> value) {
-  // get rid of any previous value stored in this
-  // vector of values.
   NS_LOG_FUNCTION(this << name << checker << value);
 
   for (auto k = m_list.begin(); k != m_list.end(); k++) {
@@ -47,7 +21,6 @@ void AttributeConstructionList::Add(std::string name,
       break;
     }
   }
-  // store the new value.
   Item attr;
   attr.checker = checker;
   attr.value = value;

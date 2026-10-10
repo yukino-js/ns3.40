@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Ritsumeikan University, Shiga, Japan
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alberto Gallegos Ramonet <ramonet@fc.ritsumei.ac.jp>
- */
 
 #include "ns3/core-module.h"
 #include "ns3/internet-apps-module.h"
@@ -32,8 +14,6 @@ using namespace ns3;
 
 static void DataSentMacConfirm(Ptr<LrWpanNetDevice> device,
                                McpsDataConfirmParams params) {
-  // In the case of transmissions with the Ack flag activated, the transaction
-  // is only successful if the Ack was received.
   if (params.m_status == LrWpanMcpsDataConfirmStatus::IEEE_802_15_4_SUCCESS) {
     std::cout << Simulator::Now().As(Time::S) << " | Node "
               << device->GetNode()->GetId()
@@ -70,7 +50,6 @@ int main(int argc, char **argv) {
   mobility.Install(nodes);
 
   LrWpanHelper lrWpanHelper;
-  // Add and install the LrWpanNetDevice for each node
   NetDeviceContainer lrwpanDevices = lrWpanHelper.Install(nodes);
 
   Ptr<LrWpanNetDevice> dev1 =
@@ -84,31 +63,8 @@ int main(int argc, char **argv) {
   dev2->GetMac()->SetMcpsDataConfirmCallback(
       MakeBoundCallback(&DataSentMacConfirm, dev2));
 
-  // Manual PAN association, coordinator assignment, short address assignment
-  // and initialization of beacon-enabled mode in 802.15.4-2011. Association
-  // using the MAC functions can also be used instead of a manual association.
-
-  // AssociateToBeaconPan (devices, PAN ID, Coordinator Address, Beacon Order,
-  // Superframe Order)
-
-  // Must be careful not setting the beacon order (BO) and the superframe order
-  // (SO) too far apart or the ping reply (ICMPV6 echo reply) can time out
-  // during the inactive period of the superframe. A full time table of the
-  // BO/SO time equivalence can be found at the end of this document. The
-  // current configuration is BO = 14, SO = 13 :
-
-  //           Contention Access Period (CAP)                           Inactive
-  //              (125.82912 secs) (125.82088)
-  //   |---------------------------------------------|-------------------------------------------|
-  // Beacon Beacon
-  //                            Beacon Interval = 251.65 secs
-  //   |-----------------------------------------------------------------------------------------|
-
-  // Manually set an associated PAN, Pan id = 1 the first device (dev1) is used
-  // as coordinator
   lrWpanHelper.CreateAssociatedPan(lrwpanDevices, 5);
 
-  // Start the beacon mode from the MAC layer of the coordinator (dev1)
   MlmeStartRequestParams params;
   params.m_panCoor = true;
   params.m_PanId = 5;
@@ -130,9 +86,6 @@ int main(int argc, char **argv) {
   ipv6.SetBase(Ipv6Address("2001:2::"), Ipv6Prefix(64));
   Ipv6InterfaceContainer deviceInterfaces;
   deviceInterfaces = ipv6.Assign(devices);
-
-  // Send ping packets after the 2nd second of the simulation during the
-  // first 8 seconds of the CAP in the incoming superframe
 
   uint32_t packetSize = 16;
   uint32_t maxPacketCount = 5;
@@ -159,27 +112,3 @@ int main(int argc, char **argv) {
 
   return 0;
 }
-
-// BO/SO values to time equivalence
-// These times are only valid for a 250kbps O-QPSK modulation,
-// times differ with other modulation configurations.
-
-// +------------------------+
-// | BO/SO |  Time (secs)   |
-// +------------------------+
-// |   0   | 0.01536 secs   |
-// |   1   | 0.03072 secs   |
-// |   2   | 0.06144 secs   |
-// |   3   | 0.12288 secs   |
-// |   4   | 0.24576 secs   |
-// |   5   | 0.49152 secs   |
-// |   6   | 0.98304 secs   |
-// |   7   | 1.96608 secs   |
-// |   8   | 3.93216 secs   |
-// |   9   | 7.86432 secs   |
-// |   10  | 15.72864 secs  |
-// |   11  | 31.45728 secs  |
-// |   12  | 62.91456 secs  |
-// |   13  | 125.82912 secs |
-// |   14  | 251.65 secs    |
-// +------------------------+

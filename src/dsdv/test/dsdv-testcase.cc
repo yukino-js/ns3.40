@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2010 Hemanth Narra
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hemanth Narra <hemanth@ittc.ku.com>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 #include "ns3/boolean.h"
 #include "ns3/double.h"
 #include "ns3/dsdv-helper.h"
@@ -46,18 +16,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup dsdv
- * \ingroup tests
- * \defgroup dsdv-test DSDV module tests
- */
-
-/**
- * \ingroup dsdv-test
- *
- * \brief DSDV test case to verify the DSDV header
- *
- */
 class DsdvHeaderTestCase : public TestCase {
 public:
   DsdvHeaderTestCase();
@@ -103,11 +61,6 @@ void DsdvHeaderTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup dsdv-test
- *
- * \brief DSDV routing table tests (adding and looking up routes)
- */
 class DsdvTableTestCase : public TestCase {
 public:
   DsdvTableTestCase();
@@ -125,51 +78,31 @@ void DsdvTableTestCase::DoRun() {
   Ptr<NetDevice> dev;
   {
     dsdv::RoutingTableEntry rEntry1(
-        /*dev=*/dev,
-        /*dst=*/Ipv4Address("10.1.1.4"),
-        /*seqNo=*/2,
-        /*iface=*/
+        dev, Ipv4Address("10.1.1.4"), 2,
         Ipv4InterfaceAddress(Ipv4Address("10.1.1.1"),
                              Ipv4Mask("255.255.255.0")),
-        /*hops=*/2,
-        /*nextHop=*/Ipv4Address("10.1.1.2"),
-        /*lifetime=*/Seconds(10));
+        2, Ipv4Address("10.1.1.2"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rEntry1), true, "add route");
 
     dsdv::RoutingTableEntry rEntry2(
-        /*dev=*/dev,
-        /*dst=*/Ipv4Address("10.1.1.2"),
-        /*seqNo=*/4,
-        /*iface=*/
+        dev, Ipv4Address("10.1.1.2"), 4,
         Ipv4InterfaceAddress(Ipv4Address("10.1.1.1"),
                              Ipv4Mask("255.255.255.0")),
-        /*hops=*/1,
-        /*nextHop=*/Ipv4Address("10.1.1.2"),
-        /*lifetime=*/Seconds(10));
+        1, Ipv4Address("10.1.1.2"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rEntry2), true, "add route");
 
     dsdv::RoutingTableEntry rEntry3(
-        /*dev=*/dev,
-        /*dst=*/Ipv4Address("10.1.1.3"),
-        /*seqNo=*/4,
-        /*iface=*/
+        dev, Ipv4Address("10.1.1.3"), 4,
         Ipv4InterfaceAddress(Ipv4Address("10.1.1.1"),
                              Ipv4Mask("255.255.255.0")),
-        /*hops=*/1,
-        /*nextHop=*/Ipv4Address("10.1.1.3"),
-        /*lifetime=*/Seconds(10));
+        1, Ipv4Address("10.1.1.3"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rEntry3), true, "add route");
 
     dsdv::RoutingTableEntry rEntry4(
-        /*dev=*/dev,
-        /*dst=*/Ipv4Address("10.1.1.255"),
-        /*seqNo=*/0,
-        /*iface=*/
+        dev, Ipv4Address("10.1.1.255"), 0,
         Ipv4InterfaceAddress(Ipv4Address("10.1.1.1"),
                              Ipv4Mask("255.255.255.0")),
-        /*hops=*/0,
-        /*nextHop=*/Ipv4Address("10.1.1.255"),
-        /*lifetime=*/Seconds(10));
+        0, Ipv4Address("10.1.1.255"), Seconds(10));
     NS_TEST_EXPECT_MSG_EQ(rtable.AddRoute(rEntry4), true, "add route");
   }
   {
@@ -206,15 +139,10 @@ void DsdvTableTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup dsdv-test
- *
- * \brief DSDV test suite
- */
 class DsdvTestSuite : public TestSuite {
 public:
   DsdvTestSuite() : TestSuite("routing-dsdv", UNIT) {
     AddTestCase(new DsdvHeaderTestCase(), TestCase::QUICK);
     AddTestCase(new DsdvTableTestCase(), TestCase::QUICK);
   }
-} g_dsdvTestSuite; ///< the test suite
+} g_dsdvTestSuite;

@@ -1,36 +1,9 @@
-/*
- * Copyright (c) 2004 Francisco J. Ros
- * Copyright (c) 2007 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Francisco J. Ros  <fjrm@dif.um.es>
- *          Gustavo J. A. M. Carneiro <gjc@inescporto.pt>
- */
 
-///
-/// \file olsr-state.cc
-/// \brief Implementation of all functions needed for manipulating the internal
-///        state of an OLSR node.
-///
 
 #include "olsr-state.h"
 
 namespace ns3 {
 namespace olsr {
-
-/********** MPR Selector Set Manipulation **********/
 
 MprSelectorTuple *OlsrState::FindMprSelectorTuple(const Ipv4Address &mainAddr) {
   for (auto it = m_mprSelectorSet.begin(); it != m_mprSelectorSet.end(); it++) {
@@ -79,8 +52,6 @@ std::string OlsrState::PrintMprSelectorSet() const {
   os << "]";
   return os.str();
 }
-
-/********** Neighbor Set Manipulation **********/
 
 NeighborTuple *OlsrState::FindNeighborTuple(const Ipv4Address &mainAddr) {
   for (auto it = m_neighborSet.begin(); it != m_neighborSet.end(); it++) {
@@ -133,15 +104,12 @@ void OlsrState::EraseNeighborTuple(const Ipv4Address &mainAddr) {
 void OlsrState::InsertNeighborTuple(const NeighborTuple &tuple) {
   for (auto it = m_neighborSet.begin(); it != m_neighborSet.end(); it++) {
     if (it->neighborMainAddr == tuple.neighborMainAddr) {
-      // Update it
       *it = tuple;
       return;
     }
   }
   m_neighborSet.push_back(tuple);
 }
-
-/********** Neighbor 2 Hop Set Manipulation **********/
 
 TwoHopNeighborTuple *
 OlsrState::FindTwoHopNeighborTuple(const Ipv4Address &neighborMainAddr,
@@ -195,8 +163,6 @@ void OlsrState::InsertTwoHopNeighborTuple(const TwoHopNeighborTuple &tuple) {
   m_twoHopNeighborSet.push_back(tuple);
 }
 
-/********** MPR Set Manipulation **********/
-
 bool OlsrState::FindMprAddress(const Ipv4Address &addr) {
   auto it = m_mprSet.find(addr);
   return (it != m_mprSet.end());
@@ -205,8 +171,6 @@ bool OlsrState::FindMprAddress(const Ipv4Address &addr) {
 void OlsrState::SetMprSet(MprSet mprSet) { m_mprSet = mprSet; }
 
 MprSet OlsrState::GetMprSet() const { return m_mprSet; }
-
-/********** Duplicate Set Manipulation **********/
 
 DuplicateTuple *OlsrState::FindDuplicateTuple(const Ipv4Address &addr,
                                               uint16_t sequenceNumber) {
@@ -230,8 +194,6 @@ void OlsrState::EraseDuplicateTuple(const DuplicateTuple &tuple) {
 void OlsrState::InsertDuplicateTuple(const DuplicateTuple &tuple) {
   m_duplicateSet.push_back(tuple);
 }
-
-/********** Link Set Manipulation **********/
 
 LinkTuple *OlsrState::FindLinkTuple(const Ipv4Address &ifaceAddr) {
   for (auto it = m_linkSet.begin(); it != m_linkSet.end(); it++) {
@@ -268,8 +230,6 @@ LinkTuple &OlsrState::InsertLinkTuple(const LinkTuple &tuple) {
   m_linkSet.push_back(tuple);
   return m_linkSet.back();
 }
-
-/********** Topology Set Manipulation **********/
 
 TopologyTuple *OlsrState::FindTopologyTuple(const Ipv4Address &destAddr,
                                             const Ipv4Address &lastAddr) {
@@ -315,8 +275,6 @@ void OlsrState::InsertTopologyTuple(const TopologyTuple &tuple) {
   m_topologySet.push_back(tuple);
 }
 
-/********** Interface Association Set Manipulation **********/
-
 IfaceAssocTuple *OlsrState::FindIfaceAssocTuple(const Ipv4Address &ifaceAddr) {
   for (auto it = m_ifaceAssocSet.begin(); it != m_ifaceAssocSet.end(); it++) {
     if (it->ifaceAddr == ifaceAddr) {
@@ -359,8 +317,6 @@ OlsrState::FindNeighborInterfaces(const Ipv4Address &neighborMainAddr) const {
   }
   return retval;
 }
-
-/********** Host-Network Association Set Manipulation **********/
 
 AssociationTuple *
 OlsrState::FindAssociationTuple(const Ipv4Address &gatewayAddr,

@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2010 Hemanth Narra
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hemanth Narra <hemanth@ittc.ku.com>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 #include "dsdv-rtable.h"
 
 #include "ns3/log.h"
@@ -147,9 +117,8 @@ void RoutingTable::GetListOfDestinationWithNextHop(
 }
 
 void RoutingTableEntry::Print(Ptr<OutputStreamWrapper> stream,
-                              Time::Unit unit /*= Time::S*/) const {
+                              Time::Unit unit) const {
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -174,7 +143,6 @@ void RoutingTableEntry::Print(Ptr<OutputStreamWrapper> stream,
   *os << std::setw(16) << m_seqNo;
   *os << std::setw(16) << ltime.str();
   *os << stime.str() << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 
@@ -201,23 +169,15 @@ void RoutingTable::Purge(
       removedAddresses.insert(std::make_pair(i->first, i->second));
       ++i;
       m_ipv4AddressEntry.erase(itmp);
-    }
-    /** \todo Need to decide when to invalidate a route */
-    /*          else if (i->second.GetLifeTime() > m_holddownTime)
-     {
-     ++i;
-     itmp->second.SetFlag(INVALID);
-     }*/
-    else {
+    } else {
       ++i;
     }
   }
 }
 
 void RoutingTable::Print(Ptr<OutputStreamWrapper> stream,
-                         Time::Unit unit /*= Time::S*/) const {
+                         Time::Unit unit) const {
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -237,7 +197,6 @@ void RoutingTable::Print(Ptr<OutputStreamWrapper> stream,
     i->second.Print(stream, unit);
   }
   *os << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 

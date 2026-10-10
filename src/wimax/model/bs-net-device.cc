@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "bs-net-device.h"
 
@@ -213,15 +193,14 @@ TypeId BaseStationNetDevice::GetTypeId() {
 BaseStationNetDevice::BaseStationNetDevice() { InitBaseStationNetDevice(); }
 
 void BaseStationNetDevice::InitBaseStationNetDevice() {
-  m_initialRangInterval = Seconds(0.05); // maximum is 2
-  m_dcdInterval = Seconds(3);            // maximum is 10
-  m_ucdInterval = Seconds(3);            // maximum is 10
-  m_intervalT8 = MilliSeconds(50);       // maximum is 300 milliseconds
+  m_initialRangInterval = Seconds(0.05);
+  m_dcdInterval = Seconds(3);
+  m_ucdInterval = Seconds(3);
+  m_intervalT8 = MilliSeconds(50);
   m_maxRangCorrectionRetries = 16;
   m_maxInvitedRangRetries = 16;
-  m_rangReqOppSize = 8; // 8 symbols = 2 (preamble) + 2 (RNG-REQ) + 4
-                        // (round-trip propagation time)
-  m_bwReqOppSize = 2; // 2 symbols = 1 (preamble) + 1 (bandwidth request header)
+  m_rangReqOppSize = 8;
+  m_bwReqOppSize = 2;
   m_nrDlSymbols = 0;
   m_nrUlSymbols = 0;
   m_nrDlMapSent = 0;
@@ -441,7 +420,6 @@ void BaseStationNetDevice::Start() {
   GetPhy()->SetSimplex(m_linkManager->SelectDlChannel());
   Simulator::ScheduleNow(&BaseStationNetDevice::StartFrame, this);
 
-  /* shall actually be 2 symbols = 1 (preamble) + 1 (bandwidth request header)*/
   m_bwReqOppSize = 6;
   m_uplinkScheduler->InitOnce();
 }
@@ -449,7 +427,6 @@ void BaseStationNetDevice::Start() {
 void BaseStationNetDevice::Stop() {}
 
 void BaseStationNetDevice::StartFrame() {
-  // setting DL/UL subframe allocation for this frame
   uint32_t symbolsPerFrame = GetPhy()->GetSymbolsPerFrame();
   SetNrDlSymbols(
       (symbolsPerFrame / 2) -
@@ -469,7 +446,7 @@ void BaseStationNetDevice::StartFrame() {
 }
 
 void BaseStationNetDevice::StartDlSubFrame() {
-  m_dlSubframeStartTime = Simulator::Now(); // same as m_frameStartTime
+  m_dlSubframeStartTime = Simulator::Now();
 
   NS_LOG_DEBUG("DL frame started : " << m_frameStartTime.As(Time::S));
 
@@ -583,13 +560,11 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
   LlcSnapHeader llc;
   Ptr<WimaxConnection> connection = nullptr;
   FragmentationSubheader fragSubhdr;
-  bool fragmentation =
-      false; // it becomes true when there is a fragmentation subheader
+  bool fragmentation = false;
 
   packet->RemoveHeader(gnrcMacHdr);
   if (gnrcMacHdr.GetHt() == MacHeaderType::HEADER_TYPE_GENERIC) {
     if (!gnrcMacHdr.check_hcs()) {
-      // The header is noisy
       m_bsRxDropTrace(packet);
       NS_LOG_INFO("Header HCS ERROR");
       return;
@@ -597,25 +572,20 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
 
     cid = gnrcMacHdr.GetCid();
 
-    // checking for subheaders (only grant management subheader is implemented)
     type = gnrcMacHdr.GetType();
     if (type) {
-      // checking 1st bit, see Table 6
       if (type & 1) {
         packet->RemoveHeader(grantMgmntSubhdr);
       }
-      // Check if there is a fragmentation Subheader
       uint8_t tmpType = type;
       if (((tmpType >> 2) & 1) == 1) {
-        // a TRANSPORT packet with fragmentation subheader has been received!
         NS_LOG_INFO("FRAG_DEBUG: DoReceive -> the packet is a fragment"
                     << std::endl);
         fragmentation = true;
       }
     }
 
-    if (cid.IsInitialRanging()) // initial ranging connection
-    {
+    if (cid.IsInitialRanging()) {
       packet->RemoveHeader(msgType);
       switch (msgType.GetType()) {
       case ManagementMessageType::MESSAGE_TYPE_RNG_REQ: {
@@ -624,13 +594,11 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
         break;
       }
       case ManagementMessageType::MESSAGE_TYPE_RNG_RSP:
-        // from other base station, ignore
         break;
       default:
         NS_FATAL_ERROR("Invalid message type");
       }
-    } else if (m_cidFactory->IsBasic(cid)) // basic management connection
-    {
+    } else if (m_cidFactory->IsBasic(cid)) {
       source = m_ssManager->GetMacAddress(cid);
       m_traceBSRx(packet, source, cid);
       packet->RemoveHeader(msgType);
@@ -641,22 +609,18 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
         break;
       }
       case ManagementMessageType::MESSAGE_TYPE_RNG_RSP:
-        // from other base station, ignore
         break;
       default:
         NS_FATAL_ERROR("Invalid message type");
       }
-    } else if (m_cidFactory->IsPrimary(cid)) // primary management connection
-    {
+    } else if (m_cidFactory->IsPrimary(cid)) {
       source = m_ssManager->GetMacAddress(cid);
       m_traceBSRx(packet, source, cid);
       packet->RemoveHeader(msgType);
       switch (msgType.GetType()) {
       case ManagementMessageType::MESSAGE_TYPE_REG_REQ:
-        // not yet implemented
         break;
       case ManagementMessageType::MESSAGE_TYPE_REG_RSP:
-        // from other base station, ignore
         break;
       case ManagementMessageType::MESSAGE_TYPE_DSA_REQ: {
         DsaReq dsaReq;
@@ -666,8 +630,6 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
       }
       case ManagementMessageType::MESSAGE_TYPE_DSA_RSP:
 
-        /*from other base station, as DSA initiated
-         from BS is not supported, ignore*/
         break;
       case ManagementMessageType::MESSAGE_TYPE_DSA_ACK: {
         Simulator::Cancel(GetServiceFlowManager()->GetDsaAckTimeoutEvent());
@@ -679,14 +641,9 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
       default:
         NS_FATAL_ERROR("Invalid message type");
       }
-    } else if (cid.IsBroadcast()) // broadcast connection
-    {
-      // from other base station, ignore
-      // or perhaps data packet (using other protocol) for BS, handle later
+    } else if (cid.IsBroadcast()) {
       return;
-    } else // transport connection
-    {
-      // If fragmentation is true, the packet is a fragment.
+    } else {
       Ptr<Packet> C_Packet = packet->Copy();
       if (!fragmentation) {
         C_Packet->RemoveHeader(llc);
@@ -700,20 +657,15 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
         uint32_t fc = fragSubhdr.GetFc();
         NS_LOG_INFO("\t fragment size = " << packet->GetSize() << std::endl);
         if (fc == 2) {
-          // This is the latest fragment.
-          // Take the fragment queue, defragment a packet and send it to the
-          // upper layer
           NS_LOG_INFO("\t Received the latest fragment" << std::endl);
           GetConnectionManager()->GetConnection(cid)->FragmentEnqueue(packet);
           WimaxConnection::FragmentsQueue fragmentsQueue =
               GetConnectionManager()->GetConnection(cid)->GetFragmentsQueue();
           Ptr<Packet> fullPacket = Create<Packet>();
 
-          // DEFRAGMENTATION
           NS_LOG_INFO("\t BS PACKET DEFRAGMENTATION" << std::endl);
           for (auto iter = fragmentsQueue.begin(); iter != fragmentsQueue.end();
                ++iter) {
-            // Create the whole Packet
             fullPacket->AddAtEnd(*iter);
           }
           GetConnectionManager()->GetConnection(cid)->ClearFragmentsQueue();
@@ -725,8 +677,6 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
           ForwardUp(fullPacket->Copy(), source,
                     Mac48Address("ff:ff:ff:ff:ff:ff"));
         } else {
-          // This is the first or middle fragment.
-          // Take the fragment queue, store the fragment into the queue
           NS_LOG_INFO("\t Received the first or the middle fragment"
                       << std::endl);
           GetConnectionManager()->GetConnection(cid)->FragmentEnqueue(packet);
@@ -734,14 +684,12 @@ void BaseStationNetDevice::DoReceive(Ptr<Packet> packet) {
       }
     }
   } else {
-    // bandwidth request header
     packet->AddHeader(gnrcMacHdr);
     packet->RemoveHeader(bwRequestHdr);
     NS_ASSERT_MSG(
         bwRequestHdr.GetHt() == MacHeaderType::HEADER_TYPE_BANDWIDTH,
         "A bandwidth request should be carried by a bandwidth header type");
     if (!bwRequestHdr.check_hcs()) {
-      // The header is noisy
       NS_LOG_INFO("BS:Header HCS ERROR");
       return;
     }
@@ -770,10 +718,6 @@ void BaseStationNetDevice::CreateMapMessages() {
   }
 
   m_nrSsRegistered = currentNrSsRegistered;
-
-  /*either DCD and UCD must be created first because CCC is set during their
-   creation, or CCC must be calculated first so that it could be set during
-   creation of DL-MAP and UL-MAP and then set during creation of DCD and UCD*/
 
   if (sendDcd) {
     m_dcdConfigChangeCount += 1 % 256;
@@ -818,11 +762,6 @@ void BaseStationNetDevice::CreateDescriptorMessages(bool sendDcd,
   }
 }
 
-/*
- Sends bursts in the downlink subframe. i.e., creates the downlink subframe. The
- first burst is broadcast burst with MAC management messages. The rest of the
- bursts contain data packets.
- */
 void BaseStationNetDevice::SendBursts() {
   Time txTime = Seconds(0);
   std::pair<OfdmDlMapIe *, Ptr<PacketBurst>> pair;
@@ -946,8 +885,8 @@ Ptr<Packet> BaseStationNetDevice::CreateUlMap() {
 Ptr<Packet> BaseStationNetDevice::CreateUcd() {
   Ucd ucd;
   ucd.SetConfigurationChangeCount(m_ucdConfigChangeCount);
-  ucd.SetRangingBackoffStart(3); // setting to 7. i.e., 2^3 = 8 -> 0-7
-  ucd.SetRangingBackoffEnd(6);   // setting to 63. i.e., 2^6 = 64 -> 0-63
+  ucd.SetRangingBackoffStart(3);
+  ucd.SetRangingBackoffEnd(6);
   ucd.SetRequestBackoffStart(3);
   ucd.SetRequestBackoffEnd(6);
 
@@ -978,7 +917,7 @@ void BaseStationNetDevice::SetDlBurstProfiles(Dcd *dcd) {
     OfdmDlBurstProfile brstProfile;
     brstProfile.SetType(0);
     brstProfile.SetLength(0);
-    brstProfile.SetDiuc(i + 1); // DIUC will be between 1-11, see Table 237
+    brstProfile.SetDiuc(i + 1);
     brstProfile.SetFecCodeType(i);
     dcd->AddDlBurstProfile(brstProfile);
   }
@@ -990,8 +929,6 @@ void BaseStationNetDevice::SetUlBurstProfiles(Ucd *ucd) {
     OfdmUlBurstProfile brstProfile;
     brstProfile.SetType(0);
     brstProfile.SetLength(0);
-    // UIUC will be between 5-12, see Table 246. UIUC 1 (initial ranging) is not
-    // included
     brstProfile.SetUiuc(i + 5);
     brstProfile.SetFecCodeType(i);
 

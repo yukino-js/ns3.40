@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2013 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mitch Watrous (watrous@u.washington.edu)
- */
 
 #include "gnuplot-aggregator.h"
 
@@ -65,32 +47,25 @@ GnuplotAggregator::~GnuplotAggregator() {
   std::string plotFileName = m_outputFileNameWithoutExtension + ".plt";
   std::string scriptFileName = m_outputFileNameWithoutExtension + ".sh";
 
-  // Open the gnuplot plot and data files.
   std::ofstream plotFile;
   plotFile.open(plotFileName);
   std::ofstream dataFile;
   dataFile.open(dataFileName);
 
-  // Skip any NaN's that appear in data.
   m_gnuplot.AppendExtra("set datafile missing \"-nan\"");
 
-  // Write the gnuplot plot and data files.
   m_gnuplot.GenerateOutput(plotFile, dataFile, dataFileName);
 
-  // Close the gnuplot plot and data files.
   plotFile.close();
   dataFile.close();
 
-  // Open the shell script file.
   std::ofstream scriptFile;
   scriptFile.open(scriptFileName);
 
-  // Write the shell script file.
   scriptFile << "#!/bin/sh" << std::endl;
   scriptFile << std::endl;
   scriptFile << "gnuplot " << plotFileName << std::endl;
 
-  // Close the shell script file.
   scriptFile.close();
 }
 
@@ -102,7 +77,6 @@ void GnuplotAggregator::Write2d(std::string context, double x, double y) {
   }
 
   if (m_enabled) {
-    // Add this 2D data point to its dataset.
     m_2dDatasetMap[context].Add(x, y);
   }
 }
@@ -116,7 +90,6 @@ void GnuplotAggregator::Write2dWithXErrorDelta(std::string context, double x,
   }
 
   if (m_enabled) {
-    // Add this 2D data point with its error bar to its dataset.
     m_2dDatasetMap[context].Add(x, y, errorDelta);
   }
 }
@@ -130,7 +103,6 @@ void GnuplotAggregator::Write2dWithYErrorDelta(std::string context, double x,
   }
 
   if (m_enabled) {
-    // Add this 2D data point with its error bar to its dataset.
     m_2dDatasetMap[context].Add(x, y, errorDelta);
   }
 }
@@ -145,16 +117,13 @@ void GnuplotAggregator::Write2dWithXYErrorDelta(std::string context, double x,
   }
 
   if (m_enabled) {
-    // Add this 2D data point with its error bar to its dataset.
     m_2dDatasetMap[context].Add(x, y, xErrorDelta, yErrorDelta);
   }
 }
 
 void GnuplotAggregator::SetTerminal(const std::string &terminal) {
-  // Change the extension for the graphics file.
   m_graphicsFileName = m_outputFileNameWithoutExtension + "." + terminal;
 
-  // Update the gnuplot, too.
   m_gnuplot.SetTerminal(terminal);
   m_gnuplot.SetOutputFilename(m_graphicsFileName);
 }
@@ -190,11 +159,9 @@ void GnuplotAggregator::Add2dDataset(const std::string &dataset,
     NS_ABORT_MSG("Dataset " << dataset << " has already been added");
   }
 
-  // Add this dataset to the map so that its values can be saved.
   Gnuplot2dDataset gnuplot2dDataset(title);
   m_2dDatasetMap[dataset] = gnuplot2dDataset;
 
-  // Add this dataset to the plot so that its values can be plotted.
   m_gnuplot.AddDataset(m_2dDatasetMap[dataset]);
 }
 
@@ -210,7 +177,6 @@ void GnuplotAggregator::Set2dDatasetExtra(const std::string &dataset,
     NS_ABORT_MSG("Dataset " << dataset << " has not been added");
   }
 
-  // Set the extra parameters for the dataset.
   m_2dDatasetMap[dataset].SetExtra(extra);
 }
 
@@ -221,7 +187,6 @@ void GnuplotAggregator::Write2dDatasetEmptyLine(const std::string &dataset) {
   }
 
   if (m_enabled) {
-    // Add an empty line to the dataset.
     m_2dDatasetMap[dataset].AddEmptyLine();
   }
 }
@@ -239,7 +204,6 @@ void GnuplotAggregator::Set2dDatasetStyle(const std::string &dataset,
     NS_ABORT_MSG("Dataset " << dataset << " has not been added");
   }
 
-  // Set the style for the dataset.
   m_2dDatasetMap[dataset].SetStyle(style);
 }
 
@@ -256,14 +220,12 @@ void GnuplotAggregator::Set2dDatasetErrorBars(
     NS_ABORT_MSG("Dataset " << dataset << " has not been added");
   }
 
-  // Set the error bars for the dataset.
   m_2dDatasetMap[dataset].SetErrorBars(errorBars);
 }
 
 void GnuplotAggregator::SetKeyLocation(
     GnuplotAggregator::KeyLocation keyLocation) {
   NS_LOG_FUNCTION(this << keyLocation);
-  // Set the specified key location.
   switch (keyLocation) {
   case NO_KEY:
     m_gnuplot.AppendExtra("set key off");

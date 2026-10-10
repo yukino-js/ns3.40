@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "ie-dot11s-preq.h"
 
@@ -25,9 +7,6 @@
 
 namespace ns3 {
 namespace dot11s {
-/*************************
- * DestinationAddressUnit
- ************************/
 DestinationAddressUnit::DestinationAddressUnit()
     : m_do(false), m_rf(false), m_usn(false),
       m_destinationAddress(Mac48Address()), m_destSeqNumber(0) {}
@@ -63,9 +42,6 @@ Mac48Address DestinationAddressUnit::GetDestinationAddress() const {
   return m_destinationAddress;
 }
 
-/********************************
- * IePreq
- *******************************/
 IePreq::~IePreq() {}
 
 IePreq::IePreq()
@@ -201,15 +177,7 @@ uint16_t IePreq::DeserializeInformationField(Buffer::Iterator start,
 }
 
 uint16_t IePreq::GetInformationFieldSize() const {
-  uint16_t retval = 1    // Flags
-                    + 1  // Hopcount
-                    + 1  // TTL
-                    + 4  // PREQ ID
-                    + 6  // Source address (originator)
-                    + 4  // Originator seqno
-                    + 4  // Lifetime
-                    + 4  // metric
-                    + 1; // destination count
+  uint16_t retval = 1 + 1 + 1 + 4 + 6 + 4 + 4 + 4 + 1;
   if (m_destCount > m_maxSize) {
     retval += (m_maxSize * 11);
   } else {
@@ -242,7 +210,6 @@ void IePreq::AddDestinationAddressElement(bool doFlag, bool rfFlag,
       return;
     }
   }
-  /// \todo check overflow
   Ptr<DestinationAddressUnit> new_element = Create<DestinationAddressUnit>();
   new_element->SetFlags(doFlag, rfFlag, (dest_seq_number == 0));
   new_element->SetDestinationAddress(dest_address);
@@ -307,17 +274,13 @@ bool IePreq::MayAddAddress(Mac48Address originator) {
       Mac48Address::GetBroadcast()) {
     return false;
   }
-  // -fstrict-overflow sensitive, see bug 1868
   if (GetInformationFieldSize() > 255 - 11) {
     return false;
   }
   return true;
 }
 
-bool IePreq::IsFull() const {
-  // -fstrict-overflow sensitive, see bug 1868
-  return (GetInformationFieldSize() > 255 - 11);
-}
+bool IePreq::IsFull() const { return (GetInformationFieldSize() > 255 - 11); }
 
 std::ostream &operator<<(std::ostream &os, const IePreq &a) {
   a.Print(os);

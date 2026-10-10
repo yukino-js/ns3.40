@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "dot11s-mac-header.h"
 
@@ -25,9 +7,6 @@
 
 namespace ns3 {
 namespace dot11s {
-/***********************************************************
- *  Here Mesh Mac Header functionality is defined.
- ***********************************************************/
 TypeId MeshHeader::GetTypeId() {
   static TypeId tid = TypeId("ns3::dot11s::MeshHeader")
                           .SetParent<Header>()
@@ -81,7 +60,6 @@ void MeshHeader::Serialize(Buffer::Iterator start) const {
   i.WriteU8(m_meshTtl);
   i.WriteHtolsbU32(m_meshSeqno);
   uint8_t addresses_to_add = GetAddressExt();
-  // Writing Address extensions:
   if ((addresses_to_add == 1) || (addresses_to_add == 3)) {
     WriteTo(i, m_addr4);
   }

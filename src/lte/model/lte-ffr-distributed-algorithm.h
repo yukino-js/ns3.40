@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #ifndef LTE_FFR_DISTRIBUTED_ALGORITHM_H
 #define LTE_FFR_DISTRIBUTED_ALGORITHM_H
@@ -28,40 +9,28 @@
 
 namespace ns3 {
 
-/**
- * \brief Distributed Fractional Frequency Reuse algorithm implementation.
- */
 class LteFfrDistributedAlgorithm : public LteFfrAlgorithm {
 public:
   LteFfrDistributedAlgorithm();
   ~LteFfrDistributedAlgorithm() override;
 
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
-  // inherited from LteFfrAlgorithm
   void SetLteFfrSapUser(LteFfrSapUser *s) override;
   LteFfrSapProvider *GetLteFfrSapProvider() override;
 
   void SetLteFfrRrcSapUser(LteFfrRrcSapUser *s) override;
   LteFfrRrcSapProvider *GetLteFfrRrcSapProvider() override;
 
-  /// let the forwarder class access the protected and private members
   friend class MemberLteFfrSapProvider<LteFfrDistributedAlgorithm>;
-  /// let the forwarder class access the protected and private members
   friend class MemberLteFfrRrcSapProvider<LteFfrDistributedAlgorithm>;
 
 protected:
-  // inherited from Object
   void DoInitialize() override;
   void DoDispose() override;
 
   void Reconfigure() override;
 
-  // FFR SAP PROVIDER IMPLEMENTATION
   std::vector<bool> DoGetAvailableDlRbg() override;
   bool DoIsDlRbgAvailableForUe(int i, uint16_t rnti) override;
   std::vector<bool> DoGetAvailableUlRbg() override;
@@ -77,118 +46,73 @@ protected:
   uint8_t DoGetTpc(uint16_t rnti) override;
   uint16_t DoGetMinContinuousUlBandwidth() override;
 
-  // FFR SAP RRC PROVIDER IMPLEMENTATION
   void DoReportUeMeas(uint16_t rnti,
                       LteRrcSap::MeasResults measResults) override;
   void DoRecvLoadInformation(EpcX2Sap::LoadInformationParams params) override;
 
 private:
-  /**
-   * Set down link configuration function
-   *
-   * \param cellId cell ID
-   * \param bandwidth the bandwidth
-   */
   void SetDownlinkConfiguration(uint16_t cellId, uint8_t bandwidth);
-  /**
-   * Set up link configuration function
-   *
-   * \param cellId cell ID
-   * \param bandwidth the bandwidth
-   */
   void SetUplinkConfiguration(uint16_t cellId, uint8_t bandwidth);
-  /**
-   * Initialize down link RGB maps function
-   */
   void InitializeDownlinkRbgMaps();
-  /**
-   * Initialize up link RGB maps function
-   */
   void InitializeUplinkRbgMaps();
 
-  /**
-   * Initialize up link RGB maps function
-   *
-   * \param rnti the RNTI
-   * \param cellId the cell ID
-   * \param rsrp the RSRP
-   * \param rsrq the RSRQ
-   */
   void UpdateNeighbourMeasurements(uint16_t rnti, uint16_t cellId, uint8_t rsrp,
                                    uint8_t rsrq);
 
-  /// Calculate function
   void Calculate();
-  /**
-   * Send load information function
-   *
-   * \param targetCellId the cell ID
-   */
   void SendLoadInformation(uint16_t targetCellId);
 
-  // FFR SAP
-  LteFfrSapUser *m_ffrSapUser;         ///< FFR SAP User
-  LteFfrSapProvider *m_ffrSapProvider; ///< FFR SAP Provider
+  LteFfrSapUser *m_ffrSapUser;
+  LteFfrSapProvider *m_ffrSapProvider;
 
-  // FFR RRF SAP
-  LteFfrRrcSapUser *m_ffrRrcSapUser;         ///< FFR RRC SAP User
-  LteFfrRrcSapProvider *m_ffrRrcSapProvider; ///< FFR RRC SAP Provider
+  LteFfrRrcSapUser *m_ffrRrcSapUser;
+  LteFfrRrcSapProvider *m_ffrRrcSapProvider;
 
-  std::vector<bool> m_dlRbgMap; ///< DL RBG map
-  std::vector<bool> m_ulRbgMap; ///< UL RBG map
+  std::vector<bool> m_dlRbgMap;
+  std::vector<bool> m_ulRbgMap;
 
-  uint8_t m_edgeRbNum;              ///< edge RB number
-  std::vector<bool> m_dlEdgeRbgMap; ///< DL edge RBG map
-  std::vector<bool> m_ulEdgeRbgMap; ///< UL edge RBG map
+  uint8_t m_edgeRbNum;
+  std::vector<bool> m_dlEdgeRbgMap;
+  std::vector<bool> m_ulEdgeRbgMap;
 
-  /// UePosition enumeration
   enum UePosition { AreaUnset, CenterArea, EdgeArea };
 
-  std::map<uint16_t, uint8_t> m_ues; ///< UEs map
+  std::map<uint16_t, uint8_t> m_ues;
 
-  uint8_t m_edgeSubBandRsrqThreshold; ///< edge sub band RSRQ threshold
+  uint8_t m_edgeSubBandRsrqThreshold;
 
-  uint8_t m_centerPowerOffset; ///< center power offset
-  uint8_t m_edgePowerOffset;   ///< edge power offset
+  uint8_t m_centerPowerOffset;
+  uint8_t m_edgePowerOffset;
 
-  uint8_t m_centerAreaTpc; ///< center area TPC
-  uint8_t m_edgeAreaTpc;   ///< edge area TCP
+  uint8_t m_centerAreaTpc;
+  uint8_t m_edgeAreaTpc;
 
-  Time m_calculationInterval; ///< calculation interval
-  EventId m_calculationEvent; ///< calculation event
+  Time m_calculationInterval;
+  EventId m_calculationEvent;
 
-  // The expected measurement identity
-  uint8_t m_rsrqMeasId; ///< RSRQ measurement ID
-  uint8_t m_rsrpMeasId; ///< RSRP measurement ID
+  uint8_t m_rsrqMeasId;
+  uint8_t m_rsrpMeasId;
 
-  /**
-   * \brief Measurements reported by a UE for a cell ID.
-   *
-   * The values are quantized according 3GPP TS 36.133 section 9.1.4 and 9.1.7.
-   */
   class UeMeasure : public SimpleRefCount<UeMeasure> {
   public:
-    uint16_t m_cellId; ///< Cell ID
-    uint8_t m_rsrp;    ///< RSRP
-    uint8_t m_rsrq;    ///< RSRQ
+    uint16_t m_cellId;
+    uint8_t m_rsrp;
+    uint8_t m_rsrq;
   };
 
-  /// Cell Id is used as the key for the following map
   typedef std::map<uint16_t, Ptr<UeMeasure>> MeasurementRow_t;
-  /// RNTI is used as the key for the following map
   typedef std::map<uint16_t, MeasurementRow_t> MeasurementTable_t;
-  MeasurementTable_t m_ueMeasures; ///< UE measures
+  MeasurementTable_t m_ueMeasures;
 
-  std::vector<uint16_t> m_neighborCell; ///< neighbor cell
+  std::vector<uint16_t> m_neighborCell;
 
-  uint8_t m_rsrpDifferenceThreshold; ///< RSRP difference threshold
+  uint8_t m_rsrpDifferenceThreshold;
 
-  std::map<uint16_t, uint32_t> m_cellWeightMap; ///< cell weight map
+  std::map<uint16_t, uint32_t> m_cellWeightMap;
 
-  std::map<uint16_t, std::vector<bool>> m_rntp; ///< RNTP
+  std::map<uint16_t, std::vector<bool>> m_rntp;
+};
 
-}; // end of class LteFfrDistributedAlgorithm
+} // namespace ns3
 
-} // end of namespace ns3
-
-#endif /* LTE_FR_DISTRIBUTED_ALGORITHM_H */
+#endif

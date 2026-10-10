@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo Carneiro  <gjc@inescporto.pt>
- */
 
 #include "pyviz.h"
 
@@ -55,11 +37,8 @@ static std::vector<std::string> PathSplit(std::string str) {
 
 namespace ns3 {
 
-static PyViz *g_visualizer = nullptr; ///< the visualizer
+static PyViz *g_visualizer = nullptr;
 
-/**
- * PyVizPacketTag structure
- */
 struct PyVizPacketTag : public Tag {
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
@@ -69,13 +48,9 @@ struct PyVizPacketTag : public Tag {
   void Print(std::ostream &os) const override;
   PyVizPacketTag();
 
-  uint32_t m_packetId; ///< packet id
+  uint32_t m_packetId;
 };
 
-/**
- * \brief Get the type ID.
- * \return the object TypeId
- */
 TypeId PyVizPacketTag::GetTypeId() {
   static TypeId tid = TypeId("ns3::PyVizPacketTag")
                           .SetParent<Tag>()
@@ -105,7 +80,6 @@ PyViz::PyViz() {
   NS_ASSERT(g_visualizer == nullptr);
   g_visualizer = this;
 
-  // WiFi
   Config::ConnectFailSafe(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacTx",
       MakeCallback(&PyViz::TraceNetDevTxWifi, this));
@@ -114,7 +88,6 @@ PyViz::PyViz() {
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacRx",
       MakeCallback(&PyViz::TraceNetDevRxWifi, this));
 
-  // CSMA
   Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/MacTx",
                           MakeCallback(&PyViz::TraceNetDevTxCsma, this));
 
@@ -125,14 +98,11 @@ PyViz::PyViz() {
       "/NodeList/*/DeviceList/*/$ns3::CsmaNetDevice/MacPromiscRx",
       MakeCallback(&PyViz::TraceNetDevPromiscRxCsma, this));
 
-  // Generic queue drop
   Config::ConnectFailSafe("/NodeList/*/DeviceList/*/TxQueue/Drop",
                           MakeCallback(&PyViz::TraceDevQueueDrop, this));
-  // IPv4 drop
   Config::ConnectFailSafe("/NodeList/*/$ns3::Ipv4L3Protocol/Drop",
                           MakeCallback(&PyViz::TraceIpv4Drop, this));
 
-  // Point-to-Point
   Config::ConnectFailSafe(
       "/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacTx",
       MakeCallback(&PyViz::TraceNetDevTxPointToPoint, this));
@@ -141,14 +111,12 @@ PyViz::PyViz() {
       "/NodeList/*/DeviceList/*/$ns3::PointToPointNetDevice/MacRx",
       MakeCallback(&PyViz::TraceNetDevRxPointToPoint, this));
 
-  // WiMax
   Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Tx",
                           MakeCallback(&PyViz::TraceNetDevTxWimax, this));
 
   Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::WimaxNetDevice/Rx",
                           MakeCallback(&PyViz::TraceNetDevRxWimax, this));
 
-  // LTE
   Config::ConnectFailSafe("/NodeList/*/DeviceList/*/$ns3::LteNetDevice/Tx",
                           MakeCallback(&PyViz::TraceNetDevTxLte, this));
 
@@ -157,8 +125,7 @@ PyViz::PyViz() {
 }
 
 void PyViz::RegisterCsmaLikeDevice(const std::string &deviceTypeName) {
-  TypeId::LookupByName(
-      deviceTypeName); // this will assert if the type name is invalid
+  TypeId::LookupByName(deviceTypeName);
 
   std::ostringstream sstream;
   sstream << "/NodeList/*/DeviceList/*/$" << deviceTypeName << "/MacTx";
@@ -175,8 +142,7 @@ void PyViz::RegisterCsmaLikeDevice(const std::string &deviceTypeName) {
 }
 
 void PyViz::RegisterWifiLikeDevice(const std::string &deviceTypeName) {
-  TypeId::LookupByName(
-      deviceTypeName); // this will assert if the type name is invalid
+  TypeId::LookupByName(deviceTypeName);
 
   std::ostringstream sstream;
   sstream << "/NodeList/*/DeviceList/*/$" << deviceTypeName << "/Tx";
@@ -188,8 +154,7 @@ void PyViz::RegisterWifiLikeDevice(const std::string &deviceTypeName) {
 }
 
 void PyViz::RegisterPointToPointLikeDevice(const std::string &deviceTypeName) {
-  TypeId::LookupByName(
-      deviceTypeName); // this will assert if the type name is invalid
+  TypeId::LookupByName(deviceTypeName);
 
   std::ostringstream sstream;
   sstream << "/NodeList/*/DeviceList/*/$" << deviceTypeName
@@ -246,7 +211,7 @@ std::vector<std::string> PyViz::GetPauseMessages() const {
 void PyViz::CallbackStopSimulation() {
   NS_LOG_FUNCTION_NOARGS();
   if (m_runUntil <= Simulator::Now()) {
-    Simulator::Stop(Seconds(0)); // Stop right now
+    Simulator::Stop(Seconds(0));
     m_stop = true;
   }
 }
@@ -261,7 +226,6 @@ void PyViz::SimulatorRunUntil(Time time) {
 
   Time expirationTime = Simulator::Now() - Seconds(10);
 
-  // Clear very old transmission records
   for (auto iter = m_txRecords.begin(); iter != m_txRecords.end();) {
     if (iter->second.time < expirationTime) {
       m_txRecords.erase(iter++);
@@ -270,7 +234,6 @@ void PyViz::SimulatorRunUntil(Time time) {
     }
   }
 
-  // Clear very old packets of interest
   for (auto iter = m_packetsOfInterest.begin();
        iter != m_packetsOfInterest.end();) {
     if (iter->second < expirationTime) {
@@ -283,9 +246,6 @@ void PyViz::SimulatorRunUntil(Time time) {
   if (Simulator::Now() >= time) {
     return;
   }
-  // Schedule a dummy callback function for the target time, to make
-  // sure we stop at the right time.  Otherwise, simulations with few
-  // events just appear to "jump" big chunks of time.
   NS_LOG_LOGIC("Schedule dummy callback to be called in "
                << (time - Simulator::Now()));
   m_runUntil = time;
@@ -394,8 +354,6 @@ void PyViz::TraceDevQueueDrop(std::string context, Ptr<const Packet> packet) {
   Ptr<Node> node = NodeList::GetNode(nodeIndex);
 
   if (m_nodesOfInterest.find(nodeIndex) == m_nodesOfInterest.end()) {
-    // if the transmitting node is not "of interest", we still
-    // record the transmission if it is a packet of interest.
     if (m_packetsOfInterest.find(packet->GetUid()) ==
         m_packetsOfInterest.end()) {
       NS_LOG_DEBUG("Packet " << packet->GetUid() << " is not of interest");
@@ -403,7 +361,6 @@ void PyViz::TraceDevQueueDrop(std::string context, Ptr<const Packet> packet) {
     }
   }
 
-  // ---- "last packets"
   const PacketCaptureOptions *captureOptions;
   if (GetPacketCaptureOptions(nodeIndex, &captureOptions) &&
       FilterPacket(packet, *captureOptions)) {
@@ -435,8 +392,6 @@ void PyViz::TraceIpv4Drop(std::string context, const ns3::Ipv4Header &hdr,
   TraceDevQueueDrop(context, packetCopy);
 }
 
-// --------- TX device tracing -------------------
-
 void PyViz::TraceNetDevTxCommon(const std::string &context,
                                 Ptr<const Packet> packet,
                                 const Mac48Address &destinationAddress) {
@@ -448,12 +403,10 @@ void PyViz::TraceNetDevTxCommon(const std::string &context,
   Ptr<Node> node = NodeList::GetNode(nodeIndex);
   Ptr<NetDevice> device = node->GetDevice(devIndex);
 
-  // ---- statistics
   NetDeviceStatistics &stats = FindNetDeviceStatistics(nodeIndex, devIndex);
   ++stats.transmittedPackets;
   stats.transmittedBytes += packet->GetSize();
 
-  // ---- "last packets"
   const PacketCaptureOptions *captureOptions;
   if (GetPacketCaptureOptions(nodeIndex, &captureOptions) &&
       FilterPacket(packet, *captureOptions)) {
@@ -470,18 +423,13 @@ void PyViz::TraceNetDevTxCommon(const std::string &context,
     }
   }
 
-  // ---- transmissions records
-
   if (m_nodesOfInterest.find(nodeIndex) == m_nodesOfInterest.end()) {
-    // if the transmitting node is not "of interest", we still
-    // record the transmission if it is a packet of interest.
     if (m_packetsOfInterest.find(packet->GetUid()) ==
         m_packetsOfInterest.end()) {
       NS_LOG_DEBUG("Packet " << packet->GetUid() << " is not of interest");
       return;
     }
   } else {
-    // We will follow this packet throughout the network.
     m_packetsOfInterest[packet->GetUid()] = Simulator::Now();
   }
 
@@ -493,7 +441,6 @@ void PyViz::TraceNetDevTxCommon(const std::string &context,
   m_txRecords[TxRecordKey(device->GetChannel(), packet->GetUid())] = record;
 
   PyVizPacketTag tag;
-  // packet->RemovePacketTag (tag);
   tag.m_packetId = packet->GetUid();
   packet->AddByteTag(tag);
 }
@@ -501,14 +448,6 @@ void PyViz::TraceNetDevTxCommon(const std::string &context,
 void PyViz::TraceNetDevTxWifi(std::string context, Ptr<const Packet> packet) {
   NS_LOG_FUNCTION(context << packet->GetUid() << *packet);
 
-  /*
-   *  To DS    From DS   Address 1    Address 2    Address 3    Address 4
-   *----------------------------------------------------------------------
-   *    0        0       Destination  Source        BSSID         N/A
-   *    0        1       Destination  BSSID         Source        N/A
-   *    1        0       BSSID        Source        Destination   N/A
-   *    1        1       Receiver     Transmitter   Destination   Source
-   */
   WifiMacHeader hdr;
   NS_ABORT_IF(packet->PeekHeader(hdr) == 0);
   Mac48Address destinationAddress;
@@ -535,8 +474,6 @@ void PyViz::TraceNetDevTxPointToPoint(std::string context,
   TraceNetDevTxCommon(context, packet, Mac48Address());
 }
 
-// --------- RX device tracing -------------------
-
 void PyViz::TraceNetDevRxCommon(const std::string &context,
                                 Ptr<const Packet> packet,
                                 const Mac48Address &from) {
@@ -545,7 +482,6 @@ void PyViz::TraceNetDevRxCommon(const std::string &context,
   if (packet->FindFirstMatchingByteTag(tag)) {
     uid = tag.m_packetId;
   } else {
-    // NS_ASSERT (0);
     NS_LOG_WARN("Packet has no byte tag; wimax link?");
     uid = packet->GetUid();
   }
@@ -555,7 +491,6 @@ void PyViz::TraceNetDevRxCommon(const std::string &context,
   int nodeIndex = std::stoi(splitPath[1]);
   int devIndex = std::stoi(splitPath[3]);
 
-  // ---- statistics
   NetDeviceStatistics &stats = FindNetDeviceStatistics(nodeIndex, devIndex);
   ++stats.receivedPackets;
   stats.receivedBytes += packet->GetSize();
@@ -563,7 +498,6 @@ void PyViz::TraceNetDevRxCommon(const std::string &context,
   Ptr<Node> node = NodeList::GetNode(nodeIndex);
   Ptr<NetDevice> device = node->GetDevice(devIndex);
 
-  // ---- "last packets"
   const PacketCaptureOptions *captureOptions;
   if (GetPacketCaptureOptions(nodeIndex, &captureOptions) &&
       FilterPacket(packet, *captureOptions)) {
@@ -579,7 +513,6 @@ void PyViz::TraceNetDevRxCommon(const std::string &context,
     }
   }
 
-  // ---- transmissions
   if (m_packetsOfInterest.find(uid) == m_packetsOfInterest.end()) {
     NS_LOG_DEBUG("RX Packet " << uid << " is not of interest");
     return;
@@ -649,14 +582,6 @@ void PyViz::TraceNetDevRxCommon(const std::string &context,
 void PyViz::TraceNetDevRxWifi(std::string context, Ptr<const Packet> packet) {
   NS_LOG_FUNCTION(context << packet->GetUid());
 
-  /*
-   *  To DS    From DS   Address 1    Address 2    Address 3    Address 4
-   *----------------------------------------------------------------------
-   *    0        0       Destination  Source        BSSID         N/A
-   *    0        1       Destination  BSSID         Source        N/A
-   *    1        0       BSSID        Source        Destination   N/A
-   *    1        1       Receiver     Transmitter   Destination   Source
-   */
   WifiMacHeader hdr;
   NS_ABORT_IF(packet->PeekHeader(hdr) == 0);
   Mac48Address sourceAddress;
@@ -689,10 +614,8 @@ void PyViz::TraceNetDevPromiscRxCsma(std::string context,
   EthernetHeader ethernetHeader;
   NS_ABORT_IF(packet->PeekHeader(ethernetHeader) == 0);
 
-  NetDevice::PacketType packetType = NetDevice::PACKET_OTHERHOST; // FIXME
+  NetDevice::PacketType packetType = NetDevice::PACKET_OTHERHOST;
 
-  // Other packet types are already being received by
-  // TraceNetDevRxCsma; we don't want to receive them twice.
   if (packetType == NetDevice::PACKET_OTHERHOST) {
     TraceNetDevRxCommon(context, packet, ethernetHeader.GetDestination());
   }
@@ -721,8 +644,6 @@ void PyViz::TraceNetDevRxLte(std::string context, Ptr<const Packet> packet,
   NS_LOG_FUNCTION(context);
   TraceNetDevRxCommon(context, packet, source);
 }
-
-// ---------------------
 
 PyViz::TransmissionSampleList PyViz::GetTransmissionSamples() const {
   NS_LOG_DEBUG("GetTransmissionSamples BEGIN");
@@ -784,115 +705,68 @@ PyViz::LastPacketsSample PyViz::GetLastPackets(uint32_t nodeId) const {
 }
 
 namespace {
-/// Adapted from
-/// http://en.wikipedia.org/w/index.php?title=Line_clipping&oldid=248609574
 class FastClipping {
 public:
-  /// Vector2 structure
   struct Vector2 {
-    double x; ///< X
-    double y; ///< Y
+    double x;
+    double y;
   };
 
-  Vector2 m_clipMin; ///< clip minimum
-  Vector2 m_clipMax; ///< clip maximum
+  Vector2 m_clipMin;
+  Vector2 m_clipMax;
 
-  /// Line structure
   struct Line {
-    Vector2 start; ///< start
-    Vector2 end;   ///<  end
-    double dx;     ///< dX
-    double dy;     ///< dY
+    Vector2 start;
+    Vector2 end;
+    double dx;
+    double dy;
   };
 
 private:
-  /**
-   * Clip start top function
-   * \param line the clip line
-   */
   void ClipStartTop(Line &line) const {
     line.start.x += line.dx * (m_clipMin.y - line.start.y) / line.dy;
     line.start.y = m_clipMin.y;
   }
 
-  /**
-   * Clip start bottom function
-   * \param line the clip line
-   */
   void ClipStartBottom(Line &line) const {
     line.start.x += line.dx * (m_clipMax.y - line.start.y) / line.dy;
     line.start.y = m_clipMax.y;
   }
 
-  /**
-   * Clip start right function
-   * \param line the clip line
-   */
   void ClipStartRight(Line &line) const {
     line.start.y += line.dy * (m_clipMax.x - line.start.x) / line.dx;
     line.start.x = m_clipMax.x;
   }
 
-  /**
-   * Clip start left function
-   * \param line the clip line
-   */
   void ClipStartLeft(Line &line) const {
     line.start.y += line.dy * (m_clipMin.x - line.start.x) / line.dx;
     line.start.x = m_clipMin.x;
   }
 
-  /**
-   * Clip end top function
-   * \param line the clip line
-   */
   void ClipEndTop(Line &line) const {
     line.end.x += line.dx * (m_clipMin.y - line.end.y) / line.dy;
     line.end.y = m_clipMin.y;
   }
 
-  /**
-   * Clip end bottom function
-   * \param line the clip line
-   */
   void ClipEndBottom(Line &line) const {
     line.end.x += line.dx * (m_clipMax.y - line.end.y) / line.dy;
     line.end.y = m_clipMax.y;
   }
 
-  /**
-   * Clip end right function
-   * \param line the clip line
-   */
   void ClipEndRight(Line &line) const {
     line.end.y += line.dy * (m_clipMax.x - line.end.x) / line.dx;
     line.end.x = m_clipMax.x;
   }
 
-  /**
-   * Clip end left function
-   * \param line the clip line
-   */
   void ClipEndLeft(Line &line) const {
     line.end.y += line.dy * (m_clipMin.x - line.end.x) / line.dx;
     line.end.x = m_clipMin.x;
   }
 
 public:
-  /**
-   * Constructor
-   *
-   * \param clipMin minimum clipping vector
-   * \param clipMax maximum clipping vector
-   */
   FastClipping(Vector2 clipMin, Vector2 clipMax)
       : m_clipMin(clipMin), m_clipMax(clipMax) {}
 
-  /**
-   * Clip line function
-   * \param line the clip line
-   * \returns true if clipped
-   */
   bool ClipLine(Line &line) {
     uint8_t lineCode = 0;
 
@@ -920,13 +794,7 @@ public:
       lineCode |= 16;
     }
 
-    // 9 - 8 - A
-    // |   |   |
-    // 1 - 0 - 2
-    // |   |   |
-    // 5 - 4 - 6
     switch (lineCode) {
-    // center
     case 0x00:
       return true;
 
@@ -974,7 +842,6 @@ public:
       }
       return true;
 
-    // left
     case 0x10:
       ClipStartLeft(line);
       return true;
@@ -1022,7 +889,6 @@ public:
       }
       return true;
 
-    // right
     case 0x20:
       ClipStartRight(line);
       return true;
@@ -1070,7 +936,6 @@ public:
       }
       return true;
 
-    // bottom
     case 0x40:
       ClipStartBottom(line);
       return true;
@@ -1121,7 +986,6 @@ public:
       }
       return true;
 
-    // bottom-left
     case 0x50:
       ClipStartLeft(line);
       if (line.start.y > m_clipMax.y) {
@@ -1168,7 +1032,6 @@ public:
       }
       return true;
 
-    // bottom-right
     case 0x60:
       ClipStartRight(line);
       if (line.start.y > m_clipMax.y) {
@@ -1215,7 +1078,6 @@ public:
       }
       return true;
 
-    // top
     case 0x80:
       ClipStartTop(line);
       return true;
@@ -1263,7 +1125,6 @@ public:
       }
       return true;
 
-    // top-left
     case 0x90:
       ClipStartLeft(line);
       if (line.start.y < m_clipMin.y) {
@@ -1310,7 +1171,6 @@ public:
       }
       return true;
 
-    // top-right
     case 0xA0:
       ClipStartRight(line);
       if (line.start.y < m_clipMin.y) {

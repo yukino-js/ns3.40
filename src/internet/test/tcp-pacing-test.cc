@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2020 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Deepak Kumaraswamy <deepakkavoor99@gmail.com>
- *
- */
 #include "tcp-general-test.h"
 
 #include "ns3/config.h"
@@ -28,80 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpPacingTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Test the behavior of TCP pacing
- *
- * This test checks that packets are paced at correct intervals.  The test
- * uses a shadow pacing rate calculation assumed to match the internal
- * pacing calculation.  Therefore, if you modify the values of
- * pacingSsRatio and pacingCaRatio herein, ensure that you also change
- * values used in the TCP implementation to match.
- *
- * This test environment uses an RTT of 100ms
- * The time interval between two consecutive packet transmissions is measured
- * Pacing rate should be at least cwnd / rtt to transmit cwnd segments per
- * rtt.  Linux multiples this basic ratio by an additional factor, to yield
- * pacingRate = (factor * cwnd) / rtt
- * Since pacingRate can also be written as segmentSize / interval
- * we can solve for interval = (segmentSize * rtt) / (factor * cwnd)
- *
- * The test checks whether the measured interval lies within a tolerance
- * value of the expected interval.  The tolerance or error margin
- * was chosen to be 10 Nanoseconds, that could be due to delay introduced
- * by the application's send process.
- *
- * This check should not be performed for a packet transmission after the
- * sender has sent all bytes corresponding to the window and is awaiting an
- * ACK from the receiver (corresponding to m_isFullCwndSent).
- * Pacing check should be performed when the sender is actively sending packets
- * from cwnd.
- *
- * The same argument applies when the sender has finished sending packets and is
- * awaiting a FIN/ACK from the receiver, to send the final ACK
- *
- * As can be seen in TcpSocketBase::UpdatePacingRate (), different pacing
- * ratios are used when cwnd < ssThresh / 2 and when cwnd > ssThresh / 2
- *
- * A few key points to note:
- * - In TcpSocketBase, pacing rate is updated whenever an ACK is received.
- *
- * - The factors that could contribute to a different value of pacing rate
- * include congestion window and RTT.
- *
- * - However, the cWnd trace is called after Rx () trace and we therefore
- * update the expected interval in cWnd trace.
- *
- * - An RTT trace is also necessary, since using delayed ACKs may lead to a
- * higher RTT measurement at the sender's end. The expected interval should
- * be updated here as well.
- *
- * - When sending the current packet, TcpSocketBase automatically decides the
- * time at which next packet should be sent. So, if say packet 3 is sent and an
- * ACK is received before packet 4 is sent (thus updating the pacing rate), this
- * does not change the time at which packet 4 is to be sent. When packet 4 is
- * indeed sent later, the new pacing rate is used to decide when packet 5 will
- * be sent. This behavior is captured in m_nextPacketInterval, which is not
- * affected by change of pacing rate before the next packet is sent. The
- * important observation here is to realize the contrast between
- * m_expectedInterval and m_nextPacketInterval.
- *
- */
 class TcpPacingTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param segmentSize Segment size at the TCP layer (bytes).
-   * \param packetSize Size of packets sent at the application layer (bytes).
-   * \param packets Number of packets.
-   * \param pacingSsRatio Pacing Ratio during Slow Start (multiplied by 100)
-   * \param pacingCaRatio Pacing Ratio during Congestion Avoidance (multiplied
-   * by 100) \param ssThresh slow start threshold (bytes) \param
-   * paceInitialWindow whether to pace the initial window \param delAckMaxCount
-   * Delayed ACK max count parameter \param congControl Type of congestion
-   * control. \param desc The test description.
-   */
   TcpPacingTest(uint32_t segmentSize, uint32_t packetSize, uint32_t packets,
                 uint16_t pacingSsRatio, uint16_t pacingCaRatio,
                 uint32_t ssThresh, bool paceInitialWindow,
@@ -120,42 +29,33 @@ protected:
   void PhyDrop(SocketWho who) override;
   void NormalClose(SocketWho who) override;
 
-  /**
-   * \brief Update the expected interval at which next packet will be sent
-   */
   virtual void UpdateExpectedInterval();
 
   void ConfigureEnvironment() override;
   void ConfigureProperties() override;
 
 private:
-  uint32_t m_segmentSize; //!< Segment size
-  uint32_t m_packetSize;  //!< Size of the packets
-  uint32_t m_packets;     //!< Number of packets
-  EventId m_event;        //!< Check event
-  bool m_initial;         //!< True on first run
-  uint32_t m_initialCwnd; //!< Initial value of cWnd
-  uint32_t m_curCwnd;     //!< Current sender cWnd
-  bool m_isFullCwndSent; //!< True if all bytes for that cWnd is sent and sender
-                         //!< is waiting for an ACK
-  uint32_t m_bytesInFlight;  //!< Current bytes in flight
-  Time m_prevTxTime;         //!< Time when Tx was previously called
-  uint16_t m_pacingSsRatio;  //!< Pacing factor during Slow Start
-  uint16_t m_pacingCaRatio;  //!< Pacing factor during Congestion Avoidance
-  uint32_t m_ssThresh;       //!< Slow start threshold
-  bool m_paceInitialWindow;  //!< True if initial window should be paced
-  uint32_t m_delAckMaxCount; //!< Delayed ack count for receiver
-  bool
-      m_isConnAboutToEnd; //!< True when sender receives a FIN/ACK from receiver
-  Time m_transmissionStartTime; //!< Time at which sender starts data
-                                //!< transmission
-  Time m_expectedInterval;   //!< Theoretical estimate of the time at which next
-                             //!< packet is scheduled for transmission
-  uint32_t m_packetsSent;    //!< Number of packets sent by sender so far
-  Time m_nextPacketInterval; //!< Time maintained by Tx () trace about interval
-                             //!< at which next packet will be sent
-  Time m_tracedRtt; //!< Traced value of RTT, which may be different from the
-                    //!< environment RTT in case of delayed ACKs
+  uint32_t m_segmentSize;
+  uint32_t m_packetSize;
+  uint32_t m_packets;
+  EventId m_event;
+  bool m_initial;
+  uint32_t m_initialCwnd;
+  uint32_t m_curCwnd;
+  bool m_isFullCwndSent;
+  uint32_t m_bytesInFlight;
+  Time m_prevTxTime;
+  uint16_t m_pacingSsRatio;
+  uint16_t m_pacingCaRatio;
+  uint32_t m_ssThresh;
+  bool m_paceInitialWindow;
+  uint32_t m_delAckMaxCount;
+  bool m_isConnAboutToEnd;
+  Time m_transmissionStartTime;
+  Time m_expectedInterval;
+  uint32_t m_packetsSent;
+  Time m_nextPacketInterval;
+  Time m_tracedRtt;
 };
 
 TcpPacingTest::TcpPacingTest(uint32_t segmentSize, uint32_t packetSize,
@@ -210,8 +110,6 @@ void TcpPacingTest::CWndTrace(uint32_t oldValue, uint32_t newValue) {
   if (m_initial) {
     m_initial = false;
   }
-  // CWndTrace () is called after Rx ()
-  // Therefore, call UpdateExpectedInterval () here instead of in Rx ()
   UpdateExpectedInterval();
 }
 
@@ -229,10 +127,8 @@ void TcpPacingTest::UpdateExpectedInterval() {
   }
 
   if (!m_paceInitialWindow && (m_curCwnd == m_initialCwnd * m_segmentSize)) {
-    // If initial cwnd is not paced, we expect packet pacing interval to be zero
     m_expectedInterval = Seconds(0);
   } else {
-    // Use the estimate according to update equation
     m_expectedInterval = Seconds((m_segmentSize * m_tracedRtt.GetSeconds()) /
                                  (factor * m_curCwnd));
   }
@@ -260,10 +156,6 @@ void TcpPacingTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
 
   if (who == SENDER) {
     m_packetsSent++;
-    // Start pacing checks from the second data packet onwards because
-    // an interval to check does not exist for the first data packet.
-    // The first two (non-data) packets correspond to SYN and an
-    // empty ACK, respectively, so start checking after three packets are sent
     bool beyondInitialDataSegment = (m_packetsSent > 3);
     Time actualInterval = Simulator::Now() - m_prevTxTime;
     NS_LOG_DEBUG("TX sent: packetsSent: "
@@ -271,8 +163,6 @@ void TcpPacingTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
                  << " nearEnd: " << m_isConnAboutToEnd
                  << " beyondInitialDataSegment " << beyondInitialDataSegment);
     if (!m_isFullCwndSent && !m_isConnAboutToEnd && beyondInitialDataSegment) {
-      // Consider a small error margin, and ensure that the actual and expected
-      // intervals lie within this error
       Time errorMargin = NanoSeconds(10);
       NS_TEST_ASSERT_MSG_LT_OR_EQ(
           std::abs((actualInterval - m_nextPacketInterval).GetSeconds()),
@@ -287,8 +177,6 @@ void TcpPacingTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
     }
 
     m_prevTxTime = Simulator::Now();
-    // bytesInFlight isn't updated yet. Its trace is called after Tx
-    // so add an additional m_segmentSize to bytesInFlight
     uint32_t soonBytesInFlight = m_bytesInFlight + m_segmentSize;
     bool canPacketBeSent = ((m_curCwnd - soonBytesInFlight) >= m_segmentSize);
     m_isFullCwndSent = (!canPacketBeSent || m_curCwnd == 0);
@@ -312,11 +200,6 @@ void TcpPacingTest::NormalClose(SocketWho who) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TestSuite for the behavior of TCP pacing
- */
 class TcpPacingTestSuite : public TestSuite {
 public:
   TcpPacingTestSuite() : TestSuite("tcp-pacing-test", UNIT) {
@@ -327,7 +210,7 @@ public:
     uint32_t numPackets = 40;
     uint32_t delAckMaxCount = 1;
     TypeId tid = TcpNewReno::GetTypeId();
-    uint32_t ssThresh = 1e9; // default large value
+    uint32_t ssThresh = 1e9;
     bool paceInitialWindow = false;
     std::string description;
 
@@ -347,8 +230,6 @@ public:
                                   description),
                 TestCase::QUICK);
 
-    // set ssThresh to some smaller value to check that pacing
-    // slows down in second half of slow start, then transitions to CA
     description = std::string(
         "Pacing case 3: Slow start, followed by transition to Congestion "
         "avoidance, no initial pacing");
@@ -361,7 +242,6 @@ public:
                                   description),
                 TestCase::QUICK);
 
-    // Repeat tests, but with more typical delAckMaxCount == 2
     delAckMaxCount = 2;
     paceInitialWindow = false;
     ssThresh = 1e9;
@@ -397,5 +277,4 @@ public:
   }
 };
 
-static TcpPacingTestSuite
-    g_tcpPacingTest; //!< Static variable for test initialization
+static TcpPacingTestSuite g_tcpPacingTest;

@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2018 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #include "sqlite-output.h"
 
 #include "ns3/abort.h"
@@ -74,89 +57,76 @@ bool SQLiteOutput::SpinPrepare(sqlite3_stmt **stmt,
 }
 
 template <typename T>
-T SQLiteOutput::RetrieveColumn(sqlite3_stmt * /* stmt */, int /* pos */) const {
+T SQLiteOutput::RetrieveColumn(sqlite3_stmt *, int) const {
   NS_FATAL_ERROR("Can't call generic fn");
 }
 
-/// \copydoc SQLiteOutput::RetrieveColumn
 template <>
 int SQLiteOutput::RetrieveColumn(sqlite3_stmt *stmt, int pos) const {
   return sqlite3_column_int(stmt, pos);
 }
 
-/// \copydoc SQLiteOutput::RetrieveColumn
 template <>
 uint32_t SQLiteOutput::RetrieveColumn(sqlite3_stmt *stmt, int pos) const {
   return static_cast<uint32_t>(sqlite3_column_int(stmt, pos));
 }
 
-/// \copydoc SQLiteOutput::RetrieveColumn
 template <>
 double SQLiteOutput::RetrieveColumn(sqlite3_stmt *stmt, int pos) const {
   return sqlite3_column_double(stmt, pos);
 }
 
 template <typename T>
-bool SQLiteOutput::Bind(sqlite3_stmt * /* stmt */, int /* pos */,
-                        const T & /* value */) const {
+bool SQLiteOutput::Bind(sqlite3_stmt *, int, const T &) const {
   NS_FATAL_ERROR("Can't call generic fn");
   return false;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos, const Time &value) const {
   return sqlite3_bind_double(stmt, pos, value.GetSeconds()) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const double &value) const {
   return sqlite3_bind_double(stmt, pos, value) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const uint32_t &value) const {
   return sqlite3_bind_int(stmt, pos, static_cast<int>(value)) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos, const long &value) const {
   return sqlite3_bind_int64(stmt, pos, value) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const long long &value) const {
   return sqlite3_bind_int64(stmt, pos, value) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const uint16_t &value) const {
   return sqlite3_bind_int(stmt, pos, static_cast<int>(value)) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const uint8_t &value) const {
   return sqlite3_bind_int(stmt, pos, static_cast<int>(value)) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos, const int &value) const {
   return sqlite3_bind_int(stmt, pos, value) == SQLITE_OK;
 }
 
-//! \copydoc SQLiteOutput::Bind
 template <>
 bool SQLiteOutput::Bind(sqlite3_stmt *stmt, int pos,
                         const std::string &value) const {

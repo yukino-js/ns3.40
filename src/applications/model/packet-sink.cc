@@ -1,21 +1,3 @@
-/*
- * Copyright 2007 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Tom Henderson (tomhend@u.washington.edu)
- */
 #include "packet-sink.h"
 
 #include "ns3/address-utils.h"
@@ -105,15 +87,11 @@ void PacketSink::DoDispose() {
   m_socket = nullptr;
   m_socketList.clear();
 
-  // chain up
   Application::DoDispose();
 }
 
-// Application Methods
-void PacketSink::StartApplication() // Called at time specified by Start
-{
+void PacketSink::StartApplication() {
   NS_LOG_FUNCTION(this);
-  // Create the socket if not already
   if (!m_socket) {
     m_socket = Socket::CreateSocket(GetNode(), m_tid);
     if (m_socket->Bind(m_local) == -1) {
@@ -124,7 +102,6 @@ void PacketSink::StartApplication() // Called at time specified by Start
     if (addressUtils::IsMulticast(m_local)) {
       Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket>(m_socket);
       if (udpSocket) {
-        // equivalent to setsockopt (MCAST_JOIN_GROUP)
         udpSocket->MulticastJoinGroup(0, m_local);
       } else {
         NS_FATAL_ERROR("Error: joining multicast on a non-UDP socket");
@@ -148,11 +125,9 @@ void PacketSink::StartApplication() // Called at time specified by Start
                               MakeCallback(&PacketSink::HandlePeerError, this));
 }
 
-void PacketSink::StopApplication() // Called at time specified by Stop
-{
+void PacketSink::StopApplication() {
   NS_LOG_FUNCTION(this);
-  while (!m_socketList.empty()) // these are accepted sockets, close them
-  {
+  while (!m_socketList.empty()) {
     Ptr<Socket> acceptedSocket = m_socketList.front();
     m_socketList.pop_front();
     acceptedSocket->Close();
@@ -169,7 +144,7 @@ void PacketSink::HandleRead(Ptr<Socket> socket) {
   Address from;
   Address localAddress;
   while ((packet = socket->RecvFrom(from))) {
-    if (packet->GetSize() == 0) { // EOF
+    if (packet->GetSize() == 0) {
       break;
     }
     m_totalRx += packet->GetSize();
@@ -262,4 +237,4 @@ void PacketSink::HandleAccept(Ptr<Socket> s, const Address &from) {
   m_socketList.push_back(s);
 }
 
-} // Namespace ns3
+} // namespace ns3

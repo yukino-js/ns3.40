@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Ghada Badawy <gbadawy@rim.com>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "vht-capabilities.h"
 
@@ -35,10 +16,7 @@ VhtCapabilities::VhtCapabilities()
       m_txHighestSupportedLongGuardIntervalDataRate(0) {
   m_rxMcsMap.resize(8, 0);
   m_txMcsMap.resize(8, 0);
-  for (uint8_t i = 0; i < 8;
-       i++) // set to 3 by default, i.e. #spatial streams not supported. 0 means
-            // supported up to MCS 7, not what we want to imply at this stage.
-  {
+  for (uint8_t i = 0; i < 8; i++) {
     m_rxMcsMap[i] = 3;
     m_txMcsMap[i] = 3;
   }
@@ -56,7 +34,6 @@ void VhtCapabilities::Print(std::ostream &os) const {
 uint16_t VhtCapabilities::GetInformationFieldSize() const { return 12; }
 
 void VhtCapabilities::SerializeInformationField(Buffer::Iterator start) const {
-  // write the corresponding value for each bit
   start.WriteHtolsbU32(GetVhtCapabilitiesInfo());
   start.WriteHtolsbU64(GetSupportedMcsAndNssSet());
 }
@@ -194,15 +171,13 @@ void VhtCapabilities::SetMaxAmpduLength(uint32_t maxampdulength) {
 }
 
 void VhtCapabilities::SetRxMcsMap(uint8_t mcs, uint8_t nss) {
-  // MCS index should be at least 7 and should not exceed 9
   NS_ASSERT(mcs >= 7 && mcs <= 9);
-  m_rxMcsMap[nss - 1] = mcs - 7; // 1 = MCS 8; 2 = MCS 9
+  m_rxMcsMap[nss - 1] = mcs - 7;
 }
 
 void VhtCapabilities::SetTxMcsMap(uint8_t mcs, uint8_t nss) {
-  // MCS index should be at least 7 and should not exceed 9
   NS_ASSERT(mcs >= 7 && mcs <= 9);
-  m_txMcsMap[nss - 1] = mcs - 7; // 1 = MCS 8; 2 = MCS 9
+  m_txMcsMap[nss - 1] = mcs - 7;
 }
 
 bool VhtCapabilities::IsSupportedTxMcs(uint8_t mcs) const {
@@ -271,7 +246,6 @@ uint32_t VhtCapabilities::GetMaxAmpduLength() const {
 }
 
 bool VhtCapabilities::IsSupportedMcs(uint8_t mcs, uint8_t nss) const {
-  // The MCS index starts at 0 and NSS starts at 1
   if (mcs <= 7 && m_rxMcsMap[nss - 1] < 3) {
     return true;
   }

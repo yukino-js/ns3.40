@@ -1,38 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
-
-// This example is used to validate error rate models for DSSS rates.
-//
-// It outputs plots of the Frame Success Rate versus the Signal-to-noise ratio
-// for the DSSS error rate models and for every DSSS mode.
 
 #include "ns3/command-line.h"
 #include "ns3/gnuplot.h"
@@ -84,14 +50,12 @@ int main(int argc, char *argv[]) {
       double psYans =
           yans->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (psYans < 0.0 || psYans > 1.0) {
-        // error
         exit(1);
       }
       double psNist =
           nist->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (psNist < 0.0 || psNist > 1.0) {
         std::cout << psNist << std::endl;
-        // error
         exit(1);
       }
       if (psNist != psYans) {
@@ -101,7 +65,6 @@ int main(int argc, char *argv[]) {
           table->GetChunkSuccessRate(wifiMode, txVector, snr, frameSizeBits);
       if (psTable < 0.0 || psTable > 1.0) {
         std::cout << psTable << std::endl;
-        // error
         exit(1);
       }
       if (psTable != psYans) {

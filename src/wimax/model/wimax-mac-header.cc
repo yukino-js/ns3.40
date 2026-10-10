@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 
 #include "wimax-mac-header.h"
 
@@ -58,8 +38,6 @@ uint32_t MacHeaderType::GetSerializedSize() const { return 0; }
 void MacHeaderType::Serialize(Buffer::Iterator start) const {}
 
 uint32_t MacHeaderType::Deserialize(Buffer::Iterator start) { return 0; }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(GenericMacHeader);
 
@@ -129,13 +107,6 @@ void GenericMacHeader::Print(std::ostream &os) const {
 uint32_t GenericMacHeader::GetSerializedSize() const { return 6; }
 
 void GenericMacHeader::Serialize(Buffer::Iterator start) const {
-  /*
-   * AI:Serialize function according to the
-   * IEEE 8002.16e.
-   * Please send bug and comments to
-   * amine.ismail@udcast.com
-   * amine.ismail@sophia.inria.fr
-   */
 
   Buffer::Iterator i = start;
 
@@ -158,13 +129,6 @@ void GenericMacHeader::Serialize(Buffer::Iterator start) const {
 }
 
 uint32_t GenericMacHeader::Deserialize(Buffer::Iterator start) {
-  /*
-   * AI:Deserialize function according to the
-   * IEEE 8002.16e.
-   * Please send bug and comments to
-   * amine.ismail@udcast.com
-   * amine.ismail@sophia.inria.fr
-   */
 
   Buffer::Iterator i = start;
 
@@ -192,8 +156,6 @@ uint32_t GenericMacHeader::Deserialize(Buffer::Iterator start) {
 }
 
 bool GenericMacHeader::check_hcs() const { return (m_hcs == c_hcs); }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(BandwidthRequestHeader);
 
@@ -248,21 +210,9 @@ void BandwidthRequestHeader::Print(std::ostream &os) const {
   os << ", hcs (header check sequence) = " << (uint32_t)m_hcs;
 }
 
-uint32_t BandwidthRequestHeader::GetSerializedSize() const {
-  /*
-   * The size of the BandwidthRequest mac header is always 6 bytes
-   */
-  return 6;
-}
+uint32_t BandwidthRequestHeader::GetSerializedSize() const { return 6; }
 
 void BandwidthRequestHeader::Serialize(Buffer::Iterator start) const {
-  /*
-   * AI:Serialize function according to the
-   * IEEE 8002.16e.
-   * please send bug and comments to
-   * amine.ismail@udcast.com
-   * amine.ismail@sophia.inria.fr
-   */
 
   Buffer::Iterator i = start;
   uint8_t headerBuffer[6];
@@ -283,13 +233,6 @@ void BandwidthRequestHeader::Serialize(Buffer::Iterator start) const {
 }
 
 uint32_t BandwidthRequestHeader::Deserialize(Buffer::Iterator start) {
-  /*
-   * AI:Deserialize function according to the
-   * IEEE 8002.16e.
-   * Please send bug and comments to
-   * amine.ismail@udcast.com
-   * amine.ismail@sophia.inria.fr
-   */
 
   Buffer::Iterator i = start;
 
@@ -316,8 +259,6 @@ uint32_t BandwidthRequestHeader::Deserialize(Buffer::Iterator start) {
 }
 
 bool BandwidthRequestHeader::check_hcs() const { return (m_hcs == c_hcs); }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(GrantManagementSubheader);
 
@@ -379,8 +320,6 @@ uint32_t GrantManagementSubheader::Deserialize(Buffer::Iterator start) {
 
   return i.GetDistanceFrom(start);
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(FragmentationSubheader);
 

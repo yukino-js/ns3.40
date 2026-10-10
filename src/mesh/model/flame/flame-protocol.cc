@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "flame-protocol.h"
 
@@ -37,9 +19,6 @@ NS_LOG_COMPONENT_DEFINE("FlameProtocol");
 
 namespace flame {
 
-//-----------------------------------------------------------------------------
-// FlameTag
-//-----------------------------------------------------------------------------
 NS_OBJECT_ENSURE_REGISTERED(FlameTag);
 NS_OBJECT_ENSURE_REGISTERED(FlameProtocol);
 
@@ -83,9 +62,6 @@ void FlameTag::Print(std::ostream &os) const {
   os << "receiver = " << receiver << ", transmitter = " << transmitter;
 }
 
-//-----------------------------------------------------------------------------
-// FlameProtocol
-//-----------------------------------------------------------------------------
 TypeId FlameProtocol::GetTypeId() {
   static TypeId tid =
       TypeId("ns3::flame::FlameProtocol")
@@ -126,7 +102,6 @@ bool FlameProtocol::RequestRoute(uint32_t sourceIface,
                                  RouteReplyCallback routeReply) {
   Ptr<Packet> packet = const_packet->Copy();
   if (sourceIface == m_mp->GetIfIndex()) {
-    // Packet from upper layer!
     FlameTag tag;
     if (packet->PeekPacketTag(tag)) {
       NS_FATAL_ERROR(
@@ -168,7 +143,6 @@ bool FlameProtocol::RequestRoute(uint32_t sourceIface,
       NS_FATAL_ERROR("FLAME tag must exist here");
     }
     if (destination == Mac48Address::GetBroadcast()) {
-      // Broadcast always is forwarded as broadcast!
       NS_ASSERT(HandleDataFrame(flameHdr.GetSeqno(), source, flameHdr,
                                 tag.transmitter, sourceIface));
       FlameTag tag(Mac48Address::GetBroadcast());
@@ -181,8 +155,6 @@ bool FlameProtocol::RequestRoute(uint32_t sourceIface,
       m_stats.txBroadcast++;
       return true;
     } else {
-      // We check sequence only when forward unicast, because broadcast-checks
-      // were done inside remove routing stuff.
       if (HandleDataFrame(flameHdr.GetSeqno(), source, flameHdr,
                           tag.transmitter, sourceIface)) {
         return false;
@@ -223,7 +195,6 @@ bool FlameProtocol::RemoveRoutingStuff(uint32_t fromIface,
                                        const Mac48Address destination,
                                        Ptr<Packet> packet,
                                        uint16_t &protocolType) {
-  // Filter seqno:
   if (source == GetAddress()) {
     NS_LOG_DEBUG("Dropped my own frame!");
     return false;
@@ -238,8 +209,6 @@ bool FlameProtocol::RemoveRoutingStuff(uint32_t fromIface,
                       fromIface)) {
     return false;
   }
-  // Start PATH_UPDATE procedure if destination is our own address and last
-  // broadcast was sent more than broadcast interval ago or was not sent at all
   if ((destination == GetAddress()) &&
       ((m_lastBroadcast + m_broadcastInterval < Simulator::Now()) ||
        (m_lastBroadcast == Seconds(0)))) {
@@ -256,7 +225,6 @@ bool FlameProtocol::Install(Ptr<MeshPointDevice> mp) {
   m_mp = mp;
   std::vector<Ptr<NetDevice>> interfaces = mp->GetInterfaces();
   for (auto i = interfaces.begin(); i != interfaces.end(); i++) {
-    // Checking for compatible net device
     Ptr<WifiNetDevice> wifiNetDev = (*i)->GetObject<WifiNetDevice>();
     if (!wifiNetDev) {
       return false;
@@ -266,16 +234,14 @@ bool FlameProtocol::Install(Ptr<MeshPointDevice> mp) {
     if (!mac) {
       return false;
     }
-    // Installing plugins:
     Ptr<FlameProtocolMac> flameMac = Create<FlameProtocolMac>(this);
     m_interfaces[wifiNetDev->GetIfIndex()] = flameMac;
     mac->SetBeaconGeneration(false);
     mac->InstallPlugin(flameMac);
   }
   mp->SetRoutingProtocol(this);
-  // Mesh point aggregates all installed protocols
   mp->AggregateObject(this);
-  m_address = Mac48Address::ConvertFrom(mp->GetAddress()); //* address;
+  m_address = Mac48Address::ConvertFrom(mp->GetAddress());
   return true;
 }
 
@@ -303,7 +269,6 @@ bool FlameProtocol::HandleDataFrame(uint16_t seqno, Mac48Address source,
   return false;
 }
 
-// Statistics:
 FlameProtocol::Statistics::Statistics()
     : txUnicast(0), txBroadcast(0), txBytes(0), droppedTtl(0), totalDropped(0) {
 }

@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "v4ping.h"
 
@@ -105,7 +78,7 @@ uint32_t V4Ping::GetApplicationId() const {
     }
   }
   NS_ASSERT_MSG(false, "forgot to add application to node");
-  return 0; // quiet compiler
+  return 0;
 }
 
 void V4Ping::Receive(Ptr<Socket> socket) {
@@ -116,11 +89,11 @@ void V4Ping::Receive(Ptr<Socket> socket) {
     NS_LOG_DEBUG("recv " << p->GetSize() << " bytes");
     NS_ASSERT(InetSocketAddress::IsMatchingType(from));
     InetSocketAddress realFrom = InetSocketAddress::ConvertFrom(from);
-    NS_ASSERT(realFrom.GetPort() == 1); // protocol should be icmp.
+    NS_ASSERT(realFrom.GetPort() == 1);
     Ipv4Header ipv4;
     p->RemoveHeader(ipv4);
     uint32_t recvSize = p->GetSize();
-    NS_ASSERT(ipv4.GetProtocol() == 1); // protocol should be icmp.
+    NS_ASSERT(ipv4.GetProtocol() == 1);
     Icmpv4Header icmp;
     p->RemoveHeader(icmp);
     if (icmp.GetType() == Icmpv4Header::ICMPV4_ECHO_REPLY) {
@@ -163,8 +136,6 @@ void V4Ping::Receive(Ptr<Socket> socket) {
   }
 }
 
-// Writes data to buffer in little-endian format; least significant byte
-// of data is at lowest buffer address
 void V4Ping::Write32(uint8_t *buffer, const uint32_t data) {
   NS_LOG_FUNCTION(this << (void *)buffer << data);
   buffer[0] = (data >> 0) & 0xff;
@@ -173,7 +144,6 @@ void V4Ping::Write32(uint8_t *buffer, const uint32_t data) {
   buffer[3] = (data >> 24) & 0xff;
 }
 
-// Writes data from a little-endian formatted buffer to data
 void V4Ping::Read32(const uint8_t *buffer, uint32_t &data) {
   NS_LOG_FUNCTION(this << (void *)buffer << data);
   data = (buffer[3] << 24) + (buffer[2] << 16) + (buffer[1] << 8) + buffer[0];
@@ -189,12 +159,6 @@ void V4Ping::Send() {
   m_seq++;
   echo.SetIdentifier(0);
 
-  //
-  // We must write quantities out in some form of network order.  Since there
-  // isn't an htonl to work with we just follow the convention in pcap traces
-  // (where any difference would show up anyway) and borrow that code.  Don't
-  // be too surprised when you see that this is a little endian convention.
-  //
   auto data = new uint8_t[m_size];
   for (uint32_t i = 0; i < m_size; ++i) {
     data[i] = 0;
@@ -235,7 +199,7 @@ void V4Ping::StartApplication() {
   m_socket = Socket::CreateSocket(
       GetNode(), TypeId::LookupByName("ns3::Ipv4RawSocketFactory"));
   NS_ASSERT(m_socket);
-  m_socket->SetAttribute("Protocol", UintegerValue(1)); // icmp
+  m_socket->SetAttribute("Protocol", UintegerValue(1));
   m_socket->SetRecvCallback(MakeCallback(&V4Ping::Receive, this));
   InetSocketAddress src = InetSocketAddress(Ipv4Address::GetAny(), 0);
   int status;

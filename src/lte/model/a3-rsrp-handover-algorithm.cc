@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Budiarto Herman
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *
- */
 
 #include "a3-rsrp-handover-algorithm.h"
 
@@ -55,17 +36,13 @@ TypeId A3RsrpHandoverAlgorithm::GetTypeId() {
               "(rounded to the nearest multiple of 0.5 dB)",
               DoubleValue(3.0),
               MakeDoubleAccessor(&A3RsrpHandoverAlgorithm::m_hysteresisDb),
-              MakeDoubleChecker<uint8_t>(
-                  0.0, 15.0)) // Hysteresis IE value range is [0..30] as
-                              // per Section 6.3.5 of 3GPP TS 36.331
+              MakeDoubleChecker<uint8_t>(0.0, 15.0))
           .AddAttribute(
               "TimeToTrigger",
               "Time during which neighbour cell's RSRP "
               "must continuously higher than serving cell's RSRP "
               "in order to trigger a handover",
-              TimeValue(
-                  MilliSeconds(256)), // 3GPP time-to-trigger median value as
-                                      // per Section 6.3.5 of 3GPP TS 36.331
+              TimeValue(MilliSeconds(256)),
               MakeTimeAccessor(&A3RsrpHandoverAlgorithm::m_timeToTrigger),
               MakeTimeChecker());
   return tid;
@@ -146,26 +123,18 @@ void A3RsrpHandoverAlgorithm::DoReportUeMeas(
       NS_LOG_LOGIC("serving cell RSRP "
                    << (uint16_t)measResults.measResultPCell.rsrpResult);
 
-      // Inform eNodeB RRC about handover
       m_handoverManagementSapUser->TriggerHandover(rnti, bestNeighbourCellId);
     }
   } else {
     NS_LOG_WARN(this << " Event A3 received without measurement results from "
                         "neighbouring cells");
   }
-
-} // end of DoReportUeMeas
+}
 
 bool A3RsrpHandoverAlgorithm::IsValidNeighbour(uint16_t cellId) {
   NS_LOG_FUNCTION(this << cellId);
 
-  /**
-   * \todo In the future, this function can be expanded to validate whether the
-   *       neighbour cell is a valid target cell, e.g., taking into account the
-   *       NRT in ANR and whether it is a CSG cell with closed access.
-   */
-
   return true;
 }
 
-} // end of namespace ns3
+} // namespace ns3

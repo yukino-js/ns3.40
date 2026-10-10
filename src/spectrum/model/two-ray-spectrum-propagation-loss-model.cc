@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "two-ray-spectrum-propagation-loss-model.h"
 
@@ -31,10 +13,6 @@
 
 namespace ns3 {
 
-/**
- * Lookup table associating the simulation parameters to the corresponding
- * fitted FTR parameters. The table is implemented as a nested map.
- */
 static const TwoRaySpectrumPropagationLossModel::FtrParamsLookupTable
     SIM_PARAMS_TO_FTR_PARAMS_TABLE = {
         {"InH-OfficeOpen",
@@ -711,8 +689,6 @@ NS_OBJECT_ENSURE_REGISTERED(TwoRaySpectrumPropagationLossModel);
 TwoRaySpectrumPropagationLossModel::TwoRaySpectrumPropagationLossModel() {
   NS_LOG_FUNCTION(this);
 
-  // Create the Random Number Generator (RNG) variables only once to speed-up
-  // the tests
   m_uniformRv = CreateObject<UniformRandomVariable>();
   m_uniformRv->SetAttribute("Min", DoubleValue(0));
   m_uniformRv->SetAttribute("Max", DoubleValue(2 * M_PI));
@@ -803,10 +779,8 @@ TwoRaySpectrumPropagationLossModel::GetFtrParameters(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
   NS_LOG_FUNCTION(this);
 
-  // Retrieve LOS condition
   ChannelCondition::LosConditionValue cond = GetLosCondition(a, b);
 
-  // Retrieve the corresponding tuple and vectors
   NS_ASSERT_MSG(
       SIM_PARAMS_TO_FTR_PARAMS_TABLE.find(m_scenario)->second.find(cond) !=
           SIM_PARAMS_TO_FTR_PARAMS_TABLE.find(m_scenario)->second.end(),
@@ -814,14 +788,11 @@ TwoRaySpectrumPropagationLossModel::GetFtrParameters(
   auto scenAndCondTuple =
       SIM_PARAMS_TO_FTR_PARAMS_TABLE.find(m_scenario)->second.find(cond);
 
-  // Get references to the corresponding vectors
   auto &fcVec = std::get<0>(scenAndCondTuple->second);
   auto &ftrParamsVec = std::get<1>(scenAndCondTuple->second);
 
-  // Find closest carrier frequency which has been calibrated
   auto idxOfClosestFc = SearchClosestFc(fcVec, m_frequency);
 
-  // Retrieve the corresponding FTR parameters
   NS_ASSERT(ftrParamsVec.size() >= idxOfClosestFc && idxOfClosestFc >= 0);
   FtrParams params = ftrParamsVec[idxOfClosestFc];
 
@@ -834,11 +805,9 @@ double TwoRaySpectrumPropagationLossModel::CalcBeamformingGain(
     Ptr<const PhasedArrayModel> bPhasedArrayModel) const {
   NS_LOG_FUNCTION(this);
 
-  // Get the relative angles between tx and rx phased arrays
   Angles aAngle(b->GetPosition(), a->GetPosition());
   Angles bAngle(a->GetPosition(), b->GetPosition());
 
-  // Compute the beamforming vectors and and array responses
   auto aArrayResponse = aPhasedArrayModel->GetSteeringVector(aAngle);
   auto aAntennaFields = aPhasedArrayModel->GetElementFieldPattern(aAngle);
   auto aBfVector = aPhasedArrayModel->GetBeamformingVector();
@@ -849,8 +818,6 @@ double TwoRaySpectrumPropagationLossModel::CalcBeamformingGain(
   std::complex<double> aArrayOverallResponse = 0;
   std::complex<double> bArrayOverallResponse = 0;
 
-  // Compute the dot products between the array responses and the beamforming
-  // vectors
   for (size_t i = 0; i < aPhasedArrayModel->GetNumberOfElements(); i++) {
     aArrayOverallResponse += aArrayResponse[i] * aBfVector[i];
   }
@@ -864,12 +831,8 @@ double TwoRaySpectrumPropagationLossModel::CalcBeamformingGain(
       norm(bArrayOverallResponse) *
       (std::pow(bAntennaFields.first, 2) + std::pow(bAntennaFields.second, 2));
 
-  // Retrieve LOS condition to check if a correction factor needs to be
-  // introduced
   ChannelCondition::LosConditionValue cond = GetLosCondition(a, b);
   if (cond == ChannelCondition::NLOS) {
-    // The linear penalty factor to be multiplied to the beamforming gain
-    // whenever the link is in NLOS
     constexpr double NLOS_BEAMFORMING_FACTOR = 1.0 / 19;
     gain *= NLOS_BEAMFORMING_FACTOR;
   }
@@ -881,28 +844,21 @@ double TwoRaySpectrumPropagationLossModel::GetFtrFastFading(
     const FtrParams &params) const {
   NS_LOG_FUNCTION(this);
 
-  // Set the RNG parameters
   m_normalRv->SetAttribute("Variance", DoubleValue(params.m_sigma));
   m_gammaRv->SetAttribute("Alpha", DoubleValue(params.m_m));
   m_gammaRv->SetAttribute("Beta", DoubleValue(1.0 / params.m_m));
 
-  // Compute the specular components amplitudes from the FTR parameters
   double cmnSqrtTerm = sqrt(1 - std::pow(params.m_delta, 2));
   double v1 = sqrt(params.m_sigma) * sqrt(params.m_k * (1 - cmnSqrtTerm));
   double v2 = sqrt(params.m_sigma) * sqrt(params.m_k * (1 + cmnSqrtTerm));
   double sqrtGamma = sqrt(m_gammaRv->GetValue());
 
-  // Sample the random phases of the specular components, which are uniformly
-  // distributed in [0, 2*PI]
   double phi1 = m_uniformRv->GetValue();
   double phi2 = m_uniformRv->GetValue();
 
-  // Sample the normal-distributed real and imaginary parts of the diffuse
-  // components
   double x = m_normalRv->GetValue();
   double y = m_normalRv->GetValue();
 
-  // Compute the channel response by combining the above terms
   std::complex<double> h =
       sqrtGamma * v1 * std::complex<double>(cos(phi1), sin(phi1)) +
       sqrtGamma * v2 * std::complex<double>(cos(phi2), sin(phi2)) +
@@ -917,8 +873,8 @@ TwoRaySpectrumPropagationLossModel::DoCalcRxPowerSpectralDensity(
     Ptr<const MobilityModel> b, Ptr<const PhasedArrayModel> aPhasedArrayModel,
     Ptr<const PhasedArrayModel> bPhasedArrayModel) const {
   NS_LOG_FUNCTION(this);
-  uint32_t aId = a->GetObject<Node>()->GetId(); // Id of the node a
-  uint32_t bId = b->GetObject<Node>()->GetId(); // Id of the node b
+  uint32_t aId = a->GetObject<Node>()->GetId();
+  uint32_t bId = b->GetObject<Node>()->GetId();
 
   NS_ASSERT_MSG(aId != bId, "The two nodes must be different from one another");
   NS_ASSERT_MSG(a->GetDistanceFrom(b) > 0.0,
@@ -926,26 +882,20 @@ TwoRaySpectrumPropagationLossModel::DoCalcRxPowerSpectralDensity(
 
   Ptr<SpectrumValue> rxPsd = Copy<SpectrumValue>(params->psd);
 
-  // Retrieve the antenna of device a
   NS_ASSERT_MSG(aPhasedArrayModel, "Antenna not found for node " << aId);
   NS_LOG_DEBUG("a node " << a->GetObject<Node>() << " antenna "
                          << aPhasedArrayModel);
 
-  // Retrieve the antenna of the device b
   NS_ASSERT_MSG(bPhasedArrayModel, "Antenna not found for device " << bId);
   NS_LOG_DEBUG("b node " << bId << " antenna " << bPhasedArrayModel);
 
-  // Retrieve FTR params from table
   FtrParams ftrParams = GetFtrParameters(a, b);
 
-  // Compute the FTR fading
   double fading = GetFtrFastFading(ftrParams);
 
-  // Compute the beamforming gain
   double bfGain =
       CalcBeamformingGain(a, b, aPhasedArrayModel, bPhasedArrayModel);
 
-  // Apply the above terms to the TX PSD
   *rxPsd *= (fading * bfGain);
 
   return rxPsd;

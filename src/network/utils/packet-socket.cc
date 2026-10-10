@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007 Emmanuelle Laprise, INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "packet-socket.h"
 
@@ -182,8 +163,7 @@ int PacketSocket::Connect(const Address &ad) {
     goto error;
   }
   if (m_state == STATE_OPEN) {
-    // connect should happen _after_ bind.
-    m_errno = ERROR_INVAL; // generic error condition.
+    m_errno = ERROR_INVAL;
     goto error;
   }
   if (m_state == STATE_CONNECTED) {
@@ -239,7 +219,6 @@ uint32_t PacketSocket::GetTxAvailable() const {
     PacketSocketAddress ad = PacketSocketAddress::ConvertFrom(m_destAddr);
     return GetMinMtu(ad);
   }
-  // If we are not connected, we return a 'safe' value by default.
   return 0xffff;
 }
 
@@ -277,7 +256,7 @@ int PacketSocket::SendTo(Ptr<Packet> p, uint32_t flags,
 
   bool error = false;
   Address dest = ad.GetPhysicalAddress();
-  uint32_t pktSize = p->GetSize(); // device->Send() may modify the packet
+  uint32_t pktSize = p->GetSize();
   if (ad.IsSingleDevice()) {
     Ptr<NetDevice> device = m_node->GetDevice(ad.GetSingleDevice());
     if (!device->Send(p, dest, ad.GetProtocol())) {
@@ -328,9 +307,8 @@ void PacketSocket::ForwardUp(Ptr<NetDevice> device, Ptr<const Packet> packet,
     PacketSocketTag pst;
     pst.SetPacketType(packetType);
     pst.SetDestAddress(to);
-    copy->AddPacketTag(pst); // Attach Packet Type and Dest Address
-    copy->AddPacketTag(dnt); // Attach device source name
-    // in case the packet still has a priority tag, remove it
+    copy->AddPacketTag(pst);
+    copy->AddPacketTag(dnt);
     SocketPriorityTag priorityTag;
     copy->RemovePacketTag(priorityTag);
     m_deliveryQueue.emplace(copy, address);
@@ -338,11 +316,6 @@ void PacketSocket::ForwardUp(Ptr<NetDevice> device, Ptr<const Packet> packet,
     NS_LOG_LOGIC("UID is " << packet->GetUid() << " PacketSocket " << this);
     NotifyDataRecv();
   } else {
-    // In general, this case should not occur unless the
-    // receiving application reads data from this socket slowly
-    // in comparison to the arrival rate
-    //
-    // drop and trace packet
     NS_LOG_WARN("No receive buffer space available.  Drop.");
     m_dropTrace(packet);
   }
@@ -350,8 +323,6 @@ void PacketSocket::ForwardUp(Ptr<NetDevice> device, Ptr<const Packet> packet,
 
 uint32_t PacketSocket::GetRxAvailable() const {
   NS_LOG_FUNCTION(this);
-  // We separately maintain this state to avoid walking the queue
-  // every time this might be called
   return m_rxAvailable;
 }
 
@@ -423,10 +394,6 @@ bool PacketSocket::GetAllowBroadcast() const {
   return false;
 }
 
-/***************************************************************
- *           PacketSocket Tags
- ***************************************************************/
-
 PacketSocketTag::PacketSocketTag() {}
 
 void PacketSocketTag::SetPacketType(NetDevice::PacketType t) {
@@ -471,10 +438,6 @@ void PacketSocketTag::Print(std::ostream &os) const {
   os << "packetType=" << m_packetType;
 }
 
-/***************************************************************
- *           DeviceName Tags
- ***************************************************************/
-
 DeviceNameTag::DeviceNameTag() {}
 
 void DeviceNameTag::SetDeviceName(std::string n) {
@@ -499,7 +462,7 @@ TypeId DeviceNameTag::GetTypeId() {
 TypeId DeviceNameTag::GetInstanceTypeId() const { return GetTypeId(); }
 
 uint32_t DeviceNameTag::GetSerializedSize() const {
-  uint32_t s = 1 + m_deviceName.size(); // +1 for name length field
+  uint32_t s = 1 + m_deviceName.size();
   return s;
 }
 

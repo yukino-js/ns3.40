@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
-
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -34,30 +9,18 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpScalableTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the congestion avoidance increment on TcpScalable
- */
 class TcpScalableIncrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param segmentsAcked Segments ACKed.
-   * \param name Test description.
-   */
   TcpScalableIncrementTest(uint32_t cWnd, uint32_t segmentSize,
                            uint32_t segmentsAcked, const std::string &name);
 
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;             //!< Congestion window.
-  uint32_t m_segmentSize;      //!< Segment size.
-  uint32_t m_segmentsAcked;    //!< Segments ACKed.
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpScalableIncrementTest::TcpScalableIncrementTest(uint32_t cWnd,
@@ -77,12 +40,8 @@ void TcpScalableIncrementTest::DoRun() {
 
   uint32_t segCwnd = m_cWnd / m_segmentSize;
 
-  // Get default value of additive increase factor
   UintegerValue aiFactor;
   cong->GetAttribute("AIFactor", aiFactor);
-
-  // To see an increase of 1 MSS, the number of segments ACKed has to be at
-  // least min (segCwnd, aiFactor).
 
   uint32_t w = std::min(segCwnd, (uint32_t)aiFactor.Get());
   uint32_t delta = m_segmentsAcked / w;
@@ -93,28 +52,17 @@ void TcpScalableIncrementTest::DoRun() {
                         "CWnd has not increased");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the multiplicative decrease on TcpScalable
- */
 class TcpScalableDecrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param name Test description.
-   */
   TcpScalableDecrementTest(uint32_t cWnd, uint32_t segmentSize,
                            const std::string &name);
 
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;             //!< Congestion window.
-  uint32_t m_segmentSize;      //!< Segment size.
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpScalableDecrementTest::TcpScalableDecrementTest(uint32_t cWnd,
@@ -132,7 +80,6 @@ void TcpScalableDecrementTest::DoRun() {
 
   uint32_t segCwnd = m_cWnd / m_segmentSize;
 
-  // Get default value of multiplicative decrease factor
   DoubleValue mdFactor;
   cong->GetAttribute("MDFactor", mdFactor);
 
@@ -147,11 +94,6 @@ void TcpScalableDecrementTest::DoRun() {
                         "Scalable decrement fn not used");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TcpScalable TestSuite.
- */
 class TcpScalableTestSuite : public TestSuite {
 public:
   TcpScalableTestSuite() : TestSuite("tcp-scalable-test", UNIT) {
@@ -189,5 +131,4 @@ public:
   }
 };
 
-static TcpScalableTestSuite
-    g_tcpScalableTest; //!< Static variable for test initialization
+static TcpScalableTestSuite g_tcpScalableTest;

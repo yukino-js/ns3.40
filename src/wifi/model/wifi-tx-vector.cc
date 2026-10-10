@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Nicola Baldo <nbaldo@cttc.es>
- *          Ghada Badawy <gbadawy@gmail.com>
- */
 
 #include "wifi-tx-vector.h"
 
@@ -38,9 +19,7 @@ WifiTxVector::WifiTxVector()
       m_stbc(false), m_ldpc(false), m_bssColor(0), m_length(0),
       m_triggerResponding(false), m_modeInitialized(false),
       m_inactiveSubchannels(), m_ruAllocation(),
-      m_center26ToneRuIndication(std::nullopt),
-      m_ehtPpduType(1) // SU transmission by default
-{}
+      m_center26ToneRuIndication(std::nullopt), m_ehtPpduType(1) {}
 
 WifiTxVector::WifiTxVector(WifiMode mode, uint8_t powerLevel,
                            WifiPreamble preamble, uint16_t guardInterval,
@@ -54,9 +33,7 @@ WifiTxVector::WifiTxVector(WifiMode mode, uint8_t powerLevel,
       m_ldpc(ldpc), m_bssColor(bssColor), m_length(length),
       m_triggerResponding(triggerResponding), m_modeInitialized(true),
       m_inactiveSubchannels(), m_ruAllocation(),
-      m_center26ToneRuIndication(std::nullopt),
-      m_ehtPpduType(1) // SU transmission by default
-{}
+      m_center26ToneRuIndication(std::nullopt), m_ehtPpduType(1) {}
 
 WifiTxVector::WifiTxVector(const WifiTxVector &txVector)
     : m_mode(txVector.m_mode), m_txPowerLevel(txVector.m_txPowerLevel),
@@ -73,8 +50,7 @@ WifiTxVector::WifiTxVector(const WifiTxVector &txVector)
       m_center26ToneRuIndication(txVector.m_center26ToneRuIndication),
       m_ehtPpduType(txVector.m_ehtPpduType) {
   m_muUserInfos.clear();
-  if (!txVector.m_muUserInfos.empty()) // avoids crashing for loop
-  {
+  if (!txVector.m_muUserInfos.empty()) {
     for (auto &info : txVector.m_muUserInfos) {
       m_muUserInfos.insert(std::make_pair(info.first, info.second));
     }
@@ -105,7 +81,7 @@ WifiMode WifiTxVector::GetMode(uint16_t staId) const {
     NS_ABORT_MSG("Unsupported modulation class: "
                  << GetModulationClassForPreamble(m_preamble));
   }
-  return WifiMode(); // invalid WifiMode
+  return WifiMode();
 }
 
 WifiModulationClass WifiTxVector::GetModulationClass() const {
@@ -114,7 +90,6 @@ WifiModulationClass WifiTxVector::GetModulationClass() const {
 
   if (IsMu()) {
     NS_ASSERT(!m_muUserInfos.empty());
-    // all the modes belong to the same modulation class
     return GetModulationClassForPreamble(m_preamble);
   }
   return m_mode.GetModulationClass();
@@ -141,7 +116,6 @@ uint8_t WifiTxVector::GetNss(uint16_t staId) const {
 }
 
 uint8_t WifiTxVector::GetNssMax() const {
-  // We do not support mixed OFDMA and MU-MIMO
   uint8_t nss = 0;
   if (IsMu()) {
     for (const auto &info : m_muUserInfos) {
@@ -154,7 +128,6 @@ uint8_t WifiTxVector::GetNssMax() const {
 }
 
 uint8_t WifiTxVector::GetNssTotal() const {
-  // We do not support mixed OFDMA and MU-MIMO
   uint8_t nss = 0;
   if (IsMu()) {
     nss = std::accumulate(m_muUserInfos.cbegin(), m_muUserInfos.cend(), 0,
@@ -356,7 +329,6 @@ bool WifiTxVector::IsDlMuMimo() const {
   if (m_muUserInfos.size() < 2) {
     return false;
   }
-  // TODO: mixed OFDMA and MU-MIMO is not supported
   return !IsDlOfdma();
 }
 
@@ -528,18 +500,13 @@ RuAllocation WifiTxVector::DeriveRuAllocation(uint8_t p20Index) const {
         HeRu::GetRusOfType(ruBw > 20 ? ruBw : 20, ruType);
     auto ruIndex = ru.GetIndex();
     if ((m_channelWidth >= 80) && (ruIndex > 19)) {
-      // take into account the center 26-tone RU in the primary 80 MHz
       ruIndex--;
     }
     if ((!isPrimary80MHz) && (ruIndex > 19)) {
-      // take into account the center 26-tone RU in the secondary 80 MHz
       ruIndex--;
     }
     if (!isPrimary80MHz && (ruType != HeRu::RU_2x996_TONE)) {
       NS_ASSERT(m_channelWidth > 80);
-      // adjust RU index for the secondary 80 MHz: in that case index is
-      // restarting at 1, hence we need to add an offset corresponding to the
-      // number of RUs of the same type in the primary 80 MHz
       ruIndex += HeRu::GetRusOfType(80, ruType).size();
     }
     const auto index = (ruBw < 20) ? ((ruIndex - 1) / rusPerSubchannel.size())

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/enum.h"
@@ -43,35 +25,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RIPng Test
- */
 class Ipv6RipngTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv6RipngTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -99,7 +62,6 @@ void Ipv6RipngTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void Ipv6RipngTest::DoRun() {
-  // Create topology
 
   Ptr<Node> txNode = CreateObject<Node>();
   Ptr<Node> rxNode = CreateObject<Node>();
@@ -124,7 +86,6 @@ void Ipv6RipngTest::DoRun() {
   NetDeviceContainer net3;
   NetDeviceContainer net4;
 
-  // Sender Node
   Ptr<SimpleNetDevice> txDev;
   {
     txDev = CreateObject<SimpleNetDevice>();
@@ -133,67 +94,62 @@ void Ipv6RipngTest::DoRun() {
   }
   net1.Add(txDev);
 
-  // Router A
   Ptr<SimpleNetDevice> fwDev1routerA;
   Ptr<SimpleNetDevice> fwDev2routerA;
-  { // first interface
+  {
     fwDev1routerA = CreateObject<SimpleNetDevice>();
     fwDev1routerA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(fwDev1routerA);
   }
   net1.Add(fwDev1routerA);
 
-  { // second interface
+  {
     fwDev2routerA = CreateObject<SimpleNetDevice>();
     fwDev2routerA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDev2routerA);
   }
   net2.Add(fwDev2routerA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDev1routerB;
   Ptr<SimpleNetDevice> fwDev2routerB;
-  { // first interface
+  {
     fwDev1routerB = CreateObject<SimpleNetDevice>();
     fwDev1routerB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDev1routerB);
   }
   net2.Add(fwDev1routerB);
 
-  { // second interface
+  {
     fwDev2routerB = CreateObject<SimpleNetDevice>();
     fwDev2routerB->SetAddress(Mac48Address("00:00:00:00:00:05"));
     routerB->AddDevice(fwDev2routerB);
   }
   net3.Add(fwDev2routerB);
 
-  // Router C
   Ptr<SimpleNetDevice> fwDev1routerC;
   Ptr<SimpleNetDevice> fwDev2routerC;
-  { // first interface
+  {
     fwDev1routerC = CreateObject<SimpleNetDevice>();
     fwDev1routerC->SetAddress(Mac48Address("00:00:00:00:00:06"));
     routerC->AddDevice(fwDev1routerC);
   }
   net3.Add(fwDev1routerC);
 
-  { // second interface
+  {
     fwDev2routerC = CreateObject<SimpleNetDevice>();
     fwDev2routerC->SetAddress(Mac48Address("00:00:00:00:00:07"));
     routerC->AddDevice(fwDev2routerC);
   }
   net4.Add(fwDev2routerC);
 
-  // Rx node
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address("00:00:00:00:00:08"));
     rxNode->AddDevice(rxDev);
   }
   net4.Add(rxDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   txDev->SetChannel(channel1);
   fwDev1routerA->SetChannel(channel1);
@@ -210,7 +166,6 @@ void Ipv6RipngTest::DoRun() {
   fwDev2routerC->SetChannel(channel4);
   rxDev->SetChannel(channel4);
 
-  // Setup IPv6 addresses and forwarding
   Ipv6AddressHelper ipv6;
 
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
@@ -231,7 +186,6 @@ void Ipv6RipngTest::DoRun() {
   iic4.SetForwarding(0, true);
   iic4.SetDefaultRouteInAllNodes(0);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(rxSocket->Bind(Inet6SocketAddress(
@@ -243,9 +197,6 @@ void Ipv6RipngTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
-  // Unicast test
   SendData(txSocket, "2001:2::200:ff:fe00:8");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 123,
                         "IPv6 RIPng should work.");
@@ -255,37 +206,16 @@ void Ipv6RipngTest::DoRun() {
   Simulator::Destroy();
 }
 
-// Ipv6RipngCountToInfinityTest
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RIPng count to infinity Test
- */
 class Ipv6RipngCountToInfinityTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< Received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
-  /**
-   * \brief Send data.
-   * \param socket The sending socket.
-   * \param to Destination address.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   Ipv6RipngCountToInfinityTest();
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -317,7 +247,6 @@ void Ipv6RipngCountToInfinityTest::SendData(Ptr<Socket> socket,
 }
 
 void Ipv6RipngCountToInfinityTest::DoRun() {
-  // Create topology
 
   Ptr<Node> txNode = CreateObject<Node>();
   Ptr<Node> rxNode = CreateObject<Node>();
@@ -330,8 +259,6 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   NodeContainer all(nodes, routers);
 
   RipNgHelper ripNgRouting;
-  // Change the router's interface metric to 10, must not send packets (count to
-  // infinity) note: Interface 0 is the loopback.
   ripNgRouting.SetInterfaceMetric(routerA, 2, 10);
   ripNgRouting.SetInterfaceMetric(routerB, 1, 10);
   ripNgRouting.SetInterfaceMetric(routerB, 2, 10);
@@ -349,7 +276,6 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   NetDeviceContainer net3;
   NetDeviceContainer net4;
 
-  // Sender Node
   Ptr<SimpleNetDevice> txDev;
   {
     txDev = CreateObject<SimpleNetDevice>();
@@ -358,67 +284,62 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   }
   net1.Add(txDev);
 
-  // Router A
   Ptr<SimpleNetDevice> fwDev1routerA;
   Ptr<SimpleNetDevice> fwDev2routerA;
-  { // first interface
+  {
     fwDev1routerA = CreateObject<SimpleNetDevice>();
     fwDev1routerA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(fwDev1routerA);
   }
   net1.Add(fwDev1routerA);
 
-  { // second interface
+  {
     fwDev2routerA = CreateObject<SimpleNetDevice>();
     fwDev2routerA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDev2routerA);
   }
   net2.Add(fwDev2routerA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDev1routerB;
   Ptr<SimpleNetDevice> fwDev2routerB;
-  { // first interface
+  {
     fwDev1routerB = CreateObject<SimpleNetDevice>();
     fwDev1routerB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDev1routerB);
   }
   net2.Add(fwDev1routerB);
 
-  { // second interface
+  {
     fwDev2routerB = CreateObject<SimpleNetDevice>();
     fwDev2routerB->SetAddress(Mac48Address("00:00:00:00:00:05"));
     routerB->AddDevice(fwDev2routerB);
   }
   net3.Add(fwDev2routerB);
 
-  // Router C
   Ptr<SimpleNetDevice> fwDev1routerC;
   Ptr<SimpleNetDevice> fwDev2routerC;
-  { // first interface
+  {
     fwDev1routerC = CreateObject<SimpleNetDevice>();
     fwDev1routerC->SetAddress(Mac48Address("00:00:00:00:00:06"));
     routerC->AddDevice(fwDev1routerC);
   }
   net3.Add(fwDev1routerC);
 
-  { // second interface
+  {
     fwDev2routerC = CreateObject<SimpleNetDevice>();
     fwDev2routerC->SetAddress(Mac48Address("00:00:00:00:00:07"));
     routerC->AddDevice(fwDev2routerC);
   }
   net4.Add(fwDev2routerC);
 
-  // Rx node
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address("00:00:00:00:00:08"));
     rxNode->AddDevice(rxDev);
   }
   net4.Add(rxDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   txDev->SetChannel(channel1);
   fwDev1routerA->SetChannel(channel1);
@@ -435,7 +356,6 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   fwDev2routerC->SetChannel(channel4);
   rxDev->SetChannel(channel4);
 
-  // Setup IPv6 addresses and forwarding
   Ipv6AddressHelper ipv6;
 
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
@@ -456,7 +376,6 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   iic4.SetForwarding(0, true);
   iic4.SetDefaultRouteInAllNodes(0);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(rxSocket->Bind(Inet6SocketAddress(
@@ -469,8 +388,6 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
 
-  // ------ Now the tests ------------
-
   SendData(txSocket, "2001:2::200:ff:fe00:8");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 0,
                         "RIPng counting to infinity.");
@@ -478,27 +395,14 @@ void Ipv6RipngCountToInfinityTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RIPng SplitHorizon strategy Test
- */
 class Ipv6RipngSplitHorizonStrategyTest : public TestCase {
-  RipNg::SplitHorizonType_e m_setStrategy;      //!< Strategy set.
-  RipNg::SplitHorizonType_e m_detectedStrategy; //!< Strategy detected.
+  RipNg::SplitHorizonType_e m_setStrategy;
+  RipNg::SplitHorizonType_e m_detectedStrategy;
 
 public:
   void DoRun() override;
-  /**
-   * \brief Constructor.
-   * \param strategy The SplitHorizon strategy.
-   */
   Ipv6RipngSplitHorizonStrategyTest(RipNg::SplitHorizonType_e strategy);
 
-  /**
-   * \brief Receive data.
-   * \param socket The receiving socket.
-   */
   void ReceivePktProbe(Ptr<Socket> socket);
 };
 
@@ -524,7 +428,6 @@ void Ipv6RipngSplitHorizonStrategyTest::ReceivePktProbe(Ptr<Socket> socket) {
     receivedPacketProbe->RemoveHeader(hdr);
     std::list<RipNgRte> rtes = hdr.GetRteList();
 
-    // validate the RTEs before processing
     for (auto iter = rtes.begin(); iter != rtes.end(); iter++) {
       if (iter->GetPrefix() == "2001:1::") {
         bool correct = false;
@@ -544,7 +447,6 @@ void Ipv6RipngSplitHorizonStrategyTest::ReceivePktProbe(Ptr<Socket> socket) {
 }
 
 void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
-  // Create topology
 
   Ptr<Node> fakeNode = CreateObject<Node>();
   Ptr<Node> listener = CreateObject<Node>();
@@ -569,7 +471,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   NetDeviceContainer net0;
   NetDeviceContainer net1;
 
-  // Fake Node
   Ptr<SimpleNetDevice> silentDev;
   {
     silentDev = CreateObject<SimpleNetDevice>();
@@ -578,33 +479,30 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   }
   net0.Add(silentDev);
 
-  // Router A
   Ptr<SimpleNetDevice> silentDevRouterA;
   Ptr<SimpleNetDevice> fwDevRouterA;
-  { // silent interface
+  {
     silentDevRouterA = CreateObject<SimpleNetDevice>();
     silentDevRouterA->SetAddress(Mac48Address("00:00:00:00:00:02"));
     routerA->AddDevice(silentDevRouterA);
   }
   net0.Add(silentDevRouterA);
 
-  { // first interface
+  {
     fwDevRouterA = CreateObject<SimpleNetDevice>();
     fwDevRouterA->SetAddress(Mac48Address("00:00:00:00:00:03"));
     routerA->AddDevice(fwDevRouterA);
   }
   net1.Add(fwDevRouterA);
 
-  // Router B
   Ptr<SimpleNetDevice> fwDevRouterB;
-  { // first interface
+  {
     fwDevRouterB = CreateObject<SimpleNetDevice>();
     fwDevRouterB->SetAddress(Mac48Address("00:00:00:00:00:04"));
     routerB->AddDevice(fwDevRouterB);
   }
   net1.Add(fwDevRouterB);
 
-  // listener A
   Ptr<SimpleNetDevice> listenerDev;
   {
     listenerDev = CreateObject<SimpleNetDevice>();
@@ -613,7 +511,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   }
   net1.Add(listenerDev);
 
-  // link the channels
   Ptr<SimpleChannel> channel0 = CreateObject<SimpleChannel>();
   silentDev->SetChannel(channel0);
   silentDevRouterA->SetChannel(channel0);
@@ -623,7 +520,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   fwDevRouterB->SetChannel(channel1);
   listenerDev->SetChannel(channel1);
 
-  // Setup IPv6 addresses and forwarding
   Ipv6AddressHelper ipv6;
 
   ipv6.SetBase(Ipv6Address("2001:1::"), Ipv6Prefix(64));
@@ -633,7 +529,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   iic1.SetForwarding(0, true);
   iic1.SetForwarding(1, true);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = listener->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   rxSocket->BindToNetDevice(listenerDev);
@@ -643,9 +538,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   rxSocket->SetRecvCallback(
       MakeCallback(&Ipv6RipngSplitHorizonStrategyTest::ReceivePktProbe, this));
 
-  // ------ Now the tests ------------
-
-  // If the strategy is Split Horizon, then no packet will be received.
   m_detectedStrategy = RipNg::SPLIT_HORIZON;
 
   Simulator::Stop(Seconds(66));
@@ -656,11 +548,6 @@ void Ipv6RipngSplitHorizonStrategyTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 RIPng TestSuite
- */
 class Ipv6RipngTestSuite : public TestSuite {
 public:
   Ipv6RipngTestSuite() : TestSuite("ipv6-ripng", UNIT) {
@@ -675,5 +562,4 @@ public:
   }
 };
 
-static Ipv6RipngTestSuite
-    g_ipv6ripngTestSuite; //!< Static variable for test initialization
+static Ipv6RipngTestSuite g_ipv6ripngTestSuite;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-pdcp-header.h"
 
@@ -76,7 +58,6 @@ uint32_t LtePdcpHeader::Deserialize(Buffer::Iterator start) {
   byte_1 = i.ReadU8();
   byte_2 = i.ReadU8();
   m_dcBit = (byte_1 & 0x80) > 7;
-  // For now, we just support DATA PDUs
   NS_ASSERT(m_dcBit == DATA_PDU);
   m_sequenceNumber = ((byte_1 & 0x0F) << 8) | byte_2;
 

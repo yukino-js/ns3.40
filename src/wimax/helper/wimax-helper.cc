@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007,2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- */
 
 #include "wimax-helper.h"
 
@@ -200,7 +181,6 @@ WimaxHelper::Install(NodeContainer c, NetDeviceType deviceType, PhyType phyType,
     Ptr<Node> node = *i;
     Ptr<WimaxPhy> phy = CreatePhy(phyType);
 
-    // Set SuperFrame Duration
     phy->SetFrameDuration(Seconds(frameDuration));
 
     Ptr<WimaxNetDevice> device;
@@ -208,7 +188,6 @@ WimaxHelper::Install(NodeContainer c, NetDeviceType deviceType, PhyType phyType,
     Ptr<BSScheduler> bsScheduler = CreateBSScheduler(schedulerType);
 
     if (deviceType == DEVICE_TYPE_BASE_STATION) {
-      // attach phy
       Ptr<BaseStationNetDevice> deviceBS;
       deviceBS = CreateObject<BaseStationNetDevice>(node, phy, uplinkScheduler,
                                                     bsScheduler);
@@ -221,7 +200,7 @@ WimaxHelper::Install(NodeContainer c, NetDeviceType deviceType, PhyType phyType,
     device->SetAddress(Mac48Address::Allocate());
     phy->SetDevice(device);
     device->Start();
-    device->Attach(m_channel); // attach channel
+    device->Attach(m_channel);
 
     node->AddDevice(device);
 
@@ -243,7 +222,6 @@ NetDeviceContainer WimaxHelper::Install(NodeContainer c,
     Ptr<BSScheduler> bsScheduler = CreateBSScheduler(schedulerType);
 
     if (deviceType == DEVICE_TYPE_BASE_STATION) {
-      // attach phy
       Ptr<BaseStationNetDevice> deviceBS;
       deviceBS = CreateObject<BaseStationNetDevice>(node, phy, uplinkScheduler,
                                                     bsScheduler);
@@ -256,7 +234,7 @@ NetDeviceContainer WimaxHelper::Install(NodeContainer c,
     device->SetAddress(Mac48Address::Allocate());
     phy->SetDevice(device);
     device->Start();
-    device->Attach(m_channel); // attach channel
+    device->Attach(m_channel);
 
     node->AddDevice(device);
 
@@ -302,7 +280,6 @@ WimaxHelper::Install(NodeContainer c, NetDeviceType deviceType, PhyType phyType,
 Ptr<WimaxNetDevice>
 WimaxHelper::Install(Ptr<Node> node, NetDeviceType deviceType, PhyType phyType,
                      Ptr<WimaxChannel> channel, SchedulerType schedulerType) {
-  // Ptr<WimaxPhy> phy = CreatePhyWithoutChannel (phyType);
   Ptr<WimaxPhy> phy = CreatePhyWithoutChannel(phyType, (char *)"dummy", false);
   Ptr<WimaxNetDevice> device;
   Ptr<UplinkScheduler> uplinkScheduler = CreateUplinkScheduler(schedulerType);
@@ -412,11 +389,6 @@ WimaxHelper::CreateServiceFlow(ServiceFlow::Direction direction,
 void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
                                       std::string prefix, Ptr<NetDevice> nd,
                                       bool explicitFilename) {
-  //
-  // All of the ascii enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type CsmaNetDevice.
-  //
   Ptr<WimaxNetDevice> device = nd->GetObject<WimaxNetDevice>();
   if (!device) {
     NS_LOG_INFO("WimaxHelper::EnableAsciiInternal(): Device "
@@ -424,24 +396,9 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // Our default trace sinks are going to use packet printing, so we have to
-  // make sure that is turned on.
-  //
   Packet::EnablePrinting();
 
-  //
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and do a Hook*WithoutContext
-  // since there will be one file per context and therefore the context would
-  // be redundant.
-  //
   if (!stream) {
-    //
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues.  Let the helper decide the actual
-    // name of the file given the prefix.
-    //
     AsciiTraceHelper asciiTraceHelper;
     std::string filename;
     if (explicitFilename) {
@@ -455,9 +412,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     uint32_t nodeid = nd->GetNode()->GetId();
     uint32_t deviceid = nd->GetIfIndex();
     std::ostringstream oss;
-    //
-    // The MacRx trace source provides our "r" event.
-    //
 
     oss << "/NodeList/" << nodeid << "/DeviceList/" << deviceid
         << "/$ns3::WimaxNetDevice/Rx";
@@ -468,10 +422,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
         << "/$ns3::WimaxNetDevice/Tx";
     Config::Connect(oss.str(),
                     MakeBoundCallback(&WimaxHelper::AsciiTxEvent, theStream));
-    //
-    // The "+", '-', and 'd' events are driven by trace sources actually in the
-    // transmit queue.
-    //
 
     EnableAsciiForConnection(theStream, nodeid, deviceid,
                              (char *)"WimaxNetDevice",
@@ -479,15 +429,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     EnableAsciiForConnection(theStream, nodeid, deviceid,
                              (char *)"WimaxNetDevice",
                              (char *)"BroadcastConnection");
-
-    // The following connections can not be made right away because the
-    // BasicConnection and the PrimaryConnection are created later. We defer the
-    // creation to the SubscriberStationNetDevice
-
-    // EnableAsciiForConnection (theStream, nodeid, deviceid, (char*)
-    // "SubscriberStationNetDevice", (char*) "BasicConnection");
-    // EnableAsciiForConnection (theStream, nodeid, deviceid, (char*)
-    // "SubscriberStationNetDevice", (char*) "PrimaryConnection");
 
     Ptr<SubscriberStationNetDevice> ssNetDev =
         DynamicCast<SubscriberStationNetDevice>(nd);
@@ -510,18 +451,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to provide a context.  We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with the context.
-  //
-  // Note that we are going to use the default trace sinks provided by the
-  // ascii trace helper.  There is actually no AsciiTraceHelper in sight here,
-  // but the default trace sinks are actually publicly available static
-  // functions that are always there waiting for just such a case.
-  //
   uint32_t nodeid = nd->GetNode()->GetId();
   uint32_t deviceid = nd->GetIfIndex();
   std::ostringstream oss;
@@ -542,15 +471,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
   EnableAsciiForConnection(stream, nodeid, deviceid, (char *)"WimaxNetDevice",
                            (char *)"BroadcastConnection");
 
-  // The following connections can not be made right away because the
-  // BasicConnection and the PrimaryConnection are created later. We defer the
-  // creation to the SubscriberStationNetDevice
-
-  // EnableAsciiForConnection (stream, nodeid, deviceid, (char*)
-  // "SubscriberStationNetDevice", (char*) "BasicConnection");
-  // EnableAsciiForConnection (stream, nodeid, deviceid, (char*)
-  // "SubscriberStationNetDevice", (char*) "PrimaryConnection");
-
   Ptr<SubscriberStationNetDevice> ssNetDev =
       DynamicCast<SubscriberStationNetDevice>(nd);
   if (ssNetDev) {
@@ -570,11 +490,6 @@ void WimaxHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
   }
 }
 
-/**
- * \brief print pcap record
- * \param file pcap file
- * \param burst packet burst to print
- */
 static void PcapSniffTxRxEvent(Ptr<PcapFileWrapper> file,
                                Ptr<const PacketBurst> burst) {
   std::list<Ptr<Packet>> packets = burst->GetPackets();
@@ -588,11 +503,6 @@ static void PcapSniffTxRxEvent(Ptr<PcapFileWrapper> file,
 
 void WimaxHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
                                      bool explicitFilename, bool promiscuous) {
-  //
-  // All of the Pcap enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type WimaxNetDevice.
-  //
   Ptr<WimaxNetDevice> device = nd->GetObject<WimaxNetDevice>();
   if (!device) {
     NS_LOG_INFO("WimaxHelper::EnablePcapInternal(): Device "
@@ -630,12 +540,10 @@ int64_t WimaxHelper::AssignStreams(NetDeviceContainer c, int64_t stream) {
     netDevice = (*i);
     Ptr<WimaxNetDevice> wimax = DynamicCast<WimaxNetDevice>(netDevice);
     if (wimax) {
-      // Handle any random numbers in the PHY objects.
       currentStream += wimax->GetPhy()->AssignStreams(currentStream);
     }
   }
 
-  // Handle any random numbers in the channel.
   currentStream += m_channel->AssignStreams(currentStream);
 
   return (currentStream - stream);

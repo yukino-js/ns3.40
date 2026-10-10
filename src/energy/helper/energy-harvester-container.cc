@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Wireless Communications and Networking Group (WCNG),
- * University of Rochester, Rochester, NY, USA.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Cristiano Tapparello <cristiano.tapparello@rochester.edu>
- */
 
 #include "energy-harvester-container.h"
 
@@ -107,12 +88,7 @@ void EnergyHarvesterContainer::Clear() {
   m_harvesters.clear();
 }
 
-/*
- * Private functions start here.
- */
-
 void EnergyHarvesterContainer::DoDispose() {
-  // call Object::Dispose for all EnergyHarvester objects
   for (auto i = m_harvesters.begin(); i != m_harvesters.end(); i++) {
     (*i)->Dispose();
   }
@@ -120,7 +96,6 @@ void EnergyHarvesterContainer::DoDispose() {
 }
 
 void EnergyHarvesterContainer::DoInitialize() {
-  // call Object::Initialize for all EnergyHarvester objects
   for (auto i = m_harvesters.begin(); i != m_harvesters.end(); i++) {
     (*i)->Initialize();
   }

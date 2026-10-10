@@ -1,54 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
-
-// This example is used to validate 802.11n MIMO.
-//
-// It outputs plots of the throughput versus the distance
-// for every HT MCS value and from 1 to 4 MIMO streams.
-//
-// The simulation assumes a single station in an infrastructure network:
-//
-//  STA     AP
-//    *     *
-//    |     |
-//   n1     n2
-//
-// The user can choose whether UDP or TCP should be used and can configure
-// some 802.11n parameters (frequency, channel width and guard interval).
-//
-// An important configuration parameter is preamble detection.  It is enabled
-// by default (to match the default ns-3 configuration) but will dominate
-// performance at low SNRs, causing the different MCS to appear to have
-// the same range (because regardless of the MCS, the preamble detection
-// thresholds do not change).
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -84,9 +34,9 @@ int main(int argc, char *argv[]) {
   };
 
   bool udp = true;
-  double simulationTime = 5; // seconds
-  double frequency = 5.0;    // whether 2.4 or 5.0 GHz
-  double step = 5;           // meters
+  double simulationTime = 5;
+  double frequency = 5.0;
+  double step = 5;
   bool shortGuardInterval = false;
   bool channelBonding = false;
   bool preambleDetection = true;
@@ -114,23 +64,21 @@ int main(int argc, char *argv[]) {
 
   Gnuplot plot = Gnuplot("80211n-mimo-throughput.eps");
 
-  for (uint32_t i = 0; i < modes.size(); i++) // MCS
-  {
+  for (uint32_t i = 0; i < modes.size(); i++) {
     std::cout << modes[i] << std::endl;
     Gnuplot2dDataset dataset(modes[i]);
-    for (double d = 0; d <= 100;) // distance
-    {
+    for (double d = 0; d <= 100;) {
       std::cout << "Distance = " << d << "m: " << std::endl;
-      uint32_t payloadSize; // 1500 byte IP packet
+      uint32_t payloadSize;
       if (udp) {
-        payloadSize = 1472; // bytes
+        payloadSize = 1472;
       } else {
-        payloadSize = 1448; // bytes
+        payloadSize = 1448;
         Config::SetDefault("ns3::TcpSocket::SegmentSize",
                            UintegerValue(payloadSize));
       }
 
-      uint8_t nStreams = 1 + (i / 8); // number of MIMO streams
+      uint8_t nStreams = 1 + (i / 8);
 
       NodeContainer wifiStaNode;
       wifiStaNode.Create(1);
@@ -144,7 +92,6 @@ int main(int argc, char *argv[]) {
         phy.DisablePreambleDetectionModel();
       }
 
-      // Set MIMO capabilities
       phy.Set("Antennas", UintegerValue(nStreams));
       phy.Set("MaxSupportedTxSpatialStreams", UintegerValue(nStreams));
       phy.Set("MaxSupportedRxSpatialStreams", UintegerValue(nStreams));
@@ -189,13 +136,11 @@ int main(int argc, char *argv[]) {
       NetDeviceContainer apDevice;
       apDevice = wifi.Install(phy, mac, wifiApNode);
 
-      // Set guard interval
       Config::Set(
           "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/"
           "ShortGuardIntervalSupported",
           BooleanValue(shortGuardInterval));
 
-      // mobility.
       MobilityHelper mobility;
       Ptr<ListPositionAllocator> positionAlloc =
           CreateObject<ListPositionAllocator>();
@@ -209,7 +154,6 @@ int main(int argc, char *argv[]) {
       mobility.Install(wifiApNode);
       mobility.Install(wifiStaNode);
 
-      /* Internet stack*/
       InternetStackHelper stack;
       stack.Install(wifiApNode);
       stack.Install(wifiStaNode);
@@ -222,10 +166,8 @@ int main(int argc, char *argv[]) {
       staNodeInterface = address.Assign(staDevice);
       apNodeInterface = address.Assign(apDevice);
 
-      /* Setting applications */
       ApplicationContainer serverApp;
       if (udp) {
-        // UDP flow
         uint16_t port = 9;
         UdpServerHelper server(port);
         serverApp = server.Install(wifiStaNode.Get(0));
@@ -234,14 +176,12 @@ int main(int argc, char *argv[]) {
 
         UdpClientHelper client(staNodeInterface.GetAddress(0), port);
         client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-        client.SetAttribute("Interval",
-                            TimeValue(Time("0.00001"))); // packets/s
+        client.SetAttribute("Interval", TimeValue(Time("0.00001")));
         client.SetAttribute("PacketSize", UintegerValue(payloadSize));
         ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
         clientApp.Start(Seconds(1.0));
         clientApp.Stop(Seconds(simulationTime + 1));
       } else {
-        // TCP flow
         uint16_t port = 50000;
         Address localAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
         PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory",
@@ -256,7 +196,7 @@ int main(int argc, char *argv[]) {
         onoff.SetAttribute(
             "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
         onoff.SetAttribute("PacketSize", UintegerValue(payloadSize));
-        onoff.SetAttribute("DataRate", DataRateValue(1000000000)); // bit/s
+        onoff.SetAttribute("DataRate", DataRateValue(1000000000));
         AddressValue remoteAddress(
             InetSocketAddress(staNodeInterface.GetAddress(0), port));
         onoff.SetAttribute("Remote", remoteAddress);
@@ -272,17 +212,14 @@ int main(int argc, char *argv[]) {
 
       double throughput = 0;
       if (udp) {
-        // UDP
         uint64_t totalPacketsThrough =
             DynamicCast<UdpServer>(serverApp.Get(0))->GetReceived();
         throughput = totalPacketsThrough * payloadSize * 8 /
-                     (simulationTime * 1000000.0); // Mbit/s
+                     (simulationTime * 1000000.0);
       } else {
-        // TCP
         uint64_t totalPacketsThrough =
             DynamicCast<PacketSink>(serverApp.Get(0))->GetTotalRx();
-        throughput =
-            totalPacketsThrough * 8 / (simulationTime * 1000000.0); // Mbit/s
+        throughput = totalPacketsThrough * 8 / (simulationTime * 1000000.0);
       }
       dataset.Add(d, throughput);
       std::cout << throughput << " Mbit/s" << std::endl;

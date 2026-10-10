@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Keerthi Ganta <keerthiganta@ku.edu>
- *         Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "tcp-illinois.h"
 
@@ -167,10 +142,8 @@ void TcpIllinois::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t packetsAcked,
     return;
   }
 
-  // Keep track of minimum RTT
   m_baseRtt = std::min(m_baseRtt, rtt);
 
-  // Keep track of maximum RTT
   m_maxRtt = std::max(rtt, m_maxRtt);
 
   ++m_cntRtt;
@@ -202,15 +175,10 @@ void TcpIllinois::CalculateAlpha(double da, double dm) {
   if (da <= d1) {
     NS_LOG_INFO("da <= d1");
 
-    if (!m_rttAbove) { // In case we can't get out of this low delay zone, we
-                       // use alphaMax
+    if (!m_rttAbove) {
       m_alpha = m_alphaMax;
     }
     if (++m_rttLow >= m_theta) {
-      /*
-       * da needs to stay below d1 for theta times RTT amount of time
-       * before we can increase alpha to alphaMax
-       */
       NS_LOG_INFO("da stays below d1 for theta times RTT amount of time, "
                   "increase alpha to alphaMax");
 
@@ -222,11 +190,6 @@ void TcpIllinois::CalculateAlpha(double da, double dm) {
     NS_LOG_INFO("da > d1");
 
     m_rttAbove = true;
-    /*
-     * alpha = k1 / (k2 + da), where
-     * k1 = ((dm - d1) * alphaMin * alphaMax) / (alphaMax - alphaMin)
-     * k2 = (((dm - d1) * alphaMin) / (alphaMax - alphaMin)) - d1
-     */
     dm -= d1;
     da -= d1;
     m_alpha = (dm * m_alphaMax) /
@@ -254,11 +217,6 @@ void TcpIllinois::CalculateBeta(double da, double dm) {
   else if (da > d2 && da < d3) {
     NS_LOG_INFO("da > d2 && da < d3");
 
-    /*
-     * beta = k3 + k4 * da, where
-     * k3 = (betaMin * d3 - betaMax * d2) / (d3 - d2)
-     * k4 = (betaMax - betaMin) / (d3 - d2)
-     */
     m_beta = (m_betaMin * d3 - m_betaMax * d2 + (m_betaMax - m_betaMin) * da) /
              (d3 - d2);
   }

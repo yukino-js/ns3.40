@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "qos-frame-exchange-manager.h"
 
@@ -97,8 +79,6 @@ bool QosFrameExchangeManager::SendCfEndIfNeeded() {
   auto txDuration = m_phy->CalculateTxDuration(mpdu->GetSize(), cfEndTxVector,
                                                m_phy->GetPhyBand());
 
-  // Send the CF-End frame if the remaining duration is long enough to transmit
-  // this frame
   if (m_edca->GetRemainingTxop(m_linkId) > txDuration) {
     NS_LOG_DEBUG("Send CF-End frame");
     ForwardMpduDown(mpdu, cfEndTxVector);
@@ -118,14 +98,11 @@ void QosFrameExchangeManager::PifsRecovery() {
   NS_ASSERT(m_edca);
   NS_ASSERT(m_edca->IsTxopStarted(m_linkId));
 
-  // Release the channel if it has not been idle for the last PIFS interval
   if (m_channelAccessManager->GetAccessGrantStart() - m_phy->GetSifs() >
       Simulator::Now() - m_phy->GetPifs()) {
     NotifyChannelReleased(m_edca);
     m_edca = nullptr;
   } else {
-    // the txopDuration parameter is unused because we are not starting a new
-    // TXOP
     StartTransmission(m_edca, Seconds(0));
   }
 }
@@ -145,13 +122,9 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<Txop> edca,
   NS_LOG_FUNCTION(this << edca << allowedWidth);
 
   if (m_pifsRecoveryEvent.IsRunning()) {
-    // Another AC (having AIFS=1 or lower, if the user changed the default
-    // settings) gained channel access while performing PIFS recovery. Abort
-    // PIFS recovery
     CancelPifsRecovery();
   }
 
-  // TODO This will become an assert once no Txop is installed on a QoS station
   if (!edca->IsQosTxop()) {
     m_edca = nullptr;
     return FrameExchangeManager::StartTransmission(edca, allowedWidth);
@@ -167,9 +140,6 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<QosTxop> edca,
   NS_LOG_FUNCTION(this << edca << txopDuration);
 
   if (m_pifsRecoveryEvent.IsRunning()) {
-    // Another AC (having AIFS=1 or lower, if the user changed the default
-    // settings) gained channel access while performing PIFS recovery. Abort
-    // PIFS recovery
     CancelPifsRecovery();
   }
 
@@ -179,8 +149,6 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<QosTxop> edca,
   m_dcf = edca;
   m_edca = edca;
 
-  // We check if this EDCAF invoked the backoff procedure (without terminating
-  // the TXOP) because the transmission of a non-initial frame of a TXOP failed
   bool backingOff = (m_edcaBackingOff == m_edca);
 
   if (backingOff) {
@@ -189,20 +157,12 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<QosTxop> edca,
     NS_ASSERT(!m_pifsRecovery);
     NS_ASSERT(!m_initialFrame);
 
-    // clear the member variable
     m_edcaBackingOff = nullptr;
   }
 
   if (m_edca->GetTxopLimit(m_linkId).IsStrictlyPositive()) {
-    // TXOP limit is not null. We have to check if this EDCAF is starting a
-    // new TXOP. This includes the case when the transmission of a non-initial
-    // frame of a TXOP failed and backoff was invoked without terminating the
-    // TXOP. In such a case, we assume that a new TXOP is being started if it
-    // elapsed more than TXOPlimit since the start of the paused TXOP. Note
-    // that GetRemainingTxop returns 0 iff Now - TXOPstart >= TXOPlimit
     if (!m_edca->IsTxopStarted(m_linkId) ||
         (backingOff && m_edca->GetRemainingTxop(m_linkId).IsZero())) {
-      // starting a new TXOP
       m_edca->NotifyChannelAccessed(m_linkId, txopDuration);
 
       if (StartFrameExchange(m_edca, txopDuration, true)) {
@@ -210,14 +170,12 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<QosTxop> edca,
         return true;
       }
 
-      // TXOP not even started, return false
       NS_LOG_DEBUG("No frame transmitted");
       NotifyChannelReleased(m_edca);
       m_edca = nullptr;
       return false;
     }
 
-    // We are continuing a TXOP, check if we can transmit another frame
     NS_ASSERT(!m_initialFrame);
 
     if (!StartFrameExchange(m_edca, m_edca->GetRemainingTxop(m_linkId),
@@ -229,7 +187,6 @@ bool QosFrameExchangeManager::StartTransmission(Ptr<QosTxop> edca,
     return true;
   }
 
-  // we get here if TXOP limit is null
   m_initialFrame = true;
 
   if (StartFrameExchange(m_edca, Time::Min(), true)) {
@@ -250,9 +207,6 @@ bool QosFrameExchangeManager::StartFrameExchange(Ptr<QosTxop> edca,
 
   Ptr<WifiMpdu> mpdu = edca->PeekNextMpdu(m_linkId);
 
-  // Even though channel access is requested when the queue is not empty, at
-  // the time channel access is granted the lifetime of the packet might be
-  // expired and the queue might be empty.
   if (!mpdu) {
     NS_LOG_DEBUG("Queue empty");
     return false;
@@ -275,10 +229,8 @@ bool QosFrameExchangeManager::StartFrameExchange(Ptr<QosTxop> edca,
                     !item->GetHeader().IsQosAmsdu(),
                 "We should not get an A-MSDU here");
 
-  // check if the MSDU needs to be fragmented
   item = GetFirstFragmentIfNeeded(item);
 
-  // update the protection method if the frame was fragmented
   if (item->IsFragment() && item->GetSize() != mpdu->GetSize()) {
     WifiTxParameters fragmentTxParams;
     fragmentTxParams.m_txVector = txParams.m_txVector;
@@ -303,8 +255,7 @@ bool QosFrameExchangeManager::TryAddMpdu(Ptr<const WifiMpdu> mpdu,
   NS_ASSERT(mpdu);
   NS_LOG_FUNCTION(this << *mpdu << &txParams << availableTime);
 
-  // check if adding the given MPDU requires a different protection method
-  Time protectionTime = Time::Min(); // uninitialized
+  Time protectionTime = Time::Min();
   if (txParams.m_protection) {
     protectionTime = txParams.m_protection->protectionTime;
   }
@@ -314,19 +265,15 @@ bool QosFrameExchangeManager::TryAddMpdu(Ptr<const WifiMpdu> mpdu,
   bool protectionSwapped = false;
 
   if (protection) {
-    // the protection method has changed, calculate the new protection time
     CalculateProtectionTime(protection.get());
     protectionTime = protection->protectionTime;
-    // swap unique pointers, so that the txParams that is passed to the next
-    // call to IsWithinLimitsIfAddMpdu is the most updated one
     txParams.m_protection.swap(protection);
     protectionSwapped = true;
   }
   NS_ASSERT(protectionTime != Time::Min());
   NS_LOG_DEBUG("protection time=" << protectionTime);
 
-  // check if adding the given MPDU requires a different acknowledgment method
-  Time acknowledgmentTime = Time::Min(); // uninitialized
+  Time acknowledgmentTime = Time::Min();
   if (txParams.m_acknowledgment) {
     acknowledgmentTime = txParams.m_acknowledgment->acknowledgmentTime;
   }
@@ -336,12 +283,8 @@ bool QosFrameExchangeManager::TryAddMpdu(Ptr<const WifiMpdu> mpdu,
   bool acknowledgmentSwapped = false;
 
   if (acknowledgment) {
-    // the acknowledgment method has changed, calculate the new acknowledgment
-    // time
     CalculateAcknowledgmentTime(acknowledgment.get());
     acknowledgmentTime = acknowledgment->acknowledgmentTime;
-    // swap unique pointers, so that the txParams that is passed to the next
-    // call to IsWithinLimitsIfAddMpdu is the most updated one
     txParams.m_acknowledgment.swap(acknowledgment);
     acknowledgmentSwapped = true;
   }
@@ -354,8 +297,6 @@ bool QosFrameExchangeManager::TryAddMpdu(Ptr<const WifiMpdu> mpdu,
   }
 
   if (!IsWithinLimitsIfAddMpdu(mpdu, txParams, ppduDurationLimit)) {
-    // adding MPDU failed, restore protection and acknowledgment methods
-    // if they were swapped
     if (protectionSwapped) {
       txParams.m_protection.swap(protection);
     }
@@ -365,7 +306,6 @@ bool QosFrameExchangeManager::TryAddMpdu(Ptr<const WifiMpdu> mpdu,
     return false;
   }
 
-  // the given MPDU can be added, hence update the txParams
   txParams.AddMpdu(mpdu);
   UpdateTxDuration(mpdu->GetHeader().GetAddr1(), txParams);
 
@@ -378,8 +318,6 @@ bool QosFrameExchangeManager::IsWithinLimitsIfAddMpdu(
   NS_ASSERT(mpdu);
   NS_LOG_FUNCTION(this << *mpdu << &txParams << ppduDurationLimit);
 
-  // A QoS station only has to check that the MPDU transmission time does not
-  // exceed the given limit
   return IsWithinSizeAndTimeLimits(mpdu->GetSize(),
                                    mpdu->GetHeader().GetAddr1(), txParams,
                                    ppduDurationLimit);
@@ -403,7 +341,6 @@ bool QosFrameExchangeManager::IsWithinSizeAndTimeLimits(
     return false;
   }
 
-  // Get the maximum PPDU Duration based on the preamble type
   Time maxPpduDuration = GetPpduMaxTime(txParams.m_txVector.GetPreambleType());
 
   Time txTime = GetTxDuration(ppduPayloadSize, receiver, txParams);
@@ -424,7 +361,6 @@ Time QosFrameExchangeManager::GetFrameDurationId(
     const WifiTxParameters &txParams, Ptr<Packet> fragmentedPacket) const {
   NS_LOG_FUNCTION(this << header << size << &txParams << fragmentedPacket);
 
-  // TODO This will be removed once no Txop is installed on a QoS station
   if (!m_edca) {
     return FrameExchangeManager::GetFrameDurationId(header, size, txParams,
                                                     fragmentedPacket);
@@ -438,10 +374,6 @@ Time QosFrameExchangeManager::GetFrameDurationId(
   NS_ASSERT(txParams.m_acknowledgment &&
             txParams.m_acknowledgment->acknowledgmentTime != Time::Min());
 
-  // under multiple protection settings, if the TXOP limit is not null,
-  // Duration/ID is set to cover the remaining TXOP time (Sec. 9.2.5.2 of
-  // 802.11-2016). The TXOP holder may exceed the TXOP limit in some situations
-  // (Sec. 10.22.2.8 of 802.11-2016)
   return std::max(m_edca->GetRemainingTxop(m_linkId) -
                       m_phy->CalculateTxDuration(size, txParams.m_txVector,
                                                  m_phy->GetPhyBand()),
@@ -453,7 +385,6 @@ Time QosFrameExchangeManager::GetRtsDurationId(const WifiTxVector &rtsTxVector,
                                                Time response) const {
   NS_LOG_FUNCTION(this << rtsTxVector << txDuration << response);
 
-  // TODO This will be removed once no Txop is installed on a QoS station
   if (!m_edca) {
     return FrameExchangeManager::GetRtsDurationId(rtsTxVector, txDuration,
                                                   response);
@@ -464,10 +395,6 @@ Time QosFrameExchangeManager::GetRtsDurationId(const WifiTxVector &rtsTxVector,
                                                   response);
   }
 
-  // under multiple protection settings, if the TXOP limit is not null,
-  // Duration/ID is set to cover the remaining TXOP time (Sec. 9.2.5.2 of
-  // 802.11-2016). The TXOP holder may exceed the TXOP limit in some situations
-  // (Sec. 10.22.2.8 of 802.11-2016)
   return std::max(m_edca->GetRemainingTxop(m_linkId) -
                       m_phy->CalculateTxDuration(GetRtsSize(), rtsTxVector,
                                                  m_phy->GetPhyBand()),
@@ -478,7 +405,6 @@ Time QosFrameExchangeManager::GetCtsToSelfDurationId(
     const WifiTxVector &ctsTxVector, Time txDuration, Time response) const {
   NS_LOG_FUNCTION(this << ctsTxVector << txDuration << response);
 
-  // TODO This will be removed once no Txop is installed on a QoS station
   if (!m_edca) {
     return FrameExchangeManager::GetCtsToSelfDurationId(ctsTxVector, txDuration,
                                                         response);
@@ -489,10 +415,6 @@ Time QosFrameExchangeManager::GetCtsToSelfDurationId(
                                                         response);
   }
 
-  // under multiple protection settings, if the TXOP limit is not null,
-  // Duration/ID is set to cover the remaining TXOP time (Sec. 9.2.5.2 of
-  // 802.11-2016). The TXOP holder may exceed the TXOP limit in some situations
-  // (Sec. 10.22.2.8 of 802.11-2016)
   return std::max(m_edca->GetRemainingTxop(m_linkId) -
                       m_phy->CalculateTxDuration(GetCtsSize(), ctsTxVector,
                                                  m_phy->GetPhyBand()),
@@ -518,7 +440,6 @@ void QosFrameExchangeManager::ForwardMpduDown(Ptr<WifiMpdu> mpdu,
 void QosFrameExchangeManager::TransmissionSucceeded() {
   NS_LOG_DEBUG(this);
 
-  // TODO This will be removed once no Txop is installed on a QoS station
   if (!m_edca) {
     FrameExchangeManager::TransmissionSucceeded();
     return;
@@ -530,7 +451,6 @@ void QosFrameExchangeManager::TransmissionSucceeded() {
     bool (QosFrameExchangeManager::*fp)(Ptr<QosTxop>, Time) =
         &QosFrameExchangeManager::StartTransmission;
 
-    // we are continuing a TXOP, hence the txopDuration parameter is unused
     Simulator::Schedule(m_phy->GetSifs(), fp, this, m_edca, Seconds(0));
   } else {
     NotifyChannelReleased(m_edca);
@@ -542,16 +462,12 @@ void QosFrameExchangeManager::TransmissionSucceeded() {
 void QosFrameExchangeManager::TransmissionFailed() {
   NS_LOG_FUNCTION(this);
 
-  // TODO This will be removed once no Txop is installed on a QoS station
   if (!m_edca) {
     FrameExchangeManager::TransmissionFailed();
     return;
   }
 
   if (m_initialFrame) {
-    // The backoff procedure shall be invoked by an EDCAF when the transmission
-    // of an MPDU in the initial PPDU of a TXOP fails (Sec. 10.22.2.2 of
-    // 802.11-2016)
     NS_LOG_DEBUG("TX of the initial frame of a TXOP failed: terminate TXOP");
     NotifyChannelReleased(m_edca);
     m_edca = nullptr;
@@ -559,21 +475,13 @@ void QosFrameExchangeManager::TransmissionFailed() {
     NS_ASSERT_MSG(m_edca->GetTxopLimit(m_linkId).IsStrictlyPositive(),
                   "Cannot transmit more than one frame if TXOP Limit is zero");
 
-    // A STA can perform a PIFS recovery or perform a backoff as a response to
-    // transmission failure within a TXOP. How it chooses between these two is
-    // implementation dependent. (Sec. 10.22.2.2 of 802.11-2016)
     if (m_pifsRecovery) {
-      // we can continue the TXOP if the carrier sense mechanism indicates that
-      // the medium is idle in a PIFS
       NS_LOG_DEBUG(
           "TX of a non-initial frame of a TXOP failed: perform PIFS recovery");
       NS_ASSERT(!m_pifsRecoveryEvent.IsRunning());
       m_pifsRecoveryEvent = Simulator::Schedule(
           m_phy->GetPifs(), &QosFrameExchangeManager::PifsRecovery, this);
     } else {
-      // In order not to terminate (yet) the TXOP, we call the
-      // NotifyChannelReleased method of the Txop class, which only generates a
-      // new backoff value and requests channel access if needed,
       NS_LOG_DEBUG(
           "TX of a non-initial frame of a TXOP failed: invoke backoff");
       m_edca->Txop::NotifyChannelReleased(m_linkId);
@@ -588,7 +496,6 @@ void QosFrameExchangeManager::PreProcessFrame(Ptr<const WifiPsdu> psdu,
                                               const WifiTxVector &txVector) {
   NS_LOG_FUNCTION(this << psdu << txVector);
 
-  // APs store buffer size report of associated stations
   if (m_mac->GetTypeOfStation() == AP && psdu->GetAddr1() == m_self) {
     for (const auto &mpdu : *PeekPointer(psdu)) {
       const WifiMacHeader &hdr = mpdu->GetHeader();
@@ -605,8 +512,6 @@ void QosFrameExchangeManager::PreProcessFrame(Ptr<const WifiPsdu> psdu,
     }
   }
 
-  // before updating the NAV, check if the NAV counted down to zero. In such a
-  // case, clear the saved TXOP holder address.
   ClearTxopHolderIfNeeded();
 
   FrameExchangeManager::PreProcessFrame(psdu, txVector);
@@ -626,11 +531,6 @@ void QosFrameExchangeManager::SetTxopHolder(Ptr<const WifiPsdu> psdu,
 
   const WifiMacHeader &hdr = psdu->GetHeader(0);
 
-  // A STA shall save the TXOP holder address for the BSS in which it is
-  // associated. The TXOP holder address is the MAC address from the Address 2
-  // field of the frame that initiated a frame exchange sequence, except if this
-  // is a CTS frame, in which case the TXOP holder address is the Address 1
-  // field. (Sec. 10.23.2.4 of 802.11-2020)
   if ((hdr.IsQosData() || hdr.IsMgt() || hdr.IsRts()) &&
       (hdr.GetAddr1() == m_bssid || hdr.GetAddr2() == m_bssid)) {
     m_txopHolder = psdu->GetAddr2();
@@ -668,7 +568,6 @@ void QosFrameExchangeManager::ReceiveMpdu(Ptr<const WifiMpdu> mpdu,
                                           RxSignalInfo rxSignalInfo,
                                           const WifiTxVector &txVector,
                                           bool inAmpdu) {
-  // The received MPDU is either broadcast or addressed to this station
   NS_ASSERT(mpdu->GetHeader().GetAddr1().IsGroup() ||
             mpdu->GetHeader().GetAddr1() == m_self);
 
@@ -678,11 +577,6 @@ void QosFrameExchangeManager::ReceiveMpdu(Ptr<const WifiMpdu> mpdu,
   if (hdr.IsRts()) {
     NS_ABORT_MSG_IF(inAmpdu, "Received RTS as part of an A-MPDU");
 
-    // If a non-VHT STA receives an RTS frame with the RA address matching the
-    // MAC address of the STA and the MAC address in the TA field in the RTS
-    // frame matches the saved TXOP holder address, then the STA shall send the
-    // CTS frame after SIFS, without regard for, and without resetting, its NAV.
-    // (sec. 10.22.2.4 of 802.11-2016)
     if (hdr.GetAddr2() == m_txopHolder || VirtualCsMediumIdle()) {
       NS_LOG_DEBUG("Received RTS from=" << hdr.GetAddr2() << ", schedule CTS");
       Simulator::Schedule(m_phy->GetSifs(),
@@ -705,10 +599,8 @@ void QosFrameExchangeManager::ReceiveMpdu(Ptr<const WifiMpdu> mpdu,
                           txVector, rxSnr);
     }
 
-    // Forward up the frame
     m_rxMiddle->Receive(mpdu, m_linkId);
 
-    // the received data frame has been processed
     return;
   }
 

@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2015 Universita' degli Studi di Napoli "Federico II"
- *               2017 Kungliga Tekniska Högskolan
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pasquale Imputato <p.imputato@gmail.com>
- * Author: Stefano Avallone <stefano.avallone@unina.it>
- * Author: Surya Seetharaman <suryaseetharaman.9@gmail.com> - ported from ns-3
- *         RedQueueDisc traffic-control example to accommodate TbfQueueDisc
- * example.
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -28,24 +5,6 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/traffic-control-module.h"
-
-// This simple example shows how to use TrafficControlHelper to install a
-// QueueDisc on a device.
-//
-// Network topology
-//
-//       10.1.1.0
-// n0 -------------- n1
-//    point-to-point
-//
-// The output will consist of all the traced changes in
-// the number of tokens in TBF's first and second buckets:
-//
-//    FirstBucketTokens 0 to x
-//    SecondBucketTokens 0 to x
-//    FirstBucketTokens x to 0
-//    SecondBucketTokens x to 0
-//
 
 using namespace ns3;
 
@@ -62,7 +21,7 @@ void SecondBucketTokensTrace(uint32_t oldValue, uint32_t newValue) {
 }
 
 int main(int argc, char *argv[]) {
-  double simulationTime = 10; // seconds
+  double simulationTime = 10;
   uint32_t burst = 10000;
   uint32_t mtu = 0;
   DataRate rate = DataRate("1Mbps");
@@ -108,7 +67,6 @@ int main(int argc, char *argv[]) {
 
   Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-  // Flow
   uint16_t port = 7;
   Address localAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
   PacketSinkHelper packetSinkHelper("ns3::TcpSocketFactory", localAddress);
@@ -126,7 +84,7 @@ int main(int argc, char *argv[]) {
   onoff.SetAttribute("OffTime",
                      StringValue("ns3::ConstantRandomVariable[Constant=0.2]"));
   onoff.SetAttribute("PacketSize", UintegerValue(payloadSize));
-  onoff.SetAttribute("DataRate", StringValue("1.1Mb/s")); // bit/s
+  onoff.SetAttribute("DataRate", StringValue("1.1Mb/s"));
   ApplicationContainer apps;
 
   InetSocketAddress rmt(interfaces.GetAddress(0), port);

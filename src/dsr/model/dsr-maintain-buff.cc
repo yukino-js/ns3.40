@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2011 Yufei Cheng
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Yufei Cheng   <yfcheng@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "dsr-maintain-buff.h"
 
@@ -52,17 +22,6 @@ uint32_t DsrMaintainBuffer::GetSize() {
 bool DsrMaintainBuffer::Enqueue(DsrMaintainBuffEntry &entry) {
   Purge();
   for (auto i = m_maintainBuffer.begin(); i != m_maintainBuffer.end(); ++i) {
-    //      NS_LOG_INFO ("nexthop " << i->GetNextHop () << " " <<
-    //      entry.GetNextHop () << " our add " << i->GetOurAdd () << " " <<
-    //      entry.GetOurAdd ()
-    //                              << " src " << i->GetSrc () << " " <<
-    //                              entry.GetSrc () << " dst " << i->GetDst ()
-    //                              << " " << entry.GetDst ()
-    //                              << " ackId " << i->GetAckId () << " " <<
-    //                              entry.GetAckId ()
-    //                              << " SegsLeft " << (uint32_t)i->GetSegsLeft
-    //                              () << " " << (uint32_t)entry.GetSegsLeft ()
-    //                   );
 
     if ((i->GetNextHop() == entry.GetNextHop()) &&
         (i->GetOurAdd() == entry.GetOurAdd()) &&
@@ -77,8 +36,7 @@ bool DsrMaintainBuffer::Enqueue(DsrMaintainBuffEntry &entry) {
   entry.SetExpireTime(m_maintainBufferTimeout);
   if (m_maintainBuffer.size() >= m_maxLen) {
     NS_LOG_DEBUG("Drop the most aged packet");
-    m_maintainBuffer.erase(
-        m_maintainBuffer.begin()); // Drop the most aged packet
+    m_maintainBuffer.erase(m_maintainBuffer.begin());
   }
   m_maintainBuffer.push_back(entry);
   return true;
@@ -124,23 +82,13 @@ bool DsrMaintainBuffer::Find(Ipv4Address nextHop) {
 
 bool DsrMaintainBuffer::AllEqual(DsrMaintainBuffEntry &entry) {
   for (auto i = m_maintainBuffer.begin(); i != m_maintainBuffer.end(); ++i) {
-    //      NS_LOG_DEBUG ("nexthop " << i->GetNextHop () << " " <<
-    //      entry.GetNextHop () << " our address " << i->GetOurAdd () << " " <<
-    //      entry.GetOurAdd ()
-    //                               << " src " << i->GetSrc () << " " <<
-    //                               entry.GetSrc () << " dst " << i->GetDst ()
-    //                               << " " << entry.GetDst ()
-    //                               << " ackId " << i->GetAckId () << " " <<
-    //                               entry.GetAckId
-    //                               ());
 
     if ((i->GetOurAdd() == entry.GetOurAdd()) &&
         (i->GetNextHop() == entry.GetNextHop()) &&
         (i->GetSrc() == entry.GetSrc()) && (i->GetDst() == entry.GetDst()) &&
         (i->GetAckId() == entry.GetAckId()) &&
         (i->GetSegsLeft() == entry.GetSegsLeft())) {
-      i = m_maintainBuffer.erase(
-          i); // Erase the same maintain buffer entry for the received packet
+      i = m_maintainBuffer.erase(i);
       return true;
     }
   }
@@ -149,22 +97,12 @@ bool DsrMaintainBuffer::AllEqual(DsrMaintainBuffEntry &entry) {
 
 bool DsrMaintainBuffer::NetworkEqual(DsrMaintainBuffEntry &entry) {
   for (auto i = m_maintainBuffer.begin(); i != m_maintainBuffer.end(); ++i) {
-    //      NS_LOG_DEBUG ("nexthop " << i->GetNextHop () << " " <<
-    //      entry.GetNextHop () << " our address " << i->GetOurAdd () << " " <<
-    //      entry.GetOurAdd ()
-    //                               << " src " << i->GetSrc () << " " <<
-    //                               entry.GetSrc () << " dst " << i->GetDst ()
-    //                               << " " << entry.GetDst ()
-    //                               << " ackId " << i->GetAckId () << " " <<
-    //                               entry.GetAckId
-    //                               ());
 
     if ((i->GetOurAdd() == entry.GetOurAdd()) &&
         (i->GetNextHop() == entry.GetNextHop()) &&
         (i->GetSrc() == entry.GetSrc()) && (i->GetDst() == entry.GetDst()) &&
         (i->GetAckId() == entry.GetAckId())) {
-      i = m_maintainBuffer.erase(
-          i); // Erase the same maintain buffer entry for the received packet
+      i = m_maintainBuffer.erase(i);
       return true;
     }
   }
@@ -174,19 +112,11 @@ bool DsrMaintainBuffer::NetworkEqual(DsrMaintainBuffEntry &entry) {
 bool DsrMaintainBuffer::PromiscEqual(DsrMaintainBuffEntry &entry) {
   NS_LOG_DEBUG("The maintenance buffer size " << m_maintainBuffer.size());
   for (auto i = m_maintainBuffer.begin(); i != m_maintainBuffer.end(); ++i) {
-    //      NS_LOG_DEBUG ("src " << i->GetSrc () << " " << entry.GetSrc () << "
-    //      dst " << i->GetDst () << " " << entry.GetDst ()
-    //                           << " SegsLeft " << (uint32_t)i->GetSegsLeft ()
-    //                           << " " << (uint32_t)entry.GetSegsLeft () << "
-    //                           ackId " << (uint32_t)i->GetAckId () << " "
-    //                           << (uint32_t)entry.GetAckId ()
-    //                    );
 
     if ((i->GetSrc() == entry.GetSrc()) && (i->GetDst() == entry.GetDst()) &&
         (i->GetSegsLeft() == entry.GetSegsLeft()) &&
         (i->GetAckId() == entry.GetAckId())) {
-      i = m_maintainBuffer.erase(i); // Erase the same maintain buffer entry for
-                                     // the promisc received packet
+      i = m_maintainBuffer.erase(i);
       return true;
     }
   }
@@ -196,35 +126,19 @@ bool DsrMaintainBuffer::PromiscEqual(DsrMaintainBuffEntry &entry) {
 bool DsrMaintainBuffer::LinkEqual(DsrMaintainBuffEntry &entry) {
   NS_LOG_DEBUG("The maintenance buffer size " << m_maintainBuffer.size());
   for (auto i = m_maintainBuffer.begin(); i != m_maintainBuffer.end(); ++i) {
-    //      NS_LOG_DEBUG ("src " << i->GetSrc () << " " << entry.GetSrc () << "
-    //      dst " << i->GetDst () << " " << entry.GetDst ()
-    //                           << " OurAddress " << i->GetOurAdd () << " " <<
-    //                           entry.GetOurAdd
-    //                           () << " next hop " << i->GetNextHop () << " "
-    //                           << entry.GetNextHop ()
-    //                    );
 
     if ((i->GetSrc() == entry.GetSrc()) && (i->GetDst() == entry.GetDst()) &&
         (i->GetOurAdd() == entry.GetOurAdd()) &&
         (i->GetNextHop() == entry.GetNextHop())) {
-      i = m_maintainBuffer.erase(i); // Erase the same maintain buffer entry for
-                                     // the promisc received packet
+      i = m_maintainBuffer.erase(i);
       return true;
     }
   }
   return false;
 }
 
-/// IsExpired structure
 struct IsExpired {
-  /**
-   * \brief comparison operator
-   * \param e maintain buffer entry
-   * \return true if the entry is expired
-   */
   bool operator()(const DsrMaintainBuffEntry &e) const {
-    // NS_LOG_DEBUG("Expire time for packet in req queue: "<<e.GetExpireTime
-    // ());
     return (e.GetExpireTime() < Seconds(0));
   }
 };

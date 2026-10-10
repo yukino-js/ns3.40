@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2023 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "emlsr-manager.h"
 
@@ -166,8 +148,6 @@ void EmlsrManager::SetEmlsrLinks(const std::set<uint8_t> &linkIds) {
 
   if (GetStaMac() && GetStaMac()->IsAssociated() && GetTransitionTimeout() &&
       m_nextEmlsrLinks) {
-    // Request to enable EMLSR mode on the given links, provided that they have
-    // been setup
     SendEmlOmn();
   }
 }
@@ -182,25 +162,19 @@ void EmlsrManager::NotifyMgtFrameReceived(Ptr<const WifiMpdu> mpdu,
 
   if (hdr.IsAssocResp() && GetStaMac()->IsAssociated() &&
       GetTransitionTimeout()) {
-    // we just completed ML setup with an AP MLD that supports EMLSR
     ComputeOperatingChannels();
 
     if (m_nextEmlsrLinks && !m_nextEmlsrLinks->empty()) {
-      // a non-empty set of EMLSR links have been configured, hence enable EMLSR
-      // mode on those links
       SendEmlOmn();
     }
   }
 
   if (hdr.IsAction() && hdr.GetAddr2() == m_staMac->GetBssid(linkId)) {
-    // this is an action frame sent by an AP of the AP MLD we are associated
-    // with
     auto [category, action] = WifiActionHeader::Peek(mpdu->GetPacket());
     if (category == WifiActionHeader::PROTECTED_EHT &&
         action.protectedEhtAction ==
             WifiActionHeader::PROTECTED_EHT_EML_OPERATING_MODE_NOTIFICATION) {
       if (m_transitionTimeoutEvent.IsRunning()) {
-        // no need to wait until the expiration of the transition timeout
         m_transitionTimeoutEvent.PeekEventImpl()->Invoke();
         m_transitionTimeoutEvent.Cancel();
       }
@@ -213,7 +187,6 @@ void EmlsrManager::NotifyIcfReceived(uint8_t linkId) {
 
   NS_ASSERT(m_staMac->IsEmlsrLink(linkId));
 
-  // block transmissions and suspend medium access on all other EMLSR links
   for (auto id : m_staMac->GetLinkIds()) {
     if (id != linkId && m_staMac->IsEmlsrLink(id)) {
       m_staMac->BlockTxOnLink(id,
@@ -226,13 +199,11 @@ void EmlsrManager::NotifyIcfReceived(uint8_t linkId) {
   auto auxPhy = m_staMac->GetWifiPhy(linkId);
 
   if (m_staMac->GetWifiPhy(linkId) == mainPhy) {
-    // nothing to do, we received an ICF from the main PHY
     return;
   }
 
-  SwitchMainPhy(linkId, true); // channel switch should occur instantaneously
+  SwitchMainPhy(linkId, true);
 
-  // aux PHY received the ICF but main PHY will send the response
   auto uid = auxPhy->GetPreviouslyRxPpduUid();
   mainPhy->SetPreviouslyRxPpduUid(uid);
 }
@@ -245,7 +216,6 @@ void EmlsrManager::NotifyUlTxopStart(uint8_t linkId) {
     return;
   }
 
-  // block transmissions and suspend medium access on all other EMLSR links
   for (auto id : m_staMac->GetLinkIds()) {
     if (id != linkId && m_staMac->IsEmlsrLink(id)) {
       m_staMac->BlockTxOnLink(id,
@@ -254,19 +224,13 @@ void EmlsrManager::NotifyUlTxopStart(uint8_t linkId) {
     }
   }
 
-  // if this TXOP is being started by an aux PHY, wait until the end of RTS
-  // transmission and then have the main PHY (instantaneously) take over the
-  // TXOP on this link. We may start the channel switch now and use the channel
-  // switch delay configured for the main PHY, but then we would have no
-  // guarantees that the channel switch is completed in RTS TX time plus SIFS.
   if (m_staMac->GetLinkForPhy(m_mainPhyId) != linkId) {
     auto stateHelper = m_staMac->GetWifiPhy(linkId)->GetState();
     NS_ASSERT(stateHelper);
     NS_ASSERT_MSG(stateHelper->GetState() == TX,
                   "Expecting the aux PHY to be transmitting (an RTS frame)");
     Simulator::Schedule(stateHelper->GetDelayUntilIdle(),
-                        &EmlsrManager::SwitchMainPhy, this, linkId,
-                        true); // channel switch should occur instantaneously
+                        &EmlsrManager::SwitchMainPhy, this, linkId, true);
   }
 }
 
@@ -278,7 +242,6 @@ void EmlsrManager::NotifyTxopEnd(uint8_t linkId) {
     return;
   }
 
-  // unblock transmissions and resume medium access on other EMLSR links
   for (auto id : m_staMac->GetLinkIds()) {
     if (id != linkId && m_staMac->IsEmlsrLink(id)) {
       m_staMac->UnblockTxOnLink(id,
@@ -296,7 +259,6 @@ void EmlsrManager::SwitchMainPhy(uint8_t linkId, bool noSwitchDelay) {
   NS_ASSERT_MSG(mainPhy != m_staMac->GetWifiPhy(linkId),
                 "Main PHY is already operating on link " << +linkId);
 
-  // find the link on which the main PHY is operating
   auto currMainPhyLinkId = m_staMac->GetLinkForPhy(mainPhy);
   NS_ASSERT_MSG(currMainPhyLinkId, "Current link ID for main PHY not found");
 
@@ -306,16 +268,13 @@ void EmlsrManager::SwitchMainPhy(uint8_t linkId, bool noSwitchDelay) {
                             << newMainPhyChannel << " to operate on link "
                             << +linkId);
 
-  // notify the channel access manager of the upcoming channel switch(es)
   m_staMac->GetChannelAccessManager(*currMainPhyLinkId)
       ->NotifySwitchingEmlsrLink(mainPhy, newMainPhyChannel, linkId);
 
-  // this assert also ensures that the actual channel switch is not delayed
   NS_ASSERT_MSG(
       !mainPhy->GetState()->IsStateTx(),
       "We should not ask the main PHY to switch channel while transmitting");
 
-  // request the main PHY to switch channel
   Simulator::ScheduleNow([=]() {
     auto delay = mainPhy->GetChannelSwitchDelay();
     NS_ASSERT_MSG(noSwitchDelay || delay <= m_lastAdvTransitionDelay,
@@ -327,7 +286,6 @@ void EmlsrManager::SwitchMainPhy(uint8_t linkId, bool noSwitchDelay) {
       mainPhy->SetAttribute("ChannelSwitchDelay", TimeValue(Seconds(0)));
     }
     mainPhy->SetOperatingChannel(newMainPhyChannel);
-    // restore previous channel switch delay
     if (noSwitchDelay) {
       mainPhy->SetAttribute("ChannelSwitchDelay", TimeValue(delay));
     }
@@ -339,7 +297,6 @@ void EmlsrManager::SwitchMainPhy(uint8_t linkId, bool noSwitchDelay) {
 MgtEmlOmn EmlsrManager::GetEmlOmn() {
   MgtEmlOmn frame;
 
-  // Add the EMLSR Parameter Update field if needed
   if (m_lastAdvPaddingDelay != m_emlsrPaddingDelay ||
       m_lastAdvTransitionDelay != m_emlsrTransitionDelay) {
     m_lastAdvPaddingDelay = m_emlsrPaddingDelay;
@@ -353,8 +310,6 @@ MgtEmlOmn EmlsrManager::GetEmlOmn() {
             m_lastAdvTransitionDelay);
   }
 
-  // We must verify that the links included in the given EMLSR link set (if any)
-  // have been setup.
   auto setupLinkIds = m_staMac->GetSetupLinkIds();
 
   for (auto emlsrLinkIt = m_nextEmlsrLinks->begin();
@@ -370,7 +325,6 @@ MgtEmlOmn EmlsrManager::GetEmlOmn() {
     }
   }
 
-  // EMLSR Mode is enabled if and only if the set of EMLSR links is not empty
   frame.m_emlControl.emlsrMode = m_nextEmlsrLinks->empty() ? 0 : 1;
 
   return frame;
@@ -385,16 +339,6 @@ void EmlsrManager::SendEmlOmn() {
   NS_ASSERT_MSG(m_nextEmlsrLinks,
                 "Need to set EMLSR links before calling this method");
 
-  // TODO if this is a single radio non-AP MLD and not all setup links are in
-  // the EMLSR link set, we have to put setup links that are not included in the
-  // given EMLSR link set (i.e., those remaining in setupLinkIds, if
-  // m_nextEmlsrLinks is not empty) in the sleep mode: For the EMLSR mode
-  // enabled in a single radio non-AP MLD, the STA(s) affiliated with the non-AP
-  // MLD that operates on the enabled link(s) that corresponds to the bit
-  // position(s) of the EMLSR Link Bitmap subfield set to 0 shall be in doze
-  // state if a non-AP STA affiliated with the non-AP MLD that operates on one
-  // of the EMLSR links is in awake state. (Sec. 35.3.17 of 802.11be D3.0)
-
   auto frame = GetEmlOmn();
   auto linkId = GetLinkToSendEmlOmn();
   GetEhtFem(linkId)->SendEmlOmn(m_staMac->GetBssid(linkId), frame);
@@ -406,7 +350,6 @@ void EmlsrManager::TxOk(Ptr<const WifiMpdu> mpdu) {
   const auto &hdr = mpdu->GetHeader();
 
   if (hdr.IsAssocReq()) {
-    // store padding delay and transition delay advertised in AssocReq
     MgtAssocRequestHeader assocReq;
     mpdu->GetPacket()->PeekHeader(assocReq);
     auto &mle = assocReq.Get<MultiLinkElement>();
@@ -420,9 +363,6 @@ void EmlsrManager::TxOk(Ptr<const WifiMpdu> mpdu) {
         category == WifiActionHeader::PROTECTED_EHT &&
         action.protectedEhtAction ==
             WifiActionHeader::PROTECTED_EHT_EML_OPERATING_MODE_NOTIFICATION) {
-      // the EML Operating Mode Notification frame that we sent has been
-      // acknowledged. Start the transition timeout to wait until the request
-      // can be made effective
       NS_ASSERT_MSG(m_emlsrTransitionTimeout,
                     "No transition timeout received from AP");
       m_transitionTimeoutEvent = Simulator::Schedule(
@@ -443,8 +383,6 @@ void EmlsrManager::TxDropped(WifiMacDropReason reason,
         category == WifiActionHeader::PROTECTED_EHT &&
         action.protectedEhtAction ==
             WifiActionHeader::PROTECTED_EHT_EML_OPERATING_MODE_NOTIFICATION) {
-      // the EML Operating Mode Notification frame has been dropped. Ask the
-      // subclass whether the frame needs to be resent
       auto linkId = ResendNotification(mpdu);
       if (linkId) {
         MgtEmlOmn frame;
@@ -460,24 +398,11 @@ void EmlsrManager::TxDropped(WifiMacDropReason reason,
 void EmlsrManager::ChangeEmlsrMode() {
   NS_LOG_FUNCTION(this);
 
-  // After the successful transmission of the EML Operating Mode Notification
-  // frame by the non-AP STA affiliated with the non-AP MLD, the non-AP MLD
-  // shall operate in the EMLSR mode and the other non-AP STAs operating on the
-  // corresponding EMLSR links shall transition to active mode after the
-  // transition delay indicated in the Transition Timeout subfield in the EML
-  // Capabilities subfield of the Basic Multi-Link element or immediately after
-  // receiving an EML Operating Mode Notification frame from one of the APs
-  // operating on the EMLSR links and affiliated with the AP MLD. (Sec. 35.3.17
-  // of 802.11be D3.0)
   NS_ASSERT_MSG(m_nextEmlsrLinks, "No set of EMLSR links stored");
   m_emlsrLinks.swap(*m_nextEmlsrLinks);
   m_nextEmlsrLinks.reset();
 
-  // Make other non-AP STAs operating on the corresponding EMLSR links
-  // transition to active mode or passive mode (depending on whether EMLSR mode
-  // has been enabled or disabled)
   m_staMac->NotifyEmlsrModeChanged(m_emlsrLinks);
-  // Enforce the limit on the max channel width supported by aux PHYs
   ApplyMaxChannelWidthOnAuxPhys();
 
   NotifyEmlsrModeChanged();
@@ -499,11 +424,6 @@ void EmlsrManager::ApplyMaxChannelWidthOnAuxPhys() {
 
     NS_LOG_DEBUG("Aux PHY (" << auxPhy << ") is about to switch to " << channel
                              << " to operate on link " << +linkId);
-    // We cannot simply set the new channel, because otherwise the MAC will
-    // disable the setup link. We need to inform the MAC (via the Channel Access
-    // Manager) that this channel switch must not have such a consequence. We
-    // already have a method for doing so, i.e., inform the MAC that the PHY is
-    // switching channel to operate on the "same" link.
     m_staMac->GetChannelAccessManager(linkId)->NotifySwitchingEmlsrLink(
         auxPhy, channel, linkId);
 
@@ -527,11 +447,9 @@ void EmlsrManager::ComputeOperatingChannels() {
 
     auto mainPhyChWidth = channel.GetWidth();
     if (m_auxPhyMaxWidth >= mainPhyChWidth) {
-      // same channel can be used by aux PHYs
       m_auxPhyChannels.emplace(linkId, channel);
       continue;
     }
-    // aux PHYs will operate on a primary subchannel
     auto freq = channel.GetPrimaryChannelCenterFrequency(m_auxPhyMaxWidth);
     auto chIt = WifiPhyOperatingChannel::FindFirst(0, freq, m_auxPhyMaxWidth,
                                                    WIFI_STANDARD_UNSPECIFIED,
@@ -539,7 +457,6 @@ void EmlsrManager::ComputeOperatingChannels() {
     NS_ASSERT_MSG(chIt != WifiPhyOperatingChannel::m_frequencyChannels.end(),
                   "Primary" << m_auxPhyMaxWidth << " channel not found");
     m_auxPhyChannels.emplace(linkId, chIt);
-    // find the P20 index for the channel used by the aux PHYs
     auto p20Index = channel.GetPrimaryChannelIndex(20);
     while (mainPhyChWidth > m_auxPhyMaxWidth) {
       mainPhyChWidth /= 2;

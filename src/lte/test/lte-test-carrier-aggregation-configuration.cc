@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2018 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Zoraze Ali <zoraze.ali@cttc.es>
- *
- */
 
 #include <ns3/callback.h>
 #include <ns3/constant-position-mobility-model.h>
@@ -34,57 +15,17 @@
 
 using namespace ns3;
 
-/**
- * This test suite verifies following two things:
- *
- *  1. When CA is enabled and UE carriers configuration is different than the
- * default one, we check that the UE is configured properly once it receives RRC
- * Connection Reconfiguration message from eNB.
- *
- *  2. A user can configure 2 or more eNBs and UEs with different configuration
- * parameters, i.e, each eNB and UE can have different EARFCN and Bandwidths and
- * a UE connects to an eNB with similar DL EARFCN. Here we check it with CA
- * enabled but the end results will be the same if CA is not enabled and we have
- * more than one eNBs and UEs with different configurations.
- *
- * Since we do not need EPC to test the configuration, this test only simulates
- * the LTE radio access with RLC SM.
- *
- * Test 1 tests that the UE is configured properly after receiving RRC
- * Connection Reconfiguration message from the eNB, which will overwrite UE
- * default configuration done in LteHelper for the sake of creating PHY and MAC
- * instances equal to the number of component carriers.
- *
- * Test 2 tests that in a simulation scenario every eNB or UE can be configured
- * with different EARFCNs and Bandwidths. This will check that the eNBs and UEs
- * configuration is not static, as reported in BUG 2840.
- */
-
-/// ConfigToCheck structure
 struct ConfigToCheck {
-  uint16_t m_dlBandwidth; ///< Downlink bandwidth
-  uint16_t m_ulBandwidth; ///< Uplink bandwidth
-  uint32_t m_dlEarfcn;    ///< Downlink EARFCN
-  uint32_t m_ulEarfcn;    ///< Uplink EARFCN
+  uint16_t m_dlBandwidth;
+  uint16_t m_ulBandwidth;
+  uint32_t m_dlEarfcn;
+  uint32_t m_ulEarfcn;
 };
 
 NS_LOG_COMPONENT_DEFINE("TestCarrierAggregationConfig");
 
-/**
- * \ingroup lte-test
- *
- * \brief Carrier aggregation configuration test case.
- */
 class CarrierAggregationConfigTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param numberOfNodes Total Number of eNBs and UEs
-   * \param numberOfComponentCarriers  Total number of component carriers
-   * \param configToCheck Vector containing all the configurations to check
-   * \param simulationDuration Duration of the simulation
-   */
   CarrierAggregationConfigTestCase(uint32_t numberOfNodes,
                                    uint16_t numberOfComponentCarriers,
                                    std::vector<ConfigToCheck> configToCheck,
@@ -101,45 +42,20 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Build name string function
-   *
-   * \param numberOfNodes Total Number of eNBs and UEs
-   * \param numberOfComponentCarriers  Total number of component carriers
-   * \param configToCheck Vector containing all the configurations to check
-   * \param simulationDuration Duration of the simulation
-   * \returns the name string
-   */
   std::string BuildNameString(uint32_t numberOfNodes,
                               uint16_t numberOfComponentCarriers,
                               std::vector<ConfigToCheck> configToCheck,
                               Time simulationDuration);
-  /**
-   * Evaluate function
-   *
-   * \param context The context
-   * \param ueRrc Pointer to the UE RRC
-   * \param sCellToAddModList List of the configuration parameters for secondary
-   * cell
-   */
   void Evaluate(std::string context, Ptr<LteUeRrc> ueRrc,
                 std::list<LteRrcSap::SCellToAddMod> sCellToAddModList);
-  /**
-   * Equally spaced component carriers function
-   *
-   * \return Vector of maps containing the per component carrier configuration
-   */
   std::vector<std::map<uint16_t, ConfigToCheck>> EquallySpacedCcs();
 
-  uint32_t m_numberOfNodes;             ///< Number of nodes
-  uint16_t m_numberOfComponentCarriers; ///< Number of component carriers
-  std::vector<ConfigToCheck>
-      m_configToCheck; ///< Vector containing all the configurations to check
-  uint32_t m_connectionCounter; ///< Connection counter
-  Time m_simulationDuration;    ///< Simulation duration
-  std::vector<std::map<uint16_t, ConfigToCheck>>
-      m_configToCheckContainer; ///< Vector of maps containing the per component
-                                ///< carrier configuration
+  uint32_t m_numberOfNodes;
+  uint16_t m_numberOfComponentCarriers;
+  std::vector<ConfigToCheck> m_configToCheck;
+  uint32_t m_connectionCounter;
+  Time m_simulationDuration;
+  std::vector<std::map<uint16_t, ConfigToCheck>> m_configToCheckContainer;
 };
 
 std::string CarrierAggregationConfigTestCase::BuildNameString(
@@ -163,12 +79,10 @@ CarrierAggregationConfigTestCase::EquallySpacedCcs() {
     uint32_t maxBandwidthRb =
         std::max<uint32_t>(it.m_ulBandwidth, it.m_dlBandwidth);
 
-    // Convert bandwidth from RBs to kHz
     uint32_t maxBandwidthKhz =
         LteSpectrumValueHelper::GetChannelBandwidth(maxBandwidthRb) / 1e3;
 
     for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
-      // Make sure we stay within the same band.
       if (LteSpectrumValueHelper::GetUplinkCarrierBand(ulEarfcn) !=
               LteSpectrumValueHelper::GetUplinkCarrierBand(it.m_ulEarfcn) ||
           LteSpectrumValueHelper::GetDownlinkCarrierBand(dlEarfcn) !=
@@ -189,11 +103,8 @@ CarrierAggregationConfigTestCase::EquallySpacedCcs() {
                             << it.m_dlBandwidth << ", UL Earfcn: " << ulEarfcn
                             << ", DL Earfcn: " << dlEarfcn);
 
-      // The spacing between the center frequencies of two contiguous CCs should
-      // be multiple of 300 kHz. Round spacing up to 300 kHz.
       uint32_t frequencyShift = 300 * (1 + (maxBandwidthKhz - 1) / 300);
 
-      // Unit of EARFCN corresponds to 100kHz.
       uint32_t earfcnShift = frequencyShift / 100;
       ulEarfcn += earfcnShift;
       dlEarfcn += earfcnShift;
@@ -247,8 +158,8 @@ void CarrierAggregationConfigTestCase::Evaluate(
         << ", DL Earfcn: " << scell.cellIdentification.dlCarrierFreq);
   }
 
-  ConfigToCheck pCConfig = configToCheckMap[0]; // Primary Carrier
-  ConfigToCheck sCConfig;                       // Secondary Carriers
+  ConfigToCheck pCConfig = configToCheckMap[0];
+  ConfigToCheck sCConfig;
 
   NS_TEST_ASSERT_MSG_EQ(pCConfig.m_dlBandwidth,
                         static_cast<uint16_t>(ueRrc->GetDlBandwidth()),
@@ -298,7 +209,6 @@ void CarrierAggregationConfigTestCase::DoRun() {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(m_numberOfNodes);
@@ -306,7 +216,6 @@ void CarrierAggregationConfigTestCase::DoRun() {
 
   uint32_t totalNumberOfNodes = enbNodes.GetN() + ueNodes.GetN();
 
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
   for (uint32_t i = 0; i < totalNumberOfNodes; i++) {
@@ -326,7 +235,6 @@ void CarrierAggregationConfigTestCase::DoRun() {
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
 
-  // Set bandwidth, EARFCN and install nodes (eNB and UE)
   for (uint32_t i = 0; i < m_configToCheck.size(); ++i) {
     configuration = m_configToCheck[i];
 
@@ -346,16 +254,12 @@ void CarrierAggregationConfigTestCase::DoRun() {
     lteHelper->AssignStreams(ueDevs, stream);
   }
 
-  // Calculate the DlBandwidth, UlBandwidth, DlEarfcn and UlEarfcn to which the
-  // values from UE RRC would be compared
   m_configToCheckContainer = EquallySpacedCcs();
 
-  // Attach a UE to an eNB
   for (uint32_t k = 0; k < m_numberOfNodes; ++k) {
     lteHelper->Attach(ueDevs.Get(k), enbDevs.Get(k));
   }
 
-  // Activate a data radio bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
@@ -373,11 +277,6 @@ void CarrierAggregationConfigTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Carrier aggregation configuration test suite.
- */
 class CarrierAggregationConfigTestSuite : public TestSuite {
 public:
   CarrierAggregationConfigTestSuite();
@@ -386,11 +285,6 @@ public:
 CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
     : TestSuite("lte-carrier-aggregation-configuration", SYSTEM) {
   std::vector<ConfigToCheck> configToCheck;
-
-  // Test1 with 1 eNB and 1 UE.
-  // We put a configuration different than the default configuration done in
-  // LteHelper for the sake of creating PHY and MAC instances equal to the
-  // number of component carriers.
 
   ConfigToCheck configToCheckTest1;
   configToCheckTest1.m_dlBandwidth = 50;
@@ -407,11 +301,7 @@ CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
                   simulationDuration),
               TestCase::QUICK);
 
-  //   configToCheck.erase(configToCheck.begin(), configToCheck.end());
   configToCheck.clear();
-
-  // Test2 with 2 eNBs and 2 UEs.
-  // We decrease the bandwidth so not to exceed maximum band bandwidth of 20 MHz
 
   configToCheckTest1.m_dlBandwidth = 25;
   configToCheckTest1.m_ulBandwidth = 25;
@@ -434,8 +324,4 @@ CarrierAggregationConfigTestSuite::CarrierAggregationConfigTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static CarrierAggregationConfigTestSuite g_carrierAggregationConfigTestSuite;

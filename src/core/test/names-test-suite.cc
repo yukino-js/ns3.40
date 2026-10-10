@@ -1,62 +1,14 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/names.h"
 #include "ns3/test.h"
-
-/**
- * \file
- * \ingroup core-tests
- * \ingroup config
- * \ingroup names-tests
- * Object Names test suite.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup names-tests Object Names test suite
- */
 
 namespace ns3 {
 
 namespace tests {
 
-/**
- * \ingroup names-tests
- * Simple test object to exercise the Name service.
- */
 class TestObject : public Object {
 public:
-  /**
-   * Register this type.
-   * \return The TypeId.
-   */
   static TypeId GetTypeId() {
     static TypeId tid = TypeId("TestObject")
                             .SetParent<Object>()
@@ -66,20 +18,11 @@ public:
     return tid;
   }
 
-  /** Constructor. */
   TestObject() {}
 };
 
-/**
- * \ingroup names-tests
- * Alternate test object for the Name service.
- */
 class AlternateTestObject : public Object {
 public:
-  /**
-   * Register this type.
-   * \return The TypeId.
-   */
   static TypeId GetTypeId() {
     static TypeId tid = TypeId("AlternateTestObject")
                             .SetParent<Object>()
@@ -89,27 +32,12 @@ public:
     return tid;
   }
 
-  /** Constructor. */
   AlternateTestObject() {}
 };
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can do its most basic job.
- *
- * Add associations between Objects using the lowest level add
- * function, which is:
- *
- *     Add (Ptr<Object> context, std::string name, Ptr<Object> object);
- *
- * All other add functions will just translate into this form, so this is the
- * most basic Add functionality.
- */
 class BasicAddTestCase : public TestCase {
 public:
-  /** Constructor. */
   BasicAddTestCase();
-  /** Destructor. */
   ~BasicAddTestCase() override;
 
 private:
@@ -160,20 +88,9 @@ void BasicAddTestCase::DoRun() {
       "Could not Names::Add and Names::FindName a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can correctly use a string context.
- *
- *     Add (std::string context, std::string name, Ptr<Object> object);
- *
- * High level path-based functions will translate into this form, so this is
- * the second most basic Add functionality.
- */
 class StringContextAddTestCase : public TestCase {
 public:
-  /** Constructor. */
   StringContextAddTestCase();
-  /** Destructor. */
   ~StringContextAddTestCase() override;
 
 private:
@@ -226,19 +143,9 @@ void StringContextAddTestCase::DoRun() {
       "Could not Names::Add and Names::FindName a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can correctly use a
- * fully qualified path to add associations.
- *
- *     Add (std::string name, Ptr<Object> object);
- *
- */
 class FullyQualifiedAddTestCase : public TestCase {
 public:
-  /** Constructor. */
   FullyQualifiedAddTestCase();
-  /** Destructor. */
   ~FullyQualifiedAddTestCase() override;
 
 private:
@@ -291,23 +198,9 @@ void FullyQualifiedAddTestCase::DoRun() {
       "Could not Names::Add and Names::FindName a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can correctly use a
- * relative path to add associations.
- *
- * This functionality is provided as a convenience so clients
- * don't always have to provide the name service namespace name
- * in all of their strings.
- *
- *     Add (std::string name, Ptr<Object> object);
- *
- */
 class RelativeAddTestCase : public TestCase {
 public:
-  /** Constructor. */
   RelativeAddTestCase();
-  /** Destructor. */
   ~RelativeAddTestCase() override;
 
 private:
@@ -360,20 +253,9 @@ void RelativeAddTestCase::DoRun() {
       "Could not Names::Add and Names::FindName a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can rename objects.
- *
- *     Rename (Ptr<Object> context, std::string oldname, std::string newname);
- *
- * All other rename functions will just translate into this form, so this is the
- * most basic rename functionality.
- */
 class BasicRenameTestCase : public TestCase {
 public:
-  /** Constructor. */
   BasicRenameTestCase();
-  /** Destructor. */
   ~BasicRenameTestCase() override;
 
 private:
@@ -418,19 +300,9 @@ void BasicRenameTestCase::DoRun() {
                         "Could not Names::Rename a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can rename objects
- * using a string context.
- *
- *     Rename (std::string context, std::string oldname, std::string newname);
- *
- */
 class StringContextRenameTestCase : public TestCase {
 public:
-  /** Constructor. */
   StringContextRenameTestCase();
-  /** Destructor. */
   ~StringContextRenameTestCase() override;
 
 private:
@@ -475,19 +347,9 @@ void StringContextRenameTestCase::DoRun() {
                         "Could not Names::Rename a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can rename objects
- * using a fully qualified path name.
- *
- *     Rename (std::string oldpath, std::string newname);
- *
- */
 class FullyQualifiedRenameTestCase : public TestCase {
 public:
-  /** Constructor. */
   FullyQualifiedRenameTestCase();
-  /** Destructor. */
   ~FullyQualifiedRenameTestCase() override;
 
 private:
@@ -532,19 +394,9 @@ void FullyQualifiedRenameTestCase::DoRun() {
                         "Could not Names::Rename a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can rename objects
- * using a relative path name.
- *
- *     Rename (std::string oldpath, std::string newname);
- *
- */
 class RelativeRenameTestCase : public TestCase {
 public:
-  /** Constructor. */
   RelativeRenameTestCase();
-  /** Destructor. */
   ~RelativeRenameTestCase() override;
 
 private:
@@ -589,19 +441,9 @@ void RelativeRenameTestCase::DoRun() {
                         "Could not Names::Rename a child Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can look up an object
- * and return its fully qualified path name.
- *
- *     FindPath (Ptr<Object> object);
- *
- */
 class FindPathTestCase : public TestCase {
 public:
-  /** Constructor. */
   FindPathTestCase();
-  /** Destructor. */
   ~FindPathTestCase() override;
 
 private:
@@ -640,18 +482,9 @@ void FindPathTestCase::DoRun() {
                         "Unexpectedly found a non-existent Object");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can find Objects.
- *
- *     Find (Ptr<Object> context, std::string name);
- *
- */
 class BasicFindTestCase : public TestCase {
 public:
-  /** Constructor. */
   BasicFindTestCase();
-  /** Destructor. */
   ~BasicFindTestCase() override;
 
 private:
@@ -702,19 +535,9 @@ void BasicFindTestCase::DoRun() {
       "Could not find a previously named child Object via object context");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can find Objects using
- * a string context.
- *
- *     Find (std::string context, std::string name);
- *
- */
 class StringContextFindTestCase : public TestCase {
 public:
-  /** Constructor. */
   StringContextFindTestCase();
-  /** Destructor. */
   ~StringContextFindTestCase() override;
 
 private:
@@ -765,19 +588,9 @@ void StringContextFindTestCase::DoRun() {
       "Could not find a previously named child Object via string context");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can find Objects using
- * a fully qualified path name.
- *
- *     Find (std::string name);
- *
- */
 class FullyQualifiedFindTestCase : public TestCase {
 public:
-  /** Constructor. */
   FullyQualifiedFindTestCase();
-  /** Destructor. */
   ~FullyQualifiedFindTestCase() override;
 
 private:
@@ -828,19 +641,9 @@ void FullyQualifiedFindTestCase::DoRun() {
       "Could not find a previously named child Object via string context");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can find Objects using
- * a relative path name.
- *
- *     Find (std::string name);
- *
- */
 class RelativeFindTestCase : public TestCase {
 public:
-  /** Constructor. */
   RelativeFindTestCase();
-  /** Destructor. */
   ~RelativeFindTestCase() override;
 
 private:
@@ -891,16 +694,9 @@ void RelativeFindTestCase::DoRun() {
       "Could not find a previously named child Object via string context");
 }
 
-/**
- * \ingroup names-tests
- * Test the Object Name Service can find Objects using
- * a second type.
- */
 class AlternateFindTestCase : public TestCase {
 public:
-  /** Constructor. */
   AlternateFindTestCase();
-  /** Destructor. */
   ~AlternateFindTestCase() override;
 
 private:
@@ -948,13 +744,8 @@ void AlternateFindTestCase::DoRun() {
       "Unexpectedly able to GetObject<TestObject> on an AlternateTestObject");
 }
 
-/**
- * \ingroup names-tests
- * Names Test Suite
- */
 class NamesTestSuite : public TestSuite {
 public:
-  /** Constructor. */
   NamesTestSuite();
 };
 
@@ -975,10 +766,6 @@ NamesTestSuite::NamesTestSuite() : TestSuite("object-name-service") {
   AddTestCase(new AlternateFindTestCase);
 }
 
-/**
- * \ingroup names-tests
- *  NamesTestSuite instance variable.
- */
 static NamesTestSuite g_namesTestSuite;
 
 } // namespace tests

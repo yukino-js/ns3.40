@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011,2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/constant-position-mobility-model.h>
 #include <ns3/double.h>
@@ -31,23 +11,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("Kun2600MhzPropagationLossModelTest");
 
-/**
- * \ingroup propagation-tests
- *
- * \brief Kun2600MhzPropagationLossModel Test Case
- *
- */
 class Kun2600MhzPropagationLossModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param dist 2D distance between UT and BS in meters
-   * \param hb height of BS in meters
-   * \param hm height of UT in meters
-   * \param refValue reference loss value
-   * \param name TestCase name
-   */
   Kun2600MhzPropagationLossModelTestCase(double dist, double hb, double hm,
                                          double refValue, std::string name);
   ~Kun2600MhzPropagationLossModelTestCase() override;
@@ -55,17 +20,12 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Create a MobilityModel
-   * \param index mobility model index
-   * \return a new MobilityModel
-   */
   Ptr<MobilityModel> CreateMobilityModel(uint16_t index);
 
-  double m_dist;    //!< 2D distance between UT and BS in meters
-  double m_hb;      //!< height of BS in meters
-  double m_hm;      //!< height of UT in meters
-  double m_lossRef; //!< reference loss
+  double m_dist;
+  double m_hb;
+  double m_hm;
+  double m_lossRef;
 };
 
 Kun2600MhzPropagationLossModelTestCase::Kun2600MhzPropagationLossModelTestCase(
@@ -95,12 +55,6 @@ void Kun2600MhzPropagationLossModelTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ_TOL(loss, m_lossRef, 0.1, "Wrong loss!");
 }
 
-/**
- * \ingroup propagation-tests
- *
- * \brief Kun2600MhzPropagationLossModel TestSuite
- *
- */
 class Kun2600MhzPropagationLossModelTestSuite : public TestSuite {
 public:
   Kun2600MhzPropagationLossModelTestSuite();
@@ -116,5 +70,4 @@ Kun2600MhzPropagationLossModelTestSuite::
               TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static Kun2600MhzPropagationLossModelTestSuite g_kun2600MhzTestSuite;

@@ -1,53 +1,4 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 
-// Default network topology includes:
-// - A base station (BS)
-// - Some number of SSs specified by the variable nbSS (defaults to 10)
-// - A multicast router (ASNGW)
-// - A multicast streamer
-
-// Two Lans are setup: The first one between the multicast streamer and the
-// ASNGW, the second one between the ASNGW (router) and the base station
-
-//      +-----+    +-----+    +-----+   +-----+    +-----+
-//      | SS0 |    | SS1 |    | SS2 |   | SS3 |    | SS4 |
-//      +-----+    +-----+    +-----+   +-----+    +-----+
-//     10.1.0.1   10.1.0.2   10.1.0.3  10.1.0.4   10.1.0.5
-//      --------  --------    -------   -------   --------
-//        ((*))    ((*))       ((*))     ((*))       ((*))
-//
-//                              LAN2 (11.1.1.0)
-//                          ===============
-//        10.1.0.11          |          |
-//              +------------+        ASNGW           multicast Streamer
-//       ((*))==|Base Station|          |  (12.1.1.0)   |
-//              +------------+         ==================
-//                                            LAN1
-//
-//        ((*))    ((*))       ((*))        ((*))    ((*))
-//       -------   --------   --------    -------   --------
-//      10.1.0.6   10.1.0.7   10.1.0.8    10.1.0.9   10.1.0.10
-//       +-----+    +-----+    +-----+    +-----+    +-----+
-//       | SS5 |    | SS6 |    | SS7 |    | SS8 |    | SS9 |
-//       +-----+    +-----+    +-----+    +-----+    +-----+
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -91,7 +42,6 @@ int main(int argc, char *argv[]) {
   std::vector<Ptr<RandomWaypointMobilityModel>> SSPosition;
   std::vector<Ptr<RandomRectanglePositionAllocator>> SSPosAllocator;
 
-  // default values
   int nbSS = 10;
   int duration = 7;
   int schedType = 0;
@@ -148,7 +98,7 @@ int main(int argc, char *argv[]) {
   bsNodes.Get(0)->AggregateObject(BSPosition);
   bsDevs.Add(dev);
   if (verbose) {
-    WimaxHelper::EnableLogComponents(); // Turn on all wimax logging
+    WimaxHelper::EnableLogComponents();
   }
 
   for (int i = 0; i < nbSS; i++) {
@@ -179,7 +129,6 @@ int main(int argc, char *argv[]) {
   CsmaHelper csmaASN_BS;
   CsmaHelper csmaStreamer_ASN;
 
-  // First LAN BS and ASN
   NodeContainer LAN_ASN_BS;
 
   LAN_ASN_BS.Add(bsNodes.Get(0));
@@ -197,8 +146,6 @@ int main(int argc, char *argv[]) {
 
   NetDeviceContainer ASN_Devs1;
   ASN_Devs1.Add(LAN_ASN_BS_Devs.Get(1));
-
-  // Second LAN ASN-GW and Streamer
 
   NodeContainer LAN_ASN_STREAMER;
   LAN_ASN_STREAMER.Add(ASNGW_Node.Get(0));
@@ -245,21 +192,18 @@ int main(int argc, char *argv[]) {
   Ipv4Address multicastGroup("224.30.10.81");
 
   Ipv4StaticRoutingHelper multicast;
-  // 1) Configure a (static) multicast route on ASNGW (multicastRouter)
-  Ptr<Node> multicastRouter = ASNGW_Node.Get(0); // The node in question
-  Ptr<NetDevice> inputIf = ASN_Devs2.Get(0);     // The input NetDevice
+  Ptr<Node> multicastRouter = ASNGW_Node.Get(0);
+  Ptr<NetDevice> inputIf = ASN_Devs2.Get(0);
 
   multicast.AddMulticastRoute(multicastRouter, multicastSource, multicastGroup,
                               inputIf, ASN_Devs1);
 
-  // 2) Set up a default multicast route on the sender n0
   Ptr<Node> sender = Streamer_Node.Get(0);
   Ptr<NetDevice> senderIf = STREAMER_Devs.Get(0);
   multicast.SetDefaultMulticastRoute(sender, senderIf);
 
-  // 1) Configure a (static) multicast route on ASNGW (multicastRouter)
-  multicastRouter = bsNodes.Get(0); // The node in question
-  inputIf = BS_CSMADevs.Get(0);     // The input NetDevice
+  multicastRouter = bsNodes.Get(0);
+  inputIf = BS_CSMADevs.Get(0);
 
   multicast.AddMulticastRoute(multicastRouter, multicastSource, multicastGroup,
                               inputIf, bsDevsOne);

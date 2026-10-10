@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *
- */
 
 #include "three-gpp-http-server.h"
 
@@ -39,8 +20,6 @@ NS_LOG_COMPONENT_DEFINE("ThreeGppHttpServer");
 
 namespace ns3 {
 
-// HTTP SERVER ////////////////////////////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppHttpServer);
 
 ThreeGppHttpServer::ThreeGppHttpServer()
@@ -54,7 +33,6 @@ ThreeGppHttpServer::ThreeGppHttpServer()
                    << " bytes.");
 }
 
-// static
 TypeId ThreeGppHttpServer::GetTypeId() {
   static TypeId tid =
       TypeId("ns3::ThreeGppHttpServer")
@@ -78,7 +56,7 @@ TypeId ThreeGppHttpServer::GetTypeId() {
           .AddAttribute(
               "LocalPort",
               "Port on which the application listen for incoming packets.",
-              UintegerValue(80), // the default HTTP port
+              UintegerValue(80),
               MakeUintegerAccessor(&ThreeGppHttpServer::m_localPort),
               MakeUintegerChecker<uint16_t>())
           .AddAttribute(
@@ -142,7 +120,6 @@ std::string ThreeGppHttpServer::GetStateString() const {
   return GetStateString(m_state);
 }
 
-// static
 std::string
 ThreeGppHttpServer::GetStateString(ThreeGppHttpServer::State_t state) {
   switch (state) {
@@ -165,7 +142,7 @@ void ThreeGppHttpServer::DoDispose() {
     StopApplication();
   }
 
-  Application::DoDispose(); // Chain up.
+  Application::DoDispose();
 }
 
 void ThreeGppHttpServer::StartApplication() {
@@ -174,7 +151,6 @@ void ThreeGppHttpServer::StartApplication() {
   if (m_state == NOT_STARTED) {
     m_httpVariables->Initialize();
     if (!m_initialSocket) {
-      // Find the current default MTU value of TCP sockets.
       Ptr<const ns3::AttributeValue> previousSocketMtu;
       const TypeId tcpSocketTid = TcpSocket::GetTypeId();
       for (uint32_t i = 0; i < tcpSocketTid.GetAttributeN(); i++) {
@@ -184,7 +160,6 @@ void ThreeGppHttpServer::StartApplication() {
         }
       }
 
-      // Creating a TCP socket to connect to the server.
       m_initialSocket =
           Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
       m_initialSocket->SetAttribute("SegmentSize", UintegerValue(m_mtuSize));
@@ -212,8 +187,7 @@ void ThreeGppHttpServer::StartApplication() {
       int ret [[maybe_unused]] = m_initialSocket->Listen();
       NS_LOG_DEBUG(this << " Listen () return value= " << ret
                         << " GetErrNo= " << m_initialSocket->GetErrno() << ".");
-
-    } // end of `if (m_initialSocket == 0)`
+    }
 
     NS_ASSERT_MSG(m_initialSocket, "Failed creating socket.");
     m_initialSocket->SetAcceptCallback(
@@ -228,23 +202,19 @@ void ThreeGppHttpServer::StartApplication() {
         MakeCallback(&ThreeGppHttpServer::SendCallback, this));
     SwitchToState(STARTED);
 
-  } // end of `if (m_state == NOT_STARTED)`
-  else {
+  } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for StartApplication().");
   }
-
-} // end of `void StartApplication ()`
+}
 
 void ThreeGppHttpServer::StopApplication() {
   NS_LOG_FUNCTION(this);
 
   SwitchToState(STOPPED);
 
-  // Close all accepted sockets.
   m_txBuffer->CloseAllSockets();
 
-  // Stop listening.
   if (m_initialSocket) {
     m_initialSocket->Close();
     m_initialSocket->SetAcceptCallback(
@@ -261,7 +231,7 @@ void ThreeGppHttpServer::StopApplication() {
 bool ThreeGppHttpServer::ConnectionRequestCallback(Ptr<Socket> socket,
                                                    const Address &address) {
   NS_LOG_FUNCTION(this << socket << address);
-  return true; // Unconditionally accept the connection request.
+  return true;
 }
 
 void ThreeGppHttpServer::NewConnectionCreatedCallback(Ptr<Socket> socket,
@@ -279,16 +249,6 @@ void ThreeGppHttpServer::NewConnectionCreatedCallback(Ptr<Socket> socket,
   m_connectionEstablishedTrace(this, socket);
   m_txBuffer->AddSocket(socket);
 
-  /*
-   * A typical connection is established after receiving an empty (i.e., no
-   * data) TCP packet with ACK flag. The actual data will follow in a separate
-   * packet after that and will be received by ReceivedDataCallback().
-   *
-   * However, that empty ACK packet might get lost. In this case, we may
-   * receive the first data packet right here already, because it also counts
-   * as a new connection. The statement below attempts to fetch the data from
-   * that packet, if any.
-   */
   ReceivedDataCallback(socket);
 }
 
@@ -301,19 +261,10 @@ void ThreeGppHttpServer::NormalCloseCallback(Ptr<Socket> socket) {
                      << " when the server instance is still running.");
     }
   } else if (m_txBuffer->IsSocketAvailable(socket)) {
-    // The application should now prepare to close the socket.
     if (m_txBuffer->IsBufferEmpty(socket)) {
-      /*
-       * Here we declare that we have nothing more to send and the socket
-       * may be closed immediately.
-       */
       socket->ShutdownSend();
       m_txBuffer->RemoveSocket(socket);
     } else {
-      /*
-       * Remember to close the socket later, whenever the buffer becomes
-       * empty.
-       */
       m_txBuffer->PrepareClose(socket);
     }
   }
@@ -340,11 +291,10 @@ void ThreeGppHttpServer::ReceivedDataCallback(Ptr<Socket> socket) {
 
   while ((packet = socket->RecvFrom(from))) {
     if (packet->GetSize() == 0) {
-      break; // EOF
+      break;
     }
 
 #ifdef NS3_LOG_ENABLE
-    // Some log messages.
     if (InetSocketAddress::IsMatchingType(from)) {
       NS_LOG_INFO(this << " A packet of " << packet->GetSize() << " bytes"
                        << " received from "
@@ -360,13 +310,11 @@ void ThreeGppHttpServer::ReceivedDataCallback(Ptr<Socket> socket) {
                        << Inet6SocketAddress::ConvertFrom(from).GetPort()
                        << " / " << Inet6SocketAddress::ConvertFrom(from));
     }
-#endif /* NS3_LOG_ENABLE */
+#endif
 
-    // Check the header. No need to remove it, since it is not a "real" header.
     ThreeGppHttpHeader httpHeader;
     packet->PeekHeader(httpHeader);
 
-    // Fire trace sources.
     m_rxTrace(packet, from);
     m_rxDelayTrace(Simulator::Now() - httpHeader.GetClientTs(), from);
 
@@ -400,10 +348,8 @@ void ThreeGppHttpServer::ReceivedDataCallback(Ptr<Socket> socket) {
       NS_FATAL_ERROR("Invalid packet.");
       break;
     }
-
-  } // end of `while ((packet = socket->RecvFrom (from)))`
-
-} // end of `void ReceivedDataCallback (Ptr<Socket> socket)`
+  }
+}
 
 void ThreeGppHttpServer::SendCallback(Ptr<Socket> socket,
                                       uint32_t availableBufferSize) {
@@ -415,7 +361,6 @@ void ThreeGppHttpServer::SendCallback(Ptr<Socket> socket,
     const uint32_t actualSent [[maybe_unused]] = ServeFromTxBuffer(socket);
 
 #ifdef NS3_LOG_ENABLE
-    // Some log messages.
     if (actualSent < txBufferSize) {
       switch (m_txBuffer->GetBufferContentType(socket)) {
       case ThreeGppHttpHeader::MAIN_OBJECT:
@@ -443,12 +388,9 @@ void ThreeGppHttpServer::SendCallback(Ptr<Socket> socket,
         break;
       }
     }
-#endif /* NS3_LOG_ENABLE */
-
-  } // end of `if (m_txBuffer->IsBufferEmpty (socket))`
-
-} // end of `void SendCallback (Ptr<Socket> socket, uint32_t
-  // availableBufferSize)`
+#endif
+  }
+}
 
 void ThreeGppHttpServer::ServeNewMainObject(Ptr<Socket> socket) {
   NS_LOG_FUNCTION(this << socket);
@@ -501,12 +443,8 @@ uint32_t ThreeGppHttpServer::ServeFromTxBuffer(Ptr<Socket> socket) {
   NS_LOG_DEBUG(this << " Socket has " << socketSize
                     << " bytes available for Tx.");
 
-  // Get the number of bytes remaining to be sent.
   const uint32_t txBufferSize = m_txBuffer->GetBufferSize(socket);
 
-  // Compute the size of actual content to be sent; has to fit into the socket.
-  // Note that header size is NOT counted as TxBuffer content. Header size is
-  // overhead.
   uint32_t contentSize = std::min(txBufferSize, socketSize - 22);
   Ptr<Packet> packet = Create<Packet>(contentSize);
   uint32_t packetSize = contentSize;
@@ -517,13 +455,10 @@ uint32_t ThreeGppHttpServer::ServeFromTxBuffer(Ptr<Socket> socket) {
     return 0;
   }
 
-  // If this is the first packet of an object, attach a header.
   if (firstPartOfObject) {
-    // Create header.
     ThreeGppHttpHeader httpHeader;
     httpHeader.SetContentLength(txBufferSize);
     httpHeader.SetContentType(m_txBuffer->GetBufferContentType(socket));
-    // Using the client TS value as per the corresponding request packet.
     httpHeader.SetClientTs(m_txBuffer->GetClientTs(socket));
     httpHeader.SetServerTs(Simulator::Now());
     packet->AddHeader(httpHeader);
@@ -540,7 +475,6 @@ uint32_t ThreeGppHttpServer::ServeFromTxBuffer(Ptr<Socket> socket) {
                      << " bytes to be appended to a previous packet.");
   }
 
-  // Send.
   const int actualBytes = socket->Send(packet);
   NS_LOG_DEBUG(this << " Send() packet " << packet << " of " << packetSize
                     << " bytes,"
@@ -548,7 +482,6 @@ uint32_t ThreeGppHttpServer::ServeFromTxBuffer(Ptr<Socket> socket) {
   m_txTrace(packet);
 
   if (actualBytes == static_cast<int>(packetSize)) {
-    // The packet goes through successfully.
     m_txBuffer->DepleteBufferSize(socket, contentSize);
     NS_LOG_INFO(this << " Remaining object to be sent "
                      << m_txBuffer->GetBufferSize(socket) << " bytes.");
@@ -560,8 +493,7 @@ uint32_t ThreeGppHttpServer::ServeFromTxBuffer(Ptr<Socket> socket) {
                      << " and waiting for another Tx opportunity.");
     return 0;
   }
-
-} // end of `uint32_t ServeFromTxBuffer (Ptr<Socket> socket)`
+}
 
 void ThreeGppHttpServer::SwitchToState(ThreeGppHttpServer::State_t state) {
   const std::string oldState = GetStateString();
@@ -572,8 +504,6 @@ void ThreeGppHttpServer::SwitchToState(ThreeGppHttpServer::State_t state) {
                    << ".");
   m_stateTransitionTrace(oldState, newState);
 }
-
-// HTTP SERVER TX BUFFER //////////////////////////////////////////////////////
 
 ThreeGppHttpServerTxBuffer::ThreeGppHttpServerTxBuffer() {
   NS_LOG_FUNCTION(this);
@@ -758,11 +688,6 @@ void ThreeGppHttpServerTxBuffer::DepleteBufferSize(Ptr<Socket> socket,
   it->second.hasTxedPartOfObject = true;
 
   if (it->second.isClosing && (it->second.txBufferSize == 0)) {
-    /*
-     * The peer has earlier issued a close request and we have now waited
-     * until all the existing data are pushed into the socket. Now we close
-     * the socket explicitly.
-     */
     CloseSocket(socket);
   }
 }

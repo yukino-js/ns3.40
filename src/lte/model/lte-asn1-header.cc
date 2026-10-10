@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Lluis Parcerisa <lparcerisa@cttc.cat>
- */
 
 #include "lte-asn1-header.h"
 
@@ -73,19 +55,11 @@ template <int N> void Asn1Header::SerializeBitset(std::bitset<N> data) const {
   uint8_t mask = 1;
   int j;
 
-  // No extension marker (Clause 16.7 ITU-T X.691),
-  // as 3GPP TS 36.331 does not use it in its IE's.
-
-  // Clause 16.8 ITU-T X.691
   if (dataSize == 0) {
     return;
   }
 
-  // Clause 16.9 ITU-T X.691
-  // Clause 16.10 ITU-T X.691
   if (dataSize <= 65536) {
-    // If there are bits pending to be processed,
-    // append first bits in data to complete an octet.
     if (m_numSerializationPendingBits > 0) {
       mask = 0x80 >> m_numSerializationPendingBits;
       while (pendingBits > 0 && m_numSerializationPendingBits < 8) {
@@ -106,8 +80,6 @@ template <int N> void Asn1Header::SerializeBitset(std::bitset<N> data) const {
       mask = 1;
       j = 8;
 
-      // If there are less than 8 remaining bits,
-      // store it to m_serializationPendingBits.
       if (pendingBits < 8) {
         mask = 0x80;
         m_numSerializationPendingBits = pendingBits;
@@ -118,7 +90,6 @@ template <int N> void Asn1Header::SerializeBitset(std::bitset<N> data) const {
         }
       }
 
-      // Write the data to buffer
       else {
         uint8_t octetToWrite = 0;
         for (; j > 0; j--) {
@@ -131,7 +102,6 @@ template <int N> void Asn1Header::SerializeBitset(std::bitset<N> data) const {
     }
   }
 
-  // Clause 16.11 ITU-T X.691
   else {
     NS_LOG_DEBUG("Fragmentation needed!");
   }
@@ -175,7 +145,6 @@ void Asn1Header::SerializeBitstring(std::bitset<32> data) const {
 }
 
 void Asn1Header::SerializeBoolean(bool value) const {
-  // Clause 12 ITU-T X.691
   std::bitset<1> val;
   (value) ? val.set() : val.reset();
   SerializeBitset<1>(val);
@@ -185,7 +154,6 @@ template <int N>
 void Asn1Header::SerializeSequence(std::bitset<N> optionalOrDefaultMask,
                                    bool isExtensionMarkerPresent) const {
   if (isExtensionMarkerPresent) {
-    // Extension marker present, but no extension
     SerializeBoolean(false);
   }
   SerializeBitstring<N>(optionalOrDefaultMask);
@@ -247,23 +215,19 @@ void Asn1Header::SerializeSequence(std::bitset<11> optionalOrDefaultMask,
 }
 
 void Asn1Header::SerializeSequenceOf(int numElems, int nMax, int nMin) const {
-  // Clause 20.6 ITU-T X.691
   SerializeInteger(numElems, nMin, nMax);
 }
 
 void Asn1Header::SerializeEnum(int numElems, int selectedElem) const {
-  // Clause 14 ITU-T X.691
   SerializeInteger(selectedElem, 0, numElems - 1);
 }
 
 void Asn1Header::SerializeChoice(int numOptions, int selectedOption,
                                  bool isExtensionMarkerPresent) const {
   if (isExtensionMarkerPresent) {
-    // Never extended attributes
     SerializeBoolean(false);
   }
 
-  // Clause 23.4 ITU-T X.691
   if (numOptions < 2) {
     return;
   }
@@ -272,29 +236,19 @@ void Asn1Header::SerializeChoice(int numOptions, int selectedOption,
 }
 
 void Asn1Header::SerializeInteger(int n, int nmin, int nmax) const {
-  // The following is equivalent to:
-  //  NS_ASSERT_MSG (nmin <= n && n <= nmax,
-  //               "Integer " << n << " is outside range [" << nmin << ", " <<
-  //               nmax << "]");
-  // This is a workaround to gcc-7 aggressive optimization, see #346, and can be
-  // dropped once gcc-7 will not be anymore supported.
   long int nComp = nmin;
   nComp -= n;
   NS_ASSERT_MSG(nComp <= 0 && n <= nmax, "Integer "
                                              << n << " is outside range ["
                                              << nmin << ", " << nmax << "]");
 
-  // Clause 11.5.3 ITU-T X.691
   int range = nmax - nmin + 1;
-  // Subtract nmin to n
   n -= nmin;
 
-  // Clause 11.5.4 ITU-T X.691
   if (range <= 1) {
     return;
   }
 
-  // Clause 11.5.6 ITU-T X.691
   int requiredBits = std::ceil(std::log(range) / std::log(2.0));
 
   switch (requiredBits) {
@@ -366,9 +320,7 @@ void Asn1Header::SerializeInteger(int n, int nmin, int nmax) const {
   }
 }
 
-void Asn1Header::SerializeNull() const {
-  // Clause 18 ITU-T X.691
-}
+void Asn1Header::SerializeNull() const {}
 
 void Asn1Header::FinalizeSerialization() const {
   if (m_numSerializationPendingBits > 0) {
@@ -384,7 +336,6 @@ Buffer::Iterator Asn1Header::DeserializeBitset(std::bitset<N> *data,
   int bitsToRead = N;
   uint8_t mask;
 
-  // Read bits from pending bits
   if (m_numSerializationPendingBits > 0) {
     while (bitsToRead > 0 && m_numSerializationPendingBits > 0) {
       data->set(bitsToRead - 1, (m_serializationPendingBits & 0x80) ? 1 : 0);
@@ -394,10 +345,8 @@ Buffer::Iterator Asn1Header::DeserializeBitset(std::bitset<N> *data,
     }
   }
 
-  // Read bits from buffer
   while (bitsToRead > 0) {
     uint8_t octet = bIterator.ReadU8();
-    // If 8 bits can be allocated to the bitset, set the bits
     if (bitsToRead >= 8) {
       mask = 0x80;
       for (int j = 0; j < 8; j++) {
@@ -407,7 +356,6 @@ Buffer::Iterator Asn1Header::DeserializeBitset(std::bitset<N> *data,
       }
     }
 
-    // Otherwise, we'll have to save the remaining bits
     else {
       mask = 0x80;
       m_numSerializationPendingBits = 8 - bitsToRead;
@@ -479,7 +427,6 @@ Buffer::Iterator Asn1Header::DeserializeBoolean(bool *value,
 
 Buffer::Iterator Asn1Header::DeserializeInteger(int *n, int nmin, int nmax,
                                                 Buffer::Iterator bIterator) {
-  // Misusage check: Ensure nmax>nmin ...
   if (nmin > nmax) {
     int aux = nmin;
     nmin = nmax;

@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Duy Nguyen <duy@soe.ucsc.edu>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -54,222 +25,78 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("multirate");
 
-/**
- * WiFi multirate experiment class.
- *
- * It handles the creation and run of an experiment.
- *
- * Scenarios: 100 nodes, multiple simultaneous flows, multi-hop ad hoc, routing,
- * and mobility
- *
- * QUICK INSTRUCTIONS:
- *
- * To optimize build:
- * ./ns3 configure -d optimized
- * ./ns3
- *
- * To compile:
- * ./ns3 run wifi-multirate
- *
- * To compile with command line(useful for varying parameters):
- * ./ns3 run "wifi-multirate --totalTime=0.3s
- * --rateManager=ns3::MinstrelWifiManager"
- *
- * To turn on NS_LOG:
- * export NS_LOG=multirate=level_all
- * (can only view log if built with ./ns3 configure -d debug)
- *
- * To debug:
- * ./ns3 shell
- * gdb ./build/debug/examples/wireless/wifi-multirate
- *
- * To view pcap files:
- * tcpdump -nn -tt -r filename.pcap
- *
- * To monitor the files:
- * tail -f filename.pcap
- *
- */
 class Experiment {
 public:
   Experiment();
-  /**
-   * \brief Construct a new Experiment object
-   *
-   * \param name The name of the experiment.
-   */
   Experiment(std::string name);
-  /**
-   * Run an experiment.
-   * \param wifi The WifiHelper class.
-   * \param wifiPhy The YansWifiPhyHelper class.
-   * \param wifiMac The WifiMacHelper class.
-   * \param wifiChannel The YansWifiChannelHelper class.
-   * \param mobility The MobilityHelper class.
-   * \return a 2D dataset of the experiment data.
-   */
   Gnuplot2dDataset Run(const WifiHelper &wifi, const YansWifiPhyHelper &wifiPhy,
                        const WifiMacHelper &wifiMac,
                        const YansWifiChannelHelper &wifiChannel,
                        const MobilityHelper &mobility);
 
-  /**
-   * \brief Setup the experiment from the command line arguments.
-   *
-   * \param argc The argument count.
-   * \param argv The argument vector.
-   * \return true
-   */
   bool CommandSetup(int argc, char **argv);
 
-  /**
-   * \brief Check if routing is enabled.
-   *
-   * \return true if routing is enabled.
-   */
   bool IsRouting() const { return m_enableRouting; }
 
-  /**
-   * \brief Check if mobility is enabled.
-   *
-   * \return true if mobility is enabled.
-   */
   bool IsMobility() const { return m_enableMobility; }
 
-  /**
-   * \brief Get the Scenario number.
-   *
-   * \return the scenario number.
-   */
   uint32_t GetScenario() const { return m_scenario; }
 
-  /**
-   * \brief Get the RTS Threshold.
-   *
-   * \return the RTS Threshold.
-   */
   std::string GetRtsThreshold() const { return m_rtsThreshold; }
 
-  /**
-   * \brief Get the Output File Name.
-   *
-   * \return the Output File Name.
-   */
   std::string GetOutputFileName() const { return m_outputFileName; }
 
-  /**
-   * \brief Get the Rate Manager.
-   *
-   * \return the Rate Manager.
-   */
   std::string GetRateManager() const { return m_rateManager; }
 
 private:
-  /**
-   * \brief Setup the receiving socket.
-   *
-   * \param node The receiving node.
-   * \return the Rx socket.
-   */
   Ptr<Socket> SetupPacketReceive(Ptr<Node> node);
-  /**
-   * Generate 1-hop and 2-hop neighbors of a node in grid topology
-   * \param c The node container.
-   * \param senderId The sender ID.
-   * \return the neighbor nodes.
-   */
   NodeContainer GenerateNeighbors(NodeContainer c, uint32_t senderId);
 
-  /**
-   * \brief Setup the application in the nodes.
-   *
-   * \param client Client node.
-   * \param server Server node.
-   * \param start Start time.
-   * \param stop Stop time.
-   */
   void ApplicationSetup(Ptr<Node> client, Ptr<Node> server, double start,
                         double stop);
-  /**
-   * Take the grid map, divide it into 4 quadrants
-   * Assign all nodes from each quadrant to a specific container
-   *
-   * \param c The node container.
-   */
   void AssignNeighbors(NodeContainer c);
-  /**
-   * Sources and destinations are randomly selected such that a node
-   * may be the source for multiple destinations and a node maybe a destination
-   * for multiple sources.
-   *
-   * \param c The node container.
-   */
   void SelectSrcDest(NodeContainer c);
-  /**
-   * \brief Receive a packet.
-   *
-   * \param socket The receiving socket.
-   */
   void ReceivePacket(Ptr<Socket> socket);
-  /**
-   * \brief Calculate the throughput.
-   */
   void CheckThroughput();
-  /**
-   * A sender node will  set up a flow to each of the its neighbors
-   * in its quadrant randomly.  All the flows are exponentially distributed.
-   *
-   * \param sender The sender node.
-   * \param c The node neighbors.
-   */
   void SendMultiDestinations(Ptr<Node> sender, NodeContainer c);
 
-  Gnuplot2dDataset m_output; //!< Output dataset.
+  Gnuplot2dDataset m_output;
 
-  double m_totalTime;      //!< Total experiment time.
-  double m_expMean;        //!< Exponential parameter for sending packets.
-  double m_samplingPeriod; //!< Sampling period.
+  double m_totalTime;
+  double m_expMean;
+  double m_samplingPeriod;
 
-  uint32_t m_bytesTotal;   //!< Total number of received bytes.
-  uint32_t m_packetSize;   //!< Packet size.
-  uint32_t m_gridSize;     //!< Grid size.
-  uint32_t m_nodeDistance; //!< Node distance.
-  uint32_t m_port;         //!< Listening port.
-  uint32_t m_scenario;     //!< Scenario number.
+  uint32_t m_bytesTotal;
+  uint32_t m_packetSize;
+  uint32_t m_gridSize;
+  uint32_t m_nodeDistance;
+  uint32_t m_port;
+  uint32_t m_scenario;
 
-  bool m_enablePcap;     //!< True if PCAP output is enabled.
-  bool m_enableTracing;  //!< True if tracing output is enabled.
-  bool m_enableFlowMon;  //!< True if FlowMon is enabled.
-  bool m_enableRouting;  //!< True if routing is enabled.
-  bool m_enableMobility; //!< True if mobility is enabled.
+  bool m_enablePcap;
+  bool m_enableTracing;
+  bool m_enableFlowMon;
+  bool m_enableRouting;
+  bool m_enableMobility;
 
-  /**
-   * Node containers for each quadrant.
-   * @{
-   */
   NodeContainer m_containerA;
   NodeContainer m_containerB;
   NodeContainer m_containerC;
   NodeContainer m_containerD;
-  /** @} */
-  std::string m_rtsThreshold;   //!< Rts threshold.
-  std::string m_rateManager;    //!< Rate manager.
-  std::string m_outputFileName; //!< Output file name.
+  std::string m_rtsThreshold;
+  std::string m_rateManager;
+  std::string m_outputFileName;
 };
 
 Experiment::Experiment() {}
 
 Experiment::Experiment(std::string name)
-    : m_output(name), m_totalTime(0.3), m_expMean(0.1),
-      // flows being exponentially distributed
-      m_samplingPeriod(0.1), m_bytesTotal(0), m_packetSize(2000),
-      m_gridSize(10),
-      // 10x10 grid  for a total of 100 nodes
-      m_nodeDistance(30), m_port(5000), m_scenario(4), m_enablePcap(false),
-      m_enableTracing(true), m_enableFlowMon(false), m_enableRouting(false),
-      m_enableMobility(false), m_rtsThreshold("2200"),
-      // 0 for enabling rts/cts
-      m_rateManager("ns3::MinstrelWifiManager"), m_outputFileName("minstrel") {
+    : m_output(name), m_totalTime(0.3), m_expMean(0.1), m_samplingPeriod(0.1),
+      m_bytesTotal(0), m_packetSize(2000), m_gridSize(10), m_nodeDistance(30),
+      m_port(5000), m_scenario(4), m_enablePcap(false), m_enableTracing(true),
+      m_enableFlowMon(false), m_enableRouting(false), m_enableMobility(false),
+      m_rtsThreshold("2200"), m_rateManager("ns3::MinstrelWifiManager"),
+      m_outputFileName("minstrel") {
   m_output.SetStyle(Gnuplot2dDataset::LINES);
 }
 
@@ -295,7 +122,6 @@ void Experiment::CheckThroughput() {
   m_bytesTotal = 0;
   m_output.Add((Simulator::Now()).GetSeconds(), mbs);
 
-  // check throughput every samplingPeriod second
   Simulator::Schedule(Seconds(m_samplingPeriod), &Experiment::CheckThroughput,
                       this);
 }
@@ -304,23 +130,19 @@ void Experiment::AssignNeighbors(NodeContainer c) {
   uint32_t totalNodes = c.GetN();
   for (uint32_t i = 0; i < totalNodes; i++) {
     if ((i % m_gridSize) <= (m_gridSize / 2 - 1)) {
-      // lower left quadrant
       if (i < totalNodes / 2) {
         m_containerA.Add(c.Get(i));
       }
 
-      // upper left quadrant
       if (i >= (uint32_t)(4 * totalNodes) / 10) {
         m_containerC.Add(c.Get(i));
       }
     }
     if ((i % m_gridSize) >= (m_gridSize / 2 - 1)) {
-      // lower right quadrant
       if (i < totalNodes / 2) {
         m_containerB.Add(c.Get(i));
       }
 
-      // upper right quadrant
       if (i >= (uint32_t)(4 * totalNodes) / 10) {
         m_containerD.Add(c.Get(i));
       }
@@ -333,7 +155,6 @@ NodeContainer Experiment::GenerateNeighbors(NodeContainer c,
   NodeContainer nc;
   uint32_t limit = senderId + 2;
   for (uint32_t i = senderId - 2; i <= limit; i++) {
-    // must ensure the boundaries for other topologies
     nc.Add(c.Get(i));
     nc.Add(c.Get(i + 10));
     nc.Add(c.Get(i + 20));
@@ -359,12 +180,10 @@ void Experiment::SelectSrcDest(NodeContainer c) {
 }
 
 void Experiment::SendMultiDestinations(Ptr<Node> sender, NodeContainer c) {
-  // UniformRandomVariable params: (Xrange, Yrange)
   Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
   uv->SetAttribute("Min", DoubleValue(0));
   uv->SetAttribute("Max", DoubleValue(c.GetN()));
 
-  // ExponentialRandomVariable params: (mean, upperbound)
   Ptr<ExponentialRandomVariable> ev = CreateObject<ExponentialRandomVariable>();
   ev->SetAttribute("Mean", DoubleValue(m_expMean));
   ev->SetAttribute("Bound", DoubleValue(m_totalTime));
@@ -391,13 +210,6 @@ void Experiment::SendMultiDestinations(Ptr<Node> sender, NodeContainer c) {
   }
 }
 
-/**
- * Print the position of two nodes.
- *
- * \param client Client node.
- * \param server Server node.
- * \return a string with the nodes data and positions
- */
 static inline std::string PrintPosition(Ptr<Node> client, Ptr<Node> server) {
   Vector serverPos = server->GetObject<MobilityModel>()->GetPosition();
   Vector clientPos = client->GetObject<MobilityModel>()->GetPosition();
@@ -432,7 +244,6 @@ void Experiment::ApplicationSetup(Ptr<Node> client, Ptr<Node> server,
 
   NS_LOG_DEBUG(PrintPosition(client, server));
 
-  // Equipping the source  node with OnOff Application used for sending
   OnOffHelper onoff(
       "ns3::UdpSocketFactory",
       Address(InetSocketAddress(Ipv4Address("10.0.0.1"), m_port)));
@@ -475,7 +286,7 @@ Gnuplot2dDataset Experiment::Run(const WifiHelper &wifi,
   InternetStackHelper internet;
 
   if (m_enableRouting) {
-    internet.SetRoutingHelper(list); // has effect on the next Install ()
+    internet.SetRoutingHelper(list);
   }
   internet.Install(c);
 
@@ -495,7 +306,6 @@ Gnuplot2dDataset Experiment::Run(const WifiHelper &wifi,
   mobil.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
   if (m_enableMobility && m_enableRouting) {
-    // Rectangle (xMin, xMax, yMin, yMax)
     mobil.SetMobilityModel(
         "ns3::RandomDirection2dMobilityModel", "Bounds",
         RectangleValue(Rectangle(0, 500, 0, 500)), "Speed",
@@ -507,15 +317,11 @@ Gnuplot2dDataset Experiment::Run(const WifiHelper &wifi,
   if (m_scenario == 1 && m_enableRouting) {
     SelectSrcDest(c);
   } else if (m_scenario == 2) {
-    // All flows begin at the same time
     for (uint32_t i = 0; i < nodeSize - 1; i = i + 2) {
       ApplicationSetup(c.Get(i), c.Get(i + 1), 0, m_totalTime);
     }
   } else if (m_scenario == 3) {
     AssignNeighbors(c);
-    // Note: these senders are hand-picked in order to ensure good coverage
-    // for 10x10 grid, basically one sender for each quadrant
-    // you might have to change these values for other grids
     NS_LOG_DEBUG(">>>>>>>>>region A<<<<<<<<<");
     SendMultiDestinations(c.Get(22), m_containerA);
 
@@ -528,9 +334,6 @@ Gnuplot2dDataset Experiment::Run(const WifiHelper &wifi,
     NS_LOG_DEBUG(">>>>>>>>>region D<<<<<<<<<");
     SendMultiDestinations(c.Get(76), m_containerD);
   } else if (m_scenario == 4) {
-    // GenerateNeighbors(NodeContainer, uint32_t sender)
-    // Note: these senders are hand-picked in order to ensure good coverage
-    // you might have to change these values for other grids
     NodeContainer c1;
     NodeContainer c2;
     NodeContainer c3;
@@ -594,17 +397,14 @@ Gnuplot2dDataset Experiment::Run(const WifiHelper &wifi,
 }
 
 bool Experiment::CommandSetup(int argc, char **argv) {
-  // for commandline input
   CommandLine cmd(__FILE__);
   cmd.AddValue("packetSize", "packet size", m_packetSize);
   cmd.AddValue("totalTime", "simulation time", m_totalTime);
-  // according to totalTime, select an appropriate samplingPeriod automatically.
   if (m_totalTime < 1.0) {
     m_samplingPeriod = 0.1;
   } else {
     m_samplingPeriod = 1.0;
   }
-  // or user selects a samplingPeriod.
   cmd.AddValue("samplingPeriod", "sampling period", m_samplingPeriod);
   cmd.AddValue("rtsThreshold", "rts threshold", m_rtsThreshold);
   cmd.AddValue("rateManager", "type of rate", m_rateManager);
@@ -621,7 +421,6 @@ int main(int argc, char *argv[]) {
   Experiment experiment;
   experiment = Experiment("multirate");
 
-  // for commandline input
   experiment.CommandSetup(argc, argv);
 
   std::ofstream outfile(experiment.GetOutputFileName() + ".plt");

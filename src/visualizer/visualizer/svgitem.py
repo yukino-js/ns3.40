@@ -1,64 +1,20 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from gi.repository import GObject, GooCanvas
 import rsvg
 
-# import cairo
 import os.path
 
 
-## SvgItem class
 class SvgItem(GooCanvas.ItemSimple):
-    ## @var x
-    #  x
-    ## @var y
-    #  y
-    ## @var sx
-    #  x step
-    ## @var sy
-    #  y step
-    ## @var handle
-    #  handle
-    ## @var width
-    #  width
-    ## @var height
-    #  height
-    ## @var custom_width
-    #  custom width
-    ## @var custom_height
-    #  custom height
-    ## @var bounds_x1
-    #  minimum x
-    ## @var bounds_y1
-    #  minimum y
-    ## @var bounds_x2
-    #  maximum x
-    ## @var bounds_y2
-    #  maximum y
-
-    ## setup our custom properties
     __gproperties__ = {
         "x": (
-            float,  # property type
-            "X",  # property nick name
-            "The x coordinate of a SVG image",  # property description
-            -10e6,  # property minimum value
-            10e6,  # property maximum value
-            0,  # property default value
+            float,
+            "X",
+            "The x coordinate of a SVG image",
+            -10e6,
+            10e6,
+            0,
             GObject.PARAM_READWRITE,
-        ),  # property flags
+        ),
         "y": (
             float,
             "Y",
@@ -120,27 +76,23 @@ class SvgItem(GooCanvas.ItemSimple):
         if pspec.name == "x":
             self.x = value
 
-            # make sure we update the display
             self.changed(True)
 
         elif pspec.name == "y":
             self.y = value
 
-            # make sure we update the display
             self.changed(True)
 
         elif pspec.name == "width":
             self.custom_width = value
             self._size_changed()
 
-            # make sure we update the display
             self.changed(True)
 
         elif pspec.name == "height":
             self.custom_height = value
             self._size_changed()
 
-            # make sure we update the display
             self.changed(True)
 
         else:

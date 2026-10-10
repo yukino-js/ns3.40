@@ -1,29 +1,12 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # -*- Mode: python; coding: utf-8 -*-
 from ctypes import c_double
 
-LAYOUT_ALGORITHM = "neato"  # ['neato'|'dot'|'twopi'|'circo'|'fdp'|'nop']
+LAYOUT_ALGORITHM = "neato"
 REPRESENT_CHANNELS_AS_NODES = 1
-DEFAULT_NODE_SIZE = 1.0  # default node size in meters
-DEFAULT_TRANSMISSIONS_MEMORY = (
-    5  # default number of of past intervals whose transmissions are remembered
-)
+DEFAULT_NODE_SIZE = 1.0
+DEFAULT_TRANSMISSIONS_MEMORY = 5
 BITRATE_FONT_SIZE = 10
 
-# internal constants, normally not meant to be changed
 SAMPLE_PERIOD = 0.1
 PRIORITY_UPDATE_MODEL = -100
 PRIORITY_UPDATE_VIEW = 200
@@ -111,46 +94,7 @@ PI_OVER_2 = math.pi / 2
 PI_TIMES_2 = math.pi * 2
 
 
-## Node class
 class Node(PyVizObject):
-    ## @var visualizer
-    #  visualier object
-    ## @var node_index
-    #  node index
-    ## @var canvas_item
-    #  canvas item
-    ## @var links
-    #  links
-    ## @var _has_mobility
-    #  has mobility model
-    ## @var _selected
-    #  is selected
-    ## @var _highlighted
-    #  is highlighted
-    ## @var _color
-    #  color
-    ## @var _size
-    #  size
-    ## @var menu
-    #  menu
-    ## @var svg_item
-    #  svg item
-    ## @var svg_align_x
-    #  svg align X
-    ## @var svg_align_y
-    #  svg align Y
-    ## @var _label
-    #  label
-    ## @var _label_canvas_item
-    #  label canvas
-    ## @var highlighted
-    #  highlighted property
-    ## @var selected
-    #  selected property
-
-    ## signal emitted whenever a tooltip is about to be shown for the node
-    ## the first signal parameter is a python list of strings, to which
-    ## information can be appended
     __gsignals__ = {
         "query-extra-tooltip-info": (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
@@ -182,7 +126,7 @@ class Node(PyVizObject):
         self._label = None
         self._label_canvas_item = None
 
-        self._update_appearance()  # call this last
+        self._update_appearance()
 
     def set_svg_icon(
         self, file_base_name, width=None, height=None, align_x=0.5, align_y=0.5
@@ -224,10 +168,6 @@ class Node(PyVizObject):
             self.svg_item.props.width = transform_distance_simulation_to_canvas(width)
         if height is not None:
             self.svg_item.props.height = transform_distance_simulation_to_canvas(height)
-
-        # threshold1 = 10.0/self.svg_item.props.height
-        # threshold2 = 10.0/self.svg_item.props.width
-        # self.svg_item.props.visibility_threshold = min(threshold1, threshold2)
 
         self.svg_align_x = align_x
         self.svg_align_y = align_y
@@ -351,7 +291,6 @@ class Node(PyVizObject):
         @return none
         """
 
-        ## highlighted property
         self.highlighted = True
 
     def on_leave_notify_event(self, view, target, event):
@@ -489,8 +428,6 @@ class Node(PyVizObject):
         if self._label_canvas_item is not None:
             self._label_canvas_item.set_properties(x=x, y=(y + self._size * 3))
 
-        # If the location of the point is now beyond the bounds of the
-        # canvas then those bounds now need to be increased
         try:
             bounds = self.visualizer.canvas.get_bounds()
 
@@ -506,7 +443,6 @@ class Node(PyVizObject):
             if new_bounds != bounds:
                 self.visualizer.canvas.set_bounds(*new_bounds)
         except TypeError:
-            # bug 2969:  GooCanvas.Canvas.get_bounds() inconsistency
             pass
 
     def get_position(self):
@@ -586,15 +522,7 @@ class Node(PyVizObject):
         return self._has_mobility
 
 
-## Channel
 class Channel(PyVizObject):
-    ## @var channel
-    #  channel
-    ## @var canvas_item
-    #  canvas
-    ## @var links
-    #  list of links
-    #
     def __init__(self, channel):
         """!
         Initializer function.
@@ -643,15 +571,7 @@ class Channel(PyVizObject):
         )
 
 
-## WiredLink
 class WiredLink(Link):
-    ## @var node1
-    #  first node
-    ## @var node2
-    #  second node
-    ## @var canvas_item
-    #  canvas
-    #
     def __init__(self, node1, node2):
         """!
         Initializer function.
@@ -683,22 +603,7 @@ class WiredLink(Link):
         )
 
 
-## SimulationThread
 class SimulationThread(threading.Thread):
-    ## @var viz
-    #  Visualizer object
-    ## @var lock
-    #  thread lock
-    ## @var go
-    #  thread event
-    ## @var target_time
-    #  in seconds
-    ## @var quit
-    #  quit indicator
-    ## @var sim_helper
-    #  helper function
-    ## @var pause_messages
-    #  pause messages
     def __init__(self, viz):
         """!
         Initializer function.
@@ -708,11 +613,11 @@ class SimulationThread(threading.Thread):
         """
         super(SimulationThread, self).__init__()
         assert isinstance(viz, Visualizer)
-        self.viz = viz  # Visualizer object
+        self.viz = viz
         self.lock = threading.Lock()
         self.go = threading.Event()
         self.go.clear()
-        self.target_time = 0  # in seconds
+        self.target_time = 0
         self.quit = False
         self.sim_helper = ns.PyViz()
         self.pause_messages = []
@@ -739,42 +644,24 @@ class SimulationThread(threading.Thread):
         @return none
         """
         while not self.quit:
-            # print "sim: Wait for go"
-            self.go.wait()  # wait until the main (view) thread gives us the go signal
+            self.go.wait()
             self.go.clear()
             if self.quit:
                 break
-            # self.go.clear()
-            # print "sim: Acquire lock"
             self.lock.acquire()
             try:
                 if 0:
                     if ns3.Simulator.IsFinished():
                         self.viz.play_button.set_sensitive(False)
                         break
-                # print "sim: Current time is %f; Run until: %f" % (ns3.Simulator.Now ().GetSeconds (), self.target_time)
-                # if ns3.Simulator.Now ().GetSeconds () > self.target_time:
-                #    print "skipping, model is ahead of view!"
                 self.sim_helper.SimulatorRunUntil(ns.Seconds(self.target_time))
-                # print "sim: Run until ended at current time: ", ns3.Simulator.Now ().GetSeconds ()
                 self.pause_messages.extend(self.sim_helper.GetPauseMessages())
                 GLib.idle_add(self.viz.update_model, priority=PRIORITY_UPDATE_MODEL)
-                # print "sim: Run until: ", self.target_time, ": finished."
             finally:
                 self.lock.release()
-            # print "sim: Release lock, loop."
 
 
-## ShowTransmissionsMode
 class ShowTransmissionsMode(object):
-    ## @var ALL
-    #  all
-    ## @var NONE
-    #  none
-    ## @var SELECTED
-    #  selected
-
-    ## enumeration
     __slots__ = []
 
 
@@ -783,15 +670,11 @@ ShowTransmissionsMode.NONE = ShowTransmissionsMode()
 ShowTransmissionsMode.SELECTED = ShowTransmissionsMode()
 
 
-## Visualizer
 class Visualizer(GObject.GObject):
-    ## @var INSTANCE
-    #  all
     INSTANCE = None
 
     if _import_error is None:
         __gsignals__ = {
-            # signal emitted whenever a right-click-on-node popup menu is being constructed
             "populate-node-menu": (
                 GObject.SignalFlags.RUN_LAST,
                 None,
@@ -800,12 +683,8 @@ class Visualizer(GObject.GObject):
                     Gtk.Menu,
                 ),
             ),
-            # signal emitted after every simulation period (SAMPLE_PERIOD seconds of simulated time)
-            # the simulation lock is acquired while the signal is emitted
             "simulation-periodic-update": (GObject.SignalFlags.RUN_LAST, None, ()),
-            # signal emitted right after the topology is scanned
             "topology-scanned": (GObject.SignalFlags.RUN_LAST, None, ()),
-            # signal emitted when it's time to update the view objects
             "update-view": (GObject.SignalFlags.RUN_LAST, None, ()),
         }
 
@@ -819,14 +698,14 @@ class Visualizer(GObject.GObject):
         assert Visualizer.INSTANCE is None
         Visualizer.INSTANCE = self
         super(Visualizer, self).__init__()
-        self.nodes = {}  # node index -> Node
-        self.channels = {}  # id(ns3.Channel) -> Channel
-        self.window = None  # toplevel window
-        self.canvas = None  # GooCanvas.Canvas
-        self.time_label = None  # Gtk.Label
-        self.play_button = None  # Gtk.ToggleButton
-        self.zoom = None  # Gtk.Adjustment
-        self._scrolled_window = None  # Gtk.ScrolledWindow
+        self.nodes = {}
+        self.channels = {}
+        self.window = None
+        self.canvas = None
+        self.time_label = None
+        self.play_button = None
+        self.zoom = None
+        self._scrolled_window = None
 
         self.links_group = GooCanvas.CanvasGroup()
         self.channels_group = GooCanvas.CanvasGroup()
@@ -834,7 +713,7 @@ class Visualizer(GObject.GObject):
 
         self._update_timeout_id = None
         self.simulation = SimulationThread(self)
-        self.selected_node = None  # node currently selected
+        self.selected_node = None
         self.speed = 1.0
         self.information_windows = []
         self._transmission_arrows = []
@@ -937,7 +816,6 @@ class Visualizer(GObject.GObject):
 
         selected_node.connect("toggled", toggled)
 
-        # -- misc settings
         misc_settings_group = GObject.new(
             Gtk.HeaderBar, title="Misc Settings", visible=True
         )
@@ -945,7 +823,6 @@ class Visualizer(GObject.GObject):
         settings_hbox = GObject.new(Gtk.HBox, border_width=8, visible=True)
         misc_settings_group.add(settings_hbox)
 
-        # --> node size
         vbox = GObject.new(Gtk.VBox, border_width=0, visible=True)
         scale = GObject.new(Gtk.HScale, visible=True, digits=2)
         vbox.pack_start(scale, True, True, 0)
@@ -965,7 +842,6 @@ class Visualizer(GObject.GObject):
         self.node_size_adjustment.set_step_increment(0.1)
         self.node_size_adjustment.set_value(DEFAULT_NODE_SIZE)
 
-        # --> transmissions smooth factor
         vbox = GObject.new(Gtk.VBox, border_width=0, visible=True)
         scale = GObject.new(Gtk.HScale, visible=True, digits=1)
         vbox.pack_start(scale, True, True, 0)
@@ -985,10 +861,7 @@ class Visualizer(GObject.GObject):
 
         return expander
 
-    ## PanningState class
     class _PanningState(object):
-        ## @var __slots__
-        #  internal variables
         __slots__ = ["initial_mouse_pos", "initial_canvas_pos", "motion_signal"]
 
     def _begin_panning(self, widget, event):
@@ -1086,7 +959,6 @@ class Visualizer(GObject.GObject):
         vbox.show()
         self.window.add(vbox)
 
-        # canvas
         self.canvas = GooCanvas.Canvas()
         self.canvas.connect_after("button-press-event", self._canvas_button_press)
         self.canvas.connect_after("button-release-event", self._canvas_button_release)
@@ -1126,7 +998,6 @@ class Visualizer(GObject.GObject):
         hbox.show()
         vbox.pack_start(hbox, False, False, 4)
 
-        # zoom
         zoom_adj = Gtk.Adjustment(
             value=1.0,
             lower=0.01,
@@ -1150,7 +1021,6 @@ class Visualizer(GObject.GObject):
         hbox.pack_start(zoom, False, False, 4)
         _zoom_changed(zoom_adj)
 
-        # speed
         speed_adj = Gtk.Adjustment(
             value=1.0,
             lower=0.01,
@@ -1175,12 +1045,10 @@ class Visualizer(GObject.GObject):
         hbox.pack_start(speed, False, False, 4)
         _speed_changed(speed_adj)
 
-        # Current time
         self.time_label = GObject.new(Gtk.Label, label="  Speed:", visible=True)
         self.time_label.set_width_chars(20)
         hbox.pack_start(self.time_label, False, False, 4)
 
-        # Screenshot button
         screenshot_button = GObject.new(
             Gtk.Button,
             label="Snapshot",
@@ -1201,7 +1069,6 @@ class Visualizer(GObject.GObject):
         load_button_icon(screenshot_button, "applets-screenshooter")
         screenshot_button.connect("clicked", self._take_screenshot)
 
-        # Shell button
         if ipython_view is not None:
             shell_button = GObject.new(
                 Gtk.Button,
@@ -1214,7 +1081,6 @@ class Visualizer(GObject.GObject):
             load_button_icon(shell_button, "gnome-terminal")
             shell_button.connect("clicked", self._start_shell)
 
-        # Play button
         self.play_button = GObject.new(
             Gtk.ToggleButton,
             label="Simulate (F3)",
@@ -1275,7 +1141,6 @@ class Visualizer(GObject.GObject):
                 node_view.set_position(
                     *transform_point_simulation_to_canvas(pos.x, pos.y)
                 )
-                # print "node has mobility position -> ", "%f,%f" % (pos.x, pos.y)
             else:
                 graph.add_node(node_name)
 
@@ -1289,7 +1154,6 @@ class Visualizer(GObject.GObject):
                 channel = device.GetChannel()
                 if channel.GetNDevices() > 2:
                     if REPRESENT_CHANNELS_AS_NODES:
-                        # represent channels as white nodes
                         if mobility is None:
                             channel_name = "Channel %s" % id(channel)
                             graph.add_edge(node_name, channel_name)
@@ -1298,7 +1162,6 @@ class Visualizer(GObject.GObject):
                             self.get_node(nodeI), self.get_channel(channel)
                         )
                     else:
-                        # don't represent channels, just add links between nodes in the same channel
                         for otherDevI in range(channel.GetNDevices()):
                             otherDev = channel.GetDevice(otherDevI)
                             otherNode = otherDev.GetNode()
@@ -1322,7 +1185,6 @@ class Visualizer(GObject.GObject):
         print("scanning topology: calling graphviz layout")
         graph.layout(LAYOUT_ALGORITHM)
         for node in graph.iternodes():
-            # print node, "=>", node.attr['pos']
             node_type, node_id = node.split(" ")
             pos_x, pos_y = [float(s) for s in node.attr["pos"].split(",")]
             if node_type == "Node":
@@ -1364,13 +1226,11 @@ class Visualizer(GObject.GObject):
         link.canvas_item.lower(None)
 
     def update_view(self):
-        # print "update_view"
 
         self.time_label.set_text("Time: %f s" % ns.Simulator.Now().GetSeconds())
 
         self._update_node_positions()
 
-        # Update information
         for info_win in self.information_windows:
             info_win.update()
 
@@ -1546,7 +1406,6 @@ class Visualizer(GObject.GObject):
             try:
                 label.set_transform(M)
             except KeyError:
-                # https://gitlab.gnome.org/GNOME/pygobject/issues/16
                 warnings.warn(
                     "PyGobject bug causing label position error; "
                     "should be fixed in PyGObject >= 3.29.1"
@@ -1573,7 +1432,6 @@ class Visualizer(GObject.GObject):
             label.set_property("visibility", GooCanvas.CanvasItemVisibility.HIDDEN)
         new_arrows = []
 
-        # get the coordinates for the edge of screen
         vadjustment = self._scrolled_window.get_vadjustment()
         bottom_y = vadjustment.get_value() + vadjustment.get_page_size()
         dummy, edge_y = self.canvas.convert_from_pixels(0, bottom_y)
@@ -1597,7 +1455,7 @@ class Visualizer(GObject.GObject):
 
                 label = GooCanvas.CanvasText(
                     pointer_events=GooCanvas.CanvasPointerEvents.NONE
-                )  # , fill_color_rgba=0x00C000C0)
+                )
                 label.set_property("parent", self.canvas.get_root_item())
                 label.raise_(None)
 
@@ -1634,9 +1492,7 @@ class Visualizer(GObject.GObject):
         self._drop_arrows = new_arrows + old_arrows
 
     def update_view_timeout(self):
-        # print "view: update_view_timeout called at real time ", time.time()
 
-        # while the simulator is busy, run the gtk event loop
         while not self.simulation.lock.acquire(False):
             while Gtk.events_pending():
                 Gtk.main_iteration()
@@ -1647,12 +1503,10 @@ class Visualizer(GObject.GObject):
             self.simulation.target_time = (
                 ns.Simulator.Now().GetSeconds() + self.sample_period
             )
-            # print "view: target time set to %f" % self.simulation.target_time
         finally:
             self.simulation.lock.release()
 
         if pause_messages:
-            # print pause_messages
             dialog = Gtk.MessageDialog(
                 parent=self.window,
                 flags=0,
@@ -1664,20 +1518,16 @@ class Visualizer(GObject.GObject):
             dialog.show()
             self.play_button.set_active(False)
 
-        # if we're paused, stop the update timer
         if not self.play_button.get_active():
             self._update_timeout_id = None
             return False
 
-        # print "view: self.simulation.go.set()"
         self.simulation.go.set()
-        # print "view: done."
         return True
 
     def _start_update_timer(self):
         if self._update_timeout_id is not None:
             GLib.source_remove(self._update_timeout_id)
-        # print "start_update_timer"
         self._update_timeout_id = GLib.timeout_add(
             int(SAMPLE_PERIOD / min(self.speed, 1) * 1e3),
             self.update_view_timeout,
@@ -1701,21 +1551,14 @@ class Visualizer(GObject.GObject):
         Gtk.main_quit()
 
     def _monkey_patch_ipython(self):
-        # The user may want to access the NS 3 simulation state, but
-        # NS 3 is not thread safe, so it could cause serious problems.
-        # To work around this, monkey-patch IPython to automatically
-        # acquire and release the simulation lock around each code
-        # that is executed.
 
         original_runcode = self.ipython.runcode
 
         def runcode(ip, *args):
-            # print "lock"
             self.simulation.lock.acquire()
             try:
                 return original_runcode(*args)
             finally:
-                # print "unlock"
                 self.simulation.lock.release()
 
         import types
@@ -1763,7 +1606,6 @@ class Visualizer(GObject.GObject):
     def start(self):
         self.scan_topology()
         self.window.connect("delete-event", self._quit)
-        # self._start_update_timer()
         GLib.timeout_add(200, self.autoscale_view)
         self.simulation.start()
 
@@ -1849,7 +1691,6 @@ class Visualizer(GObject.GObject):
                 self.node_drag_state.sim_y0
                 + transform_distance_canvas_to_simulation(dy)
             )
-            # print "SetPosition(%G, %G)" % (pos.x, pos.y)
             mob.SetPosition(pos)
             node.set_position(*transform_point_simulation_to_canvas(pos.x, pos.y))
         finally:
@@ -1868,9 +1709,6 @@ class Visualizer(GObject.GObject):
         menu.popup_at_pointer(event)
 
     def _update_ipython_selected_node(self):
-        # If we are running under ipython -gthread, make this new
-        # selected node available as a global 'selected_node'
-        # variable.
         try:
             __IPYTHON__
         except NameError:
@@ -1927,14 +1765,12 @@ class Visualizer(GObject.GObject):
         self.information_windows.remove(info_win)
 
     def _canvas_tooltip_cb(self, canvas, x, y, keyboard_mode, tooltip):
-        # print "tooltip query: ", x, y
         hadj = self._scrolled_window.get_hadjustment()
         vadj = self._scrolled_window.get_vadjustment()
         x, y = self.canvas.convert_from_pixels(
             hadj.get_value() + x, vadj.get_value() + y
         )
         item = self.canvas.get_item_at(x, y, True)
-        # print "items at (%f, %f): %r | keyboard_mode=%r" % (x, y, item, keyboard_mode)
         if not item:
             return False
         while item is not None:
@@ -1982,12 +1818,10 @@ class Visualizer(GObject.GObject):
         return file_name
 
     def _take_screenshot(self, dummy_button):
-        # print "Cheese!"
         file_name = self._get_export_file_name()
         if file_name is None:
             return
 
-        # figure out the correct bounding box for what is visible on screen
         x1 = self._scrolled_window.get_hadjustment().get_value()
         y1 = self._scrolled_window.get_vadjustment().get_value()
         x2 = x1 + self._scrolled_window.get_hadjustment().get_page_size()
@@ -1997,7 +1831,6 @@ class Visualizer(GObject.GObject):
         bounds.x2, bounds.y2 = self.canvas.convert_from_pixels(x2, y2)
         dest_width = bounds.x2 - bounds.x1
         dest_height = bounds.y2 - bounds.y1
-        # print bounds.x1, bounds.y1, " -> ", bounds.x2, bounds.y2
 
         dummy, extension = os.path.splitext(file_name)
         extension = extension.lower()
@@ -2020,7 +1853,6 @@ class Visualizer(GObject.GObject):
             dialog.destroy()
             return
 
-        # draw the canvas to a printing context
         cr = cairo.Context(surface)
         cr.translate(-bounds.x1, -bounds.y1)
         self.canvas.render(cr, bounds, self.zoom.get_value())

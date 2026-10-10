@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2011, 2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC) Copyright (c) 2018 Fraunhofer ESK : RLF extensions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- *         Budiarto Herman <budiarto.herman@magister.fi>
- * Modified by:
- *          Danilo Abrignani <danilo.abrignani@unibo.it> (Carrier Aggregation -
- * GSoC 2015) Biljana Bojovic <biljana.bojovic@cttc.es> (Carrier Aggregation)
- *          Vignesh Babu <ns3-dev@esk.fraunhofer.de> (RLF extensions)
- */
 
 #include "lte-ue-rrc.h"
 
@@ -45,18 +21,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LteUeRrc");
 
-/////////////////////////////
-// CMAC SAP forwarder
-/////////////////////////////
-
-/// UeMemberLteUeCmacSapUser class
 class UeMemberLteUeCmacSapUser : public LteUeCmacSapUser {
 public:
-  /**
-   * Constructor
-   *
-   * \param rrc the RRC class
-   */
   UeMemberLteUeCmacSapUser(LteUeRrc *rrc);
 
   void SetTemporaryCellRnti(uint16_t rnti) override;
@@ -64,7 +30,7 @@ public:
   void NotifyRandomAccessFailed() override;
 
 private:
-  LteUeRrc *m_rrc; ///< the RRC class
+  LteUeRrc *m_rrc;
 };
 
 UeMemberLteUeCmacSapUser::UeMemberLteUeCmacSapUser(LteUeRrc *rrc)
@@ -82,7 +48,6 @@ void UeMemberLteUeCmacSapUser::NotifyRandomAccessFailed() {
   m_rrc->DoNotifyRandomAccessFailed();
 }
 
-/// Map each of UE RRC states to its string representation.
 static const std::string g_ueRrcStateName[LteUeRrc::NUM_STATES] = {
     "IDLE_START",
     "IDLE_CELL_SEARCH",
@@ -98,10 +63,6 @@ static const std::string g_ueRrcStateName[LteUeRrc::NUM_STATES] = {
     "CONNECTED_PHY_PROBLEM",
     "CONNECTED_REESTABLISHING",
 };
-
-/////////////////////////////
-// ue RRC methods
-/////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(LteUeRrc);
 
@@ -163,12 +124,11 @@ TypeId LteUeRrc::GetTypeId() {
           .AddAttribute("Srb1", "SignalingRadioBearerInfo for SRB1",
                         PointerValue(), MakePointerAccessor(&LteUeRrc::m_srb1),
                         MakePointerChecker<LteSignalingRadioBearerInfo>())
-          .AddAttribute("CellId", "Serving cell identifier",
-                        UintegerValue(0), // unused, read-only attribute
+          .AddAttribute("CellId", "Serving cell identifier", UintegerValue(0),
                         MakeUintegerAccessor(&LteUeRrc::GetCellId),
                         MakeUintegerChecker<uint16_t>())
           .AddAttribute("C-RNTI", "Cell Radio Network Temporary Identifier",
-                        UintegerValue(0), // unused, read-only attribute
+                        UintegerValue(0),
                         MakeUintegerAccessor(&LteUeRrc::GetRnti),
                         MakeUintegerChecker<uint16_t>())
           .AddAttribute("T300",
@@ -177,9 +137,7 @@ TypeId LteUeRrc::GetTypeId() {
                         "longer than this). "
                         "Standard values: 100ms, 200ms, 300ms, 400ms, 600ms, "
                         "1000ms, 1500ms, 2000ms",
-                        TimeValue(MilliSeconds(
-                            100)), // see 3GPP 36.331 UE-TimersAndConstants &
-                                   // RLF-TimersAndConstants
+                        TimeValue(MilliSeconds(100)),
                         MakeTimeAccessor(&LteUeRrc::m_t300),
                         MakeTimeChecker(MilliSeconds(100), MilliSeconds(2000)))
           .AddAttribute(
@@ -188,26 +146,20 @@ TypeId LteUeRrc::GetTypeId() {
               "(i.e., the radio link is deemed as failed if this timer "
               "expires). "
               "Standard values: 0ms 50ms, 100ms, 200ms, 500ms, 1000ms, 2000ms",
-              TimeValue(
-                  MilliSeconds(1000)), // see 3GPP 36.331 UE-TimersAndConstants
-                                       // & RLF-TimersAndConstants
+              TimeValue(MilliSeconds(1000)),
               MakeTimeAccessor(&LteUeRrc::m_t310),
               MakeTimeChecker(MilliSeconds(0), MilliSeconds(2000)))
           .AddAttribute(
               "N310",
               "This specifies the maximum number of out-of-sync indications. "
               "Standard values: 1, 2, 3, 4, 6, 8, 10, 20",
-              UintegerValue(6), // see 3GPP 36.331 UE-TimersAndConstants &
-                                // RLF-TimersAndConstants
-              MakeUintegerAccessor(&LteUeRrc::m_n310),
+              UintegerValue(6), MakeUintegerAccessor(&LteUeRrc::m_n310),
               MakeUintegerChecker<uint8_t>(1, 20))
           .AddAttribute(
               "N311",
               "This specifies the maximum number of in-sync indications. "
               "Standard values: 1, 2, 3, 4, 5, 6, 8, 10",
-              UintegerValue(2), // see 3GPP 36.331 UE-TimersAndConstants &
-                                // RLF-TimersAndConstants
-              MakeUintegerAccessor(&LteUeRrc::m_n311),
+              UintegerValue(2), MakeUintegerAccessor(&LteUeRrc::m_n311),
               MakeUintegerChecker<uint8_t>(1, 10))
           .AddTraceSource(
               "MibReceived",
@@ -380,7 +332,6 @@ void LteUeRrc::SetImsi(uint64_t imsi) {
   NS_LOG_FUNCTION(this << imsi);
   m_imsi = imsi;
 
-  // Communicate the IMSI to MACs and PHYs for all the component carriers
   for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
     m_cmacSapProvider.at(i)->SetImsi(m_imsi);
     m_cphySapProvider.at(i)->SetImsi(m_imsi);
@@ -449,7 +400,6 @@ void LteUeRrc::SetUseRlcSm(bool val) {
 void LteUeRrc::DoInitialize() {
   NS_LOG_FUNCTION(this);
 
-  // setup the UE side of SRB0
   uint8_t lcid = 0;
 
   Ptr<LteRlc> rlc = CreateObject<LteRlcTm>()->GetObject<LteRlc>();
@@ -465,12 +415,11 @@ void LteUeRrc::DoInitialize() {
   ueParams.srb1SapProvider = nullptr;
   m_rrcSapUser->Setup(ueParams);
 
-  // CCCH (LCID 0) is pre-configured, here is the hardcoded configuration:
   LteUeCmacSapProvider::LogicalChannelConfig lcConfig;
-  lcConfig.priority = 0;                   // highest priority
-  lcConfig.prioritizedBitRateKbps = 65535; // maximum
-  lcConfig.bucketSizeDurationMs = 65535;   // maximum
-  lcConfig.logicalChannelGroup = 0;        // all SRBs mapped to LCG 0
+  lcConfig.priority = 0;
+  lcConfig.prioritizedBitRateKbps = 65535;
+  lcConfig.bucketSizeDurationMs = 65535;
+  lcConfig.logicalChannelGroup = 0;
   LteMacSapUser *msu = m_ccmRrcSapProvider->ConfigureSignalBearer(
       lcid, lcConfig, rlc->GetLteMacSapUser());
   m_cmacSapProvider.at(0)->AddLc(lcid, lcConfig, msu);
@@ -479,10 +428,6 @@ void LteUeRrc::DoInitialize() {
 void LteUeRrc::InitializeSap() {
   if (m_numberOfComponentCarriers < MIN_NO_CC ||
       m_numberOfComponentCarriers > MAX_NO_CC) {
-    // this check is needed in order to maintain backward compatibility with
-    // scripts and tests if case lte-helper is not used (like in several tests)
-    // the m_numberOfComponentCarriers is not set and then an error is raised In
-    // this case m_numberOfComponentCarriers is set to 1
     m_numberOfComponentCarriers = MIN_NO_CC;
   }
   if (m_numberOfComponentCarriers > MIN_NO_CC) {
@@ -543,7 +488,7 @@ void LteUeRrc::DoDisconnect() {
     LeaveConnectedMode();
     break;
 
-  default: // i.e. IDLE_RANDOM_ACCESS
+  default:
     NS_FATAL_ERROR("method unexpected in state " << ToString(m_state));
     break;
   }
@@ -568,8 +513,6 @@ void LteUeRrc::DoNotifyRandomAccessSuccessful() {
 
   switch (m_state) {
   case IDLE_RANDOM_ACCESS: {
-    // we just received a RAR with a T-C-RNTI and an UL grant
-    // send RRC connection request as message 3 of the random access procedure
     SwitchToState(IDLE_CONNECTING);
     LteRrcSap::RrcConnectionRequest msg;
     msg.ueIdentity = m_imsi;
@@ -583,15 +526,13 @@ void LteUeRrc::DoNotifyRandomAccessSuccessful() {
     msg.rrcTransactionIdentifier = m_lastRrcTransactionIdentifier;
     m_rrcSapUser->SendRrcConnectionReconfigurationCompleted(msg);
 
-    // 3GPP TS 36.331 section 5.5.6.1 Measurements related actions upon handover
     for (auto measIdIt = m_varMeasConfig.measIdList.begin();
          measIdIt != m_varMeasConfig.measIdList.end(); ++measIdIt) {
       VarMeasReportListClear(measIdIt->second.measId);
     }
 
     SwitchToState(CONNECTED_NORMALLY);
-    m_cmacSapProvider.at(0)
-        ->NotifyConnectionSuccessful(); // RA successful during handover
+    m_cmacSapProvider.at(0)->NotifyConnectionSuccessful();
     m_handoverEndOkTrace(m_imsi, m_cellId, m_rnti);
   } break;
 
@@ -613,18 +554,10 @@ void LteUeRrc::DoNotifyRandomAccessFailed() {
 
   case CONNECTED_HANDOVER: {
     m_handoverEndErrorTrace(m_imsi, m_cellId, m_rnti);
-    /**
-     * \todo After a handover failure because of a random access failure,
-     *       send an RRC Connection Re-establishment and switch to
-     *       CONNECTED_REESTABLISHING state.
-     */
     if (!m_leaveConnectedMode) {
       m_leaveConnectedMode = true;
       SwitchToState(CONNECTED_PHY_PROBLEM);
       m_rrcSapUser->SendIdealUeContextRemoveRequest(m_rnti);
-      // we should have called NotifyConnectionFailed
-      // but that method would immediately ask you UE to
-      // connect rather than doing cell selection again.
       m_asSapUser->NotifyConnectionReleased();
     }
   } break;
@@ -725,8 +658,6 @@ void LteUeRrc::DoConnect() {
   }
 }
 
-// CPHY SAP methods
-
 void LteUeRrc::DoRecvMasterInformationBlock(
     uint16_t cellId, LteRrcSap::MasterInformationBlock msg) {
   m_dlBandwidth = msg.dlBandwidth;
@@ -736,17 +667,14 @@ void LteUeRrc::DoRecvMasterInformationBlock(
 
   switch (m_state) {
   case IDLE_WAIT_MIB:
-    // manual attachment
     SwitchToState(IDLE_CAMPED_NORMALLY);
     break;
 
   case IDLE_WAIT_MIB_SIB1:
-    // automatic attachment from Idle mode cell selection
     SwitchToState(IDLE_WAIT_SIB1);
     break;
 
   default:
-    // do nothing extra
     break;
   }
 }
@@ -781,11 +709,9 @@ void LteUeRrc::DoRecvSystemInformationBlockType1(
     break;
 
   case IDLE_WAIT_MIB_SIB1:
-    // MIB has not been received, so ignore this SIB1
     break;
 
-  default: // e.g. IDLE_START, IDLE_CELL_SEARCH, IDLE_WAIT_MIB, IDLE_WAIT_SIB2
-    // do nothing
+  default:
     break;
   }
 }
@@ -794,15 +720,12 @@ void LteUeRrc::DoReportUeMeasurements(
     LteUeCphySapUser::UeMeasurementsParameters params) {
   NS_LOG_FUNCTION(this);
 
-  // layer 3 filtering does not apply in IDLE mode
   bool useLayer3Filtering = (m_state == CONNECTED_NORMALLY);
   bool triggering = true;
   for (auto newMeasIt = params.m_ueMeasurementsList.begin();
        newMeasIt != params.m_ueMeasurementsList.end(); ++newMeasIt) {
     if (params.m_componentCarrierId != 0) {
-      triggering = false; // report is triggered only when an event is on the
-                          // primary carrier
-      // in this case the measurement received is related to secondary carriers
+      triggering = false;
     }
     SaveUeMeasurements(newMeasIt->m_cellId, newMeasIt->m_rsrp,
                        newMeasIt->m_rsrq, useLayer3Filtering,
@@ -810,7 +733,6 @@ void LteUeRrc::DoReportUeMeasurements(
   }
 
   if (m_state == IDLE_CELL_SEARCH) {
-    // start decoding BCH
     SynchronizeToStrongestCell();
   } else {
     if (triggering) {
@@ -820,10 +742,7 @@ void LteUeRrc::DoReportUeMeasurements(
       }
     }
   }
-
-} // end of LteUeRrc::DoReportUeMeasurements
-
-// RRC SAP methods
+}
 
 void LteUeRrc::DoCompleteSetup(
     LteUeRrcSapProvider::CompleteSetupParameters params) {
@@ -877,9 +796,7 @@ void LteUeRrc::DoRecvSystemInformation(LteRrcSap::SystemInformation msg) {
       }
       break;
 
-    default: // IDLE_START, IDLE_CELL_SEARCH, IDLE_WAIT_MIB, IDLE_WAIT_MIB_SIB1,
-             // IDLE_WAIT_SIB1
-      // do nothing
+    default:
       break;
     }
   }
@@ -927,7 +844,6 @@ void LteUeRrc::DoRecvRrcConnectionReconfiguration(
       }
       const LteRrcSap::MobilityControlInfo &mci = msg.mobilityControlInfo;
       m_handoverStartTrace(m_imsi, m_cellId, m_rnti, mci.targetPhysCellId);
-      // We should reset the MACs and PHYs for all the component carriers
       for (auto cmacSapProvider : m_cmacSapProvider) {
         cmacSapProvider->Reset();
       }
@@ -956,16 +872,11 @@ void LteUeRrc::DoRecvRrcConnectionReconfiguration(
       m_lastRrcTransactionIdentifier = msg.rrcTransactionIdentifier;
       NS_ASSERT(msg.haveRadioResourceConfigDedicated);
 
-      // we re-establish SRB1 by creating a new entity
-      // note that we can't dispose the old entity now, because
-      // it's in the current stack, so we would corrupt the stack
-      // if we did so. Hence we schedule it for later disposal
       m_srb1Old = m_srb1;
       Simulator::ScheduleNow(&LteUeRrc::DisposeOldSrb1, this);
-      m_srb1 = nullptr; // new instance will be be created within
-                        // ApplyRadioResourceConfigDedicated
+      m_srb1 = nullptr;
 
-      m_drbMap.clear(); // dispose all DRBs
+      m_drbMap.clear();
       ApplyRadioResourceConfigDedicated(msg.radioResourceConfigDedicated);
       if (msg.haveNonCriticalExtension) {
         NS_LOG_DEBUG(this << "RNTI " << m_rnti
@@ -977,8 +888,6 @@ void LteUeRrc::DoRecvRrcConnectionReconfiguration(
       if (msg.haveMeasConfig) {
         ApplyMeasConfig(msg.measConfig);
       }
-      // RRC connection reconfiguration completed will be sent
-      // after handover is complete
     } else {
       NS_LOG_INFO("haveMobilityControlInfo == false");
       if (msg.haveNonCriticalExtension) {
@@ -1010,13 +919,6 @@ void LteUeRrc::DoRecvRrcConnectionReestablishment(
   NS_LOG_FUNCTION(this << " RNTI " << m_rnti);
   switch (m_state) {
   case CONNECTED_REESTABLISHING: {
-    /**
-     * \todo After receiving RRC Connection Re-establishment, stop timer
-     *       T301, fire a new trace source, reply with RRC Connection
-     *       Re-establishment Complete, and finally switch to
-     *       CONNECTED_NORMALLY state. See Section 5.3.7.5 of 3GPP TS
-     *       36.331.
-     */
   } break;
 
   default:
@@ -1030,11 +932,7 @@ void LteUeRrc::DoRecvRrcConnectionReestablishmentReject(
   NS_LOG_FUNCTION(this << " RNTI " << m_rnti);
   switch (m_state) {
   case CONNECTED_REESTABLISHING: {
-    /**
-     * \todo After receiving RRC Connection Re-establishment Reject, stop
-     *       timer T301. See Section 5.3.7.8 of 3GPP TS 36.331.
-     */
-    m_asSapUser->NotifyConnectionReleased(); // Inform upper layers
+    m_asSapUser->NotifyConnectionReleased();
   } break;
 
   default:
@@ -1045,10 +943,8 @@ void LteUeRrc::DoRecvRrcConnectionReestablishmentReject(
 
 void LteUeRrc::DoRecvRrcConnectionRelease(LteRrcSap::RrcConnectionRelease msg) {
   NS_LOG_FUNCTION(this << " RNTI " << m_rnti);
-  /// \todo Currently not implemented, see Section 5.3.8 of 3GPP TS 36.331.
 
   m_lastRrcTransactionIdentifier = msg.rrcTransactionIdentifier;
-  // release resources at UE
   if (!m_leaveConnectedMode) {
     m_leaveConnectedMode = true;
     SwitchToState(CONNECTED_PHY_PROBLEM);
@@ -1061,11 +957,11 @@ void LteUeRrc::DoRecvRrcConnectionReject(LteRrcSap::RrcConnectionReject msg) {
   NS_LOG_FUNCTION(this);
   m_connectionTimeout.Cancel();
   for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
-    m_cmacSapProvider.at(i)->Reset(); // reset the MAC
+    m_cmacSapProvider.at(i)->Reset();
   }
-  m_hasReceivedSib2 = false; // invalidate the previously received SIB2
+  m_hasReceivedSib2 = false;
   SwitchToState(IDLE_CAMPED_NORMALLY);
-  m_asSapUser->NotifyConnectionFailed(); // inform upper layer
+  m_asSapUser->NotifyConnectionFailed();
 }
 
 void LteUeRrc::DoSetNumberOfComponentCarriers(uint16_t noOfComponentCarriers) {
@@ -1079,14 +975,10 @@ void LteUeRrc::SynchronizeToStrongestCell() {
 
   uint16_t maxRsrpCellId = 0;
   double maxRsrp = -std::numeric_limits<double>::infinity();
-  double minRsrp = -140.0; // Minimum RSRP in dBm a UE can report
+  double minRsrp = -140.0;
 
   for (auto it = m_storedMeasValues.begin(); it != m_storedMeasValues.end();
        it++) {
-    /*
-     * This block attempts to find a cell with strongest RSRP and has not
-     * yet been identified as "acceptable cell".
-     */
     if (maxRsrp < it->second.rsrp && it->second.rsrp > minRsrp) {
       auto itCell = m_acceptableCell.find(it->first);
       if (itCell == m_acceptableCell.end()) {
@@ -1106,8 +998,7 @@ void LteUeRrc::SynchronizeToStrongestCell() {
     m_cphySapProvider.at(0)->SynchronizeWithEnb(maxRsrpCellId, m_dlEarfcn);
     SwitchToState(IDLE_WAIT_MIB_SIB1);
   }
-
-} // end of void LteUeRrc::SynchronizeToStrongestCell ()
+}
 
 void LteUeRrc::EvaluateCellForSelection() {
   NS_LOG_FUNCTION(this);
@@ -1115,8 +1006,6 @@ void LteUeRrc::EvaluateCellForSelection() {
   NS_ASSERT(m_hasReceivedMib);
   NS_ASSERT(m_hasReceivedSib1);
   uint16_t cellId = m_lastSib1.cellAccessRelatedInfo.cellIdentity;
-
-  // Cell selection criteria evaluation
 
   bool isSuitableCell = false;
   bool isAcceptableCell = false;
@@ -1140,47 +1029,30 @@ void LteUeRrc::EvaluateCellForSelection() {
                       << cellCsgId << "/" << cellCsgIndication);
   }
 
-  // Cell selection decision
-
   if (isSuitableCell) {
     m_cellId = cellId;
     m_cphySapProvider.at(0)->SynchronizeWithEnb(cellId, m_dlEarfcn);
     m_cphySapProvider.at(0)->SetDlBandwidth(m_dlBandwidth);
     m_initialCellSelectionEndOkTrace(m_imsi, cellId);
-    // Once the UE is connected, m_connectionPending is
-    // set to false. So, when RLF occurs and UE performs
-    // cell selection upon leaving RRC_CONNECTED state,
-    // the following call to DoConnect will make the
-    // m_connectionPending to be true again. Thus,
-    // upon calling SwitchToState (IDLE_CAMPED_NORMALLY)
-    // UE state is instantly change to IDLE_WAIT_SIB2.
-    // This will make the UE to read the SIB2 message
-    // and start random access.
     if (!m_connectionPending) {
       NS_LOG_DEBUG("Calling DoConnect in state = " << ToString(m_state));
       DoConnect();
     }
     SwitchToState(IDLE_CAMPED_NORMALLY);
   } else {
-    // ignore the MIB and SIB1 received from this cell
     m_hasReceivedMib = false;
     m_hasReceivedSib1 = false;
 
     m_initialCellSelectionEndErrorTrace(m_imsi, cellId);
 
     if (isAcceptableCell) {
-      /*
-       * The cells inserted into this list will not be considered for
-       * subsequent cell search attempt.
-       */
       m_acceptableCell.insert(cellId);
     }
 
     SwitchToState(IDLE_CELL_SEARCH);
-    SynchronizeToStrongestCell(); // retry to a different cell
+    SynchronizeToStrongestCell();
   }
-
-} // end of void LteUeRrc::EvaluateCellForSelection ()
+}
 
 void LteUeRrc::ApplyRadioResourceConfigDedicatedSecondaryCarrier(
     LteRrcSap::NonCriticalExtensionConfiguration nonCec) {
@@ -1220,7 +1092,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicatedSecondaryCarrier(
     m_cphySapProvider.at(ccId)->SetTransmissionMode(txMode);
     m_cphySapProvider.at(ccId)->SetRnti(m_rnti);
     m_cmacSapProvider.at(ccId)->SetRnti(m_rnti);
-    // update PdschConfigDedicated (i.e. P_A value)
     LteRrcSap::PdschConfigDedicated pdschConfigDedicated =
         scell.radioResourceConfigDedicatedSCell.physicalConfigDedicatedSCell
             .pdschConfigDedicated;
@@ -1248,7 +1119,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
   }
 
   if (pcd.havePdschConfigDedicated) {
-    // update PdschConfigDedicated (i.e. P_A value)
     m_pdschConfigDedicated = pcd.pdschConfigDedicated;
     double paDouble =
         LteRrcSap::ConvertPdschConfigDedicated2Double(m_pdschConfigDedicated);
@@ -1258,13 +1128,12 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
   auto stamIt = rrcd.srbToAddModList.begin();
   if (stamIt != rrcd.srbToAddModList.end()) {
     if (!m_srb1) {
-      // SRB1 not setup yet
       NS_ASSERT_MSG((m_state == IDLE_CONNECTING) ||
                         (m_state == CONNECTED_HANDOVER),
                     "unexpected state " << ToString(m_state));
       NS_ASSERT_MSG(stamIt->srbIdentity == 1, "only SRB1 supported");
 
-      const uint8_t lcid = 1; // fixed LCID for SRB1
+      const uint8_t lcid = 1;
 
       Ptr<LteRlc> rlc = CreateObject<LteRlcAm>();
       rlc->SetLteMacSapProvider(m_macSapProvider);
@@ -1315,7 +1184,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
     } else {
       NS_LOG_INFO(
           "request to modify SRB1 (skipping as currently not implemented)");
-      // would need to modify m_srb1, and then propagate changes to the MAC
     }
   }
 
@@ -1365,8 +1233,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
       drbInfo->m_logicalChannelIdentity = dtamIt->logicalChannelIdentity;
       drbInfo->m_drbIdentity = dtamIt->drbIdentity;
 
-      // we need PDCP only for real RLC, i.e., RLC/UM or RLC/AM
-      // if we are using RLC/SM we don't care of anything above RLC
       if (rlcTypeId != LteRlcSm::GetTypeId()) {
         Ptr<LtePdcp> pdcp = CreateObject<LtePdcp>();
         pdcp->SetRnti(m_rnti);
@@ -1397,7 +1263,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
                         << " Number Of Component Carriers "
                         << m_numberOfComponentCarriers << " lcID "
                         << (uint16_t)dtamIt->logicalChannelIdentity);
-      // Call AddLc of UE component carrier manager
       std::vector<LteUeCcmRrcSapProvider::LcsConfig> lcOnCcMapping =
           m_ccmRrcSapProvider->AddLc(dtamIt->logicalChannelIdentity, lcConfig,
                                      rlc->GetLteMacSapUser());
@@ -1427,8 +1292,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
     } else {
       NS_LOG_INFO("request to modify existing DRBID");
       Ptr<LteDataRadioBearerInfo> drbInfo = drbMapIt->second;
-      /// \todo currently not implemented. Would need to modify drbInfo, and
-      /// then propagate changes to the MAC
     }
   }
 
@@ -1442,7 +1305,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
                   "could not find bearer with given lcid");
     m_drbMap.erase(it);
     m_bid2DrbidMap.erase(drbid);
-    // Remove LCID
     for (uint32_t i = 0; i < m_numberOfComponentCarriers; i++) {
       m_cmacSapProvider.at(i)->RemoveLc(drbid + 2);
     }
@@ -1452,9 +1314,6 @@ void LteUeRrc::ApplyRadioResourceConfigDedicated(
 void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
   NS_LOG_FUNCTION(this);
 
-  // perform the actions specified in 3GPP TS 36.331 section 5.5.2.1
-
-  // 3GPP TS 36.331 section 5.5.2.4 Measurement object removal
   for (auto it = mc.measObjectToRemoveList.begin();
        it != mc.measObjectToRemoveList.end(); ++it) {
     uint8_t measObjectId = *it;
@@ -1468,7 +1327,6 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
         NS_LOG_LOGIC(this << " deleting measId " << (uint32_t)measId
                           << " because referring to measObjectId "
                           << (uint32_t)measObjectId);
-        // note: postfix operator preserves iterator validity
         m_varMeasConfig.measIdList.erase(measIdIt++);
         VarMeasReportListClear(measId);
       } else {
@@ -1477,10 +1335,8 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     }
   }
 
-  // 3GPP TS 36.331 section 5.5.2.5  Measurement object addition/ modification
   for (auto it = mc.measObjectToAddModList.begin();
        it != mc.measObjectToAddModList.end(); ++it) {
-    // simplifying assumptions
     NS_ASSERT_MSG(it->measObjectEutra.cellsToRemoveList.empty(),
                   "cellsToRemoveList not supported");
     NS_ASSERT_MSG(it->measObjectEutra.cellsToAddModList.empty(),
@@ -1515,7 +1371,6 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     }
   }
 
-  // 3GPP TS 36.331 section 5.5.2.6 Reporting configuration removal
   for (auto it = mc.reportConfigToRemoveList.begin();
        it != mc.reportConfigToRemoveList.end(); ++it) {
     uint8_t reportConfigId = *it;
@@ -1530,7 +1385,6 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
         NS_LOG_LOGIC(this << " deleting measId " << (uint32_t)measId
                           << " because referring to reportConfigId "
                           << (uint32_t)reportConfigId);
-        // note: postfix operator preserves iterator validity
         m_varMeasConfig.measIdList.erase(measIdIt++);
         VarMeasReportListClear(measId);
       } else {
@@ -1539,11 +1393,8 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     }
   }
 
-  // 3GPP TS 36.331 section 5.5.2.7 Reporting configuration addition/
-  // modification
   for (auto it = mc.reportConfigToAddModList.begin();
        it != mc.reportConfigToAddModList.end(); ++it) {
-    // simplifying assumptions
     NS_ASSERT_MSG(it->reportConfigEutra.triggerType ==
                       LteRrcSap::ReportConfigEutra::EVENT,
                   "only trigger type EVENT is supported");
@@ -1571,18 +1422,13 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     }
   }
 
-  // 3GPP TS 36.331 section 5.5.2.8 Quantity configuration
   if (mc.haveQuantityConfig) {
     NS_LOG_LOGIC(this << " setting quantityConfig");
     m_varMeasConfig.quantityConfig = mc.quantityConfig;
-    // Convey the filter coefficient to PHY layer so it can configure the power
-    // control parameter
     for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
       m_cphySapProvider.at(i)->SetRsrpFilterCoefficient(
           mc.quantityConfig.filterCoefficientRSRP);
     }
-    // we calculate here the coefficient a used for Layer 3 filtering, see 3GPP
-    // TS 36.331 section 5.5.3.2
     m_varMeasConfig.aRsrp =
         std::pow(0.5, mc.quantityConfig.filterCoefficientRSRP / 4.0);
     m_varMeasConfig.aRsrq =
@@ -1597,7 +1443,6 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     }
   }
 
-  // 3GPP TS 36.331 section 5.5.2.2 Measurement identity removal
   for (auto it = mc.measIdToRemoveList.begin();
        it != mc.measIdToRemoveList.end(); ++it) {
     uint8_t measId = *it;
@@ -1605,12 +1450,10 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
     m_varMeasConfig.measIdList.erase(measId);
     VarMeasReportListClear(measId);
 
-    // removing time-to-trigger queues
     m_enteringTriggerQueue.erase(measId);
     m_leavingTriggerQueue.erase(measId);
   }
 
-  // 3GPP TS 36.331 section 5.5.2.3 Measurement identity addition/ modification
   for (auto it = mc.measIdToAddModList.begin();
        it != mc.measIdToAddModList.end(); ++it) {
     NS_LOG_LOGIC(this << " measId " << (uint32_t)it->measId
@@ -1621,8 +1464,7 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
               m_varMeasConfig.measObjectList.end());
     NS_ASSERT(m_varMeasConfig.reportConfigList.find(it->reportConfigId) !=
               m_varMeasConfig.reportConfigList.end());
-    m_varMeasConfig.measIdList[it->measId] =
-        *it; // side effect: create new entry if not exists
+    m_varMeasConfig.measIdList[it->measId] = *it;
     auto measReportIt = m_varMeasReportList.find(it->measId);
     if (measReportIt != m_varMeasReportList.end()) {
       measReportIt->second.periodicReportTimer.Cancel();
@@ -1632,7 +1474,6 @@ void LteUeRrc::ApplyMeasConfig(LteRrcSap::MeasConfig mc) {
                   ->second.reportConfigEutra.triggerType !=
               LteRrcSap::ReportConfigEutra::PERIODICAL);
 
-    // new empty queues for time-to-trigger
     std::list<PendingTrigger_t> s;
     m_enteringTriggerQueue[it->measId] = s;
     m_leavingTriggerQueue[it->measId] = s;
@@ -1661,14 +1502,12 @@ void LteUeRrc::SaveUeMeasurements(uint16_t cellId, double rsrp, double rsrq,
 
   if (storedMeasIt != m_storedMeasValues.end()) {
     if (useLayer3Filtering) {
-      // F_n = (1-a) F_{n-1} + a M_n
       storedMeasIt->second.rsrp =
           (1 - m_varMeasConfig.aRsrp) * storedMeasIt->second.rsrp +
           m_varMeasConfig.aRsrp * rsrp;
 
       if (std::isnan(storedMeasIt->second.rsrq)) {
-        // the previous RSRQ measurements provided UE PHY are invalid
-        storedMeasIt->second.rsrq = rsrq; // replace it with unfiltered value
+        storedMeasIt->second.rsrq = rsrq;
       } else {
         storedMeasIt->second.rsrq =
             (1 - m_varMeasConfig.aRsrq) * storedMeasIt->second.rsrq +
@@ -1679,7 +1518,6 @@ void LteUeRrc::SaveUeMeasurements(uint16_t cellId, double rsrp, double rsrq,
       storedMeasIt->second.rsrq = rsrq;
     }
   } else {
-    // first value is always unfiltered
     MeasValues v;
     v.rsrp = rsrp;
     v.rsrq = rsrq;
@@ -1696,8 +1534,7 @@ void LteUeRrc::SaveUeMeasurements(uint16_t cellId, double rsrp, double rsrq,
                     << componentCarrierId << ", new RSRP " << rsrp << " stored "
                     << storedMeasIt->second.rsrp << ", new RSRQ " << rsrq
                     << " stored " << storedMeasIt->second.rsrq);
-
-} // end of void SaveUeMeasurements
+}
 
 void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
   NS_LOG_FUNCTION(this << (uint16_t)measId);
@@ -1721,12 +1558,9 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
   auto measReportIt = m_varMeasReportList.find(measId);
   bool isMeasIdInReportList = (measReportIt != m_varMeasReportList.end());
 
-  // we don't check the purpose field, as it is only included for
-  // triggerType == periodical, which is not supported
   NS_ASSERT_MSG(reportConfigEutra.triggerType ==
                     LteRrcSap::ReportConfigEutra::EVENT,
                 "only triggerType == event is supported");
-  // only EUTRA is supported, no need to check for it
 
   NS_LOG_LOGIC(this << " considering measId " << (uint32_t)measId);
   bool eventEntryCondApplicable = false;
@@ -1734,13 +1568,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
   ConcernedCells_t concernedCellsEntry;
   ConcernedCells_t concernedCellsLeaving;
 
-  /*
-   * Find which serving cell corresponds to measObjectEutra.carrierFreq
-   * It is used, for example, by A1 event:
-   * See TS 36.331 5.5.4.2: "for this measurement, consider the primary or
-   * secondary cell that is configured on the frequency indicated in the
-   * associated measObjectEUTRA to be the serving cell"
-   */
   uint16_t servingCellId = 0;
   for (auto cphySapProvider : m_cphySapProvider) {
     if (cphySapProvider->GetDlEarfcn() == measObjectEutra.carrierFreq) {
@@ -1754,14 +1581,9 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
 
   switch (reportConfigEutra.eventId) {
   case LteRrcSap::ReportConfigEutra::EVENT_A1: {
-    /*
-     * Event A1 (Serving becomes better than threshold)
-     * Please refer to 3GPP TS 36.331 Section 5.5.4.2
-     */
 
-    double ms;     // Ms, the measurement result of the serving cell
-    double thresh; // Thresh, the threshold parameter for this event
-    // Hys, the hysteresis parameter for this event.
+    double ms;
+    double thresh;
     double hys = EutranMeasurementMapping::IeValue2ActualHysteresis(
         reportConfigEutra.hysteresis);
 
@@ -1786,7 +1608,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       break;
     }
 
-    // Inequality A1-1 (Entering condition): Ms - Hys > Thresh
     bool entryCond = ms - hys > thresh;
 
     if (entryCond) {
@@ -1794,10 +1615,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
         concernedCellsEntry.push_back(servingCellId);
         eventEntryCondApplicable = true;
       } else {
-        /*
-         * This is to check that the triggered cell recorded in the
-         * VarMeasReportList is the serving cell.
-         */
         NS_ASSERT(measReportIt->second.cellsTriggeredList.find(servingCellId) !=
                   measReportIt->second.cellsTriggeredList.end());
       }
@@ -1805,15 +1622,10 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       CancelEnteringTrigger(measId);
     }
 
-    // Inequality A1-2 (Leaving condition): Ms + Hys < Thresh
     bool leavingCond = ms + hys < thresh;
 
     if (leavingCond) {
       if (isMeasIdInReportList) {
-        /*
-         * This is to check that the triggered cell recorded in the
-         * VarMeasReportList is the serving cell.
-         */
         NS_ASSERT(measReportIt->second.cellsTriggeredList.find(m_cellId) !=
                   measReportIt->second.cellsTriggeredList.end());
         concernedCellsLeaving.push_back(m_cellId);
@@ -1827,19 +1639,14 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                       << " ms=" << ms << " thresh=" << thresh << " entryCond="
                       << entryCond << " leavingCond=" << leavingCond);
 
-  } // end of case LteRrcSap::ReportConfigEutra::EVENT_A1
+  }
 
   break;
 
   case LteRrcSap::ReportConfigEutra::EVENT_A2: {
-    /*
-     * Event A2 (Serving becomes worse than threshold)
-     * Please refer to 3GPP TS 36.331 Section 5.5.4.3
-     */
 
-    double ms;     // Ms, the measurement result of the serving cell
-    double thresh; // Thresh, the threshold parameter for this event
-    // Hys, the hysteresis parameter for this event.
+    double ms;
+    double thresh;
     double hys = EutranMeasurementMapping::IeValue2ActualHysteresis(
         reportConfigEutra.hysteresis);
 
@@ -1863,7 +1670,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       break;
     }
 
-    // Inequality A2-1 (Entering condition): Ms + Hys < Thresh
     bool entryCond = ms + hys < thresh;
 
     if (entryCond) {
@@ -1871,10 +1677,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
         concernedCellsEntry.push_back(servingCellId);
         eventEntryCondApplicable = true;
       } else {
-        /*
-         * This is to check that the triggered cell recorded in the
-         * VarMeasReportList is the serving cell.
-         */
         NS_ASSERT(measReportIt->second.cellsTriggeredList.find(servingCellId) !=
                   measReportIt->second.cellsTriggeredList.end());
       }
@@ -1882,15 +1684,10 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       CancelEnteringTrigger(measId);
     }
 
-    // Inequality A2-2 (Leaving condition): Ms - Hys > Thresh
     bool leavingCond = ms - hys > thresh;
 
     if (leavingCond) {
       if (isMeasIdInReportList) {
-        /*
-         * This is to check that the triggered cell recorded in the
-         * VarMeasReportList is the serving cell.
-         */
         NS_ASSERT(measReportIt->second.cellsTriggeredList.find(servingCellId) !=
                   measReportIt->second.cellsTriggeredList.end());
         concernedCellsLeaving.push_back(servingCellId);
@@ -1904,28 +1701,20 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                       << " ms=" << ms << " thresh=" << thresh << " entryCond="
                       << entryCond << " leavingCond=" << leavingCond);
 
-  } // end of case LteRrcSap::ReportConfigEutra::EVENT_A2
+  }
 
   break;
 
   case LteRrcSap::ReportConfigEutra::EVENT_A3: {
-    /*
-     * Event A3 (Neighbour becomes offset better than PCell)
-     * Please refer to 3GPP TS 36.331 Section 5.5.4.4
-     */
 
-    double mn; // Mn, the measurement result of the neighbouring cell
-    double ofn = measObjectEutra.offsetFreq; // Ofn, the frequency specific
-                                             // offset of the frequency of the
-    double ocn = 0.0; // Ocn, the cell specific offset of the neighbour cell
-    double mp;        // Mp, the measurement result of the PCell
-    double ofp = measObjectEutra.offsetFreq; // Ofp, the frequency specific
-                                             // offset of the primary frequency
-    double ocp = 0.0; // Ocp, the cell specific offset of the PCell
-    // Off, the offset parameter for this event.
+    double mn;
+    double ofn = measObjectEutra.offsetFreq;
+    double ocn = 0.0;
+    double mp;
+    double ofp = measObjectEutra.offsetFreq;
+    double ocp = 0.0;
     double off = EutranMeasurementMapping::IeValue2ActualA3Offset(
         reportConfigEutra.a3Offset);
-    // Hys, the hysteresis parameter for this event.
     double hys = EutranMeasurementMapping::IeValue2ActualHysteresis(
         reportConfigEutra.hysteresis);
 
@@ -1952,8 +1741,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
         continue;
       }
 
-      // Only cell(s) on the frequency indicated in the associated measObject
-      // can trigger event.
       if (m_storedMeasValues.at(cellId).carrierFreq !=
           measObjectEutra.carrierFreq) {
         continue;
@@ -1976,8 +1763,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
           (measReportIt->second.cellsTriggeredList.find(cellId) !=
            measReportIt->second.cellsTriggeredList.end());
 
-      // Inequality A3-1 (Entering condition): Mn + Ofn + Ocn - Hys > Mp + Ofp +
-      // Ocp + Off
       bool entryCond = mn + ofn + ocn - hys > mp + ofp + ocp + off;
 
       if (entryCond) {
@@ -1989,8 +1774,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
         CancelEnteringTrigger(measId, cellId);
       }
 
-      // Inequality A3-2 (Leaving condition): Mn + Ofn + Ocn + Hys < Mp + Ofp +
-      // Ocp + Off
       bool leavingCond = mn + ofn + ocn + hys < mp + ofp + ocp + off;
 
       if (leavingCond) {
@@ -2005,25 +1788,18 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       NS_LOG_LOGIC(this << " event A3: neighbor cell " << cellId << " mn=" << mn
                         << " mp=" << mp << " offset=" << off << " entryCond="
                         << entryCond << " leavingCond=" << leavingCond);
+    }
 
-    } // end of for (storedMeasIt)
-
-  } // end of case LteRrcSap::ReportConfigEutra::EVENT_A3
+  }
 
   break;
 
   case LteRrcSap::ReportConfigEutra::EVENT_A4: {
-    /*
-     * Event A4 (Neighbour becomes better than threshold)
-     * Please refer to 3GPP TS 36.331 Section 5.5.4.5
-     */
 
-    double mn; // Mn, the measurement result of the neighbouring cell
-    double ofn = measObjectEutra.offsetFreq; // Ofn, the frequency specific
-                                             // offset of the frequency of the
-    double ocn = 0.0; // Ocn, the cell specific offset of the neighbour cell
-    double thresh;    // Thresh, the threshold parameter for this event
-    // Hys, the hysteresis parameter for this event.
+    double mn;
+    double ofn = measObjectEutra.offsetFreq;
+    double ocn = 0.0;
+    double thresh;
     double hys = EutranMeasurementMapping::IeValue2ActualHysteresis(
         reportConfigEutra.hysteresis);
 
@@ -2069,7 +1845,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
           (measReportIt->second.cellsTriggeredList.find(cellId) !=
            measReportIt->second.cellsTriggeredList.end());
 
-      // Inequality A4-1 (Entering condition): Mn + Ofn + Ocn - Hys > Thresh
       bool entryCond = mn + ofn + ocn - hys > thresh;
 
       if (entryCond) {
@@ -2081,7 +1856,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
         CancelEnteringTrigger(measId, cellId);
       }
 
-      // Inequality A4-2 (Leaving condition): Mn + Ofn + Ocn + Hys < Thresh
       bool leavingCond = mn + ofn + ocn + hys < thresh;
 
       if (leavingCond) {
@@ -2096,28 +1870,20 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       NS_LOG_LOGIC(this << " event A4: neighbor cell " << cellId << " mn=" << mn
                         << " thresh=" << thresh << " entryCond=" << entryCond
                         << " leavingCond=" << leavingCond);
+    }
 
-    } // end of for (storedMeasIt)
-
-  } // end of case LteRrcSap::ReportConfigEutra::EVENT_A4
+  }
 
   break;
 
   case LteRrcSap::ReportConfigEutra::EVENT_A5: {
-    /*
-     * Event A5 (PCell becomes worse than threshold1 and neighbour
-     * becomes better than threshold2)
-     * Please refer to 3GPP TS 36.331 Section 5.5.4.6
-     */
 
-    double mp; // Mp, the measurement result of the PCell
-    double mn; // Mn, the measurement result of the neighbouring cell
-    double ofn = measObjectEutra.offsetFreq; // Ofn, the frequency specific
-                                             // offset of the frequency of the
-    double ocn = 0.0; // Ocn, the cell specific offset of the neighbour cell
-    double thresh1;   // Thresh1, the threshold parameter for this event
-    double thresh2;   // Thresh2, the threshold parameter for this event
-    // Hys, the hysteresis parameter for this event.
+    double mp;
+    double mn;
+    double ofn = measObjectEutra.offsetFreq;
+    double ocn = 0.0;
+    double thresh1;
+    double thresh2;
     double hys = EutranMeasurementMapping::IeValue2ActualHysteresis(
         reportConfigEutra.hysteresis);
 
@@ -2149,7 +1915,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       break;
     }
 
-    // Inequality A5-1 (Entering condition 1): Mp + Hys < Thresh1
     bool entryCond = mp + hys < thresh1;
 
     if (entryCond) {
@@ -2177,9 +1942,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
             (measReportIt->second.cellsTriggeredList.find(cellId) !=
              measReportIt->second.cellsTriggeredList.end());
 
-        // Inequality A5-2 (Entering condition 2): Mn + Ofn + Ocn - Hys >
-        // Thresh2
-
         entryCond = mn + ofn + ocn - hys > thresh2;
 
         if (entryCond) {
@@ -2195,11 +1957,9 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                           << " mn=" << mn << " mp=" << mp
                           << " thresh2=" << thresh2 << " thresh1=" << thresh1
                           << " entryCond=" << entryCond);
+      }
 
-      } // end of for (storedMeasIt)
-
-    } // end of if (entryCond)
-    else {
+    } else {
       NS_LOG_LOGIC(this << " event A5: serving cell " << m_cellId
                         << " mp=" << mp << " thresh1=" << thresh1
                         << " entryCond=" << entryCond);
@@ -2210,12 +1970,10 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
     }
 
     if (isMeasIdInReportList) {
-      // Inequality A5-3 (Leaving condition 1): Mp - Hys > Thresh1
       bool leavingCond = mp - hys > thresh1;
 
       if (leavingCond) {
         if (reportConfigEutra.timeToTrigger == 0) {
-          // leaving condition #2 does not have to be checked
 
           for (auto storedMeasIt = m_storedMeasValues.begin();
                storedMeasIt != m_storedMeasValues.end(); ++storedMeasIt) {
@@ -2230,9 +1988,7 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
               eventLeavingCondApplicable = true;
             }
           }
-        } // end of if (reportConfigEutra.timeToTrigger == 0)
-        else {
-          // leaving condition #2 has to be checked to cancel time-to-trigger
+        } else {
 
           for (auto storedMeasIt = m_storedMeasValues.begin();
                storedMeasIt != m_storedMeasValues.end(); ++storedMeasIt) {
@@ -2255,20 +2011,12 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                 break;
               }
 
-              // Inequality A5-4 (Leaving condition 2): Mn + Ofn + Ocn + Hys <
-              // Thresh2
-
               leavingCond = mn + ofn + ocn + hys < thresh2;
 
               if (!leavingCond) {
                 CancelLeavingTrigger(measId, cellId);
               }
 
-              /*
-               * Whatever the result of leaving condition #2, this
-               * cell is still "in", because leaving condition #1
-               * is already true.
-               */
               concernedCellsLeaving.push_back(cellId);
               eventLeavingCondApplicable = true;
 
@@ -2276,26 +2024,18 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                                 << " mn=" << mn << " mp=" << mp << " thresh2="
                                 << thresh2 << " thresh1=" << thresh1
                                 << " leavingCond=" << leavingCond);
-
-            } // end of if (measReportIt->second.cellsTriggeredList.find
-              // (cellId)
-              //            != measReportIt->second.cellsTriggeredList.end ())
-
-          } // end of for (storedMeasIt)
-
-        } // end of else of if (reportConfigEutra.timeToTrigger == 0)
+            }
+          }
+        }
 
         NS_LOG_LOGIC(this << " event A5: serving cell " << m_cellId
                           << " mp=" << mp << " thresh1=" << thresh1
                           << " leavingCond=" << leavingCond);
 
-      } // end of if (leavingCond)
-      else {
+      } else {
         if (reportConfigEutra.timeToTrigger > 0) {
           CancelLeavingTrigger(measId);
         }
-
-        // check leaving condition #2
 
         for (auto storedMeasIt = m_storedMeasValues.begin();
              storedMeasIt != m_storedMeasValues.end(); ++storedMeasIt) {
@@ -2318,8 +2058,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
               break;
             }
 
-            // Inequality A5-4 (Leaving condition 2): Mn + Ofn + Ocn + Hys <
-            // Thresh2
             leavingCond = mn + ofn + ocn + hys < thresh2;
 
             if (leavingCond) {
@@ -2331,25 +2069,19 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
                               << mn << " mp=" << mp << " thresh2=" << thresh2
                               << " thresh1=" << thresh1
                               << " leavingCond=" << leavingCond);
+          }
+        }
+      }
+    }
 
-          } // end of if (measReportIt->second.cellsTriggeredList.find (cellId)
-            //            != measReportIt->second.cellsTriggeredList.end ())
-
-        } // end of for (storedMeasIt)
-
-      } // end of else of if (leavingCond)
-
-    } // end of if (isMeasIdInReportList)
-
-  } // end of case LteRrcSap::ReportConfigEutra::EVENT_A5
+  }
 
   break;
 
   default:
     NS_FATAL_ERROR("unsupported eventId " << reportConfigEutra.eventId);
     break;
-
-  } // switch (event type)
+  }
 
   NS_LOG_LOGIC(this << " eventEntryCondApplicable=" << eventEntryCondApplicable
                     << " eventLeavingCondApplicable="
@@ -2372,7 +2104,6 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
   }
 
   if (eventLeavingCondApplicable) {
-    // reportOnLeave will only be set when eventId = eventA3
     bool reportOnLeave =
         (reportConfigEutra.eventId == LteRrcSap::ReportConfigEutra::EVENT_A3) &&
         reportConfigEutra.reportOnLeave;
@@ -2392,8 +2123,7 @@ void LteUeRrc::MeasurementReportTriggering(uint8_t measId) {
       leavingTriggerIt->second.push_back(t);
     }
   }
-
-} // end of void LteUeRrc::MeasurementReportTriggering (uint8_t measId)
+}
 
 void LteUeRrc::CancelEnteringTrigger(uint8_t measId) {
   NS_LOG_FUNCTION(this << (uint16_t)measId);
@@ -2511,7 +2241,6 @@ void LteUeRrc::VarMeasReportListAdd(uint8_t measId,
 
   NS_ASSERT(!measReportIt->second.cellsTriggeredList.empty());
 
-  // #issue 224, schedule only when there is no periodic event scheduled already
   if (!measReportIt->second.periodicReportTimer.IsRunning()) {
     measReportIt->second.numberOfReportsSent = 0;
     measReportIt->second.periodicReportTimer =
@@ -2522,28 +2251,15 @@ void LteUeRrc::VarMeasReportListAdd(uint8_t measId,
   auto enteringTriggerIt = m_enteringTriggerQueue.find(measId);
   NS_ASSERT(enteringTriggerIt != m_enteringTriggerQueue.end());
   if (!enteringTriggerIt->second.empty()) {
-    /*
-     * Assumptions at this point:
-     *  - the call to this function was delayed by time-to-trigger;
-     *  - the time-to-trigger delay is fixed (not adaptive/dynamic); and
-     *  - the first element in the list is associated with this function call.
-     */
     enteringTriggerIt->second.pop_front();
 
     if (!enteringTriggerIt->second.empty()) {
-      /*
-       * To prevent the same set of cells triggering again in the future,
-       * we clean up the time-to-trigger queue. This case might occur when
-       * time-to-trigger > 200 ms.
-       */
       for (auto it = enteringCells.begin(); it != enteringCells.end(); ++it) {
         CancelEnteringTrigger(measId, *it);
       }
     }
-
-  } // end of if (!enteringTriggerIt->second.empty ())
-
-} // end of LteUeRrc::VarMeasReportListAdd
+  }
+}
 
 void LteUeRrc::VarMeasReportListErase(uint8_t measId,
                                       ConcernedCells_t leavingCells,
@@ -2559,7 +2275,6 @@ void LteUeRrc::VarMeasReportListErase(uint8_t measId,
   }
 
   if (reportOnLeave) {
-    // runs immediately without UE_MEASUREMENT_REPORT_DELAY
     SendMeasurementReport(measId);
   }
 
@@ -2571,34 +2286,19 @@ void LteUeRrc::VarMeasReportListErase(uint8_t measId,
   auto leavingTriggerIt = m_leavingTriggerQueue.find(measId);
   NS_ASSERT(leavingTriggerIt != m_leavingTriggerQueue.end());
   if (!leavingTriggerIt->second.empty()) {
-    /*
-     * Assumptions at this point:
-     *  - the call to this function was delayed by time-to-trigger; and
-     *  - the time-to-trigger delay is fixed (not adaptive/dynamic); and
-     *  - the first element in the list is associated with this function call.
-     */
     leavingTriggerIt->second.pop_front();
 
     if (!leavingTriggerIt->second.empty()) {
-      /*
-       * To prevent the same set of cells triggering again in the future,
-       * we clean up the time-to-trigger queue. This case might occur when
-       * time-to-trigger > 200 ms.
-       */
       for (auto it = leavingCells.begin(); it != leavingCells.end(); ++it) {
         CancelLeavingTrigger(measId, *it);
       }
     }
-
-  } // end of if (!leavingTriggerIt->second.empty ())
-
-} // end of LteUeRrc::VarMeasReportListErase
+  }
+}
 
 void LteUeRrc::VarMeasReportListClear(uint8_t measId) {
   NS_LOG_FUNCTION(this << (uint16_t)measId);
 
-  // remove the measurement reporting entry for this measId from the
-  // VarMeasReportList
   auto measReportIt = m_varMeasReportList.find(measId);
   if (measReportIt != m_varMeasReportList.end()) {
     NS_LOG_LOGIC(this << " deleting existing report for measId "
@@ -2613,7 +2313,6 @@ void LteUeRrc::VarMeasReportListClear(uint8_t measId) {
 
 void LteUeRrc::SendMeasurementReport(uint8_t measId) {
   NS_LOG_FUNCTION(this << (uint16_t)measId);
-  //  3GPP TS 36.331 section 5.5.5 Measurement reporting
 
   auto measIdIt = m_varMeasConfig.measIdList.find(measId);
   NS_ASSERT(measIdIt != m_varMeasConfig.measIdList.end());
@@ -2728,11 +2427,6 @@ void LteUeRrc::SendMeasurementReport(uint8_t measId) {
       NS_LOG_WARN(this << " cellsTriggeredList is empty");
     }
 
-    /*
-     * The current LteRrcSap implementation is broken in that it does not
-     * allow for infinite values of reportAmount, which is probably the most
-     * reasonable setting. So we just always assume infinite reportAmount.
-     */
     measReportIt->second.numberOfReportsSent++;
     measReportIt->second.periodicReportTimer.Cancel();
 
@@ -2783,11 +2477,9 @@ void LteUeRrc::SendMeasurementReport(uint8_t measId) {
       break;
     }
 
-    // schedule the next measurement reporting
     measReportIt->second.periodicReportTimer = Simulator::Schedule(
         reportInterval, &LteUeRrc::SendMeasurementReport, this, measId);
 
-    // send the measurement report to eNodeB
     m_rrcSapUser->SendMeasurementReport(measurementReport);
   }
 }
@@ -2796,7 +2488,7 @@ void LteUeRrc::StartConnection() {
   NS_LOG_FUNCTION(this << m_imsi);
   NS_ASSERT(m_hasReceivedMib);
   NS_ASSERT(m_hasReceivedSib2);
-  m_connectionPending = false; // reset the flag
+  m_connectionPending = false;
   SwitchToState(IDLE_RANDOM_ACCESS);
   m_cmacSapProvider.at(0)->StartContentionBasedRandomAccessProcedure();
 }
@@ -2816,7 +2508,7 @@ void LteUeRrc::LeaveConnectedMode() {
   m_ccmRrcSapProvider->Reset();
 
   for (uint32_t i = 0; i < m_numberOfComponentCarriers; i++) {
-    m_cmacSapProvider.at(i)->Reset(); // reset the MAC
+    m_cmacSapProvider.at(i)->Reset();
   }
 
   m_drbMap.clear();
@@ -2827,11 +2519,10 @@ void LteUeRrc::LeaveConnectedMode() {
   m_hasReceivedSib2 = false;
 
   for (uint32_t i = 0; i < m_numberOfComponentCarriers; i++) {
-    m_cphySapProvider.at(i)->ResetPhyAfterRlf(); // reset the PHY
+    m_cphySapProvider.at(i)->ResetPhyAfterRlf();
   }
   SwitchToState(IDLE_START);
   DoStartCellSelection(m_dlEarfcn);
-  // Save the cell id UE was attached to
   StorePreviousCellId(m_cellId);
   m_cellId = 0;
   m_rnti = 0;
@@ -2844,22 +2535,16 @@ void LteUeRrc::ConnectionTimeout() {
   if (m_connEstFailCount >= m_connEstFailCountLimit) {
     m_connectionTimeoutTrace(m_imsi, m_cellId, m_rnti, m_connEstFailCount);
     SwitchToState(CONNECTED_PHY_PROBLEM);
-    // Assumption: The eNB connection request timer would expire
-    // before the expiration of T300 at UE. Upon which, the eNB deletes
-    // the UE context. Therefore, here we don't need to send the UE context
-    // deletion request to the eNB.
     m_asSapUser->NotifyConnectionReleased();
     m_connEstFailCount = 0;
   } else {
     for (uint16_t i = 0; i < m_numberOfComponentCarriers; i++) {
-      m_cmacSapProvider.at(i)->Reset(); // reset the MAC
+      m_cmacSapProvider.at(i)->Reset();
     }
-    m_hasReceivedSib2 = false; // invalidate the previously received SIB2
+    m_hasReceivedSib2 = false;
     SwitchToState(IDLE_CAMPED_NORMALLY);
     m_connectionTimeoutTrace(m_imsi, m_cellId, m_rnti, m_connEstFailCount);
-    // Following call to UE NAS will force the UE to immediately
-    // perform the random access to the same cell again.
-    m_asSapUser->NotifyConnectionFailed(); // inform upper layer
+    m_asSapUser->NotifyConnectionFailed();
   }
 }
 
@@ -2870,7 +2555,6 @@ void LteUeRrc::DisposeOldSrb1() {
 
 uint8_t LteUeRrc::Bid2Drbid(uint8_t bid) {
   auto it = m_bid2DrbidMap.find(bid);
-  // NS_ASSERT_MSG (it != m_bid2DrbidMap.end (), "could not find BID " << bid);
   if (it == m_bid2DrbidMap.end()) {
     return 0;
   } else {

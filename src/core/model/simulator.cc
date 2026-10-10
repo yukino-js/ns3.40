@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "simulator.h"
 
 #include "assert.h"
@@ -39,64 +21,26 @@
 #include <list>
 #include <vector>
 
-/**
- * \file
- * \ingroup simulator
- * ns3::Simulator implementation, as well as implementation pointer,
- * global scheduler implementation.
- */
-
 namespace ns3 {
 
-// Note:  Logging in this file is largely avoided due to the
-// number of calls that are made to these functions and the possibility
-// of causing recursions leading to stack overflow
 NS_LOG_COMPONENT_DEFINE("Simulator");
 
-/**
- * \ingroup simulator
- * \anchor GlobalValueSimulatorImplementationType
- * The specific simulator implementation to use.
- *
- * Must be derived from SimulatorImpl.
- */
 static GlobalValue g_simTypeImpl =
     GlobalValue("SimulatorImplementationType",
                 "The object class to use as the simulator implementation",
                 StringValue("ns3::DefaultSimulatorImpl"), MakeStringChecker());
 
-/**
- * \ingroup scheduler
- * \anchor GlobalValueSchedulerType
- * The specific event scheduler implementation to use.
- *
- * Must be derived from Scheduler.
- */
 static GlobalValue g_schedTypeImpl = GlobalValue(
     "SchedulerType", "The object class to use as the scheduler implementation",
     TypeIdValue(MapScheduler::GetTypeId()), MakeTypeIdChecker());
 
-/**
- * \ingroup simulator
- * \brief Get the static SimulatorImpl instance.
- * \return The SimulatorImpl instance pointer.
- */
 static SimulatorImpl **PeekImpl() {
   static SimulatorImpl *impl = nullptr;
   return &impl;
 }
 
-/**
- * \ingroup simulator
- * \brief Get the SimulatorImpl singleton.
- * \return The singleton pointer.
- * \see Simulator::GetImplementation()
- */
 static SimulatorImpl *GetImpl() {
   SimulatorImpl **pimpl = PeekImpl();
-  /* Please, don't include any calls to logging macros in this function
-   * or pay the price, that is, stack explosions.
-   */
   if (*pimpl == nullptr) {
     {
       ObjectFactory factory;
@@ -114,13 +58,6 @@ static SimulatorImpl *GetImpl() {
       (*pimpl)->SetScheduler(factory);
     }
 
-    //
-    // Note: we call LogSetTimePrinter _after_ creating the implementation
-    // object because the act of creation can trigger calls to the logging
-    // framework which would call the TimePrinter function which would call
-    // Simulator::Now which would call Simulator::GetImpl, and, thus, get us
-    // in an infinite recursion until the stack explodes.
-    //
     LogSetTimePrinter(&DefaultTimePrinter);
     LogSetNodePrinter(&DefaultNodePrinter);
   }
@@ -134,11 +71,6 @@ void Simulator::Destroy() {
   if (*pimpl == nullptr) {
     return;
   }
-  /* Note: we have to call LogSetTimePrinter (0) below because if we do not do
-   * this, and restart a simulation after this call to Destroy, (which is
-   * legal), Simulator::GetImpl will trigger again an infinite recursion until
-   * the stack explodes.
-   */
   LogSetTimePrinter(nullptr);
   LogSetNodePrinter(nullptr);
   (*pimpl)->Destroy();
@@ -173,12 +105,7 @@ void Simulator::Stop(const Time &delay) {
   GetImpl()->Stop(delay);
 }
 
-Time Simulator::Now() {
-  /* Please, don't include any calls to logging macros in this function
-   * or pay the price, that is, stack explosions.
-   */
-  return GetImpl()->Now();
-}
+Time Simulator::Now() { return GetImpl()->Now(); }
 
 Time Simulator::GetDelayLeft(const EventId &id) {
   NS_LOG_FUNCTION(&id);
@@ -274,19 +201,11 @@ void Simulator::SetImplementation(Ptr<SimulatorImpl> impl) {
                    "Simulator::Destroy.");
   }
   *PeekImpl() = GetPointer(impl);
-  // Set the default scheduler
   ObjectFactory factory;
   StringValue s;
   g_schedTypeImpl.GetValue(s);
   factory.SetTypeId(s.Get());
   impl->SetScheduler(factory);
-  //
-  // Note: we call LogSetTimePrinter _after_ creating the implementation
-  // object because the act of creation can trigger calls to the logging
-  // framework which would call the TimePrinter function which would call
-  // Simulator::Now which would call Simulator::GetImpl, and, thus, get us
-  // in an infinite recursion until the stack explodes.
-  //
   LogSetTimePrinter(&DefaultTimePrinter);
   LogSetNodePrinter(&DefaultNodePrinter);
 }

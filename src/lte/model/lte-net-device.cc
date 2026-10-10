@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-net-device.h"
 
@@ -42,10 +23,6 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("LteNetDevice");
 
 NS_OBJECT_ENSURE_REGISTERED(LteNetDevice);
-
-////////////////////////////////
-// LteNetDevice
-////////////////////////////////
 
 TypeId LteNetDevice::GetTypeId() {
   static TypeId tid =
@@ -73,8 +50,6 @@ void LteNetDevice::DoDispose() {
 
 Ptr<Channel> LteNetDevice::GetChannel() const {
   NS_LOG_FUNCTION(this);
-  // we can't return a meaningful channel here, because LTE devices using FDD
-  // have actually two channels.
   return nullptr;
 }
 
@@ -175,11 +150,6 @@ Address LteNetDevice::GetMulticast(Ipv4Address multicastGroup) const {
 
   Mac48Address ad = Mac48Address::GetMulticast(multicastGroup);
 
-  //
-  // Implicit conversion (operator Address ()) is defined for Mac48Address, so
-  // use it by just returning the EUI-48 address which is automatically
-  // converted to an Address.
-  //
   NS_LOG_LOGIC("multicast address is " << ad);
 
   return ad;

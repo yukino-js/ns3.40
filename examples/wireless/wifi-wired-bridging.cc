@@ -1,58 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-// Default network topology includes some number of AP nodes specified by
-// the variable nWifis (defaults to two).  Off of each AP node, there are some
-// number of STA nodes specified by the variable nStas (defaults to two).
-// Each AP talks to its associated STA nodes.  There are bridge net devices
-// on each AP node that bridge the whole thing into one network.
-//
-//      +-----+      +-----+            +-----+      +-----+
-//      | STA |      | STA |            | STA |      | STA |
-//      +-----+      +-----+            +-----+      +-----+
-//    192.168.0.2  192.168.0.3        192.168.0.5  192.168.0.6
-//      --------     --------           --------     --------
-//      WIFI STA     WIFI STA           WIFI STA     WIFI STA
-//      --------     --------           --------     --------
-//        ((*))       ((*))       |      ((*))        ((*))
-//                                |
-//              ((*))             |             ((*))
-//             -------                         -------
-//             WIFI AP   CSMA ========= CSMA   WIFI AP
-//             -------   ----           ----   -------
-//             ##############           ##############
-//                 BRIDGE                   BRIDGE
-//             ##############           ##############
-//               192.168.0.1              192.168.0.4
-//               +---------+              +---------+
-//               | AP Node |              | AP Node |
-//               +---------+              +---------+
 
 #include "ns3/bridge-helper.h"
 #include "ns3/command-line.h"
@@ -110,7 +56,6 @@ int main(int argc, char *argv[]) {
   wifiPhy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
   for (uint32_t i = 0; i < nWifis; ++i) {
-    // calculate ssid for wifi subnetwork
     std::ostringstream oss;
     oss << "wifi-default-" << i;
     Ssid ssid = Ssid(oss.str());
@@ -134,7 +79,6 @@ int main(int argc, char *argv[]) {
         DoubleValue(5.0), "GridWidth", UintegerValue(1), "LayoutType",
         StringValue("RowFirst"));
 
-    // setup the AP.
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(backboneNodes.Get(i));
     wifiMac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
@@ -145,10 +89,8 @@ int main(int argc, char *argv[]) {
         bridge.Install(backboneNodes.Get(i),
                        NetDeviceContainer(apDev, backboneDevices.Get(i)));
 
-    // assign AP IP address to bridge, not wifi
     apInterface = ip.Assign(bridgeDev);
 
-    // setup the STAs
     stack.Install(sta);
     mobility.SetMobilityModel(
         "ns3::RandomWalk2dMobilityModel", "Mode", StringValue("Time"), "Time",
@@ -160,7 +102,6 @@ int main(int argc, char *argv[]) {
     staDev = wifi.Install(wifiPhy, wifiMac, sta);
     staInterface = ip.Assign(staDev);
 
-    // save everything in containers.
     staNodes.push_back(sta);
     apDevices.push_back(apDev);
     apInterfaces.push_back(apInterface);

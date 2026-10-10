@@ -1,33 +1,4 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
-// Network topology
-//
-//       n0              n1
-//       |               |
-//       =================
-//         SimpleChannel
-//
-// - Packets flows from n0 to n1
-//
-// This example shows how to use the PacketSocketServer and PacketSocketClient
-// to send non-IP packets over a SimpleNetDevice
 
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
@@ -54,7 +25,6 @@ int main(int argc, char *argv[]) {
 
   PacketSocketHelper packetSocket;
 
-  // give packet socket powers to nodes.
   packetSocket.Install(nodes);
 
   Ptr<SimpleNetDevice> txDev;
@@ -74,9 +44,6 @@ int main(int argc, char *argv[]) {
   PacketSocketAddress socketAddr;
   socketAddr.SetSingleDevice(txDev->GetIfIndex());
   socketAddr.SetPhysicalAddress(rxDev->GetAddress());
-  // Arbitrary protocol type.
-  // Note: PacketSocket doesn't have any L4 multiplexing or demultiplexing
-  //       The only mux/demux is based on the protocol field
   socketAddr.SetProtocol(1);
 
   Ptr<PacketSocketClient> client = CreateObject<PacketSocketClient>();

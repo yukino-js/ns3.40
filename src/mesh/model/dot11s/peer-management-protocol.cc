@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Kirill Andreev <andreev@iitp.ru>
- *          Aleksey Kovalenko <kovalenko@iitp.ru>
- */
 
 #include "peer-management-protocol.h"
 
@@ -40,9 +21,6 @@ NS_LOG_COMPONENT_DEFINE("PeerManagementProtocol");
 
 namespace dot11s {
 
-/***************************************************
- * PeerManager
- ***************************************************/
 NS_OBJECT_ENSURE_REGISTERED(PeerManagementProtocol);
 
 TypeId PeerManagementProtocol::GetTypeId() {
@@ -51,8 +29,6 @@ TypeId PeerManagementProtocol::GetTypeId() {
           .SetParent<Object>()
           .SetGroupName("Mesh")
           .AddConstructor<PeerManagementProtocol>()
-          // maximum number of peer links. Now we calculate the total
-          // number of peer links on all interfaces
           .AddAttribute("MaxNumberOfPeerLinks", "Maximum number of peer links",
                         UintegerValue(32),
                         MakeUintegerAccessor(
@@ -94,8 +70,6 @@ PeerManagementProtocol::PeerManagementProtocol()
 PeerManagementProtocol::~PeerManagementProtocol() { m_meshId = nullptr; }
 
 void PeerManagementProtocol::DoDispose() {
-  // cancel cleanup event and go through the map of peer links,
-  // deleting each
   for (auto j = m_peerLinks.begin(); j != m_peerLinks.end(); j++) {
     for (auto i = j->second.begin(); i != j->second.end(); i++) {
       (*i) = nullptr;
@@ -125,7 +99,6 @@ bool PeerManagementProtocol::Install(Ptr<MeshPointDevice> mp) {
     PeerLinksOnInterface newmap;
     m_peerLinks[(*i)->GetIfIndex()] = newmap;
   }
-  // Mesh point aggregates all installed protocols
   m_address = Mac48Address::ConvertFrom(mp->GetAddress());
   mp->AggregateObject(this);
   return true;
@@ -140,10 +113,7 @@ PeerManagementProtocol::GetBeaconTimingElement(uint32_t interface) {
   auto iface = m_peerLinks.find(interface);
   NS_ASSERT(iface != m_peerLinks.end());
   for (auto i = iface->second.begin(); i != iface->second.end(); i++) {
-    // If we do not know peer Assoc Id, we shall not add any info
-    // to a beacon timing element
     if ((*i)->GetBeaconInterval() == Seconds(0)) {
-      // No beacon was received, do not include to the beacon timing element
       continue;
     }
     retval->AddNeighboursTimingElementUnit(
@@ -156,8 +126,6 @@ void PeerManagementProtocol::ReceiveBeacon(uint32_t interface,
                                            Mac48Address peerAddress,
                                            Time beaconInterval,
                                            Ptr<IeBeaconTiming> timingElement) {
-  // PM STATE Machine
-  // Check that a given beacon is not from our interface
   for (auto i = m_plugins.begin(); i != m_plugins.end(); i++) {
     if (i->second->GetAddress() == peerAddress) {
       return;
@@ -247,11 +215,9 @@ PeerManagementProtocol::InitiateLink(uint32_t interface,
                                      Mac48Address peerAddress,
                                      Mac48Address peerMeshPointAddress) {
   Ptr<PeerLink> new_link = CreateObject<PeerLink>();
-  // find a peer link  - it must not exist
   if (FindPeerLink(interface, peerAddress)) {
     NS_FATAL_ERROR("Peer link must not exist.");
   }
-  // Plugin must exist
   auto plugin = m_plugins.find(interface);
   NS_ASSERT(plugin != m_plugins.end());
   auto iface = m_peerLinks.find(interface);
@@ -355,7 +321,6 @@ void PeerManagementProtocol::CheckBeaconCollisions(uint32_t interface) {
       (beaconInterval == m_beaconInterval.end())) {
     return;
   }
-  // my last beacon in 256 us units
   auto lastBeaconInTimeElement =
       (uint16_t)((lastBeacon->second.GetMicroSeconds() >> 8) & 0xffff);
 
@@ -363,12 +328,9 @@ void PeerManagementProtocol::CheckBeaconCollisions(uint32_t interface) {
                 "Wrong beacon shift parameters");
 
   if (iface->second.empty()) {
-    // I have no peers - may be our beacons are in collision
     ShiftOwnBeacon(interface);
     return;
   }
-  // check whether all my peers receive my beacon and I'am not in collision with
-  // other beacons
 
   for (auto i = iface->second.begin(); i != iface->second.end(); i++) {
     bool myBeaconExists = false;
@@ -376,7 +338,6 @@ void PeerManagementProtocol::CheckBeaconCollisions(uint32_t interface) {
         (*i)->GetBeaconTimingElement().GetNeighboursTimingElementsList();
     for (auto j = neighbors.begin(); j != neighbors.end(); j++) {
       if ((*i)->GetPeerAid() == (*j)->GetAid()) {
-        // I am presented at neighbour's list of neighbors
         myBeaconExists = true;
         continue;
       }
@@ -389,8 +350,6 @@ void PeerManagementProtocol::CheckBeaconCollisions(uint32_t interface) {
       }
     }
     if (!myBeaconExists) {
-      // If I am not present in neighbor's beacon timing element, this may be
-      // caused by collisions with
       ShiftOwnBeacon(interface);
       return;
     }
@@ -402,7 +361,6 @@ void PeerManagementProtocol::ShiftOwnBeacon(uint32_t interface) {
   do {
     shift = (int)m_beaconShift->GetValue();
   } while (shift == 0);
-  // Apply beacon shift parameters:
   auto plugin = m_plugins.find(interface);
   NS_ASSERT(plugin != m_plugins.end());
   plugin->second->SetBeaconShift(TuToTime(shift));
@@ -512,9 +470,7 @@ void PeerManagementProtocol::Report(std::ostream &os) const {
   m_stats.Print(os);
   for (auto plugins = m_plugins.begin(); plugins != m_plugins.end();
        plugins++) {
-    // Take statistics from plugin:
     plugins->second->Report(os);
-    // Print all active peer links:
     auto iface = m_peerLinks.find(plugins->second->m_ifIndex);
     NS_ASSERT(iface != m_peerLinks.end());
     for (auto i = iface->second.begin(); i != iface->second.end(); i++) {
@@ -525,7 +481,7 @@ void PeerManagementProtocol::Report(std::ostream &os) const {
 }
 
 void PeerManagementProtocol::ResetStats() {
-  m_stats = Statistics(m_stats.linksTotal); // don't reset number of links
+  m_stats = Statistics(m_stats.linksTotal);
   for (auto plugins = m_plugins.begin(); plugins != m_plugins.end();
        plugins++) {
     plugins->second->ResetStats();
@@ -539,10 +495,6 @@ int64_t PeerManagementProtocol::AssignStreams(int64_t stream) {
 }
 
 void PeerManagementProtocol::DoInitialize() {
-  // If beacon interval is equal to the neighbor's one and one o more beacons
-  // received by my neighbor coincide with my beacon - apply random uniformly
-  // distributed shift from
-  // [-m_maxBeaconShift, m_maxBeaconShift] except 0.
   m_beaconShift->SetAttribute("Min", DoubleValue(-m_maxBeaconShift));
   m_beaconShift->SetAttribute("Max", DoubleValue(m_maxBeaconShift));
 }

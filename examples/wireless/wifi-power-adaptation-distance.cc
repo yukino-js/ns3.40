@@ -1,88 +1,4 @@
-/*
- * Copyright (c) 2014 Universidad de la República - Uruguay
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Matias Richart <mrichart@fing.edu.uy>
- */
 
-/**
- * This example program is designed to illustrate the behavior of three
- * power/rate-adaptive WiFi rate controls; namely, ns3::ParfWifiManager,
- * ns3::AparfWifiManager and ns3::RrpaaWifiManager.
- *
- * The output of this is typically two plot files, named throughput-parf.plt
- * (or throughput-aparf.plt, if Aparf is used) and power-parf.plt. If
- * Gnuplot program is available, one can use it to convert the plt file
- * into an eps file, by running:
- * \code{.sh}
- *   gnuplot throughput-parf.plt
- * \endcode
- * Also, to enable logging of rate and power changes to the terminal, set this
- * environment variable:
- * \code{.sh}
- *   export NS_LOG=PowerAdaptationDistance=level_info
- * \endcode
- *
- * This simulation consist of 2 nodes, one AP and one STA.
- * The AP generates UDP traffic with a CBR of 54 Mbps to the STA.
- * The AP can use any power and rate control mechanism and the STA uses
- * only Minstrel rate control.
- * The STA can be configured to move away from (or towards to) the AP.
- * By default, the AP is at coordinate (0,0,0) and the STA starts at
- * coordinate (5,0,0) (meters) and moves away on the x axis by 1 meter every
- * second.
- *
- * The output consists of:
- * - A plot of average throughput vs. distance.
- * - A plot of average transmit power vs. distance.
- * - (if logging is enabled) the changes of power and rate to standard output.
- *
- * The Average Transmit Power is defined as an average of the power
- * consumed per measurement interval, expressed in milliwatts.  The
- * power level for each frame transmission is reported by the simulator,
- * and the energy consumed is obtained by multiplying the power by the
- * frame duration.  At every 'stepTime' (defaulting to 1 second), the
- * total energy for the collection period is divided by the step time
- * and converted from dbm to milliwatt units, and this average is
- * plotted against time.
- *
- * When neither Parf, Aparf or Rrpaa is selected as the rate control, the
- * generation of the plot of average transmit power vs distance is suppressed
- * since the other Wifi rate controls do not support the necessary callbacks
- * for computing the average power.
- *
- * To display all the possible arguments and their defaults:
- * \code{.sh}
- *   ./ns3 run "wifi-power-adaptation-distance --help"
- * \endcode
- *
- * Example usage (selecting Aparf rather than Parf):
- * \code{.sh}
- *   ./ns3 run "wifi-power-adaptation-distance --manager=ns3::AparfWifiManager
- * --outputFileName=aparf" \endcode
- *
- * Another example (moving towards the AP):
- * \code{.sh}
- *   ./ns3 run "wifi-power-adaptation-distance --manager=ns3::AparfWifiManager
- * --outputFileName=aparf --stepsSize=-1 --STA1_x=200" \endcode
- *
- * To enable the log of rate and power changes:
- * \code{.sh}
- *   export NS_LOG=PowerAdaptationDistance=level_info
- * \endcode
- */
 
 #include "ns3/command-line.h"
 #include "ns3/config.h"
@@ -107,121 +23,39 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("PowerAdaptationDistance");
 
-/// Packet size generated at the AP
 static const uint32_t packetSize = 1420;
 
-/**
- * \brief Class to collect node statistics.
- */
 class NodeStatistics {
 public:
-  /**
-   * \brief Constructor.
-   *
-   * \param aps Access points
-   * \param stas WiFi Stations.
-   */
   NodeStatistics(NetDeviceContainer aps, NetDeviceContainer stas);
 
-  /**
-   * \brief Callback called by WifiNetDevice/Phy/PhyTxBegin.
-   *
-   * \param path The trace path.
-   * \param packet The sent packet.
-   * \param powerW The Tx power.
-   */
   void PhyCallback(std::string path, Ptr<const Packet> packet, double powerW);
-  /**
-   * \brief Callback called by PacketSink/Rx.
-   *
-   * \param path The trace path.
-   * \param packet The received packet.
-   * \param from The sender address.
-   */
   void RxCallback(std::string path, Ptr<const Packet> packet,
                   const Address &from);
-  /**
-   * \brief Callback called by WifiNetDevice/RemoteStationManager/x/PowerChange.
-   *
-   * \param path The trace path.
-   * \param oldPower Old Tx power.
-   * \param newPower Actual Tx power.
-   * \param dest Destination of the transmission.
-   */
   void PowerCallback(std::string path, double oldPower, double newPower,
                      Mac48Address dest);
-  /**
-   * \brief Callback called by WifiNetDevice/RemoteStationManager/x/RateChange.
-   *
-   * \param path The trace path.
-   * \param oldRate Old rate.
-   * \param newRate Actual rate.
-   * \param dest Destination of the transmission.
-   */
   void RateCallback(std::string path, DataRate oldRate, DataRate newRate,
                     Mac48Address dest);
-  /**
-   * \brief Set the Position of a node.
-   *
-   * \param node The node.
-   * \param position The position.
-   */
   void SetPosition(Ptr<Node> node, Vector position);
-  /**
-   * Move a node.
-   * \param node The node.
-   * \param stepsSize The step size.
-   * \param stepsTime Time on each step.
-   */
   void AdvancePosition(Ptr<Node> node, int stepsSize, int stepsTime);
-  /**
-   * \brief Get the Position of a node.
-   *
-   * \param node The node.
-   * \return the position of the node.
-   */
   Vector GetPosition(Ptr<Node> node);
 
-  /**
-   * \brief Get the Throughput output data
-   *
-   * \return the Throughput output data.
-   */
   Gnuplot2dDataset GetDatafile();
-  /**
-   * \brief Get the Power output data.
-   *
-   * \return the Power output data.
-   */
   Gnuplot2dDataset GetPowerDatafile();
 
 private:
-  /// Time, DataRate pair vector.
   typedef std::vector<std::pair<Time, DataRate>> TxTime;
-  /**
-   * \brief Setup the WifiPhy object.
-   *
-   * \param phy The WifiPhy to setup.
-   */
   void SetupPhy(Ptr<WifiPhy> phy);
-  /**
-   * \brief Get the time at which a given datarate has been recorded.
-   *
-   * \param rate The datarate to search.
-   * \return the time.
-   */
   Time GetCalcTxTime(DataRate rate);
 
-  std::map<Mac48Address, double>
-      m_currentPower; //!< Current Tx power for each sender.
-  std::map<Mac48Address, DataRate>
-      m_currentRate;         //!< Current Tx rate for each sender.
-  uint32_t m_bytesTotal;     //!< Number of received bytes on a given state.
-  double m_totalEnergy;      //!< Energy used on a given state.
-  double m_totalTime;        //!< Time spent on a given state.
-  TxTime m_timeTable;        //!< Time, DataRate table.
-  Gnuplot2dDataset m_output; //!< Throughput output data.
-  Gnuplot2dDataset m_output_power; //!< Power output data.
+  std::map<Mac48Address, double> m_currentPower;
+  std::map<Mac48Address, DataRate> m_currentRate;
+  uint32_t m_bytesTotal;
+  double m_totalEnergy;
+  double m_totalTime;
+  TxTime m_timeTable;
+  Gnuplot2dDataset m_output;
+  Gnuplot2dDataset m_output_power;
 };
 
 NodeStatistics::NodeStatistics(NetDeviceContainer aps,
@@ -333,14 +167,6 @@ Gnuplot2dDataset NodeStatistics::GetDatafile() { return m_output; }
 
 Gnuplot2dDataset NodeStatistics::GetPowerDatafile() { return m_output_power; }
 
-/**
- * Callback called by WifiNetDevice/RemoteStationManager/x/PowerChange.
- *
- * \param path The trace path.
- * \param oldPower Old Tx power.
- * \param newPower Actual Tx power.
- * \param dest Destination of the transmission.
- */
 void PowerCallback(std::string path, double oldPower, double newPower,
                    Mac48Address dest) {
   NS_LOG_INFO((Simulator::Now()).GetSeconds()
@@ -348,14 +174,6 @@ void PowerCallback(std::string path, double oldPower, double newPower,
               << " New power=" << newPower);
 }
 
-/**
- * \brief Callback called by WifiNetDevice/RemoteStationManager/x/RateChange.
- *
- * \param path The trace path.
- * \param oldRate Old rate.
- * \param newRate Actual rate.
- * \param dest Destination of the transmission.
- */
 void RateCallback(std::string path, DataRate oldRate, DataRate newRate,
                   Mac48Address dest) {
   NS_LOG_INFO((Simulator::Now()).GetSeconds()
@@ -407,11 +225,9 @@ int main(int argc, char *argv[]) {
 
   uint32_t simuTime = (steps + 1) * stepsTime;
 
-  // Define the APs
   NodeContainer wifiApNodes;
   wifiApNodes.Create(1);
 
-  // Define the STAs
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create(1);
 
@@ -427,7 +243,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer wifiStaDevices;
   NetDeviceContainer wifiDevices;
 
-  // Configure the STA node
   wifi.SetRemoteStationManager("ns3::MinstrelWifiManager", "RtsCtsThreshold",
                                UintegerValue(rtsThreshold));
   wifiPhy.Set("TxPowerStart", DoubleValue(maxPower));
@@ -437,7 +252,6 @@ int main(int argc, char *argv[]) {
   wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
   wifiStaDevices.Add(wifi.Install(wifiPhy, wifiMac, wifiStaNodes.Get(0)));
 
-  // Configure the AP node
   wifi.SetRemoteStationManager(manager, "DefaultTxPowerLevel",
                                UintegerValue(powerLevels - 1),
                                "RtsCtsThreshold", UintegerValue(rtsThreshold));
@@ -452,11 +266,9 @@ int main(int argc, char *argv[]) {
   wifiDevices.Add(wifiStaDevices);
   wifiDevices.Add(wifiApDevices);
 
-  // Configure the mobility.
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  // Initial position of AP and STA
   positionAlloc->Add(Vector(ap1_x, ap1_y, 0.0));
   NS_LOG_INFO("Setting initial AP position to " << Vector(ap1_x, ap1_y, 0.0));
   positionAlloc->Add(Vector(sta1_x, sta1_y, 0.0));
@@ -467,15 +279,12 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNodes.Get(0));
   mobility.Install(wifiStaNodes.Get(0));
 
-  // Statistics counter
   NodeStatistics statistics = NodeStatistics(wifiApDevices, wifiStaDevices);
 
-  // Move the STA by stepsSize meters every stepsTime seconds
   Simulator::Schedule(Seconds(0.5 + stepsTime),
                       &NodeStatistics::AdvancePosition, &statistics,
                       wifiStaNodes.Get(0), stepsSize, stepsTime);
 
-  // Configure the IP stack
   InternetStackHelper stack;
   stack.Install(wifiApNodes);
   stack.Install(wifiStaNodes);
@@ -485,7 +294,6 @@ int main(int argc, char *argv[]) {
   Ipv4Address sinkAddress = i.GetAddress(0);
   uint16_t port = 9;
 
-  // Configure the CBR generator
   PacketSinkHelper sink("ns3::UdpSocketFactory",
                         InetSocketAddress(sinkAddress, port));
   ApplicationContainer apps_sink = sink.Install(wifiStaNodes.Get(0));
@@ -500,15 +308,9 @@ int main(int argc, char *argv[]) {
   apps_sink.Start(Seconds(0.5));
   apps_sink.Stop(Seconds(simuTime));
 
-  //------------------------------------------------------------
-  //-- Setup stats and data collection
-  //--------------------------------------------
-
-  // Register packet receptions to calculate throughput
   Config::Connect("/NodeList/1/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&NodeStatistics::RxCallback, &statistics));
 
-  // Register power and rate changes to calculate the Average Transmit Power
   Config::Connect(
       "/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/RemoteStationManager/$" +
           manager + "/PowerChange",
@@ -521,7 +323,6 @@ int main(int argc, char *argv[]) {
   Config::Connect("/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin",
                   MakeCallback(&NodeStatistics::PhyCallback, &statistics));
 
-  // Callbacks to print every change of power and rate
   Config::Connect(
       "/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/RemoteStationManager/$" +
           manager + "/PowerChange",

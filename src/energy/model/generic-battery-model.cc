@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2010 Andrea Sacco: Li-Ion battery
- * Copyright (c) 2023 Tokushima University, Japan:
- * NiMh,NiCd,LeaAcid batteries and preset and multicell extensions.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Andrea Sacco <andrea.sacco85@gmail.com>
- *         Alberto Gallegos Ramonet <alramonet@is.tokushima-u.ac.jp>
- */
 
 #include "generic-battery-model.h"
 
@@ -45,7 +24,7 @@ TypeId GenericBatteryModel::GetTypeId() {
           .AddAttribute(
               "LowBatteryThreshold",
               "Low battery threshold for generic battery model.",
-              DoubleValue(0.10), // 0.10 as a fraction of the initial energy
+              DoubleValue(0.10),
               MakeDoubleAccessor(&GenericBatteryModel::m_lowBatteryTh),
               MakeDoubleChecker<double>())
           .AddAttribute(
@@ -174,7 +153,6 @@ double GenericBatteryModel::GetEnergyFraction() {
 void GenericBatteryModel::UpdateEnergySource() {
   NS_LOG_FUNCTION(this);
 
-  // do not update if simulation has finished
   if (Simulator::IsFinished()) {
     return;
   }
@@ -186,13 +164,9 @@ void GenericBatteryModel::UpdateEnergySource() {
   m_lastUpdateTime = Simulator::Now();
 
   if (m_supplyVoltageV <= m_cutoffVoltage) {
-    // check if battery is depleted
     BatteryDepletedEvent();
   } else if (m_supplyVoltageV >= m_vFull) {
-    // check if battery has reached full charge
     BatteryChargedEvent();
-    // TODO: Should battery charging be stopped if full voltage is reached?
-    //       or should it be allowed to continue charging (overcharge)?
   }
 
   m_energyUpdateEvent = Simulator::Schedule(
@@ -208,15 +182,11 @@ void GenericBatteryModel::DoDispose() {
 
 void GenericBatteryModel::BatteryDepletedEvent() {
   NS_LOG_FUNCTION(this);
-  // notify DeviceEnergyModel objects, all "usable" energy has been depleted
-  // (cutoff voltage was reached)
   NotifyEnergyDrained();
 }
 
 void GenericBatteryModel::BatteryChargedEvent() {
   NS_LOG_FUNCTION(this);
-  // notify DeviceEnergyModel objects, the battery has reached its full energy
-  // potential. (full voltage was reached)
   NotifyEnergyRecharged();
 }
 
@@ -229,45 +199,31 @@ void GenericBatteryModel::CalculateRemainingEnergy() {
 
   NS_ASSERT(m_energyUpdateLapseTime.GetSeconds() >= 0);
 
-  // Calculate i* (current step response)
   Time batteryResponseConstant = Seconds(30);
 
   double responseTime =
       (Simulator::Now() / batteryResponseConstant).GetDouble();
   m_currentFiltered = totalCurrentA * (1 - 1 / (std::exp(responseTime)));
-  // TODO: the time in the responseTime should be a time taken since the last
-  // *battery current* change, in the testing the  battery current is only
-  // changed at the beginning of the simulation therefore, the simulation time
-  // can be used. However this must be changed to a time counter to allow this
-  // value to reset in the middle of the simulation when the battery current
-  // changes.
 
   m_drainedCapacity += (totalCurrentA * m_energyUpdateLapseTime).GetHours();
 
   if (totalCurrentA < 0) {
-    // Charge current (Considered as "Negative" i)
     m_supplyVoltageV = GetChargeVoltage(totalCurrentA);
   } else {
-    // Discharge current (Considered as "Positive" i)
     m_supplyVoltageV = GetVoltage(totalCurrentA);
   }
 }
 
 double GenericBatteryModel::GetChargeVoltage(double i) {
-  // integral of i over time drained capacity in Ah
   double it = m_drainedCapacity;
 
-  // empirical factors
   double A = m_vFull - m_vExp;
   double B = 3 / m_qExp;
 
-  // voltage constant
   double E0 = m_vFull + m_internalResistance * m_typicalCurrent - A;
 
-  // voltage of exponential zone when battery is fully charged
   double expZoneFull = A * std::exp(-B * m_qNom);
 
-  // Obtain the voltage|resistance polarization constant
   double K =
       (E0 - m_vNom - (m_internalResistance * m_typicalCurrent) + expZoneFull) /
       (m_qMax / (m_qMax - m_qNom) * (m_qNom + m_typicalCurrent));
@@ -276,9 +232,8 @@ double GenericBatteryModel::GetChargeVoltage(double i) {
   double polResistance = 0;
   double polVoltage = 0;
 
-  if (m_batteryType == LION_LIPO) { // For LiOn & LiPo batteries
+  if (m_batteryType == LION_LIPO) {
 
-    // Calculate exponential zone voltage
     m_expZone = A * std::exp(-B * it);
 
     polResistance = K * m_qMax / (it + 0.1 * m_qMax);
@@ -286,7 +241,6 @@ double GenericBatteryModel::GetChargeVoltage(double i) {
     V = E0 - (m_internalResistance * i) - (polResistance * m_currentFiltered) -
         (polVoltage * it) + m_expZone;
   } else {
-    // Calculate exponential zone voltage
 
     if (m_expZone == 0) {
       m_expZone = A * std::exp(-B * it);
@@ -296,9 +250,9 @@ double GenericBatteryModel::GetChargeVoltage(double i) {
     m_entn = B * std::abs(i) * (-expZonePrime + A);
     m_expZone = expZonePrime + (m_energyUpdateLapseTime * entnPrime).GetHours();
 
-    if (m_batteryType == NIMH_NICD) { // For NiMH and NiCd batteries
+    if (m_batteryType == NIMH_NICD) {
       polResistance = K * m_qMax / (std::abs(it) + 0.1 * m_qMax);
-    } else if (m_batteryType == LEADACID) { // For Lead acid batteries
+    } else if (m_batteryType == LEADACID) {
       polResistance = K * m_qMax / (it + 0.1 * m_qMax);
     }
 
@@ -308,7 +262,6 @@ double GenericBatteryModel::GetChargeVoltage(double i) {
         (polVoltage * it) + m_expZone;
   }
 
-  // Energy in Joules = RemainingCapacity * Voltage * Seconds in an Hour
   m_remainingEnergyJ = (m_qMax - it) * V * 3600;
 
   NS_LOG_DEBUG("* CHARGE *| "
@@ -325,21 +278,16 @@ double GenericBatteryModel::GetChargeVoltage(double i) {
 double GenericBatteryModel::GetVoltage(double i) {
   NS_LOG_FUNCTION(this << i);
 
-  // integral of i in dt, drained capacity in Ah
   double it = m_drainedCapacity;
 
-  // empirical factors
   double A = m_vFull - m_vExp;
 
   double B = 3 / m_qExp;
 
-  // constant voltage
   double E0 = m_vFull + m_internalResistance * m_typicalCurrent - A;
 
-  // voltage of exponential zone when battery is fully charged
   double expZoneFull = A * std::exp(-B * m_qNom);
 
-  // Obtain the voltage|resistance polarization constant
   double K =
       (E0 - m_vNom - (m_internalResistance * m_typicalCurrent) + expZoneFull) /
       (m_qMax / (m_qMax - m_qNom) * (m_qNom + m_typicalCurrent));
@@ -348,7 +296,6 @@ double GenericBatteryModel::GetVoltage(double i) {
   double polResistance = K * (m_qMax / (m_qMax - it));
   double polVoltage = polResistance;
 
-  // Calculate exponential zone voltage according to the battery type
   if (m_batteryType == LION_LIPO) {
     m_expZone = A * exp(-B * it);
   } else {
@@ -367,7 +314,6 @@ double GenericBatteryModel::GetVoltage(double i) {
   V = E0 - (m_internalResistance * i) - (polResistance * m_currentFiltered) -
       (polVoltage * it) + m_expZone;
 
-  // EnergyJ = RemainingCapacity * Voltage * Seconds in an Hour
   m_remainingEnergyJ = (m_qMax - it) * V * 3600;
 
   NS_LOG_DEBUG("* DISCHARGE *| " << Simulator::Now().As(Time::S) << "| i " << i

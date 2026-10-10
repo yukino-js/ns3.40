@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.cat>
- *         Nicola Baldo <nbaldo@cttc.cat>
- */
 
 #include "epc-enb-application.h"
 
@@ -78,8 +59,7 @@ void EpcEnbApplication::DoDispose() {
 
 EpcEnbApplication::EpcEnbApplication(Ptr<Socket> lteSocket,
                                      Ptr<Socket> lteSocket6, uint16_t cellId)
-    : m_lteSocket(lteSocket), m_lteSocket6(lteSocket6),
-      m_gtpuUdpPort(2152), // fixed by the standard
+    : m_lteSocket(lteSocket), m_lteSocket6(lteSocket6), m_gtpuUdpPort(2152),
       m_s1SapUser(nullptr), m_s1apSapMme(nullptr), m_cellId(cellId) {
   NS_LOG_FUNCTION(this << lteSocket << lteSocket6 << cellId);
 
@@ -117,7 +97,6 @@ EpcS1apSapEnb *EpcEnbApplication::GetS1apSapEnb() { return m_s1apSapEnb; }
 
 void EpcEnbApplication::DoInitialUeMessage(uint64_t imsi, uint16_t rnti) {
   NS_LOG_FUNCTION(this);
-  // side effect: create entry if not exist
   m_imsiRntiMap[imsi] = rnti;
   m_s1apSapMme->InitialUeMessage(imsi, rnti, imsi, m_cellId);
 }
@@ -128,7 +107,6 @@ void EpcEnbApplication::DoPathSwitchRequest(
   uint16_t enbUeS1Id = params.rnti;
   uint64_t mmeUeS1Id = params.mmeUeS1Id;
   uint64_t imsi = mmeUeS1Id;
-  // side effect: create entry if not exist
   m_imsiRntiMap[imsi] = params.rnti;
 
   uint16_t gci = params.cellId;
@@ -142,7 +120,6 @@ void EpcEnbApplication::DoPathSwitchRequest(
     uint32_t teid = bit->teid;
 
     EpsFlowId_t rbid(params.rnti, bit->epsBearerId);
-    // side effect: create entries if not exist
     m_rbidTeidMap[params.rnti][bit->epsBearerId] = teid;
     m_teidRbidMap[teid] = rbid;
 
@@ -184,7 +161,6 @@ void EpcEnbApplication::DoInitialContextSetupRequest(
 
   for (auto erabIt = erabToBeSetupList.begin();
        erabIt != erabToBeSetupList.end(); ++erabIt) {
-    // request the RRC to setup a radio bearer
     EpcEnbS1SapUser::DataRadioBearerSetupRequestParameters params;
     params.rnti = rnti;
     params.bearer = erabIt->erabLevelQosParameters;
@@ -193,12 +169,10 @@ void EpcEnbApplication::DoInitialContextSetupRequest(
     m_s1SapUser->DataRadioBearerSetupRequest(params);
 
     EpsFlowId_t rbid(rnti, erabIt->erabId);
-    // side effect: create entries if not exist
     m_rbidTeidMap[rnti][erabIt->erabId] = params.gtpTeid;
     m_teidRbidMap[params.gtpTeid] = rbid;
   }
 
-  // Send Initial Context Setup Request to RRC
   EpcEnbS1SapUser::InitialContextSetupRequestParameters params;
   params.rnti = rnti;
   m_s1SapUser->InitialContextSetupRequest(params);
@@ -294,8 +268,6 @@ void EpcEnbApplication::SendToS1uSocket(Ptr<Packet> packet, uint32_t teid) {
   NS_LOG_FUNCTION(this << packet << teid << packet->GetSize());
   GtpuHeader gtpu;
   gtpu.SetTeid(teid);
-  // From 3GPP TS 29.281 v10.0.0 Section 5.1
-  // Length of the payload + the non obligatory GTP-U header
   gtpu.SetLength(packet->GetSize() + gtpu.GetSerializedSize() - 8);
   packet->AddHeader(gtpu);
   uint32_t flags = 0;
@@ -313,8 +285,6 @@ void EpcEnbApplication::DoReleaseIndication(uint64_t imsi, uint16_t rnti,
   EpcS1apSapMme::ErabToBeReleasedIndication erab;
   erab.erabId = bearerId;
   erabToBeReleaseIndication.push_back(erab);
-  // From 3GPP TS 23401-950 Section 5.4.4.2, enB sends EPS bearer Identity in
-  // Bearer Release Indication message to MME
   m_s1apSapMme->ErabReleaseIndication(imsi, rnti, erabToBeReleaseIndication);
 }
 

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 DERONNE SOFTWARE ENGINEERING
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "eht-capabilities.h"
 
@@ -354,12 +336,12 @@ WifiInformationElementId EhtCapabilities::ElementIdExt() const {
 }
 
 void EhtCapabilities::Print(std::ostream &os) const {
-  os << "EHT Capabilities="; // TODO
+  os << "EHT Capabilities=";
 }
 
 uint16_t EhtCapabilities::GetInformationFieldSize() const {
-  uint16_t size = 1 + // ElementIdExt
-                  m_macCapabilities.GetSize() + m_phyCapabilities.GetSize() +
+  uint16_t size = 1 + m_macCapabilities.GetSize() +
+                  m_phyCapabilities.GetSize() +
                   m_supportedEhtMcsAndNssSet.GetSize();
   if (m_phyCapabilities.ppeThresholdsPresent) {
     size += m_ppeThresholds.GetSize();

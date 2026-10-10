@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Ankit Deepak <adadeepak8@gmail.com>
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/string.h"
@@ -29,26 +10,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpLedbatTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief LEDBAT should be same as NewReno during slow start, and when
- * timestamps are disabled
- */
 class TcpLedbatToNewReno : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param cWnd congestion window
-   * \param segmentSize segment size
-   * \param ssThresh slow start threshold
-   * \param segmentsAcked segments acked
-   * \param highTxMark high tx mark
-   * \param lastAckedSeq last acked seq
-   * \param rtt RTT
-   * \param name Name of the test
-   */
   TcpLedbatToNewReno(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                      uint32_t segmentsAcked, SequenceNumber32 highTxMark,
                      SequenceNumber32 lastAckedSeq, Time rtt,
@@ -56,18 +19,16 @@ public:
 
 private:
   void DoRun() override;
-  /** \brief Execute the test
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;                 //!< cWnd
-  uint32_t m_segmentSize;          //!< segment size
-  uint32_t m_segmentsAcked;        //!< segments acked
-  uint32_t m_ssThresh;             //!< ss thresh
-  Time m_rtt;                      //!< rtt
-  SequenceNumber32 m_highTxMark;   //!< high tx mark
-  SequenceNumber32 m_lastAckedSeq; //!< last acked seq
-  Ptr<TcpSocketState> m_state;     //!< state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  uint32_t m_ssThresh;
+  Time m_rtt;
+  SequenceNumber32 m_highTxMark;
+  SequenceNumber32 m_lastAckedSeq;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLedbatToNewReno::TcpLedbatToNewReno(uint32_t cWnd, uint32_t segmentSize,
@@ -111,25 +72,8 @@ void TcpLedbatToNewReno::ExecuteTest() {
                         "cWnd has not updated correctly");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Test to validate cWnd increment in LEDBAT
- */
 class TcpLedbatIncrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param cWnd congestion window
-   * \param segmentSize segment size
-   * \param ssThresh slow start threshold
-   * \param segmentsAcked segments acked
-   * \param highTxMark high tx mark
-   * \param lastAckedSeq last acked seq
-   * \param rtt RTT
-   * \param name Name of the test
-   */
   TcpLedbatIncrementTest(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                          uint32_t segmentsAcked, SequenceNumber32 highTxMark,
                          SequenceNumber32 lastAckedSeq, Time rtt,
@@ -137,18 +81,16 @@ public:
 
 private:
   void DoRun() override;
-  /** \brief Execute the test
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;                 //!< cWnd
-  uint32_t m_segmentSize;          //!< segment size
-  uint32_t m_segmentsAcked;        //!< segments acked
-  uint32_t m_ssThresh;             //!< ss thresh
-  Time m_rtt;                      //!< rtt
-  SequenceNumber32 m_highTxMark;   //!< high tx mark
-  SequenceNumber32 m_lastAckedSeq; //!< last acked seq
-  Ptr<TcpSocketState> m_state;     //!< state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  uint32_t m_ssThresh;
+  Time m_rtt;
+  SequenceNumber32 m_highTxMark;
+  SequenceNumber32 m_lastAckedSeq;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLedbatIncrementTest::TcpLedbatIncrementTest(
@@ -194,25 +136,8 @@ void TcpLedbatIncrementTest::ExecuteTest() {
                         "cWnd has not updated correctly");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Test to validate cWnd decrement in LEDBAT
- */
 class TcpLedbatDecrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param cWnd congestion window
-   * \param segmentSize segment size
-   * \param ssThresh slow start threshold
-   * \param segmentsAcked segments acked
-   * \param highTxMark high tx mark
-   * \param lastAckedSeq last acked seq
-   * \param rtt RTT
-   * \param name Name of the test
-   */
   TcpLedbatDecrementTest(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                          uint32_t segmentsAcked, SequenceNumber32 highTxMark,
                          SequenceNumber32 lastAckedSeq, Time rtt,
@@ -220,18 +145,16 @@ public:
 
 private:
   void DoRun() override;
-  /** \brief Execute the test
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;                 //!< cWnd
-  uint32_t m_segmentSize;          //!< segment size
-  uint32_t m_segmentsAcked;        //!< segments acked
-  uint32_t m_ssThresh;             //!< ss thresh
-  Time m_rtt;                      //!< rtt
-  SequenceNumber32 m_highTxMark;   //!< high tx mark
-  SequenceNumber32 m_lastAckedSeq; //!< last acked seq
-  Ptr<TcpSocketState> m_state;     //!< state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  uint32_t m_ssThresh;
+  Time m_rtt;
+  SequenceNumber32 m_highTxMark;
+  SequenceNumber32 m_lastAckedSeq;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpLedbatDecrementTest::TcpLedbatDecrementTest(
@@ -281,11 +204,6 @@ void TcpLedbatDecrementTest::ExecuteTest() {
                         "cWnd has not updated correctly");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Ledbat TestSuite
- */
 class TcpLedbatTestSuite : public TestSuite {
 public:
   TcpLedbatTestSuite() : TestSuite("tcp-ledbat-test", UNIT) {
@@ -312,5 +230,4 @@ public:
   }
 };
 
-static TcpLedbatTestSuite
-    g_tcpledbatTest; //!< static var for test initialization
+static TcpLedbatTestSuite g_tcpledbatTest;

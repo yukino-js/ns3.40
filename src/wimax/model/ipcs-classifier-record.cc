@@ -1,21 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- */
 #include "ipcs-classifier-record.h"
 
 #include "wimax-tlv.h"
@@ -36,8 +18,8 @@ IpcsClassifierRecord::IpcsClassifierRecord() {
   m_tosHigh = 0;
   m_tosMask = 0;
   m_cid = 0;
-  m_protocol.push_back(6);  // tcp
-  m_protocol.push_back(17); // udp
+  m_protocol.push_back(6);
+  m_protocol.push_back(17);
   AddSrcAddr(Ipv4Address("0.0.0.0"), Ipv4Mask("0.0.0.0"));
   AddDstAddr(Ipv4Address("0.0.0.0"), Ipv4Mask("0.0.0.0"));
   AddSrcPortRange(0, 65535);

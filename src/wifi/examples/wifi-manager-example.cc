@@ -1,52 +1,4 @@
-/*
- * Copyright (c) 2016 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Tom Henderson <tomhend@u.washington.edu>
- *          Matías Richart <mrichart@fing.edu.uy>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
-// Test the operation of a wifi manager as the SNR is varied, and create
-// a gnuplot output file for plotting.
-//
-// The test consists of a device acting as server and a device as client
-// generating traffic.
-//
-// The output consists of a plot of the rate observed and selected at the client
-// device. A special FixedRss propagation loss model is used to set a specific
-// receive power on the receiver.  The noise power is exclusively the thermal
-// noise for the channel bandwidth (no noise figure is configured). Furthermore,
-// the CCA sensitivity attribute in WifiPhy can prevent signals from being
-// received even though the error model would permit it.  Therefore, for
-// the purpose of this example, the CCA sensitivity is lowered to a value
-// that disables it, and furthermore, the preamble detection model (which
-// also contains a similar threshold) is disabled.
-//
-// By default, the 802.11a standard using IdealWifiManager is plotted. Several
-// command line arguments can change the following options:
-// --wifiManager (Aarf, Aarfcd, Amrr, Arf, Cara, Ideal, Minstrel, MinstrelHt,
-// Onoe, Rraa, ThompsonSampling)
-// --standard (802.11a, 802.11b, 802.11g, 802.11p-10MHz, 802.11p-5MHz,
-// 802.11n-5GHz, 802.11n-2.4GHz, 802.11ac, 802.11ax-6GHz, 802.11ax-5GHz,
-// 802.11ax-2.4GHz)
-// --serverShortGuardInterval and --clientShortGuardInterval (for 802.11n/ac)
-// --serverNss and --clientNss (for 802.11n/ac)
-// --serverChannelWidth and --clientChannelWidth (for 802.11n/ac)
-// --broadcast instead of unicast (default is unicast)
-// --rtsThreshold (by default, value of 99999 disables it)
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -74,57 +26,29 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiManagerExample");
 
-// 290K @ 20 MHz
-const double NOISE_DBM_Hz = -174.0; //!< Default value for noise.
-double noiseDbm = NOISE_DBM_Hz;     //!< Value for noise.
+const double NOISE_DBM_Hz = -174.0;
+double noiseDbm = NOISE_DBM_Hz;
 
-double g_intervalBytes = 0;  //!< Bytes received in an interval.
-uint64_t g_intervalRate = 0; //!< Rate in an interval.
+double g_intervalBytes = 0;
+uint64_t g_intervalRate = 0;
 
-/**
- * Packet received.
- *
- * \param pkt The packet.
- * \param addr The sender address.
- */
 void PacketRx(Ptr<const Packet> pkt, const Address &addr) {
   g_intervalBytes += pkt->GetSize();
 }
 
-/**
- * Rate changed.
- *
- * \param oldVal Old value.
- * \param newVal New value.
- */
 void RateChange(uint64_t oldVal, uint64_t newVal) {
   NS_LOG_DEBUG("Change from " << oldVal << " to " << newVal);
   g_intervalRate = newVal;
 }
 
-/// Step structure
 struct Step {
-  double stepSize; ///< step size in dBm
-  double stepTime; ///< step size in seconds
+  double stepSize;
+  double stepTime;
 };
 
-/// StandardInfo structure
 struct StandardInfo {
   StandardInfo() { m_name = "none"; }
 
-  /**
-   * Constructor
-   *
-   * \param name reference name
-   * \param standard wifi standard
-   * \param band PHY band
-   * \param width channel width
-   * \param snrLow SNR low
-   * \param snrHigh SNR high
-   * \param xMin x minimum
-   * \param xMax x maximum
-   * \param yMax y maximum
-   */
   StandardInfo(std::string name, WifiStandard standard, WifiPhyBand band,
                uint16_t width, double snrLow, double snrHigh, double xMin,
                double xMax, double yMax)
@@ -132,34 +56,24 @@ struct StandardInfo {
         m_snrLow(snrLow), m_snrHigh(snrHigh), m_xMin(xMin), m_xMax(xMax),
         m_yMax(yMax) {}
 
-  std::string m_name;      ///< name
-  WifiStandard m_standard; ///< standard
-  WifiPhyBand m_band;      ///< PHY band
-  uint16_t m_width;        ///< channel width
-  double m_snrLow;         ///< lowest SNR
-  double m_snrHigh;        ///< highest SNR
-  double m_xMin;           ///< X minimum
-  double m_xMax;           ///< X maximum
-  double m_yMax;           ///< Y maximum
+  std::string m_name;
+  WifiStandard m_standard;
+  WifiPhyBand m_band;
+  uint16_t m_width;
+  double m_snrLow;
+  double m_snrHigh;
+  double m_xMin;
+  double m_xMax;
+  double m_yMax;
 };
 
-/**
- * Change the signal model and report the rate.
- *
- * \param rssModel The new RSS model.
- * \param step The step tp use.
- * \param rss The RSS.
- * \param rateDataset The rate dataset.
- * \param actualDataset The actual dataset.
- */
 void ChangeSignalAndReportRate(Ptr<FixedRssLossModel> rssModel, Step step,
                                double rss, Gnuplot2dDataset &rateDataset,
                                Gnuplot2dDataset &actualDataset) {
   NS_LOG_FUNCTION(rssModel << step.stepSize << step.stepTime << rss);
   double snr = rss - noiseDbm;
   rateDataset.Add(snr, g_intervalRate / 1e6);
-  // Calculate received rate since last interval
-  double currentRate = ((g_intervalBytes * 8) / step.stepTime) / 1e6; // Mb/s
+  double currentRate = ((g_intervalBytes * 8) / step.stepTime) / 1e6;
   actualDataset.Add(snr, currentRate);
   rssModel->SetRss(rss - step.stepSize);
   NS_LOG_INFO("At time " << Simulator::Now().As(Time::S) << "; selected rate "
@@ -176,11 +90,11 @@ int main(int argc, char *argv[]) {
   std::vector<StandardInfo> serverStandards;
   std::vector<StandardInfo> clientStandards;
   uint32_t steps;
-  uint32_t rtsThreshold = 999999; // disabled even for large A-MPDU
+  uint32_t rtsThreshold = 999999;
   uint32_t maxAmpduSize = 65535;
-  double stepSize = 1;        // dBm
-  double stepTime = 1;        // seconds
-  uint32_t packetSize = 1024; // bytes
+  double stepSize = 1;
+  double stepTime = 1;
+  uint32_t packetSize = 1024;
   bool broadcast = false;
   int ap1_x = 0;
   int ap1_y = 0;
@@ -190,8 +104,8 @@ int main(int argc, char *argv[]) {
   uint16_t clientNss = 1;
   uint16_t serverShortGuardInterval = 800;
   uint16_t clientShortGuardInterval = 800;
-  uint16_t serverChannelWidth = 0; // use default for standard and band
-  uint16_t clientChannelWidth = 0; // use default for standard and band
+  uint16_t serverChannelWidth = 0;
+  uint16_t clientChannelWidth = 0;
   std::string wifiManager("Ideal");
   std::string standard("802.11a");
   StandardInfo serverSelectedStandard;
@@ -248,7 +162,6 @@ int main(int argc, char *argv[]) {
                infrastructure);
   cmd.Parse(argc, argv);
 
-  // Print out some explanation of what this program does
   std::cout << std::endl
             << "This program demonstrates and plots the operation of different "
             << std::endl;
@@ -363,14 +276,10 @@ int main(int argc, char *argv[]) {
                                    << standard);
   }
 
-  // As channel width increases, scale up plot's yRange value
   uint32_t channelRateFactor =
       std::max(clientChannelWidth, serverChannelWidth) / 20;
   channelRateFactor = channelRateFactor * std::max(clientNss, serverNss);
 
-  // The first number is channel width, second is minimum SNR, third is maximum
-  // SNR, fourth and fifth provide xrange axis limits, and sixth the yaxis
-  // maximum
   serverStandards = {
       StandardInfo("802.11a", WIFI_STANDARD_80211a, WIFI_PHY_BAND_5GHZ, 20, 3,
                    27, 0, 30, 60),
@@ -498,23 +407,13 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::MinstrelHtWifiManager::PrintStats",
                      BooleanValue(true));
 
-  // Disable the default noise figure of 7 dBm in WifiPhy; the calculations
-  // of SNR below assume that the only noise is thermal noise
   Config::SetDefault("ns3::WifiPhy::RxNoiseFigure", DoubleValue(0));
 
-  // By default, the CCA sensitivity is -82 dBm, meaning if the RSS is
-  // below this value, the receiver will reject the Wi-Fi frame.
-  // However, we want to probe the error model down to low SNR values,
-  // and we have disabled the noise figure, so the noise level in 20 MHz
-  // will be about -101 dBm.  Therefore, lower the CCA sensitivity to a
-  // value that disables it (e.g. -110 dBm)
   Config::SetDefault("ns3::WifiPhy::CcaSensitivity", DoubleValue(-110));
 
   WifiHelper wifi;
   wifi.SetStandard(serverSelectedStandard.m_standard);
   YansWifiPhyHelper wifiPhy;
-  // Disable the preamble detection model for the same reason that we
-  // disabled CCA sensitivity above-- we want to enable reception at low SNR
   wifiPhy.DisablePreambleDetectionModel();
 
   Ptr<YansWifiChannel> wifiChannel = CreateObject<YansWifiChannel>();
@@ -573,11 +472,9 @@ int main(int argc, char *argv[]) {
                                     wifiManager + "WifiManager/Rate",
                                 MakeCallback(&RateChange));
 
-  // Configure the mobility.
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  // Initial position of AP and STA
   positionAlloc->Add(Vector(ap1_x, ap1_y, 0.0));
   NS_LOG_INFO("Setting initial AP position to " << Vector(ap1_x, ap1_y, 0.0));
   positionAlloc->Add(Vector(sta1_x, sta1_y, 0.0));
@@ -596,9 +493,6 @@ int main(int argc, char *argv[]) {
   step.stepSize = stepSize;
   step.stepTime = stepTime;
 
-  // Perform post-install configuration from defaults for channel width,
-  // guard interval, and nss, if necessary
-  // Obtain pointer to the WifiPhy
   Ptr<NetDevice> ndClient = clientDevice.Get(0);
   Ptr<NetDevice> ndServer = serverDevice.Get(0);
   Ptr<WifiNetDevice> wndClient = ndClient->GetObject<WifiNetDevice>();
@@ -613,7 +507,6 @@ int main(int argc, char *argv[]) {
   wifiPhyPtrServer->SetNumberOfAntennas(t_serverNss);
   wifiPhyPtrServer->SetMaxSupportedTxSpatialStreams(t_serverNss);
   wifiPhyPtrServer->SetMaxSupportedRxSpatialStreams(t_serverNss);
-  // Only set the guard interval for HT and VHT modes
   if (serverSelectedStandard.m_name == "802.11n-5GHz" ||
       serverSelectedStandard.m_name == "802.11n-2.4GHz" ||
       serverSelectedStandard.m_name == "802.11ac") {
@@ -637,12 +530,10 @@ int main(int argc, char *argv[]) {
                                 << " noiseDbm " << noiseDbm);
   NS_LOG_DEBUG("NSS " << wifiPhyPtrClient->GetMaxSupportedTxSpatialStreams());
 
-  // Configure signal and noise, and schedule first iteration
   noiseDbm += 10 * log10(clientSelectedStandard.m_width * 1000000);
   double rssCurrent = (clientSelectedStandard.m_snrHigh + noiseDbm);
   rssLossModel->SetRss(rssCurrent);
   NS_LOG_INFO("Setting initial Rss to " << rssCurrent);
-  // Move the STA by stepsSize meters every stepTime seconds
   Simulator::Schedule(Seconds(0.5 + stepTime), &ChangeSignalAndReportRate,
                       rssLossModel, step, rssCurrent, rateDataset,
                       actualDataset);
@@ -658,18 +549,14 @@ int main(int argc, char *argv[]) {
   } else {
     socketAddr.SetPhysicalAddress(serverDevice.Get(0)->GetAddress());
   }
-  // Arbitrary protocol type.
-  // Note: PacketSocket doesn't have any L4 multiplexing or demultiplexing
-  //       The only mux/demux is based on the protocol field
   socketAddr.SetProtocol(1);
 
   Ptr<PacketSocketClient> client = CreateObject<PacketSocketClient>();
   client->SetRemote(socketAddr);
-  client->SetStartTime(Seconds(0.5)); // allow simulation warmup
-  client->SetAttribute("MaxPackets", UintegerValue(0)); // unlimited
+  client->SetStartTime(Seconds(0.5));
+  client->SetAttribute("MaxPackets", UintegerValue(0));
   client->SetAttribute("PacketSize", UintegerValue(packetSize));
 
-  // Set a maximum rate 10% above the yMax specified for the selected standard
   double rate = clientSelectedStandard.m_yMax * 1e6 * 1.10;
   double clientInterval = static_cast<double>(packetSize) * 8 / rate;
   NS_LOG_DEBUG("Setting interval to " << clientInterval << " sec for rate of "

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "address.h"
 
@@ -30,10 +12,7 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Address");
 
-Address::Address() : m_type(0), m_len(0) {
-  // Buffer left uninitialized
-  NS_LOG_FUNCTION(this);
-}
+Address::Address() : m_type(0), m_len(0) { NS_LOG_FUNCTION(this); }
 
 Address::Address(uint8_t type, const uint8_t *buffer, uint8_t len)
     : m_type(type), m_len(len) {
@@ -108,8 +87,6 @@ bool Address::CheckCompatible(uint8_t type, uint8_t len) const {
   NS_LOG_FUNCTION(this << static_cast<uint32_t>(type)
                        << static_cast<uint32_t>(len));
   NS_ASSERT(len <= MAX_SIZE);
-  /// \internal
-  /// Mac address type/length detection is discussed in \bugid{1568}
   return (m_len == len && m_type == type) || (m_len >= len && m_type == 0);
 }
 
@@ -148,15 +125,6 @@ void Address::Deserialize(TagBuffer buffer) {
 ATTRIBUTE_HELPER_CPP(Address);
 
 bool operator==(const Address &a, const Address &b) {
-  /* Two addresses can be equal even if their types are
-   * different if one of the two types is zero. a type of
-   * zero identifies an Address which might contain meaningful
-   * payload but for which the type field could not be set because
-   * we did not know it. This can typically happen in the ARP
-   * layer where we receive an address from an ArpHeader but
-   * we do not know its type: we really want to be able to
-   * compare addresses without knowing their real type.
-   */
   if (a.m_type != b.m_type && a.m_type != 0 && b.m_type != 0) {
     return false;
   }
@@ -198,7 +166,6 @@ std::ostream &operator<<(std::ostream &os, const Address &address) {
   for (uint8_t i = 0; i < (address.m_len - 1); ++i) {
     os << std::setw(2) << (uint32_t)address.m_data[i] << ":";
   }
-  // Final byte not suffixed by ":"
   os << std::setw(2) << (uint32_t)address.m_data[address.m_len - 1];
   os.setf(std::ios::dec, std::ios::basefield);
   os.fill(' ');

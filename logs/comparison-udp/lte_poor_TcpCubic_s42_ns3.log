@@ -1,0 +1,60 @@
+Ns3Env parameters:
+--Tcp version: ns3::TcpCubic
+AccessBW: 50Mbps
+BottleneckBW: 10Mbps
+TCP Flow 1 Src Addr: 10.1.1.1 Dst Addr: 10.2.1.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.1
+Tx Packets Count: 3190
+Rx Packets Count: 3189
+Loss Rate: 0.031348%
+Throughput: 1.887888 Mbps
+TCP Flow 2 Src Addr: 10.2.1.1 Dst Addr: 10.1.1.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.216663639
+Tx Packets Count: 1585
+Rx Packets Count: 1585
+Loss Rate: 0.000000%
+Throughput: 0.033161 Mbps
+TCP Flow 3 Src Addr: 10.1.2.1 Dst Addr: 10.2.2.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.2
+Tx Packets Count: 3212
+Rx Packets Count: 3211
+Loss Rate: 0.031133%
+Throughput: 1.910464 Mbps
+TCP Flow 4 Src Addr: 10.2.2.1 Dst Addr: 10.1.2.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.31685311
+Tx Packets Count: 1596
+Rx Packets Count: 1596
+Loss Rate: 0.000000%
+Throughput: 0.033561 Mbps
+TCP Flow 5 Src Addr: 10.1.3.1 Dst Addr: 10.2.3.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.3
+Tx Packets Count: 3281
+Rx Packets Count: 3280
+Loss Rate: 0.030479%
+Throughput: 1.961374 Mbps
+TCP Flow 6 Src Addr: 10.2.3.1 Dst Addr: 10.1.3.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.417171047
+Tx Packets Count: 1630
+Rx Packets Count: 1630
+Loss Rate: 0.000000%
+Throughput: 0.034450 Mbps
+UDP Flow 7 Src Addr: 10.1.1.1 Dst Addr: 10.2.1.1
+Time Last Rx Packet: 20.1
+Time First Tx Packet: 0.5
+Tx Packets Count: 6927
+Rx Packets Count: 6925
+Loss Rate: 0.028873%
+Throughput: 2.973510 Mbps
+AggregateThroughput: 5.759726 Mbps
+AggregateLossRate: 0.030982 %
+RxPkts:
+---SinkId: 0 RxPkts: 3189
+---SinkId: 1 RxPkts: 3211
+---SinkId: 2 RxPkts: 3280
+Total Rx Bytes Count: 14326400

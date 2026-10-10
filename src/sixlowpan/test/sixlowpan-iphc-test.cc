@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/inet6-socket-address.h"
@@ -36,48 +18,19 @@
 
 using namespace ns3;
 
-/**
- * \ingroup sixlowpan-tests
- *
- * \brief 6LoWPAN IPHC Test
- */
 class SixlowpanIphcImplTest : public TestCase {
-  Ptr<Packet> m_receivedPacket; //!< received packet
+  Ptr<Packet> m_receivedPacket;
 
-  /**
-   * Send data function.
-   *
-   * \param socket The sending socket.
-   * \param to The destination.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
 
-  /**
-   * Send data function.
-   *
-   * \param socket The sending socket.
-   * \param to The destination.
-   */
   void SendData(Ptr<Socket> socket, std::string to);
 
 public:
   void DoRun() override;
   SixlowpanIphcImplTest();
 
-  /**
-   * Packet receive function.
-   *
-   * \param socket The receiving socket.
-   * \param packet The received packet.
-   * \param from The sender.
-   */
   void ReceivePacket(Ptr<Socket> socket, Ptr<Packet> packet,
                      const Address &from);
-  /**
-   * Packet receive function.
-   *
-   * \param socket The receiving socket.
-   */
   void ReceivePkt(Ptr<Socket> socket);
 };
 
@@ -117,15 +70,13 @@ void SixlowpanIphcImplTest::SendData(Ptr<Socket> socket, std::string to) {
 }
 
 void SixlowpanIphcImplTest::DoRun() {
-  // Create topology
   InternetStackHelper internet;
   internet.SetIpv4StackInstall(false);
 
-  // Receiver Node
   Ptr<Node> rxNode = CreateObject<Node>();
   internet.Install(rxNode);
   Ptr<SimpleNetDevice> rxDev;
-  { // first interface
+  {
     rxDev = CreateObject<SimpleNetDevice>();
     rxDev->SetAddress(Mac48Address::ConvertFrom(Mac48Address::Allocate()));
     rxNode->AddDevice(rxDev);
@@ -144,7 +95,6 @@ void SixlowpanIphcImplTest::DoRun() {
     ipv6->SetUp(netdev_idx);
   }
 
-  // Sender Node
   Ptr<Node> txNode = CreateObject<Node>();
   internet.Install(txNode);
   Ptr<SimpleNetDevice> txDev;
@@ -167,12 +117,10 @@ void SixlowpanIphcImplTest::DoRun() {
     ipv6->SetUp(netdev_idx);
   }
 
-  // link the two nodes
   Ptr<SimpleChannel> channel1 = CreateObject<SimpleChannel>();
   rxDev->SetChannel(channel1);
   txDev->SetChannel(channel1);
 
-  // Create the UDP sockets
   Ptr<SocketFactory> rxSocketFactory = rxNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> rxSocket = rxSocketFactory->CreateSocket();
   NS_TEST_EXPECT_MSG_EQ(
@@ -184,9 +132,7 @@ void SixlowpanIphcImplTest::DoRun() {
   Ptr<SocketFactory> txSocketFactory = txNode->GetObject<UdpSocketFactory>();
   Ptr<Socket> txSocket = txSocketFactory->CreateSocket();
   txSocket->SetAllowBroadcast(true);
-  // ------ Now the tests ------------
 
-  // Unicast test
   SendData(txSocket, "2001:0100::1");
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacket->GetSize(), 180, "trivial");
   uint8_t rxBuffer[180];
@@ -202,11 +148,6 @@ void SixlowpanIphcImplTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup sixlowpan-tests
- *
- * \brief 6LoWPAN IPHC TestSuite
- */
 class SixlowpanIphcTestSuite : public TestSuite {
 public:
   SixlowpanIphcTestSuite();
@@ -219,5 +160,4 @@ SixlowpanIphcTestSuite::SixlowpanIphcTestSuite()
   AddTestCase(new SixlowpanIphcImplTest(), TestCase::QUICK);
 }
 
-static SixlowpanIphcTestSuite
-    g_sixlowpanIphcTestSuite; //!< Static variable for test initialization
+static SixlowpanIphcTestSuite g_sixlowpanIphcTestSuite;

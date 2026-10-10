@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2018 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "arp-queue-disc-item.h"
 
@@ -79,7 +63,6 @@ uint32_t ArpQueueDiscItem::Hash(uint32_t perturbation) const {
   uint8_t type = m_header.IsRequest() ? ArpHeader::ARP_TYPE_REQUEST
                                       : ArpHeader::ARP_TYPE_REPLY;
 
-  /* serialize the addresses and the perturbation in buf */
   uint8_t tmp = 8 + macSrc.GetLength() + macDst.GetLength();
   uint8_t buf[tmp + 5];
   ipv4Src.Serialize(buf);
@@ -91,9 +74,6 @@ uint32_t ArpQueueDiscItem::Hash(uint32_t perturbation) const {
   buf[tmp + 2] = (perturbation >> 16) & 0xff;
   buf[tmp + 3] = (perturbation >> 8) & 0xff;
   buf[tmp + 4] = perturbation & 0xff;
-
-  // Linux calculates jhash2 (jenkins hash), we calculate murmur3 because it is
-  // already available in ns-3
 
   uint32_t hash = Hash32((char *)buf, tmp + 5);
 

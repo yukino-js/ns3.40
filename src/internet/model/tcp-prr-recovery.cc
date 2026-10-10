@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2018 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Viyom Mittal <viyommittal@gmail.com>
- *         Vivek Jain <jain.vivek.anand@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "tcp-prr-recovery.h"
 
@@ -97,7 +76,6 @@ void TcpPrrRecovery::DoRecovery(Ptr<TcpSocketState> tcb,
         limit, static_cast<int>(tcb->m_ssThresh - tcb->m_bytesInFlight));
   }
 
-  /* Force a fast retransmit upon entering fast recovery */
   sendCount = std::max(sendCount,
                        static_cast<int>(m_prrOut > 0 ? 0 : tcb->m_segmentSize));
   tcb->m_cWnd = tcb->m_bytesInFlight + sendCount;

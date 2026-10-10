@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2010 Hemanth Narra
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hemanth Narra <hemanth@ittc.ku.com>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -46,84 +16,41 @@ uint16_t port = 9;
 
 NS_LOG_COMPONENT_DEFINE("DsdvManetExample");
 
-/**
- * \ingroup dsdv
- * \ingroup dsdv-examples
- * \ingroup examples
- *
- * \brief DSDV Manet example
- */
 class DsdvManetExample {
 public:
   DsdvManetExample();
-  /**
-   * Run function
-   * \param nWifis The total number of nodes
-   * \param nSinks The total number of receivers
-   * \param totalTime The total simulation time
-   * \param rate The network speed
-   * \param phyMode The physical mode
-   * \param nodeSpeed The node speed
-   * \param periodicUpdateInterval The routing update interval
-   * \param settlingTime The routing update settling time
-   * \param dataStart The data transmission start time
-   * \param printRoutes print the routes if true
-   * \param CSVfileName The CSV file name
-   */
   void CaseRun(uint32_t nWifis, uint32_t nSinks, double totalTime,
                std::string rate, std::string phyMode, uint32_t nodeSpeed,
                uint32_t periodicUpdateInterval, uint32_t settlingTime,
                double dataStart, bool printRoutes, std::string CSVfileName);
 
 private:
-  uint32_t m_nWifis;                 ///< total number of nodes
-  uint32_t m_nSinks;                 ///< number of receiver nodes
-  double m_totalTime;                ///< total simulation time (in seconds)
-  std::string m_rate;                ///< network bandwidth
-  std::string m_phyMode;             ///< remote station manager data mode
-  uint32_t m_nodeSpeed;              ///< mobility speed
-  uint32_t m_periodicUpdateInterval; ///< routing update interval
-  uint32_t m_settlingTime;           ///< routing setting time
-  double m_dataStart;        ///< time to start data transmissions (seconds)
-  uint32_t bytesTotal;       ///< total bytes received by all nodes
-  uint32_t packetsReceived;  ///< total packets received by all nodes
-  bool m_printRoutes;        ///< print routing table
-  std::string m_CSVfileName; ///< CSV file name
+  uint32_t m_nWifis;
+  uint32_t m_nSinks;
+  double m_totalTime;
+  std::string m_rate;
+  std::string m_phyMode;
+  uint32_t m_nodeSpeed;
+  uint32_t m_periodicUpdateInterval;
+  uint32_t m_settlingTime;
+  double m_dataStart;
+  uint32_t bytesTotal;
+  uint32_t packetsReceived;
+  bool m_printRoutes;
+  std::string m_CSVfileName;
 
-  NodeContainer nodes;               ///< the collection of nodes
-  NetDeviceContainer devices;        ///< the collection of devices
-  Ipv4InterfaceContainer interfaces; ///< the collection of interfaces
+  NodeContainer nodes;
+  NetDeviceContainer devices;
+  Ipv4InterfaceContainer interfaces;
 
 private:
-  /// Create and initialize all nodes
   void CreateNodes();
-  /**
-   * Create and initialize all devices
-   * \param tr_name The trace file name
-   */
   void CreateDevices(std::string tr_name);
-  /**
-   * Create network
-   * \param tr_name The trace file name
-   */
   void InstallInternetStack(std::string tr_name);
-  /// Create data sinks and sources
   void InstallApplications();
-  /// Setup mobility model
   void SetupMobility();
-  /**
-   * Packet receive function
-   * \param socket The communication socket
-   */
   void ReceivePacket(Ptr<Socket> socket);
-  /**
-   * Setup packet receivers
-   * \param addr the receiving IPv4 address
-   * \param node the receiving node
-   * \returns the communication socket
-   */
   Ptr<Socket> SetupPacketReceive(Ipv4Address addr, Ptr<Node> node);
-  /// Check network throughput
   void CheckThroughput();
 };
 
@@ -134,7 +61,7 @@ int main(int argc, char **argv) {
   double totalTime = 100.0;
   std::string rate("8kbps");
   std::string phyMode("DsssRate11Mbps");
-  uint32_t nodeSpeed = 10; // in m/s
+  uint32_t nodeSpeed = 10;
   std::string appl = "all";
   uint32_t periodicUpdateInterval = 15;
   uint32_t settlingTime = 6;
@@ -328,7 +255,7 @@ void DsdvManetExample::InstallInternetStack(std::string tr_name) {
            TimeValue(Seconds(m_periodicUpdateInterval)));
   dsdv.Set("SettlingTime", TimeValue(Seconds(m_settlingTime)));
   InternetStackHelper stack;
-  stack.SetRoutingHelper(dsdv); // has effect on the next Install ()
+  stack.SetRoutingHelper(dsdv);
   stack.Install(nodes);
   Ipv4AddressHelper address;
   address.SetBase("10.1.1.0", "255.255.255.0");

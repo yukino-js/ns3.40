@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 
 #include "cost231-propagation-loss-model.h"
 
@@ -130,10 +111,6 @@ double Cost231PropagationLossModel::GetLoss(Ptr<MobilityModel> a,
 
   double C_H = 0.8 + ((1.11 * logFrequencyMhz) - 0.7) * m_SSAntennaHeight -
                (1.56 * logFrequencyMhz);
-
-  // from the COST231 wiki entry
-  // See also http://www.lx.it.pt/cost231/final_report.htm
-  // Ch. 4, eq. 4.4.3, pg. 135
 
   double loss_in_db =
       46.3 + (33.9 * logFrequencyMhz) - (13.82 * logBSAntennaHeight) - C_H +

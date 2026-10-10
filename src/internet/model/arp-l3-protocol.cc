@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "arp-l3-protocol.h"
 
 #include "arp-cache.h"
@@ -90,16 +72,10 @@ void ArpL3Protocol::SetTrafficControl(Ptr<TrafficControlLayer> tc) {
   m_tc = tc;
 }
 
-/*
- * This method is called by AggregateObject and completes the aggregation
- * by setting the node in the ipv4 stack
- */
 void ArpL3Protocol::NotifyNewAggregate() {
   NS_LOG_FUNCTION(this);
   if (!m_node) {
     Ptr<Node> node = this->GetObject<Node>();
-    // verify that it's a valid node and that
-    // the node was not set before
     if (node) {
       this->SetNode(node);
     }
@@ -141,7 +117,6 @@ Ptr<ArpCache> ArpL3Protocol::FindCache(Ptr<NetDevice> device) {
     }
   }
   NS_ASSERT(false);
-  // quiet compiler
   return nullptr;
 }
 
@@ -158,13 +133,6 @@ void ArpL3Protocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
 
   Ptr<ArpCache> cache = FindCache(device);
 
-  //
-  // If we're connected to a real world network, then some of the fields sizes
-  // in an ARP packet can vary in ways not seen in simulations.  We need to be
-  // able to detect ARP packets with headers we don't recongnize and not process
-  // them instead of crashing.  The ArpHeader will return 0 if it can't deal
-  // with the received header.
-  //
   ArpHeader arp;
   uint32_t size = packet->RemoveHeader(arp);
   if (size == 0) {
@@ -181,11 +149,6 @@ void ArpL3Protocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
     NS_LOG_LOGIC(cache->GetInterface()->GetAddress(i).GetLocal() << ", ");
   }
 
-  /**
-   * \internal
-   * Note: we do not update the ARP cache when we receive an ARP request
-   *  from an unknown node. See \bugid{107}
-   */
   bool found = false;
   for (uint32_t i = 0; i < cache->GetInterface()->GetNAddresses(); i++) {
     if (arp.IsRequest() &&
@@ -218,8 +181,6 @@ void ArpL3Protocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
             pending = entry->DequeuePending();
           }
         } else {
-          // ignore this reply which might well be an attempt
-          // at poisening my arp cache.
           NS_LOG_LOGIC("node=" << m_node->GetId() << ", got reply from "
                                << arp.GetSourceIpv4Address()
                                << " for non-waiting entry -- drop");
@@ -272,7 +233,6 @@ bool ArpL3Protocol::Lookup(Ptr<Packet> packet, const Ipv4Header &ipHeader,
       if (entry->IsDead()) {
         NS_LOG_LOGIC("node=" << m_node->GetId() << ", dead entry for "
                              << destination << " valid -- drop");
-        // add the Ipv4 header for tracing purposes
         packet->AddHeader(ipHeader);
         m_dropTrace(packet);
       } else if (entry->IsAlive()) {
@@ -285,7 +245,6 @@ bool ArpL3Protocol::Lookup(Ptr<Packet> packet, const Ipv4Header &ipHeader,
                              << destination << " valid -- drop previous");
         if (!entry->UpdateWaitReply(
                 ArpCache::Ipv4PayloadHeaderPair(packet, ipHeader))) {
-          // add the Ipv4 header for tracing purposes
           packet->AddHeader(ipHeader);
           m_dropTrace(packet);
         }
@@ -301,7 +260,6 @@ bool ArpL3Protocol::Lookup(Ptr<Packet> packet, const Ipv4Header &ipHeader,
       }
     }
   } else {
-    // This is our first attempt to transmit data to this destination.
     NS_LOG_LOGIC("node=" << m_node->GetId() << ", no entry for " << destination
                          << " -- send arp request");
     entry = cache->Add(destination);
@@ -316,7 +274,6 @@ bool ArpL3Protocol::Lookup(Ptr<Packet> packet, const Ipv4Header &ipHeader,
 void ArpL3Protocol::SendArpRequest(Ptr<const ArpCache> cache, Ipv4Address to) {
   NS_LOG_FUNCTION(this << cache << to);
   ArpHeader arp;
-  // need to pick a source address; use routing implementation to select
   Ptr<Ipv4L3Protocol> ipv4 = m_node->GetObject<Ipv4L3Protocol>();
   Ptr<NetDevice> device = cache->GetDevice();
   NS_ASSERT(device);

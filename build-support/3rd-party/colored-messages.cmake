@@ -1,29 +1,4 @@
-# Copyright (c) 2013 Fraser Hutchison
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by the Free
-# Software Foundation;
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-# Place, Suite 330, Boston, MA  02111-1307 USA
-# cmake-format: off
-#
-# Author: Fraser Hutchison <fraser@casperlabs.io>
-# Modified by: Gabriel Ferreira <gabrielcarvfer@gmail.com>
-#
-# Original code:
-#  https://stackoverflow.com/a/19578320
-# Used with permission of the author:
-#  https://gitlab.com/nsnam/ns-3-dev/-/merge_requests/913#note_884829396
-# cmake-format: on
 
-# Set empty values for colors
 set(ColourReset)
 set(Red)
 set(Green)
@@ -40,12 +15,10 @@ set(BoldMagenta)
 set(BoldCyan)
 set(BoldWhite)
 
-# Custom message types fallback when not colorized
 set(HIGHLIGHTED_STATUS STATUS)
 
 if(${NS3_COLORED_OUTPUT} OR "$ENV{CLICOLOR}")
   if(NOT WIN32)
-    # When colorized, set color values
     string(ASCII 27 Esc)
     set(ColourReset "${Esc}[0m")
     set(ColourBold "${Esc}[1m")
@@ -65,15 +38,12 @@ if(${NS3_COLORED_OUTPUT} OR "$ENV{CLICOLOR}")
     set(BoldWhite "${Esc}[1;37m")
   endif()
 
-  # Set custom message type when colorized
   set(HIGHLIGHTED_STATUS HIGHLIGHTED_STATUS)
 
-  # Replace the default message macro with a custom colored one
   function(message)
     list(GET ARGV 0 MessageType)
     list(REMOVE_AT ARGV 0)
 
-    # Transform list of arguments into a single line.
     string(REPLACE ";" " " ARGV "${ARGV}")
 
     if((${MessageType} STREQUAL FATAL_ERROR) OR (${MessageType} STREQUAL
@@ -84,7 +54,7 @@ if(${NS3_COLORED_OUTPUT} OR "$ENV{CLICOLOR}")
       _message(${MessageType} "${Yellow}${ARGV}${ColourReset}")
     elseif(MessageType STREQUAL AUTHOR_WARNING)
       _message(${MessageType} "${BoldCyan}${ARGV}${ColourReset}")
-    elseif(MessageType STREQUAL HIGHLIGHTED_STATUS) # Custom message type
+    elseif(MessageType STREQUAL HIGHLIGHTED_STATUS)
       _message(STATUS "${Yellow}${ARGV}${ColourReset}")
     elseif(MessageType STREQUAL STATUS)
       _message(${MessageType} "${ARGV}")

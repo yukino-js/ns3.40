@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2011 Adrian Sai-wah Tam
- * Copyright (c) 2015 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Original Author: Adrian Sai-wah Tam <adrian.sw.tam@gmail.com>
- * Documentation, test cases: Truc Anh N. Nguyen   <annguyen@ittc.ku.edu>
- *                            ResiliNets Research Group https://resilinets.org/
- *                            The University of Kansas
- *                            James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- */
 
 #include "tcp-option-sack.h"
 
@@ -62,15 +39,15 @@ uint32_t TcpOptionSack::GetSerializedSize() const {
 void TcpOptionSack::Serialize(Buffer::Iterator start) const {
   NS_LOG_FUNCTION(this);
   Buffer::Iterator i = start;
-  i.WriteU8(GetKind()); // Kind
+  i.WriteU8(GetKind());
   auto length = static_cast<uint8_t>(GetNumSackBlocks() * 8 + 2);
-  i.WriteU8(length); // Length
+  i.WriteU8(length);
 
   for (auto it = m_sackList.begin(); it != m_sackList.end(); ++it) {
     SequenceNumber32 leftEdge = it->first;
     SequenceNumber32 rightEdge = it->second;
-    i.WriteHtonU32(leftEdge.GetValue());  // Left edge of the block
-    i.WriteHtonU32(rightEdge.GetValue()); // Right edge of the block
+    i.WriteHtonU32(leftEdge.GetValue());
+    i.WriteHtonU32(rightEdge.GetValue());
   }
 }
 

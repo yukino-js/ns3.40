@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2016 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pasquale Imputato <p.imputato@gmail.com>
- *          Stefano Avallone <stefano.avallone@unina.it>
- */
 
 #include "ns3/codel-queue-disc.h"
 #include "ns3/fq-codel-queue-disc.h"
@@ -36,38 +17,18 @@
 
 using namespace ns3;
 
-/// Variable to assign g_hash to a new packet's flow
 static int32_t g_hash;
 
-/**
- * \ingroup system-tests-tc
- *
- * Simple test packet filter able to classify IPv4 packets.
- */
 class Ipv4TestPacketFilter : public Ipv4PacketFilter {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
   Ipv4TestPacketFilter();
   ~Ipv4TestPacketFilter() override;
 
 private:
-  /**
-   * Classify a QueueDiscItem
-   * \param item The item to classify (unused).
-   * \return a pre-set hash value.
-   */
   int32_t DoClassify(Ptr<QueueDiscItem> item) const override;
 
-  /**
-   * Check the protocol.
-   * \param item The item to check (unused).
-   * \return true.
-   */
   bool CheckProtocol(Ptr<QueueDiscItem> item) const override;
 };
 
@@ -91,11 +52,6 @@ bool Ipv4TestPacketFilter::CheckProtocol(Ptr<QueueDiscItem> item) const {
   return true;
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * This class tests packets for which there is no suitable filter.
- */
 class FqCoDelQueueDiscNoSuitableFilter : public TestCase {
 public:
   FqCoDelQueueDiscNoSuitableFilter();
@@ -111,8 +67,6 @@ FqCoDelQueueDiscNoSuitableFilter::FqCoDelQueueDiscNoSuitableFilter()
 FqCoDelQueueDiscNoSuitableFilter::~FqCoDelQueueDiscNoSuitableFilter() {}
 
 void FqCoDelQueueDiscNoSuitableFilter::DoRun() {
-  // Packets that cannot be classified by the available filters should be
-  // dropped
   Ptr<FqCoDelQueueDisc> queueDisc =
       CreateObjectWithAttributes<FqCoDelQueueDisc>("MaxSize",
                                                    StringValue("4p"));
@@ -142,11 +96,6 @@ void FqCoDelQueueDiscNoSuitableFilter::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * This class tests the IP flows separation and the packet limit.
- */
 class FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit : public TestCase {
 public:
   FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit();
@@ -154,11 +103,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue a packet.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr);
 };
 
@@ -191,7 +135,6 @@ void FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit::DoRun() {
   hdr.SetDestination(Ipv4Address("10.10.1.2"));
   hdr.SetProtocol(7);
 
-  // Add three packets from the first flow
   AddPacket(queueDisc, hdr);
   AddPacket(queueDisc, hdr);
   AddPacket(queueDisc, hdr);
@@ -201,9 +144,7 @@ void FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit::DoRun() {
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 3,
       "unexpected number of packets in the flow queue");
 
-  // Add two packets from the second flow
   hdr.SetDestination(Ipv4Address("10.10.1.7"));
-  // Add the first packet
   AddPacket(queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 4,
                         "unexpected number of packets in the queue disc");
@@ -213,8 +154,6 @@ void FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the flow queue");
-  // Add the second packet that causes two packets to be dropped from the fat
-  // flow (max backlog = 300, threshold = 150)
   AddPacket(queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 3,
                         "unexpected number of packets in the queue disc");
@@ -228,11 +167,6 @@ void FqCoDelQueueDiscIPFlowsSeparationAndPacketLimit::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * This class tests the deficit per flow.
- */
 class FqCoDelQueueDiscDeficit : public TestCase {
 public:
   FqCoDelQueueDiscDeficit();
@@ -240,11 +174,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue a packet.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr);
 };
 
@@ -274,7 +203,6 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   hdr.SetDestination(Ipv4Address("10.10.1.2"));
   hdr.SetProtocol(7);
 
-  // Add a packet from the first flow
   AddPacket(queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 1,
                         "unexpected number of packets in the queue disc");
@@ -288,18 +216,15 @@ void FqCoDelQueueDiscDeficit::DoRun() {
                         "the deficit of the first flow must equal the quantum");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::NEW_FLOW,
                         "the first flow must be in the list of new queues");
-  // Dequeue a packet
   queueDisc->Dequeue();
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 0,
                         "unexpected number of packets in the queue disc");
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 0,
       "unexpected number of packets in the first flow queue");
-  // the deficit for the first flow becomes 90 - (100+20) = -30
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), -30,
                         "unexpected deficit for the first flow");
 
-  // Add two packets from the first flow
   AddPacket(queueDisc, hdr);
   AddPacket(queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 2,
@@ -311,7 +236,6 @@ void FqCoDelQueueDiscDeficit::DoRun() {
       flow1->GetStatus(), FqCoDelFlow::NEW_FLOW,
       "the first flow must still be in the list of new queues");
 
-  // Add two packets from the second flow
   hdr.SetDestination(Ipv4Address("10.10.1.10"));
   AddPacket(queueDisc, hdr);
   AddPacket(queueDisc, hdr);
@@ -331,8 +255,6 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(flow2->GetStatus(), FqCoDelFlow::NEW_FLOW,
                         "the second flow must be in the list of new queues");
 
-  // Dequeue a packet (from the second flow, as the first flow has a negative
-  // deficit)
   queueDisc->Dequeue();
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 3,
                         "unexpected number of packets in the queue disc");
@@ -342,21 +264,15 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the second flow queue");
-  // the first flow got a quantum of deficit (-30+90=60) and has been moved to
-  // the end of the list of old queues
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), 60,
                         "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the first flow must be in the list of old queues");
-  // the second flow has a negative deficit (-30) and is still in the list of
-  // new queues
   NS_TEST_ASSERT_MSG_EQ(flow2->GetDeficit(), -30,
                         "unexpected deficit for the second flow");
   NS_TEST_ASSERT_MSG_EQ(flow2->GetStatus(), FqCoDelFlow::NEW_FLOW,
                         "the second flow must be in the list of new queues");
 
-  // Dequeue a packet (from the first flow, as the second flow has a negative
-  // deficit)
   queueDisc->Dequeue();
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 2,
                         "unexpected number of packets in the queue disc");
@@ -366,21 +282,15 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the second flow queue");
-  // the first flow has a negative deficit (60-(100+20)= -60) and stays in the
-  // list of old queues
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), -60,
                         "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the first flow must be in the list of old queues");
-  // the second flow got a quantum of deficit (-30+90=60) and has been moved to
-  // the end of the list of old queues
   NS_TEST_ASSERT_MSG_EQ(flow2->GetDeficit(), 60,
                         "unexpected deficit for the second flow");
   NS_TEST_ASSERT_MSG_EQ(flow2->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the second flow must be in the list of new queues");
 
-  // Dequeue a packet (from the second flow, as the first flow has a negative
-  // deficit)
   queueDisc->Dequeue();
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 1,
                         "unexpected number of packets in the queue disc");
@@ -390,20 +300,15 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 0,
       "unexpected number of packets in the second flow queue");
-  // the first flow got a quantum of deficit (-60+90=30) and has been moved to
-  // the end of the list of old queues
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), 30,
                         "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the first flow must be in the list of old queues");
-  // the second flow has a negative deficit (60-(100+20)= -60)
   NS_TEST_ASSERT_MSG_EQ(flow2->GetDeficit(), -60,
                         "unexpected deficit for the second flow");
   NS_TEST_ASSERT_MSG_EQ(flow2->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the second flow must be in the list of new queues");
 
-  // Dequeue a packet (from the first flow, as the second flow has a negative
-  // deficit)
   queueDisc->Dequeue();
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 0,
                         "unexpected number of packets in the queue disc");
@@ -413,28 +318,16 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 0,
       "unexpected number of packets in the second flow queue");
-  // the first flow has a negative deficit (30-(100+20)= -90)
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), -90,
                         "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the first flow must be in the list of old queues");
-  // the second flow got a quantum of deficit (-60+90=30) and has been moved to
-  // the end of the list of old queues
   NS_TEST_ASSERT_MSG_EQ(flow2->GetDeficit(), 30,
                         "unexpected deficit for the second flow");
   NS_TEST_ASSERT_MSG_EQ(flow2->GetStatus(), FqCoDelFlow::OLD_FLOW,
                         "the second flow must be in the list of new queues");
 
-  // Dequeue a packet
   queueDisc->Dequeue();
-  // the first flow is at the head of the list of old queues but has a negative
-  // deficit, thus it gets a quantun of deficit (-90+90=0) and is moved to the
-  // end of the list of old queues. Then, the second flow (which has a positive
-  // deficit) is selected, but the second flow is empty and thus it is set to
-  // inactive. The first flow is reconsidered, but it has a null deficit, hence
-  // it gets another quantum of deficit (0+90=90). Then, the first flow is
-  // reconsidered again, now it has a positive deficit and hence it is selected.
-  // But, it is empty and therefore is set to inactive, too.
   NS_TEST_ASSERT_MSG_EQ(flow1->GetDeficit(), 90,
                         "unexpected deficit for the first flow");
   NS_TEST_ASSERT_MSG_EQ(flow1->GetStatus(), FqCoDelFlow::INACTIVE,
@@ -447,11 +340,6 @@ void FqCoDelQueueDiscDeficit::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * This class tests the TCP flows separation.
- */
 class FqCoDelQueueDiscTCPFlowsSeparation : public TestCase {
 public:
   FqCoDelQueueDiscTCPFlowsSeparation();
@@ -459,12 +347,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue a packet.
-   * \param queue The queue disc.
-   * \param ipHdr The IPv4 header.
-   * \param tcpHdr The TCP header.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header ipHdr,
                  TcpHeader tcpHdr);
 };
@@ -502,7 +384,6 @@ void FqCoDelQueueDiscTCPFlowsSeparation::DoRun() {
   tcpHdr.SetSourcePort(7);
   tcpHdr.SetDestinationPort(27);
 
-  // Add three packets from the first flow
   AddPacket(queueDisc, hdr, tcpHdr);
   AddPacket(queueDisc, hdr, tcpHdr);
   AddPacket(queueDisc, hdr, tcpHdr);
@@ -512,7 +393,6 @@ void FqCoDelQueueDiscTCPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 3,
       "unexpected number of packets in the first flow queue");
 
-  // Add a packet from the second flow
   tcpHdr.SetSourcePort(8);
   AddPacket(queueDisc, hdr, tcpHdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 4,
@@ -524,7 +404,6 @@ void FqCoDelQueueDiscTCPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the second flow queue");
 
-  // Add a packet from the third flow
   tcpHdr.SetDestinationPort(28);
   AddPacket(queueDisc, hdr, tcpHdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 5,
@@ -539,7 +418,6 @@ void FqCoDelQueueDiscTCPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(2)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the third flow queue");
 
-  // Add two packets from the fourth flow
   tcpHdr.SetSourcePort(7);
   AddPacket(queueDisc, hdr, tcpHdr);
   AddPacket(queueDisc, hdr, tcpHdr);
@@ -561,11 +439,6 @@ void FqCoDelQueueDiscTCPFlowsSeparation::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * This class tests the UDP flows separation
- */
 class FqCoDelQueueDiscUDPFlowsSeparation : public TestCase {
 public:
   FqCoDelQueueDiscUDPFlowsSeparation();
@@ -573,12 +446,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue a packet.
-   * \param queue The queue disc.
-   * \param ipHdr The IPv4 header.
-   * \param udpHdr The UDP header.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header ipHdr,
                  UdpHeader udpHdr);
 };
@@ -616,7 +483,6 @@ void FqCoDelQueueDiscUDPFlowsSeparation::DoRun() {
   udpHdr.SetSourcePort(7);
   udpHdr.SetDestinationPort(27);
 
-  // Add three packets from the first flow
   AddPacket(queueDisc, hdr, udpHdr);
   AddPacket(queueDisc, hdr, udpHdr);
   AddPacket(queueDisc, hdr, udpHdr);
@@ -626,7 +492,6 @@ void FqCoDelQueueDiscUDPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 3,
       "unexpected number of packets in the first flow queue");
 
-  // Add a packet from the second flow
   udpHdr.SetSourcePort(8);
   AddPacket(queueDisc, hdr, udpHdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 4,
@@ -638,7 +503,6 @@ void FqCoDelQueueDiscUDPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(1)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the second flow queue");
 
-  // Add a packet from the third flow
   udpHdr.SetDestinationPort(28);
   AddPacket(queueDisc, hdr, udpHdr);
   NS_TEST_ASSERT_MSG_EQ(queueDisc->QueueDisc::GetNPackets(), 5,
@@ -653,7 +517,6 @@ void FqCoDelQueueDiscUDPFlowsSeparation::DoRun() {
       queueDisc->GetQueueDiscClass(2)->GetQueueDisc()->GetNPackets(), 1,
       "unexpected number of packets in the third flow queue");
 
-  // Add two packets from the fourth flow
   udpHdr.SetSourcePort(7);
   AddPacket(queueDisc, hdr, udpHdr);
   AddPacket(queueDisc, hdr, udpHdr);
@@ -675,14 +538,6 @@ void FqCoDelQueueDiscUDPFlowsSeparation::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * \brief This class tests ECN marking.
- *
- * Any future classifier options (e.g. SetAssociativeHash) should be
- * disabled to prevent a hash collision on this test case.
- */
 class FqCoDelQueueDiscECNMarking : public TestCase {
 public:
   FqCoDelQueueDiscECNMarking();
@@ -690,28 +545,9 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue some packets.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   * \param nPkt The number of packets to enqueue.
-   * \param nPktEnqueued The expected number of queue disc classes.
-   * \param nQueueFlows The expected number of flows in the queue.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr, uint32_t nPkt,
                  uint32_t nPktEnqueued, uint32_t nQueueFlows);
-  /**
-   * Dequeue some packets.
-   * \param queue The queue disc.
-   * \param nPkt The number of packets to dequeue.
-   */
   void Dequeue(Ptr<FqCoDelQueueDisc> queue, uint32_t nPkt);
-  /**
-   * Dequeue some packets with delay.
-   * \param queue The queue disc.
-   * \param delay Delay [seconds].
-   * \param nPkt The number of packets to dequeue.
-   */
   void DequeueWithDelay(Ptr<FqCoDelQueueDisc> queue, double delay,
                         uint32_t nPkt);
 };
@@ -753,13 +589,7 @@ void FqCoDelQueueDiscECNMarking::DequeueWithDelay(Ptr<FqCoDelQueueDisc> queue,
 }
 
 void FqCoDelQueueDiscECNMarking::DoRun() {
-  // Test is divided into 3 sub test cases:
-  // 1) CeThreshold disabled
-  // 2) CeThreshold enabled
-  // 3) Same as 2 but with higher queue delay, leading to both mark types, and
-  // checks that the same packet is not marked twice
 
-  // Test case 1, CeThreshold disabled
   Ptr<FqCoDelQueueDisc> queueDisc =
       CreateObjectWithAttributes<FqCoDelQueueDisc>(
           "MaxSize", StringValue("10240p"), "UseEcn", BooleanValue(true),
@@ -774,33 +604,26 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
   hdr.SetProtocol(7);
   hdr.SetEcn(Ipv4Header::ECN_ECT0);
 
-  // Add 20 ECT0 (ECN capable) packets from the first flow
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 20, 1);
 
-  // Add 20 ECT0 (ECN capable) packets from second flow
   hdr.SetDestination(Ipv4Address("10.10.1.10"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 40, 2);
 
-  // Add 20 ECT0 (ECN capable) packets from third flow
   hdr.SetDestination(Ipv4Address("10.10.1.20"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 60, 3);
 
-  // Add 20 NotECT packets from fourth flow
   hdr.SetDestination(Ipv4Address("10.10.1.30"));
   hdr.SetEcn(Ipv4Header::ECN_NotECT);
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 80, 4);
 
-  // Add 20 NotECT packets from fifth flow
   hdr.SetDestination(Ipv4Address("10.10.1.40"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 100, 5);
 
-  // Dequeue 60 packets with delay 110ms to induce packet drops and keep some
-  // remaining packets in each queue
   DequeueWithDelay(queueDisc, 0.11, 60);
   Simulator::Run();
   Simulator::Stop(Seconds(8.0));
@@ -820,8 +643,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
                                ->GetQueueDisc()
                                ->GetObject<CoDelQueueDisc>();
 
-  // Ensure there are some remaining packets in the flow queues to check for
-  // flow queues with ECN capable packets
   NS_TEST_EXPECT_MSG_NE(
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
@@ -838,7 +659,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       queueDisc->GetQueueDiscClass(4)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
 
-  // As packets in flow queues are ECN capable
   NS_TEST_EXPECT_MSG_EQ(
       q0->GetStats().GetNMarkedPackets(CoDelQueueDisc::TARGET_EXCEEDED_MARK), 6,
       "There should be 6 marked packets"
@@ -872,7 +692,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       q2->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       0, "There should not be any dropped packets");
 
-  // As packets in flow queues are not ECN capable
   NS_TEST_EXPECT_MSG_EQ(
       q3->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       4,
@@ -909,9 +728,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(
       q4->GetStats().GetNMarkedPackets(CoDelQueueDisc::TARGET_EXCEEDED_MARK), 0,
       "There should not be any marked packets");
-  // Ensure flow queue 0,1 and 2 have ECN capable packets
-  // Peek () changes the stats of the queue and that is reason to be keep this
-  // test at last
   Ptr<const Ipv4QueueDiscItem> pktQ0 =
       DynamicCast<const Ipv4QueueDiscItem>(q0->Peek());
   NS_TEST_EXPECT_MSG_NE(pktQ0->GetHeader().GetEcn(), Ipv4Header::ECN_NotECT,
@@ -927,42 +743,34 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
 
   Simulator::Destroy();
 
-  // Test case 2, CeThreshold set to 2ms
   queueDisc = CreateObjectWithAttributes<FqCoDelQueueDisc>(
       "MaxSize", StringValue("10240p"), "UseEcn", BooleanValue(true),
       "CeThreshold", TimeValue(MilliSeconds(2)));
   queueDisc->SetQuantum(1514);
   queueDisc->Initialize();
 
-  // Add 20 ECT0 (ECN capable) packets from first flow
   hdr.SetDestination(Ipv4Address("10.10.1.2"));
   hdr.SetEcn(Ipv4Header::ECN_ECT0);
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 20, 1);
 
-  // Add 20 ECT0 (ECN capable) packets from second flow
   hdr.SetDestination(Ipv4Address("10.10.1.10"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 40, 2);
 
-  // Add 20 ECT0 (ECN capable) packets from third flow
   hdr.SetDestination(Ipv4Address("10.10.1.20"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 60, 3);
 
-  // Add 20 NotECT packets from fourth flow
   hdr.SetDestination(Ipv4Address("10.10.1.30"));
   hdr.SetEcn(Ipv4Header::ECN_NotECT);
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 80, 4);
 
-  // Add 20 NotECT packets from fifth flow
   hdr.SetDestination(Ipv4Address("10.10.1.40"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 100, 5);
 
-  // Dequeue 60 packets with delay 0.1ms to induce packet drops and keep some
-  // remaining packets in each queue
   DequeueWithDelay(queueDisc, 0.0001, 60);
   Simulator::Run();
   Simulator::Stop(Seconds(8.0));
@@ -982,8 +790,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
            ->GetQueueDisc()
            ->GetObject<CoDelQueueDisc>();
 
-  // Ensure there are some remaining packets in the flow queues to check for
-  // flow queues with ECN capable packets
   NS_TEST_EXPECT_MSG_NE(
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
@@ -1000,7 +806,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       queueDisc->GetQueueDiscClass(4)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
 
-  // As packets in flow queues are ECN capable
   NS_TEST_EXPECT_MSG_EQ(
       q0->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       0, "There should not be any dropped packets");
@@ -1036,7 +841,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
                         "can be dequeued and all of them have "
                         "sojourn time more than CE threshold");
 
-  // As packets in flow queues are not ECN capable
   NS_TEST_EXPECT_MSG_EQ(q3->GetStats().GetNMarkedPackets(
                             CoDelQueueDisc::CE_THRESHOLD_EXCEEDED_MARK),
                         0, "There should not be any marked packets");
@@ -1050,9 +854,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       q4->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       0, "There should not be any dropped packets");
 
-  // Ensure flow queue 0,1 and 2 have ECN capable packets
-  // Peek () changes the stats of the queue and that is reason to be keep this
-  // test at last
   pktQ0 = DynamicCast<const Ipv4QueueDiscItem>(q0->Peek());
   NS_TEST_EXPECT_MSG_NE(pktQ0->GetHeader().GetEcn(), Ipv4Header::ECN_NotECT,
                         "flow queue should have ECT0 packets");
@@ -1065,42 +866,34 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
 
   Simulator::Destroy();
 
-  // Test case 3, CeThreshold set to 2ms with higher queue delay
   queueDisc = CreateObjectWithAttributes<FqCoDelQueueDisc>(
       "MaxSize", StringValue("10240p"), "UseEcn", BooleanValue(true),
       "CeThreshold", TimeValue(MilliSeconds(2)));
   queueDisc->SetQuantum(1514);
   queueDisc->Initialize();
 
-  // Add 20 ECT0 (ECN capable) packets from first flow
   hdr.SetDestination(Ipv4Address("10.10.1.2"));
   hdr.SetEcn(Ipv4Header::ECN_ECT0);
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 20, 1);
 
-  // Add 20 ECT0 (ECN capable) packets from second flow
   hdr.SetDestination(Ipv4Address("10.10.1.10"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 40, 2);
 
-  // Add 20 ECT0 (ECN capable) packets from third flow
   hdr.SetDestination(Ipv4Address("10.10.1.20"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 60, 3);
 
-  // Add 20 NotECT packets from fourth flow
   hdr.SetDestination(Ipv4Address("10.10.1.30"));
   hdr.SetEcn(Ipv4Header::ECN_NotECT);
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 80, 4);
 
-  // Add 20 NotECT packets from fifth flow
   hdr.SetDestination(Ipv4Address("10.10.1.40"));
   Simulator::Schedule(Time(Seconds(0)), &FqCoDelQueueDiscECNMarking::AddPacket,
                       this, queueDisc, hdr, 20, 100, 5);
 
-  // Dequeue 60 packets with delay 110ms to induce packet drops and keep some
-  // remaining packets in each queue
   DequeueWithDelay(queueDisc, 0.110, 60);
   Simulator::Run();
   Simulator::Stop(Seconds(8.0));
@@ -1120,8 +913,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
            ->GetQueueDisc()
            ->GetObject<CoDelQueueDisc>();
 
-  // Ensure there are some remaining packets in the flow queues to check for
-  // flow queues with ECN capable packets
   NS_TEST_EXPECT_MSG_NE(
       queueDisc->GetQueueDiscClass(0)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
@@ -1138,7 +929,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       queueDisc->GetQueueDiscClass(4)->GetQueueDisc()->GetNPackets(), 0,
       "There should be some remaining packets");
 
-  // As packets in flow queues are ECN capable
   NS_TEST_EXPECT_MSG_EQ(
       q0->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       0, "There should not be any dropped packets");
@@ -1176,7 +966,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
                         "should be equal to total number of "
                         "packets dequeued");
 
-  // As packets in flow queues are not ECN capable
   NS_TEST_EXPECT_MSG_EQ(q3->GetStats().GetNMarkedPackets(
                             CoDelQueueDisc::CE_THRESHOLD_EXCEEDED_MARK),
                         0, "There should not be any marked packets");
@@ -1193,9 +982,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
       q4->GetStats().GetNDroppedPackets(CoDelQueueDisc::TARGET_EXCEEDED_DROP),
       4, "There should be 4 dropped packets");
 
-  // Ensure flow queue 0,1 and 2 have ECN capable packets
-  // Peek () changes the stats of the queue and that is reason to be keep this
-  // test at last
   pktQ0 = DynamicCast<const Ipv4QueueDiscItem>(q0->Peek());
   NS_TEST_EXPECT_MSG_NE(pktQ0->GetHeader().GetEcn(), Ipv4Header::ECN_NotECT,
                         "flow queue should have ECT0 packets");
@@ -1209,30 +995,6 @@ void FqCoDelQueueDiscECNMarking::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * \brief This class tests linear probing, collision response, and set
- * creation capability of set associative hashing in FqCodel.
- *
- * We modified DoClassify () and CheckProtocol () so that we could control
- * the hash returned for each packet. In the beginning, we use flow hashes
- * ranging from 0 to 7. These must go into different queues in the same set.
- * The set number for these is obtained using outerHash, which is 0.
- * When a new packet arrives with flow hash 1024, outerHash = 0 is obtained
- * and the first set is iteratively searched.
- * The packet is eventually added to queue 0 since the tags of queues
- * in the set do not match with the hash of the flow. The tag of queue 0 is
- * updated as 1024. When a packet with hash 1025 arrives, outerHash = 0
- * is obtained and the first set is iteratively searched.
- * Since there is no match, it is added to queue 0 and the tag of queue 0 is
- * updated to 1025.
- *
- * The variable outerHash stores the nearest multiple of 8 that is lesser than
- * the hash. When a flow hash of 20 arrives, the value of outerHash
- * is 16. Since m_flowIndices[16] wasn't previously allotted, a new flow
- * is created, and the tag corresponding to this queue is set to 20.
- */
 class FqCoDelQueueDiscSetLinearProbing : public TestCase {
 public:
   FqCoDelQueueDiscSetLinearProbing();
@@ -1240,11 +1002,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Enqueue a packet.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr);
 };
 
@@ -1337,13 +1094,6 @@ void FqCoDelQueueDiscSetLinearProbing::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * \brief This class tests L4S mode.
- * Any future classifier options (e.g. SetAssociativeHash) should be
- * disabled to prevent a hash collision on this test case.
- */
 class FqCoDelQueueDiscL4sMode : public TestCase {
 public:
   FqCoDelQueueDiscL4sMode();
@@ -1352,36 +1102,12 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Enqueue some packets.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   * \param nPkt The number of packets to enqueue.
-   */
   void AddPacket(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr, uint32_t nPkt);
 
-  /**
-   * Enqueue some packets with delay.
-   * \param queue The queue disc.
-   * \param hdr The IPv4 header.
-   * \param delay Delay [seconds].
-   * \param nPkt The number of packets to enqueue.
-   */
   void AddPacketWithDelay(Ptr<FqCoDelQueueDisc> queue, Ipv4Header hdr,
                           double delay, uint32_t nPkt);
 
-  /**
-   * Dequeue some packets.
-   * \param queue The queue disc.
-   * \param nPkt The number of packets to dequeue.
-   */
   void Dequeue(Ptr<FqCoDelQueueDisc> queue, uint32_t nPkt);
-  /**
-   * Dequeue some packets with delay.
-   * \param queue The queue disc.
-   * \param delay Delay [seconds].
-   * \param nPkt The number of packets to dequeue.
-   */
   void DequeueWithDelay(Ptr<FqCoDelQueueDisc> queue, double delay,
                         uint32_t nPkt);
 };
@@ -1427,11 +1153,7 @@ void FqCoDelQueueDiscL4sMode::DequeueWithDelay(Ptr<FqCoDelQueueDisc> queue,
 }
 
 void FqCoDelQueueDiscL4sMode::DoRun() {
-  // Test is divided into 2 sub test cases:
-  // 1) Without hash collisions
-  // 2) With hash collisions
 
-  // Test case 1, Without hash collisions
   Ptr<FqCoDelQueueDisc> queueDisc =
       CreateObjectWithAttributes<FqCoDelQueueDisc>(
           "MaxSize", StringValue("10240p"), "UseEcn", BooleanValue(true),
@@ -1447,21 +1169,17 @@ void FqCoDelQueueDiscL4sMode::DoRun() {
   hdr.SetProtocol(7);
   hdr.SetEcn(Ipv4Header::ECN_ECT1);
 
-  // Add 70 ECT1 (ECN capable) packets from the first flow
-  // Set delay = 0.5ms
   double delay = 0.0005;
   Simulator::Schedule(Time(Seconds(0)),
                       &FqCoDelQueueDiscL4sMode::AddPacketWithDelay, this,
                       queueDisc, hdr, delay, 70);
 
-  // Add 70 ECT0 (ECN capable) packets from second flow
   hdr.SetEcn(Ipv4Header::ECN_ECT0);
   hdr.SetDestination(Ipv4Address("10.10.1.10"));
   Simulator::Schedule(Time(Seconds(0)),
                       &FqCoDelQueueDiscL4sMode::AddPacketWithDelay, this,
                       queueDisc, hdr, delay, 70);
 
-  // Dequeue 140 packets with delay 1ms
   delay = 0.001;
   DequeueWithDelay(queueDisc, delay, 140);
   Simulator::Run();
@@ -1500,7 +1218,6 @@ void FqCoDelQueueDiscL4sMode::DoRun() {
 
   Simulator::Destroy();
 
-  // Test case 2, With hash collisions
   queueDisc = CreateObjectWithAttributes<FqCoDelQueueDisc>(
       "MaxSize", StringValue("10240p"), "UseEcn", BooleanValue(true),
       "Perturbation", UintegerValue(0), "UseL4s", BooleanValue(true),
@@ -1514,8 +1231,6 @@ void FqCoDelQueueDiscL4sMode::DoRun() {
   hdr.SetProtocol(7);
   hdr.SetEcn(Ipv4Header::ECN_ECT1);
 
-  // Add 70 ECT1 (ECN capable) packets from the first flow
-  // Set delay = 1ms
   delay = 0.001;
   Simulator::Schedule(Time(Seconds(0.0005)),
                       &FqCoDelQueueDiscL4sMode::AddPacket, this, queueDisc, hdr,
@@ -1524,13 +1239,11 @@ void FqCoDelQueueDiscL4sMode::DoRun() {
                       &FqCoDelQueueDiscL4sMode::AddPacketWithDelay, this,
                       queueDisc, hdr, delay, 69);
 
-  // Add 70 ECT0 (ECN capable) packets from first flow
   hdr.SetEcn(Ipv4Header::ECN_ECT0);
   Simulator::Schedule(Time(Seconds(0)),
                       &FqCoDelQueueDiscL4sMode::AddPacketWithDelay, this,
                       queueDisc, hdr, delay, 70);
 
-  // Dequeue 140 packets with delay 1ms
   DequeueWithDelay(queueDisc, delay, 140);
   Simulator::Run();
   Simulator::Stop(Seconds(8.0));
@@ -1560,11 +1273,6 @@ void FqCoDelQueueDiscL4sMode::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup system-tests-tc
- *
- * FQ-CoDel queue disc test suite.
- */
 class FqCoDelQueueDiscTestSuite : public TestSuite {
 public:
   FqCoDelQueueDiscTestSuite();
@@ -1583,5 +1291,4 @@ FqCoDelQueueDiscTestSuite::FqCoDelQueueDiscTestSuite()
   AddTestCase(new FqCoDelQueueDiscL4sMode, TestCase::QUICK);
 }
 
-/// Do not forget to allocate an instance of this TestSuite.
 static FqCoDelQueueDiscTestSuite g_fqCoDelQueueDiscTestSuite;

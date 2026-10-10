@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * Author: Faker Moatamri <faker.moatamri@sophia.inria.fr>
- * Author: Lalith Suresh  <suresh.lalith@gmail.com>
- */
 
 #include "click-internet-stack-helper.h"
 
@@ -53,30 +33,13 @@ typedef std::map<InterfacePairIpv4, Ptr<PcapFileWrapper>> InterfaceFileMapIpv4;
 typedef std::map<InterfacePairIpv4, Ptr<OutputStreamWrapper>>
     InterfaceStreamMapIpv4;
 
-static InterfaceFileMapIpv4
-    g_interfaceFileMapIpv4; /**< A mapping of Ipv4/interface pairs to pcap files
-                             */
-static InterfaceStreamMapIpv4
-    g_interfaceStreamMapIpv4; /**< A mapping of Ipv4/interface pairs to ascii
-                                 streams */
+static InterfaceFileMapIpv4 g_interfaceFileMapIpv4;
+static InterfaceStreamMapIpv4 g_interfaceStreamMapIpv4;
 
-/**
- * IPv4 Rx / Tx packet callback.
- *
- * \param p Packet.
- * \param ipv4 IPv4 stack.
- * \param interface Interface number.
- */
 static void Ipv4L3ProtocolRxTxSink(Ptr<const Packet> p, Ptr<Ipv4> ipv4,
                                    uint32_t interface) {
   NS_LOG_FUNCTION(p << ipv4 << interface);
 
-  //
-  // Since trace sources are independent of interface, if we hook a source
-  // on a particular protocol we will get traces for all of its interfaces.
-  // We need to filter this to only report interfaces for which the user
-  // has expressed interest.
-  //
   InterfacePairIpv4 pair = std::make_pair(ipv4, interface);
   if (g_interfaceFileMapIpv4.find(pair) == g_interfaceFileMapIpv4.end()) {
     NS_LOG_INFO("Ignoring packet to/from interface " << interface);
@@ -87,26 +50,10 @@ static void Ipv4L3ProtocolRxTxSink(Ptr<const Packet> p, Ptr<Ipv4> ipv4,
   file->Write(Simulator::Now(), p);
 }
 
-/**
- * Packet dropped callback without context.
- *
- * \param stream Output stream.
- * \param header IPv4 header.
- * \param packet Packet.
- * \param reason Packet drop reason.
- * \param ipv4 IPv4 stack.
- * \param interface Interface number.
- */
 static void Ipv4L3ProtocolDropSinkWithoutContext(
     Ptr<OutputStreamWrapper> stream, const Ipv4Header &header,
     Ptr<const Packet> packet, Ipv4L3Protocol::DropReason reason, Ptr<Ipv4> ipv4,
     uint32_t interface) {
-  //
-  // Since trace sources are independent of interface, if we hook a source
-  // on a particular protocol we will get traces for all of its interfaces.
-  // We need to filter this to only report interfaces for which the user
-  // has expressed interest.
-  //
   InterfacePairIpv4 pair = std::make_pair(ipv4, interface);
   if (g_interfaceStreamMapIpv4.find(pair) == g_interfaceStreamMapIpv4.end()) {
     NS_LOG_INFO("Ignoring packet to/from interface " << interface);
@@ -119,27 +66,10 @@ static void Ipv4L3ProtocolDropSinkWithoutContext(
                        << std::endl;
 }
 
-/**
- * Packet dropped callback with context.
- *
- * \param stream Output stream.
- * \param context Context.
- * \param header IPv4 header.
- * \param packet Packet.
- * \param reason Packet drop reason.
- * \param ipv4 IPv4 stack.
- * \param interface Interface number.
- */
 static void Ipv4L3ProtocolDropSinkWithContext(
     Ptr<OutputStreamWrapper> stream, std::string context,
     const Ipv4Header &header, Ptr<const Packet> packet,
     Ipv4L3Protocol::DropReason reason, Ptr<Ipv4> ipv4, uint32_t interface) {
-  //
-  // Since trace sources are independent of interface, if we hook a source
-  // on a particular protocol we will get traces for all of its interfaces.
-  // We need to filter this to only report interfaces for which the user
-  // has expressed interest.
-  //
   InterfacePairIpv4 pair = std::make_pair(ipv4, interface);
   if (g_interfaceStreamMapIpv4.find(pair) == g_interfaceStreamMapIpv4.end()) {
     NS_LOG_INFO("Ignoring packet to/from interface " << interface);
@@ -253,7 +183,6 @@ void ClickInternetStackHelper::Install(Ptr<Node> node) const {
     CreateAndAggregateObjectFromTypeId(node, "ns3::TcpL4Protocol");
     Ptr<PacketSocketFactory> factory = CreateObject<PacketSocketFactory>();
     node->AggregateObject(factory);
-    // Set routing
     Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
     Ptr<Ipv4ClickRouting> ipv4Routing = CreateObject<Ipv4ClickRouting>();
     auto it = m_nodeToClickFileMap.find(node);
@@ -302,10 +231,6 @@ void ClickInternetStackHelper::EnablePcapIpv4Internal(std::string prefix,
     return;
   }
 
-  //
-  // We have to create a file and a mapping from protocol/interface to file
-  // irrespective of how many times we want to trace a particular protocol.
-  //
   PcapHelper pcapHelper;
 
   std::string filename;
@@ -318,15 +243,7 @@ void ClickInternetStackHelper::EnablePcapIpv4Internal(std::string prefix,
   Ptr<PcapFileWrapper> file =
       pcapHelper.CreateFile(filename, std::ios::out, PcapHelper::DLT_RAW);
 
-  //
-  // However, we only hook the trace source once to avoid multiple trace sink
-  // calls per event (connect is independent of interface).
-  //
   if (!PcapHooked(ipv4)) {
-    //
-    // Ptr<Ipv4> is aggregated to node and Ipv4L3Protocol is aggregated to
-    // node so we can get to Ipv4L3Protocol through Ipv4.
-    //
     Ptr<Ipv4L3Protocol> ipv4L3Protocol = ipv4->GetObject<Ipv4L3Protocol>();
     NS_ASSERT_MSG(ipv4L3Protocol,
                   "ClickInternetStackHelper::EnablePcapIpv4Internal(): "
@@ -366,28 +283,9 @@ void ClickInternetStackHelper::EnableAsciiIpv4Internal(
     return;
   }
 
-  //
-  // Our trace sinks are going to use packet printing, so we have to
-  // make sure that is turned on.
-  //
   Packet::EnablePrinting();
 
-  //
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and hook WithoutContext
-  // since there will be one file per context and therefore the context would
-  // be redundant.
-  //
   if (!stream) {
-    //
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues.  Let the helper decide the actual
-    // name of the file given the prefix.
-    //
-    // We have to create a stream and a mapping from protocol/interface to
-    // stream irrespective of how many times we want to trace a particular
-    // protocol.
-    //
     AsciiTraceHelper asciiTraceHelper;
 
     std::string filename;
@@ -401,26 +299,11 @@ void ClickInternetStackHelper::EnableAsciiIpv4Internal(
     Ptr<OutputStreamWrapper> theStream =
         asciiTraceHelper.CreateFileStream(filename);
 
-    //
-    // However, we only hook the trace sources once to avoid multiple trace sink
-    // calls per event (connect is independent of interface).
-    //
     if (!AsciiHooked(ipv4)) {
-      //
-      // We can use the default drop sink for the ArpL3Protocol since it has
-      // the usual signature.  We can get to the Ptr<ArpL3Protocol> through
-      // our Ptr<Ipv4> since they must both be aggregated to the same node.
-      //
       Ptr<ArpL3Protocol> arpL3Protocol = ipv4->GetObject<ArpL3Protocol>();
       asciiTraceHelper.HookDefaultDropSinkWithoutContext<ArpL3Protocol>(
           arpL3Protocol, "Drop", theStream);
 
-      //
-      // The drop sink for the Ipv4L3Protocol uses a different signature than
-      // the default sink, so we have to cook one up for ourselves.  We can get
-      // to the Ptr<Ipv4L3Protocol> through our Ptr<Ipv4> since they must both
-      // be aggregated to the same node.
-      //
       Ptr<Ipv4L3Protocol> ipv4L3Protocol = ipv4->GetObject<Ipv4L3Protocol>();
       bool result = ipv4L3Protocol->TraceConnectWithoutContext(
           "Drop",
@@ -434,37 +317,15 @@ void ClickInternetStackHelper::EnableAsciiIpv4Internal(
     return;
   }
 
-  //
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to provide a context.  We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with the context.
-  //
-  // We need to associate the ipv4/interface with a stream to express interest
-  // in tracing events on that pair, however, we only hook the trace sources
-  // once to avoid multiple trace sink calls per event (connect is independent
-  // of interface).
-  //
   if (!AsciiHooked(ipv4)) {
     Ptr<Node> node = ipv4->GetObject<Node>();
     std::ostringstream oss;
 
-    //
-    // For the ARP Drop, we are going to use the default trace sink provided by
-    // the ascii trace helper.  There is actually no AsciiTraceHelper in sight
-    // here, but the default trace sinks are actually publicly available static
-    // functions that are always there waiting for just such a case.
-    //
     oss << "/NodeList/" << node->GetId() << "/$ns3::ArpL3Protocol/Drop";
     Config::Connect(oss.str(),
                     MakeBoundCallback(
                         &AsciiTraceHelper::DefaultDropSinkWithContext, stream));
 
-    //
-    // This has all kinds of parameters coming with, so we have to cook up our
-    // own sink.
-    //
     oss.str("");
     oss << "/NodeList/" << node->GetId() << "/$ns3::Ipv4L3Protocol/Drop";
     Config::Connect(oss.str(), MakeBoundCallback(

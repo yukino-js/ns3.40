@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2005,2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * Contributions: Timo Bingmann <timo.bingmann@student.kit.edu>
- * Contributions: Tom Hewer <tomhewer@mac.com> for Two Ray Ground Model
- *                Pavel Boyko <boyko@iitp.ru> for matrix
- */
 
 #include "propagation-loss-model.h"
 
@@ -34,8 +13,6 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("PropagationLossModel");
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(PropagationLossModel);
 
@@ -75,8 +52,6 @@ int64_t PropagationLossModel::AssignStreams(int64_t stream) {
   return (currentStream - stream);
 }
 
-// ------------------------------------------------------------------------- //
-
 NS_OBJECT_ENSURE_REGISTERED(RandomPropagationLossModel);
 
 TypeId RandomPropagationLossModel::GetTypeId() {
@@ -112,8 +87,6 @@ int64_t RandomPropagationLossModel::DoAssignStreams(int64_t stream) {
   m_variable->SetStream(stream);
   return 1;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(FriisPropagationLossModel);
 
@@ -161,7 +134,7 @@ double FriisPropagationLossModel::GetMinLoss() const { return m_minLoss; }
 
 void FriisPropagationLossModel::SetFrequency(double frequency) {
   m_frequency = frequency;
-  static const double C = 299792458.0; // speed of light in vacuum
+  static const double C = 299792458.0;
   m_lambda = C / frequency;
 }
 
@@ -180,35 +153,6 @@ double FriisPropagationLossModel::DbmFromW(double w) const {
 double FriisPropagationLossModel::DoCalcRxPower(double txPowerDbm,
                                                 Ptr<MobilityModel> a,
                                                 Ptr<MobilityModel> b) const {
-  /*
-   * Friis free space equation:
-   * where Pt, Gr, Gr and P are in Watt units
-   * L is in meter units.
-   *
-   *    P     Gt * Gr * (lambda^2)
-   *   --- = ---------------------
-   *    Pt     (4 * pi * d)^2 * L
-   *
-   * Gt: tx gain (unit-less)
-   * Gr: rx gain (unit-less)
-   * Pt: tx power (W)
-   * d: distance (m)
-   * L: system loss
-   * lambda: wavelength (m)
-   *
-   * Here, we ignore tx and rx gain and the input and output values
-   * are in dB or dBm:
-   *
-   *                           lambda^2
-   * rx = tx +  10 log10 (-------------------)
-   *                       (4 * pi * d)^2 * L
-   *
-   * rx: rx power (dB)
-   * tx: tx power (dB)
-   * d: distance (m)
-   * L: system loss (unit-less)
-   * lambda: wavelength (m)
-   */
   double distance = a->GetDistanceFrom(b);
   if (distance < 3 * m_lambda) {
     NS_LOG_WARN("distance not within the far field region => inaccurate "
@@ -225,9 +169,6 @@ double FriisPropagationLossModel::DoCalcRxPower(double txPowerDbm,
 }
 
 int64_t FriisPropagationLossModel::DoAssignStreams(int64_t stream) { return 0; }
-
-// ------------------------------------------------------------------------- //
-// -- Two-Ray Ground Model ported from NS-2 -- tomhewer@mac.com -- Nov09 //
 
 NS_OBJECT_ENSURE_REGISTERED(TwoRayGroundPropagationLossModel);
 
@@ -291,7 +232,7 @@ void TwoRayGroundPropagationLossModel::SetHeightAboveZ(double heightAboveZ) {
 
 void TwoRayGroundPropagationLossModel::SetFrequency(double frequency) {
   m_frequency = frequency;
-  static const double C = 299792458.0; // speed of light in vacuum
+  static const double C = 299792458.0;
   m_lambda = C / frequency;
 }
 
@@ -311,52 +252,17 @@ double TwoRayGroundPropagationLossModel::DbmFromW(double w) const {
 
 double TwoRayGroundPropagationLossModel::DoCalcRxPower(
     double txPowerDbm, Ptr<MobilityModel> a, Ptr<MobilityModel> b) const {
-  /*
-   * Two-Ray Ground equation:
-   *
-   * where Pt, Gt and Gr are in dBm units
-   * L, Ht and Hr are in meter units.
-   *
-   *   Pr      Gt * Gr * (Ht^2 * Hr^2)
-   *   -- =  (-------------------------)
-   *   Pt            d^4 * L
-   *
-   * Gt: tx gain (unit-less)
-   * Gr: rx gain (unit-less)
-   * Pt: tx power (dBm)
-   * d: distance (m)
-   * L: system loss
-   * Ht: Tx antenna height (m)
-   * Hr: Rx antenna height (m)
-   * lambda: wavelength (m)
-   *
-   * As with the Friis model we ignore tx and rx gain and output values
-   * are in dB or dBm
-   *
-   *                      (Ht * Ht) * (Hr * Hr)
-   * rx = tx + 10 log10 (-----------------------)
-   *                      (d * d * d * d) * L
-   */
   double distance = a->GetDistanceFrom(b);
   if (distance <= m_minDistance) {
     return txPowerDbm;
   }
 
-  // Set the height of the Tx and Rx antennae
   double txAntHeight = a->GetPosition().z + m_heightAboveZ;
   double rxAntHeight = b->GetPosition().z + m_heightAboveZ;
-
-  // Calculate a crossover distance, under which we use Friis
-  /*
-   *
-   * dCross = (4 * pi * Ht * Hr) / lambda
-   *
-   */
 
   double dCross = (4 * M_PI * txAntHeight * rxAntHeight) / m_lambda;
   double tmp = 0;
   if (distance <= dCross) {
-    // We use Friis
     double numerator = m_lambda * m_lambda;
     tmp = M_PI * distance;
     double denominator = 16 * tmp * tmp * m_systemLoss;
@@ -366,8 +272,7 @@ double TwoRayGroundPropagationLossModel::DoCalcRxPower(
     NS_LOG_DEBUG("distance=" << distance << "m, attenuation coefficient=" << pr
                              << "dB");
     return txPowerDbm + pr;
-  } else // Use Two-Ray Pathloss
-  {
+  } else {
     tmp = txAntHeight * rxAntHeight;
     double rayNumerator = tmp * tmp;
     tmp = distance * distance;
@@ -382,8 +287,6 @@ double TwoRayGroundPropagationLossModel::DoCalcRxPower(
 int64_t TwoRayGroundPropagationLossModel::DoAssignStreams(int64_t stream) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(LogDistancePropagationLossModel);
 
@@ -438,20 +341,6 @@ double LogDistancePropagationLossModel::DoCalcRxPower(
   if (distance <= m_referenceDistance) {
     return txPowerDbm - m_referenceLoss;
   }
-  /**
-   * The formula is:
-   * rx = 10 * log (Pr0(tx)) - n * 10 * log (d/d0)
-   *
-   * Pr0: rx power at reference distance d0 (W)
-   * d0: reference distance: 1.0 (m)
-   * d: distance (m)
-   * tx: tx power (dB)
-   * rx: dB
-   *
-   * Which, in our case is:
-   *
-   * rx = rx0(tx) - 10 * n * log (d/d0)
-   */
   double pathLossDb =
       10 * m_exponent * std::log10(distance / m_referenceDistance);
   double rxc = -m_referenceLoss - pathLossDb;
@@ -464,8 +353,6 @@ double LogDistancePropagationLossModel::DoCalcRxPower(
 int64_t LogDistancePropagationLossModel::DoAssignStreams(int64_t stream) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeLogDistancePropagationLossModel);
 
@@ -526,8 +413,6 @@ double ThreeLogDistancePropagationLossModel::DoCalcRxPower(
   double distance = a->GetDistanceFrom(b);
   NS_ASSERT(distance >= 0);
 
-  // See doxygen comments for the formula and explanation
-
   double pathLossDb;
 
   if (distance < m_distance0) {
@@ -556,8 +441,6 @@ double ThreeLogDistancePropagationLossModel::DoCalcRxPower(
 int64_t ThreeLogDistancePropagationLossModel::DoAssignStreams(int64_t stream) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(NakagamiPropagationLossModel);
 
@@ -615,7 +498,6 @@ NakagamiPropagationLossModel::NakagamiPropagationLossModel() {}
 double NakagamiPropagationLossModel::DoCalcRxPower(double txPowerDbm,
                                                    Ptr<MobilityModel> a,
                                                    Ptr<MobilityModel> b) const {
-  // select m parameter
 
   double distance = a->GetDistanceFrom(b);
   NS_ASSERT(distance >= 0);
@@ -629,14 +511,10 @@ double NakagamiPropagationLossModel::DoCalcRxPower(double txPowerDbm,
     m = m_m2;
   }
 
-  // the current power unit is dBm, but Watt is put into the Nakagami /
-  // Rayleigh distribution.
   double powerW = std::pow(10, (txPowerDbm - 30) / 10);
 
   double resultPowerW;
 
-  // switch between Erlang- and Gamma distributions: this is only for
-  // speed. (Gamma is equal to Erlang for any positive integer m.)
   auto int_m = static_cast<unsigned int>(std::floor(m));
 
   if (int_m == m) {
@@ -660,8 +538,6 @@ int64_t NakagamiPropagationLossModel::DoAssignStreams(int64_t stream) {
   m_gammaRandomVariable->SetStream(stream + 1);
   return 2;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(FixedRssLossModel);
 
@@ -689,8 +565,6 @@ double FixedRssLossModel::DoCalcRxPower(double txPowerDbm, Ptr<MobilityModel> a,
 }
 
 int64_t FixedRssLossModel::DoAssignStreams(int64_t stream) { return 0; }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(MatrixPropagationLossModel);
 
@@ -752,8 +626,6 @@ int64_t MatrixPropagationLossModel::DoAssignStreams(int64_t stream) {
   return 0;
 }
 
-// ------------------------------------------------------------------------- //
-
 NS_OBJECT_ENSURE_REGISTERED(RangePropagationLossModel);
 
 TypeId RangePropagationLossModel::GetTypeId() {
@@ -783,7 +655,5 @@ double RangePropagationLossModel::DoCalcRxPower(double txPowerDbm,
 }
 
 int64_t RangePropagationLossModel::DoAssignStreams(int64_t stream) { return 0; }
-
-// ------------------------------------------------------------------------- //
 
 } // namespace ns3

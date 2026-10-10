@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- * Copyright (c) 2007 Emmanuelle Laprise
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * TimeStep support by Emmanuelle Laprise <emmanuelle.laprise@bluekazoo.ca>
- */
 
 #include "ns3/int64x64.h"
 #include "ns3/nstime.h"
@@ -32,82 +12,31 @@
 
 using namespace ns3;
 
-/**
- * \ingroup core-tests
- * \brief time simple test case, Checks the basic operations on time
- */
 class TimeSimpleTestCase : public TestCase {
 public:
-  /**
-   * \brief constructor for TimeSimpleTestCase.
-   */
   TimeSimpleTestCase();
 
 private:
-  /**
-   * \brief setup function for TimeSimpleTestCase.
-   */
   void DoSetup() override;
 
-  /**
-   * \brief Runs the Simple Time test case.
-   */
   void DoRun() override;
 
-  /**
-   * \brief Tests the Time Operations.
-   */
   virtual void DoTimeOperations();
 
-  /**
-   * \brief Does the tear down for TimeSimpleTestCase.
-   */
   void DoTeardown() override;
 
-  /**
-   * Helper function to handle boilerplate code for multiplication tests
-   *
-   * \tparam T type of multiplication value
-   *
-   * \param t Time value to multiply
-   * \param expected Expected result of the multiplication
-   * \param val Value to multiply by
-   * \param msg Error message to print if test fails
-   */
   template <typename T>
   void TestMultiplication(Time t, Time expected, T val, const std::string &msg);
 
-  /**
-   * Test multiplying a Time instance by various integer types
-   */
   void TestMultiplicationByIntegerTypes();
 
-  /**
-   * Test multiplying a Time instance by various decimal types
-   */
   void TestMultiplicationByDecimalTypes();
 
-  /**
-   * Helper function to handle boilerplate code for division tests
-   *
-   * \tparam T type of division value
-   *
-   * \param t Time value to divide
-   * \param expected Expected result of the division
-   * \param val Value to divide by
-   * \param msg Error message to print if test fails
-   */
   template <typename T>
   void TestDivision(Time t, Time expected, T val, const std::string &msg);
 
-  /**
-   * Test dividing a Time instance by various integer types
-   */
   void TestDivisionByIntegerTypes();
 
-  /**
-   * Test dividing a Time instance by various decimal types
-   */
   void TestDivisionByDecimalTypes();
 };
 
@@ -117,10 +46,8 @@ TimeSimpleTestCase::TimeSimpleTestCase()
 void TimeSimpleTestCase::DoSetup() {}
 
 void TimeSimpleTestCase::DoTimeOperations() {
-  // Test Multiplication
-  constexpr long long oneSec = 1000000000; // conversion to default nanoseconds
+  constexpr long long oneSec = 1000000000;
 
-  // Time in seconds
   ns3::Time t1 = Time(125LL * oneSec);
   ns3::Time t2 = Time(2000LL * oneSec);
 
@@ -128,13 +55,11 @@ void TimeSimpleTestCase::DoTimeOperations() {
 
   NS_TEST_ASSERT_MSG_EQ((t2 - t1).GetSeconds(), 1875, "Time Subtraction");
 
-  // Test Multiplication Operations:
   std::cout << "Testing Time Multiplication \n";
 
   TestMultiplicationByIntegerTypes();
   TestMultiplicationByDecimalTypes();
 
-  // Test Division Operations:
   std::cout << "Testing Time Division \n";
 
   TestDivisionByIntegerTypes();
@@ -310,31 +235,15 @@ void TimeSimpleTestCase::TestDivisionByDecimalTypes() {
   TestDivision(t, expected, static_cast<double>(scale), "Division by double");
 }
 
-/**
- * \ingroup core-tests
- * \brief  time-tests Time with Sign test case
- */
 class TimeWithSignTestCase : public TestCase {
 public:
-  /**
-   * \brief constructor for TimeWithSignTestCase.
-   */
   TimeWithSignTestCase();
 
 private:
-  /**
-   * \brief DoSetup for TimeWithSignTestCase.
-   */
   void DoSetup() override;
 
-  /**
-   * \brief DoRun for TimeWithSignTestCase.
-   */
   void DoRun() override;
 
-  /**
-   * \brief DoTeardown for TimeWithSignTestCase.
-   */
   void DoTeardown() override;
 };
 
@@ -365,33 +274,14 @@ void TimeWithSignTestCase::DoRun() {
 
 void TimeWithSignTestCase::DoTeardown() {}
 
-/**
- * \ingroup core-tests
- * \brief Input output Test Case for Time
- */
 class TimeInputOutputTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor for TimeInputOutputTestCase.
-   */
   TimeInputOutputTestCase();
 
 private:
-  /**
-   * \brief DoRun for TimeInputOutputTestCase.
-   */
   void DoRun() override;
-  /**
-   * \brief Check roundtrip from/to string.
-   * \param str Time input check.
-   */
   void Check(const std::string &str);
 
-  /**
-   * \brief Check autoscaling output using Time::As()
-   * \param t Time instance.
-   * \param expect Expected string output with Time::As() autoscaling.
-   */
   void CheckAs(const Time t, const std::string expect);
 };
 
@@ -446,7 +336,7 @@ void TimeInputOutputTestCase::DoRun() {
   Check("8.6d");
   Check("10.8y");
 
-  Time t(3.141592654e9); // Pi seconds
+  Time t(3.141592654e9);
 
   std::cout << GetParent()->GetName() << " InputOutput: "
             << "example: raw:   " << t << std::endl;
@@ -484,18 +374,11 @@ void TimeInputOutputTestCase::DoRun() {
   CheckAs(t * 1e+8, "+9.961925y");
 }
 
-/**
- * \ingroup core-tests
- * \brief   Time test Suite.  Runs the appropriate test cases for time
- */
 static class TimeTestSuite : public TestSuite {
 public:
   TimeTestSuite() : TestSuite("time", UNIT) {
     AddTestCase(new TimeWithSignTestCase(), TestCase::QUICK);
     AddTestCase(new TimeInputOutputTestCase(), TestCase::QUICK);
-    // This should be last, since it changes the resolution
     AddTestCase(new TimeSimpleTestCase(), TestCase::QUICK);
   }
-}
-/** \brief Member variable for time test suite */
-g_timeTestSuite;
+} g_timeTestSuite;

@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2005, 2009 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- *          Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-mpdu.h"
 
@@ -45,7 +24,6 @@ WifiMpdu::WifiMpdu(Ptr<const Packet> p, const WifiMacHeader &header, Time stamp)
 }
 
 WifiMpdu::~WifiMpdu() {
-  // Aliases can be queued (i.e., the original copy is queued) when destroyed
   NS_ASSERT(std::holds_alternative<Ptr<WifiMpdu>>(m_instanceInfo) ||
             !IsQueued());
 }
@@ -72,7 +50,7 @@ Ptr<WifiMpdu> WifiMpdu::CreateAlias(uint8_t linkId) const {
 
   auto alias = Ptr<WifiMpdu>(new WifiMpdu, false);
 
-  alias->m_header = m_header; // copy the MAC header
+  alias->m_header = m_header;
   alias->m_instanceInfo = Ptr(const_cast<WifiMpdu *>(this));
   NS_ASSERT(alias->m_instanceInfo.index() == ALIAS);
 
@@ -148,24 +126,16 @@ void WifiMpdu::Aggregate(Ptr<const WifiMpdu> msdu) {
   auto &original = std::get<OriginalInfo>(m_instanceInfo);
 
   if (original.m_msduList.empty()) {
-    // An MSDU is going to be aggregated to this MPDU, hence this has to be an
-    // A-MSDU now
     Ptr<const WifiMpdu> firstMsdu = Create<const WifiMpdu>(*this);
     original.m_packet = Create<Packet>();
     DoAggregate(firstMsdu);
 
     m_header.SetQosAmsdu();
-    // Set Address3 according to Table 9-26 of 802.11-2016
     if (m_header.IsToDs() && !m_header.IsFromDs()) {
-      // from STA to AP: BSSID is in Address1
       m_header.SetAddr3(m_header.GetAddr1());
     } else if (!m_header.IsToDs() && m_header.IsFromDs()) {
-      // from AP to STA: BSSID is in Address2
       m_header.SetAddr3(m_header.GetAddr2());
     }
-    // in the WDS case (ToDS = FromDS = 1), both Address 3 and Address 4 need
-    // to be set to the BSSID, but neither Address 1 nor Address 2 contain the
-    // BSSID. Hence, it is left up to the caller to set these Address fields.
   }
   DoAggregate(msdu);
 }
@@ -173,17 +143,7 @@ void WifiMpdu::Aggregate(Ptr<const WifiMpdu> msdu) {
 void WifiMpdu::DoAggregate(Ptr<const WifiMpdu> msdu) {
   NS_LOG_FUNCTION(this << *msdu);
 
-  // build the A-MSDU Subframe header
   AmsduSubframeHeader hdr;
-  /*
-   * (See Table 9-26 of 802.11-2016)
-   *
-   * ToDS | FromDS |  DA   |  SA
-   *   0  |   0    | Addr1 | Addr2
-   *   0  |   1    | Addr1 | Addr3
-   *   1  |   0    | Addr3 | Addr2
-   *   1  |   1    | Addr3 | Addr4
-   */
   hdr.SetDestinationAddr(msdu->GetHeader().IsToDs()
                              ? msdu->GetHeader().GetAddr3()
                              : msdu->GetHeader().GetAddr1());
@@ -198,11 +158,9 @@ void WifiMpdu::DoAggregate(Ptr<const WifiMpdu> msdu) {
 
   original.m_msduList.emplace_back(msdu->GetPacket(), hdr);
 
-  // build the A-MSDU
   NS_ASSERT(original.m_packet);
   Ptr<Packet> amsdu = original.m_packet->Copy();
 
-  // pad the previous A-MSDU subframe if the A-MSDU is not empty
   if (original.m_packet->GetSize() > 0) {
     uint8_t padding =
         MsduAggregator::CalculatePadding(original.m_packet->GetSize());
@@ -212,7 +170,6 @@ void WifiMpdu::DoAggregate(Ptr<const WifiMpdu> msdu) {
     }
   }
 
-  // add A-MSDU subframe header and MSDU
   Ptr<Packet> amsduSubframe = msdu->GetPacket()->Copy();
   amsduSubframe->AddHeader(hdr);
   amsdu->AddAtEnd(amsduSubframe);
@@ -272,7 +229,6 @@ void WifiMpdu::AssignSeqNo(uint16_t seqNo) {
   NS_LOG_FUNCTION(this << seqNo);
 
   m_header.SetSequenceNumber(seqNo);
-  // if this is an alias, set the sequence number on the original copy, too
   if (auto originalPtr = std::get_if<ALIAS>(&m_instanceInfo)) {
     (*originalPtr)->m_header.SetSequenceNumber(seqNo);
   }

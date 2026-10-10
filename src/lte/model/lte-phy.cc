@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Giuseppe Piro  <g.piro@poliba.it>
- *         Marco Miozzo <mmiozzo@cttc.es>
- */
 
 #include "lte-phy.h"
 
@@ -108,7 +89,6 @@ double LtePhy::GetTti() const {
 }
 
 uint16_t LtePhy::GetSrsPeriodicity(uint16_t srcCi) const {
-  // from 3GPP TS 36.213 table 8.2-1 UE Specific SRS Periodicity
   uint16_t SrsPeriodicity[9] = {0, 2, 5, 10, 20, 40, 80, 160, 320};
   uint16_t SrsCiLow[9] = {0, 0, 2, 7, 17, 37, 77, 157, 317};
   uint16_t SrsCiHigh[9] = {0, 1, 6, 16, 36, 76, 156, 316, 636};
@@ -122,7 +102,6 @@ uint16_t LtePhy::GetSrsPeriodicity(uint16_t srcCi) const {
 }
 
 uint16_t LtePhy::GetSrsSubframeOffset(uint16_t srcCi) const {
-  // from 3GPP TS 36.213 table 8.2-1 UE Specific SRS Periodicity
   uint16_t SrsSubframeOffset[9] = {0, 0, 2, 7, 17, 37, 77, 157, 317};
   uint16_t SrsCiLow[9] = {0, 0, 2, 7, 17, 37, 77, 157, 317};
   uint16_t SrsCiHigh[9] = {0, 1, 6, 16, 36, 76, 156, 316, 636};
@@ -155,8 +134,6 @@ Ptr<PacketBurst> LtePhy::GetPacketBurst() {
 }
 
 void LtePhy::SetControlMessages(Ptr<LteControlMessage> m) {
-  // In uplink the queue of control messages and packet are of different sizes
-  // for avoiding TTI cancellation due to synchronization of subframe triggers
   m_controlMessagesQueue.at(m_controlMessagesQueue.size() - 1).push_back(m);
 }
 

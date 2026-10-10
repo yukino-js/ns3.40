@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Magister Solutions (original test-lte-handover-delay.cc)
- * Copyright (c) 2021 University of Washington (handover failure cases)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sachin Nayak <sachinnn@uw.edu>
- */
 
 #include <ns3/boolean.h>
 #include <ns3/callback.h>
@@ -44,54 +25,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteHandoverFailureTest");
 
-/**
- * \ingroup lte-test
- *
- * \brief Verifying that a handover failure occurs due to various causes
- *
- * Handover failure cases dealt with in this test include the below.
- *
- * 1. Handover failure due to max random access channel (RACH) attempts from UE
- * to target eNodeB
- * 2. Handover failure due to non-allocation of non-contention preamble to UE at
- * target eNodeB
- * 3. Handover failure due to HANDOVER JOINING timeout (3 cases)
- * 4. Handover failure due to HANDOVER LEAVING timeout (3 cases)
- *
- * \sa ns3::LteHandoverFailureTestCase
- */
 class LteHandoverFailureTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param name the name of the test case, to be displayed in the test result
-   * \param useIdealRrc if true, use the ideal RRC
-   * \param handoverTime the time of handover
-   * \param simulationDuration duration of the simulation
-   * \param numberOfRaPreambles number of random access preambles available for
-   contention based RACH process
-   *                            number of non-contention preambles available for
-   handover = (64 - numberRaPreambles)
-   *                            as numberOfRaPreambles out of the max 64 are
-   reserved contention based RACH process
-   * \param preambleTransMax maximum number of random access preamble
-   transmissions from UE to eNodeB
-   * \param raResponseWindowSize window length for reception of random access
-   response (RAR)
-   * \param handoverJoiningTimeout time before which RRC RECONFIGURATION
-   COMPLETE must be received at target eNodeB after it receives a handover
-   request Else, the UE context is destroyed in the RRC. Timeout can occur
-   before different stages as below. i. Reception of RRC CONNECTION
-   RECONFIGURATION at source eNodeB ii. Non-contention random access procedure
-   from UE to target eNodeB iii. Reception of RRC CONNECTION RECONFIGURATION
-   COMPLETE at target eNodeB
-   * \param handoverLeavingTimeout time before which source eNodeB must receive
-   a UE context release from target eNodeB or RRC CONNECTION RESTABLISHMENT from
-   UE after issuing a handover request Else, the UE context is destroyed in the
-   RRC. Timeout can occur before any of the cases in HANDOVER JOINING TIMEOUT
-   * \param targeteNodeBPosition position of the target eNodeB
-   */
   LteHandoverFailureTestCase(std::string name, bool useIdealRrc,
                              Time handoverTime, Time simulationDuration,
                              uint8_t numberOfRaPreambles,
@@ -111,85 +46,37 @@ public:
         m_hasHandoverFailureOccurred(false) {}
 
 private:
-  /**
-   * \brief Run a simulation of a two eNodeB network using the parameters
-   *        provided to the constructor function.
-   */
   void DoRun() override;
 
-  /**
-   * \brief Called at the end of simulation and verifies that a handover
-   *        and a handover failure has occurred in the simulation.
-   */
   void DoTeardown() override;
 
-  /**
-   * UE handover start callback function to indicate start of handover
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param sourceCellId the source cell ID
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void UeHandoverStartCallback(std::string context, uint64_t imsi,
                                uint16_t sourceCellId, uint16_t rnti,
                                uint16_t targetCellId);
 
-  /**
-   * Handover failure callback due to maximum RACH transmissions reached from UE
-   * to target eNodeB \param context the context string \param imsi the IMSI
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void HandoverFailureMaxRach(std::string context, uint64_t imsi, uint16_t rnti,
                               uint16_t targetCellId);
 
-  /**
-   * Handover failure callback due to non-allocation of non-contention preamble
-   * at target eNodeB \param context the context string \param imsi the IMSI
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void HandoverFailureNoPreamble(std::string context, uint64_t imsi,
                                  uint16_t rnti, uint16_t targetCellId);
 
-  /**
-   * Handover failure callback due to handover joining timeout at target eNodeB
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void HandoverFailureJoining(std::string context, uint64_t imsi, uint16_t rnti,
                               uint16_t targetCellId);
 
-  /**
-   * Handover failure callback due to handover leaving timeout at source eNodeB
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void HandoverFailureLeaving(std::string context, uint64_t imsi, uint16_t rnti,
                               uint16_t targetCellId);
 
-  bool m_useIdealRrc;            ///< use ideal RRC?
-  Time m_handoverTime;           ///< handover time
-  Time m_simulationDuration;     ///< the simulation duration
-  uint8_t m_numberOfRaPreambles; ///< number of random access preambles for
-                                 ///< contention based RACH process
-  uint8_t m_preambleTransMax; ///< max number of RACH preambles possible from UE
-                              ///< to eNodeB
-  uint8_t m_raResponseWindowSize;    ///< window length for reception of RAR
-  Time m_handoverJoiningTimeout;     ///< handover joining timeout duration at
-                                     ///< target eNodeB
-  Time m_handoverLeavingTimeout;     ///< handover leaving timeout duration at
-                                     ///< source eNodeB
-  uint16_t m_targeteNodeBPosition;   ///< position of the target eNodeB
-  bool m_hasHandoverFailureOccurred; ///< has handover failure occurred in
-                                     ///< simulation
-
-}; // end of class LteHandoverFailureTestCase
+  bool m_useIdealRrc;
+  Time m_handoverTime;
+  Time m_simulationDuration;
+  uint8_t m_numberOfRaPreambles;
+  uint8_t m_preambleTransMax;
+  uint8_t m_raResponseWindowSize;
+  Time m_handoverJoiningTimeout;
+  Time m_handoverLeavingTimeout;
+  uint16_t m_targeteNodeBPosition;
+  bool m_hasHandoverFailureOccurred;
+};
 
 void LteHandoverFailureTestCase::DoRun() {
   NS_LOG_INFO(this << " " << GetName());
@@ -198,15 +85,11 @@ void LteHandoverFailureTestCase::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(2);
 
-  /*
-   * Helpers.
-   */
   auto epcHelper = CreateObject<PointToPointEpcHelper>();
 
   auto lteHelper = CreateObject<LteHelper>();
   lteHelper->SetEpcHelper(epcHelper);
 
-  // Set parameters for helpers based on the test case parameters.
   lteHelper->SetAttribute("UseIdealRrc", BooleanValue(m_useIdealRrc));
   Config::SetDefault("ns3::LteEnbMac::NumberOfRaPreambles",
                      UintegerValue(m_numberOfRaPreambles));
@@ -219,26 +102,14 @@ void LteHandoverFailureTestCase::DoRun() {
   Config::SetDefault("ns3::LteEnbRrc::HandoverLeavingTimeoutDuration",
                      TimeValue(m_handoverLeavingTimeout));
 
-  // Set PHY model to drastically decrease with distance.
   lteHelper->SetPathlossModelType(
       TypeId::LookupByName("ns3::LogDistancePropagationLossModel"));
   lteHelper->SetPathlossModelAttribute("Exponent", DoubleValue(3.5));
   lteHelper->SetPathlossModelAttribute("ReferenceLoss", DoubleValue(35));
-  /*
-   * Physical layer.
-   *
-   * eNodeB 0                    UE                         eNodeB 1
-   *
-   *    x ----------------------- x -------------------------- x
-   *              200 m               m_targeteNodeBPosition
-   *  source                                                 target
-   */
-  // Create nodes.
   NodeContainer enbNodes;
   enbNodes.Create(2);
   auto ueNode = CreateObject<Node>();
 
-  // Setup mobility
   auto posAlloc = CreateObject<ListPositionAllocator>();
   posAlloc->Add(Vector(0, 0, 0));
   posAlloc->Add(Vector(m_targeteNodeBPosition, 0, 0));
@@ -250,21 +121,14 @@ void LteHandoverFailureTestCase::DoRun() {
   mobilityHelper.Install(enbNodes);
   mobilityHelper.Install(ueNode);
 
-  /*
-   * Link layer.
-   */
   auto enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   auto ueDev = lteHelper->InstallUeDevice(ueNode).Get(0);
 
-  /*
-   * Network layer.
-   */
   InternetStackHelper inetStackHelper;
   inetStackHelper.Install(ueNode);
   Ipv4InterfaceContainer ueIfs;
   ueIfs = epcHelper->AssignUeIpv4Address(ueDev);
 
-  // Setup traces.
   Config::Connect(
       "/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart",
       MakeCallback(&LteHandoverFailureTestCase::UeHandoverStartCallback, this));
@@ -282,20 +146,18 @@ void LteHandoverFailureTestCase::DoRun() {
       "/NodeList/*/DeviceList/*/LteEnbRrc/HandoverFailureLeaving",
       MakeCallback(&LteHandoverFailureTestCase::HandoverFailureLeaving, this));
 
-  // Prepare handover.
   lteHelper->AddX2Interface(enbNodes);
   lteHelper->Attach(ueDev, enbDevs.Get(0));
   lteHelper->HandoverRequest(m_handoverTime, ueDev, enbDevs.Get(0),
                              enbDevs.Get(1));
 
-  // Run simulation.
   Simulator::Stop(m_simulationDuration);
   Simulator::Run();
   Simulator::Destroy();
 
   RngSeedManager::SetSeed(previousSeed);
   RngSeedManager::SetRun(previousRun);
-} // end of void LteHandoverFailureTestCase::DoRun ()
+}
 
 void LteHandoverFailureTestCase::UeHandoverStartCallback(
     std::string context, uint64_t imsi, uint16_t sourceCellId, uint16_t rnti,
@@ -344,25 +206,11 @@ void LteHandoverFailureTestCase::DoTeardown() {
                         "Handover failure did not occur");
 }
 
-/**
- * \ingroup lte-test
- *
- * The following log components can be used to debug this test's behavior:
- * LteHandoverFailureTest:LteEnbRrc:LteEnbMac:LteUeRrc:EpcX2
- *
- * \brief Lte Handover Failure Test Suite
- */
 static class LteHandoverFailureTestSuite : public TestSuite {
 public:
   LteHandoverFailureTestSuite()
       : TestSuite("lte-handover-failure", TestSuite::SYSTEM) {
-    // Argument sequence for all test cases: useIdealRrc, handoverTime,
-    // simulationDuration, numberOfRaPreambles, preambleTransMax,
-    // raResponseWindowSize,
-    //                                       handoverJoiningTimeout,
-    //                                       handoverLeavingTimeout
 
-    // Test cases for REAL RRC protocol
     AddTestCase(new LteHandoverFailureTestCase(
                     "REAL Handover failure due to maximum RACH "
                     "transmissions reached from UE to target eNodeB",
@@ -419,7 +267,6 @@ public:
                     MilliSeconds(200), MilliSeconds(18), 500),
                 TestCase::QUICK);
 
-    // Test cases for IDEAL RRC protocol
     AddTestCase(new LteHandoverFailureTestCase(
                     "IDEAL Handover failure due to maximum RACH "
                     "transmissions reached from UE to target eNodeB",
@@ -478,4 +325,4 @@ public:
             MilliSeconds(4), 500),
         TestCase::QUICK);
   }
-} g_lteHandoverFailureTestSuite; ///< end of LteHandoverFailureTestSuite ()
+} g_lteHandoverFailureTestSuite;

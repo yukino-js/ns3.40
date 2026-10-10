@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "loopback-net-device.h"
 
 #include "ns3/channel.h"
@@ -89,15 +71,10 @@ void LoopbackNetDevice::AddLinkChangeCallback(Callback<void> callback) {}
 bool LoopbackNetDevice::IsBroadcast() const { return true; }
 
 Address LoopbackNetDevice::GetBroadcast() const {
-  // This is typically set to all zeros rather than all ones in real systems
   return Mac48Address("00:00:00:00:00:00");
 }
 
-bool LoopbackNetDevice::IsMulticast() const {
-  // Multicast loopback will need to be supported for outgoing
-  // datagrams but this will probably be handled in multicast sockets
-  return false;
-}
+bool LoopbackNetDevice::IsMulticast() const { return false; }
 
 Address LoopbackNetDevice::GetMulticast(Ipv4Address multicastGroup) const {
   return Mac48Address::GetMulticast(multicastGroup);

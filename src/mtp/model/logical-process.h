@@ -1,18 +1,3 @@
-/*
- * Copyright 2026 hangtiancheng
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef LOGICAL_PROCESS_H
 #define LOGICAL_PROCESS_H
@@ -48,13 +33,11 @@ public:
 
   inline Ptr<Scheduler> GetPendingEvents() const { return m_events; }
 
-  // mapped from MultithreadedSimulatorImpl
   EventId Schedule(const Time &delay, EventImpl *event);
   void ScheduleAt(const uint32_t context, const Time &time, EventImpl *event);
   void ScheduleWithContext(LogicalProcess *remote, const uint32_t context,
                            const Time &delay, EventImpl *event);
-  void
-  InvokeNow(const Scheduler::Event &ev); // cross context immediate invocation
+  void InvokeNow(const Scheduler::Event &ev);
   void Remove(const EventId &id);
   void Cancel(const EventId &id);
   bool IsExpired(const EventId &id) const;
@@ -93,10 +76,10 @@ private:
   std::map<
       uint32_t,
       std::vector<std::tuple<uint64_t, uint32_t, uint32_t, Scheduler::Event>>>
-      m_mailbox; // event message mail box
+      m_mailbox;
   std::chrono::nanoseconds::rep m_executionTime;
 };
 
 } // namespace ns3
 
-#endif /* LOGICAL_PROCESS_H */
+#endif

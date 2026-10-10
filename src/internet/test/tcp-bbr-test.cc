@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2018 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Vivek Jain <jain.vivek.anand@gmail.com>
- *          Viyom Mittal <viyommittal@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-bbr.h"
@@ -30,25 +9,14 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TcpBbrTestSuite");
 
-/**
- * \brief Testing whether BBR enables pacing
- */
 class TcpBbrPacingEnableTest : public TestCase {
 public:
-  /**
-   * \brief constructor
-   * \param pacing pacing configuration
-   * \param name description of the test
-   */
   TcpBbrPacingEnableTest(bool pacing, const std::string &name);
 
 private:
   void DoRun() override;
-  /**
-   * \brief Execute the test.
-   */
   void ExecuteTest();
-  bool m_pacing; //!< Initial pacing configuration.
+  bool m_pacing;
 };
 
 TcpBbrPacingEnableTest::TcpBbrPacingEnableTest(bool pacing,
@@ -73,29 +41,16 @@ void TcpBbrPacingEnableTest::ExecuteTest() {
                         "BBR has not updated pacing value");
 }
 
-/**
- * \brief Tests whether BBR sets correct value of pacing and cwnd gain based on
- * different state.
- */
 class TcpBbrCheckGainValuesTest : public TestCase {
 public:
-  /**
-   * \brief constructor
-   * \param state BBR state/mode under test
-   * \param highGain value of pacing and cwnd gain
-   * \param name description of the test
-   */
   TcpBbrCheckGainValuesTest(TcpBbr::BbrMode_t state, double highGain,
                             const std::string &name);
 
 private:
   void DoRun() override;
-  /**
-   * \brief Execute the test.
-   */
   void ExecuteTest();
-  TcpBbr::BbrMode_t m_mode; //!< BBR mode under test
-  double m_highGain;        //!< Value of BBR high gain
+  TcpBbr::BbrMode_t m_mode;
+  double m_highGain;
 };
 
 TcpBbrCheckGainValuesTest::TcpBbrCheckGainValuesTest(TcpBbr::BbrMode_t state,
@@ -135,12 +90,6 @@ void TcpBbrCheckGainValuesTest::ExecuteTest() {
     break;
   case TcpBbr::BBR_PROBE_BW:
     cong->EnterProbeBW();
-    // The value of desiredPacingGain is sensitive to the setting of random
-    // variable stream. The value of 1.25 has been used in this test with a
-    // stream value of 4 (default for TCP BBR). Note that if the stream value
-    // is changed, this test might fail because when BBR enters the PROBE_BW
-    // phase, the value of actualPacingGain is chosen randomly from 1.25,
-    // 0.75, 1, 1, 1, 1, 1, 1.
     desiredPacingGain = 1.25;
     desiredCwndGain = 2;
     desiredMode = TcpBbr::BBR_PROBE_BW;
@@ -165,16 +114,8 @@ void TcpBbrCheckGainValuesTest::ExecuteTest() {
                         "BBR has not updated into desired cwnd gain");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP BBR TestSuite
- */
 class TcpBbrTestSuite : public TestSuite {
 public:
-  /**
-   * \brief constructor
-   */
   TcpBbrTestSuite() : TestSuite("tcp-bbr-test", UNIT) {
     AddTestCase(
         new TcpBbrPacingEnableTest(true, "BBR must keep pacing feature on"),
@@ -210,6 +151,5 @@ public:
   }
 };
 
-static TcpBbrTestSuite
-    g_tcpBbrTest; //!< static variable for test initialization
+static TcpBbrTestSuite g_tcpBbrTest;
 } // namespace ns3

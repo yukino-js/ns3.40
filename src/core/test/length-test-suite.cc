@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathew Bielejeski<bielejeski1@llnl.gov>
- */
 
 #include "ns3/length.h"
 #include "ns3/log.h"
@@ -39,110 +21,42 @@
 #include <sstream>
 #include <string>
 
-/**
- * \file
- * \ingroup length-tests
- * Length class tests.
- */
-
-/**
- * \ingroup core-tests length
- * \defgroup length-tests Length test suite
- */
-
 using namespace ns3;
 
-/**
- * Save some typing by defining a short alias for Length::Unit
- */
 using Unit = Length::Unit;
 
-/**
- * Implements tests for the Length class
- */
 class LengthTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   LengthTestCase() : TestCase("length-tests") {}
 
-  /**
-   * Destructor
-   */
   ~LengthTestCase() override = default;
 
 protected:
-  /**
-   * Helper function to compare results with false
-   *
-   * \param condition The boolean condition to test
-   * \param msg The message to print if the test fails
-   */
   void AssertFalse(bool condition, std::string msg) {
     NS_TEST_ASSERT_MSG_EQ(condition, false, msg);
   }
 
-  /**
-   * Helper function to compare results with true
-   *
-   * \param condition The boolean condition to test
-   * \param msg The message to print if the test fails
-   */
   void AssertTrue(bool condition, std::string msg) {
     NS_TEST_ASSERT_MSG_EQ(condition, true, msg);
   }
 
 private:
-  /**
-   * Test that a default constructed Length object has a value of 0
-   */
   void TestDefaultLengthIsZero();
 
-  /**
-   * Test that a Length object can be constructed from a Quantity object
-   */
   void TestConstructLengthFromQuantity();
 
-  /**
-   * Test that a Length object constructed from various SI units has the
-   * correct value in meters
-   */
   void TestConstructLengthFromSIUnits();
 
-  /**
-   * Test that a Length object constructed from various US units has the
-   * correct value in meters
-   */
   void TestConstructLengthFromUSUnits();
 
-  /**
-   * Test that the value from one length is copied to another
-   * using the copy constructor.
-   */
   void TestLengthCopyConstructor();
 
-  /**
-   * Test that the value from one length is copied to another
-   * using the move constructor.
-   */
   void TestLengthMoveConstructor();
 
-  /**
-   * Test that a length object can be constructed from a string
-   * \param unitValue  //!< Value to test.
-   * \param meterValue //!< Reference value [m].
-   * \param tolerance  //!< Tolerance.
-   * \param symbols    //!< Unit symbols.
-   */
   void TestConstructLengthFromString(
       double unitValue, double meterValue, double tolerance,
       const std::initializer_list<std::string> &symbols);
 
-  /**
-   * Test that a length object can be constructed from a string
-   * @{
-   */
   void TestConstructLengthFromMeterString();
   void TestConstructLengthFromNanoMeterString();
   void TestConstructLengthFromMicroMeterString();
@@ -154,58 +68,26 @@ private:
   void TestConstructLengthFromFootString();
   void TestConstructLengthFromYardString();
   void TestConstructLengthFromMileString();
-  /** @} */
 
 #ifdef HAVE_BOOST_UNITS
-  /**
-   * Test construction from boost::units
-   * @{
-   */
   void TestConstructLengthFromBoostUnits();
   void TestConstructLengthFromBoostUnitsMeters();
   void TestConstructLengthFromBoostUnitsKiloMeters();
   void TestConstructLengthFromBoostUnitsFeet();
-  /** @} */
 #endif
 
-  /**
-   * Test constructing length objects using the builder free functions
-   * @{
-   */
   void TestBuilderFreeFunctions();
-  /** @} */
 
-  /**
-   * Test the TryParse function returns false on bad input
-   */
   void TestTryParseReturnsFalse();
 
-  /**
-   * Test the TryParse function returns true on success
-   */
   void TestTryParseReturnsTrue();
 
-  /**
-   * Test that a length object can be updated by assignment from another
-   * length object
-   */
   void TestCopyAssignment();
 
-  /**
-   * Test that a length object can be updated by assignment from a moved
-   * length object
-   */
   void TestMoveAssignment();
 
-  /**
-   * Test that a length object can be updated by assignment from a quantity
-   */
   void TestQuantityAssignment();
 
-  /**
-   * Test member comparison operators
-   * @{
-   */
   void TestIsEqualReturnsTrue();
   void TestIsEqualReturnsFalse();
   void TestIsEqualWithToleranceReturnsTrue();
@@ -220,45 +102,18 @@ private:
   void TestIsGreaterReturnsTrue();
   void TestIsGreaterReturnsFalse();
   void TestIsGreaterWithToleranceReturnsFalse();
-  /** @} */
 
-  /**
-   * Test writing length object to a stream produces the expected output
-   */
   void TestOutputStreamOperator();
 
-  /**
-   * Test reading length object from a stream produces the expected length
-   * value
-   */
   void TestInputStreamOperator();
 
-  /**
-   * Generic function for testing serialization of a Length object in
-   * various units
-   *
-   * \tparam T Type of the length unit that should be output during
-   * serialization
-   *
-   * \param l Length object to serialize
-   * \param unit Unit that the length value will be converted to before
-   * serialization \param expectedOutput Expected result of the serialization
-   * \param context Included in the error message if the test fails
-   */
   template <class T>
   void TestLengthSerialization(const Length &l, const T &unit,
                                const std::string &expectedOutput,
                                const std::string &context);
 
-  /**
-   * Test serializing a length object to all of the supported unit types
-   */
   void TestSerializeLengthWithUnit();
 
-  /**
-   * Test free function comparison operators
-   * @{
-   */
   void TestOperatorEqualsReturnsTrue();
   void TestOperatorEqualsReturnsFalse();
   void TestOperatorNotEqualsReturnsTrue();
@@ -271,12 +126,7 @@ private:
   void TestOperatorGreaterThanReturnsFalse();
   void TestOperatorGreaterOrEqualReturnsTrue();
   void TestOperatorGreaterOrEqualReturnsFalse();
-  /** @} */
 
-  /**
-   * Test arithmetic operations
-   * @{
-   */
   void TestAddingTwoLengths();
   void TestAddingLengthAndQuantity();
   void TestAddingQuantityAndLength();
@@ -288,24 +138,13 @@ private:
   void TestDivideLengthByScalar();
   void TestDivideLengthByLength();
   void TestDivideLengthByLengthReturnsNaN();
-  /** @} */
 
-  /**
-   * Test Div function
-   * @{
-   */
   void TestDivReturnsCorrectResult();
   void TestDivReturnsZeroRemainder();
   void TestDivReturnsCorrectRemainder();
-  /** @} */
 
-  /**
-   * Test Mod function
-   * @{
-   */
   void TestModReturnsZero();
   void TestModReturnsNonZero();
-  /** @} */
 
   void DoRun() override;
 };
@@ -1286,31 +1125,15 @@ void LengthTestCase::DoRun() {
   TestModReturnsNonZero();
 }
 
-/**
- * \ingroup length-tests
- *
- * Test case for LengthValue attribute
- */
 class LengthValueTestCase : public TestCase {
 public:
-  /**
-   * Default Constructor
-   */
   LengthValueTestCase() : TestCase("length-value-tests") {}
 
-  /**
-   * Destructor
-   */
   ~LengthValueTestCase() override {}
 
 private:
-  /// Class with Length attribute
   class TestObject : public Object {
   public:
-    /**
-     * \brief Get the type ID.
-     * \return The object TypeId.
-     */
     static TypeId GetTypeId();
 
     TestObject() : m_length() {}
@@ -1318,36 +1141,20 @@ private:
     ~TestObject() override {}
 
   private:
-    Length m_length; //!< Length object
+    Length m_length;
   };
 
 private:
-  /**
-   * Test that a LengthValue can be constructed from a Length instance
-   */
   void TestAttributeConstructor();
 
-  /**
-   * Test that a LengthValue can be serialized to a string
-   */
   void TestAttributeSerialization();
 
-  /**
-   * Test that a LengthValue can be deserialized from a string
-   */
   void TestAttributeDeserialization();
 
-  /**
-   * Test that a LengthValue works as an attribute
-   */
   void TestObjectAttribute();
 
-  /**
-   * Test that a StringValue is converted to LengthValue
-   */
   void TestSetAttributeUsingStringValue();
 
-  // Inherited function
   void DoRun() override;
 };
 
@@ -1436,15 +1243,8 @@ void LengthValueTestCase::DoRun() {
   TestSetAttributeUsingStringValue();
 }
 
-/**
- * \ingroup length-tests
- * The Test Suite that runs the test case
- */
 class LengthTestSuite : public TestSuite {
 public:
-  /**
-   * Default Constructor
-   */
   LengthTestSuite();
 };
 
@@ -1453,7 +1253,4 @@ LengthTestSuite::LengthTestSuite() : TestSuite("length") {
   AddTestCase(new LengthValueTestCase(), TestCase::QUICK);
 }
 
-/**
- * LengthTestSuite instance
- */
 static LengthTestSuite gLengthTestSuite;

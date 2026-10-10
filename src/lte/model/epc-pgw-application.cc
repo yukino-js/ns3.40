@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2018 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- *         (based on epc-sgw-pgw-application.cc)
- */
 
 #include "epc-pgw-application.h"
 
@@ -36,10 +17,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("EpcPgwApplication");
 
-/////////////////////////
-// UeInfo
-/////////////////////////
-
 EpcPgwApplication::UeInfo::UeInfo() { NS_LOG_FUNCTION(this); }
 
 void EpcPgwApplication::UeInfo::AddBearer(uint8_t bearerId, uint32_t teid,
@@ -52,16 +29,13 @@ void EpcPgwApplication::UeInfo::AddBearer(uint8_t bearerId, uint32_t teid,
 void EpcPgwApplication::UeInfo::RemoveBearer(uint8_t bearerId) {
   NS_LOG_FUNCTION(this << (uint16_t)bearerId);
   auto it = m_teidByBearerIdMap.find(bearerId);
-  m_tftClassifier.Delete(it->second); // delete tft
+  m_tftClassifier.Delete(it->second);
   m_teidByBearerIdMap.erase(bearerId);
 }
 
 uint32_t EpcPgwApplication::UeInfo::Classify(Ptr<Packet> p,
                                              uint16_t protocolNumber) {
   NS_LOG_FUNCTION(this << p);
-  // we hardcode DOWNLINK direction since the PGW is expected to
-  // classify only downlink packets (uplink packets will go to the
-  // internet without any classification).
   return m_tftClassifier.Classify(p, EpcTft::DOWNLINK, protocolNumber);
 }
 
@@ -82,10 +56,6 @@ Ipv6Address EpcPgwApplication::UeInfo::GetUeAddr6() { return m_ueAddr6; }
 void EpcPgwApplication::UeInfo::SetUeAddr6(Ipv6Address ueAddr) {
   m_ueAddr6 = ueAddr;
 }
-
-/////////////////////////
-// EpcPgwApplication
-/////////////////////////
 
 TypeId EpcPgwApplication::GetTypeId() {
   static TypeId tid =
@@ -117,9 +87,7 @@ EpcPgwApplication::EpcPgwApplication(const Ptr<VirtualNetDevice> tunDevice,
                                      const Ptr<Socket> s5uSocket,
                                      const Ptr<Socket> s5cSocket)
     : m_pgwS5Addr(s5Addr), m_s5uSocket(s5uSocket), m_s5cSocket(s5cSocket),
-      m_tunDevice(tunDevice), m_gtpuUdpPort(2152), // fixed by the standard
-      m_gtpcUdpPort(2123)                          // fixed by the standard
-{
+      m_tunDevice(tunDevice), m_gtpuUdpPort(2152), m_gtpcUdpPort(2123) {
   NS_LOG_FUNCTION(this << tunDevice << s5Addr << s5uSocket << s5cSocket);
   m_s5uSocket->SetRecvCallback(
       MakeCallback(&EpcPgwApplication::RecvFromS5uSocket, this));
@@ -137,14 +105,12 @@ bool EpcPgwApplication::RecvFromTunDevice(Ptr<Packet> packet,
                        << packet->GetSize());
   m_rxTunPktTrace(packet->Copy());
 
-  // get IP address of UE
   if (protocolNumber == Ipv4L3Protocol::PROT_NUMBER) {
     Ipv4Header ipv4Header;
     packet->PeekHeader(ipv4Header);
     Ipv4Address ueAddr = ipv4Header.GetDestination();
     NS_LOG_LOGIC("packet addressed to UE " << ueAddr);
 
-    // find corresponding UeInfo address
     auto it = m_ueInfoByAddrMap.find(ueAddr);
     if (it == m_ueInfoByAddrMap.end()) {
       NS_LOG_WARN("unknown UE address " << ueAddr);
@@ -163,7 +129,6 @@ bool EpcPgwApplication::RecvFromTunDevice(Ptr<Packet> packet,
     Ipv6Address ueAddr = ipv6Header.GetDestination();
     NS_LOG_LOGIC("packet addressed to UE " << ueAddr);
 
-    // find corresponding UeInfo address
     auto it = m_ueInfoByAddrMap6.find(ueAddr);
     if (it == m_ueInfoByAddrMap6.end()) {
       NS_LOG_WARN("unknown UE address " << ueAddr);
@@ -180,9 +145,6 @@ bool EpcPgwApplication::RecvFromTunDevice(Ptr<Packet> packet,
     NS_ABORT_MSG("Unknown IP type");
   }
 
-  // there is no reason why we should notify the TUN
-  // VirtualNetDevice that he failed to send the packet: if we receive
-  // any bogus packet, it will just be silently discarded.
   const bool succeeded = true;
   return succeeded;
 }
@@ -365,7 +327,6 @@ void EpcPgwApplication::DoRecvDeleteBearerResponse(Ptr<Packet> packet) {
   NS_ASSERT_MSG(ueit != m_ueInfoByImsiMap.end(), "unknown IMSI " << imsi);
 
   for (auto &epsBearerId : msg.GetEpsBearerIds()) {
-    // Remove de-activated bearer contexts from PGW side
     NS_LOG_INFO("PGW removing bearer " << (uint16_t)epsBearerId << " of IMSI "
                                        << imsi);
     ueit->second->RemoveBearer(epsBearerId);
@@ -399,8 +360,6 @@ void EpcPgwApplication::SendToS5uSocket(Ptr<Packet> packet, Ipv4Address sgwAddr,
 
   GtpuHeader gtpu;
   gtpu.SetTeid(teid);
-  // From 3GPP TS 29.281 v10.0.0 Section 5.1
-  // Length of the payload + the non obligatory GTP-U header
   gtpu.SetLength(packet->GetSize() + gtpu.GetSerializedSize() - 8);
   packet->AddHeader(gtpu);
   uint32_t flags = 0;

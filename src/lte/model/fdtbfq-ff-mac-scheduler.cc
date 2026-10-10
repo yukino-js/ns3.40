@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- * Modification: Dizhi Zhou <dizhi.zhou@gmail.com>    // modify codes related to
- * downlink scheduler
- */
 
 #include "fdtbfq-ff-mac-scheduler.h"
 
@@ -38,13 +18,12 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("FdTbfqFfMacScheduler");
 
-/// FdTbfqType0AllocationRbg value array
 static const int FdTbfqType0AllocationRbg[4] = {
-    10,  // RGB size 1
-    26,  // RGB size 2
-    63,  // RGB size 3
-    110, // RGB size 4
-}; // see table 7.1.6.1-1 of 36.213
+    10,
+    26,
+    63,
+    110,
+};
 
 NS_OBJECT_ENSURE_REGISTERED(FdTbfqFfMacScheduler);
 
@@ -147,7 +126,6 @@ LteFfrSapUser *FdTbfqFfMacScheduler::GetLteFfrSapUser() { return m_ffrSapUser; }
 void FdTbfqFfMacScheduler::DoCschedCellConfigReq(
     const FfMacCschedSapProvider::CschedCellConfigReqParameters &params) {
   NS_LOG_FUNCTION(this);
-  // Read the subset of parameters used
   m_cschedCellConfig = params;
   m_rachAllocationMap.resize(m_cschedCellConfig.m_ulBandwidth, 0);
   FfMacCschedSapUser::CschedUeConfigCnfParameters cnf;
@@ -163,7 +141,6 @@ void FdTbfqFfMacScheduler::DoCschedUeConfigReq(
   if (it == m_uesTxMode.end()) {
     m_uesTxMode.insert(
         std::pair<uint16_t, double>(params.m_rnti, params.m_transmissionMode));
-    // generate HARQ buffers
     m_dlHarqCurrentProcessId.insert(
         std::pair<uint16_t, uint8_t>(params.m_rnti, 0));
     DlHarqProcessesStatus_t dlHarqPrcStatus;
@@ -211,11 +188,9 @@ void FdTbfqFfMacScheduler::DoCschedLcConfigReq(
 
     if (it == m_flowStatsDl.end()) {
       uint64_t mbrDlInBytes =
-          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateDl /
-          8; // byte/s
+          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateDl / 8;
       uint64_t mbrUlInBytes =
-          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateUl /
-          8; // byte/s
+          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateUl / 8;
       NS_LOG_DEBUG("mbrDlInBytes: " << mbrDlInBytes
                                     << " mbrUlInBytes: " << mbrUlInBytes);
 
@@ -226,8 +201,8 @@ void FdTbfqFfMacScheduler::DoCschedLcConfigReq(
       flowStatsDl.tokenPoolSize = 0;
       flowStatsDl.maxTokenPoolSize = m_tokenPoolSize;
       flowStatsDl.counter = 0;
-      flowStatsDl.burstCredit = m_creditLimit; // bytes
-      flowStatsDl.debtLimit = m_debtLimit;     // bytes
+      flowStatsDl.burstCredit = m_creditLimit;
+      flowStatsDl.debtLimit = m_debtLimit;
       flowStatsDl.creditableThreshold = m_creditableThreshold;
       m_flowStatsDl.insert(
           std::pair<uint16_t, fdtbfqsFlowPerf_t>(params.m_rnti, flowStatsDl));
@@ -238,19 +213,16 @@ void FdTbfqFfMacScheduler::DoCschedLcConfigReq(
       flowStatsUl.tokenPoolSize = 0;
       flowStatsUl.maxTokenPoolSize = m_tokenPoolSize;
       flowStatsUl.counter = 0;
-      flowStatsUl.burstCredit = m_creditLimit; // bytes
-      flowStatsUl.debtLimit = m_debtLimit;     // bytes
+      flowStatsUl.burstCredit = m_creditLimit;
+      flowStatsUl.debtLimit = m_debtLimit;
       flowStatsUl.creditableThreshold = m_creditableThreshold;
       m_flowStatsUl.insert(
           std::pair<uint16_t, fdtbfqsFlowPerf_t>(params.m_rnti, flowStatsUl));
     } else {
-      // update MBR and GBR from UeManager::SetupDataRadioBearer ()
       uint64_t mbrDlInBytes =
-          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateDl /
-          8; // byte/s
+          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateDl / 8;
       uint64_t mbrUlInBytes =
-          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateUl /
-          8; // byte/s
+          params.m_logicalChannelConfigList.at(i).m_eRabMaximulBitrateUl / 8;
       NS_LOG_DEBUG("mbrDlInBytes: " << mbrDlInBytes
                                     << " mbrUlInBytes: " << mbrUlInBytes);
       m_flowStatsDl[(*it).first].tokenGenerationRate = mbrDlInBytes;
@@ -312,8 +284,6 @@ void FdTbfqFfMacScheduler::DoSchedDlRlcBufferReq(
     const FfMacSchedSapProvider::SchedDlRlcBufferReqParameters &params) {
   NS_LOG_FUNCTION(this << params.m_rnti
                        << (uint32_t)params.m_logicalChannelIdentity);
-  // API generated by RLC for updating RLC parameters on a LC (tx and retx
-  // queues)
 
   LteFlowId_t flow(params.m_rnti, params.m_logicalChannelIdentity);
 
@@ -424,7 +394,6 @@ void FdTbfqFfMacScheduler::RefreshHarqProcesses() {
        itTimers != m_dlHarqProcessesTimer.end(); itTimers++) {
     for (uint16_t i = 0; i < HARQ_PROC_NUM; i++) {
       if ((*itTimers).second.at(i) == HARQ_DL_TIMEOUT) {
-        // reset HARQ process
 
         NS_LOG_DEBUG(this << " Reset HARQ proc " << i << " for RNTI "
                           << (*itTimers).first);
@@ -446,18 +415,13 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     const FfMacSchedSapProvider::SchedDlTriggerReqParameters &params) {
   NS_LOG_FUNCTION(this << " Frame no. " << (params.m_sfnSf >> 4)
                        << " subframe no. " << (0xF & params.m_sfnSf));
-  // API generated by RLC for triggering the scheduling of a DL subframe
-
-  // evaluate the relative channel quality indicator for each UE per each RBG
-  // (since we are using allocation type 0 the small unit of allocation is RBG)
-  // Resource allocation type 0 (see sec 7.1.6.1 of 36.213)
 
   RefreshDlCqiMaps();
 
   int rbgSize = GetRbgSize(m_cschedCellConfig.m_dlBandwidth);
   int rbgNum = m_cschedCellConfig.m_dlBandwidth / rbgSize;
-  std::map<uint16_t, std::vector<uint16_t>> allocationMap; // RBs map per RNTI
-  std::vector<bool> rbgMap;                                // global RBGs map
+  std::map<uint16_t, std::vector<uint16_t>> allocationMap;
+  std::vector<bool> rbgMap;
   uint16_t rbgAllocatedNum = 0;
   std::set<uint16_t> rntiAllocated;
   rbgMap.resize(m_cschedCellConfig.m_dlBandwidth / rbgSize, false);
@@ -471,13 +435,11 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
 
   FfMacSchedSapUser::SchedDlConfigIndParameters ret;
 
-  //   update UL HARQ proc id
   for (auto itProcId = m_ulHarqCurrentProcessId.begin();
        itProcId != m_ulHarqCurrentProcessId.end(); itProcId++) {
     (*itProcId).second = ((*itProcId).second + 1) % HARQ_PROC_NUM;
   }
 
-  // RACH Allocation
   std::vector<bool> ulRbMap;
   ulRbMap.resize(m_cschedCellConfig.m_ulBandwidth, false);
   ulRbMap = m_ffrSapProvider->GetAvailableUlRbg();
@@ -518,21 +480,16 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                   " Default UL Grant MCS does not allow to send RACH messages");
     BuildRarListElement_s newRar;
     newRar.m_rnti = (*itRach).m_rnti;
-    // DL-RACH Allocation
-    // Ideal: no needs of configuring m_dci
-    // UL-RACH Allocation
     newRar.m_grant.m_rnti = newRar.m_rnti;
     newRar.m_grant.m_mcs = m_ulGrantMcs;
     uint16_t rbLen = 1;
     uint16_t tbSizeBits = 0;
-    // find lowest TB size that fits UL grant estimated size
     while ((tbSizeBits < (*itRach).m_estimatedSize) &&
            (rbStart + rbLen < (ffrRbStartOffset + maxContinuousUlBandwidth))) {
       rbLen++;
       tbSizeBits = m_amc->GetUlTbSizeFromMcs(m_ulGrantMcs, rbLen);
     }
     if (tbSizeBits < (*itRach).m_estimatedSize) {
-      // no more allocation space: finish allocation
       break;
     }
     newRar.m_grant.m_rbStart = rbStart;
@@ -551,7 +508,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     }
 
     if (m_harqOn) {
-      // generate UL-DCI for HARQ retransmissions
       UlDciListElement_s uldci;
       uldci.m_rnti = newRar.m_rnti;
       uldci.m_rbLen = rbLen;
@@ -561,15 +517,15 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       uldci.m_ndi = 1;
       uldci.m_cceIndex = 0;
       uldci.m_aggrLevel = 1;
-      uldci.m_ueTxAntennaSelection = 3; // antenna selection OFF
+      uldci.m_ueTxAntennaSelection = 3;
       uldci.m_hopping = false;
       uldci.m_n2Dmrs = 0;
-      uldci.m_tpc = 0;            // no power control
-      uldci.m_cqiRequest = false; // only period CQI at this stage
-      uldci.m_ulIndex = 0;        // TDD parameter
-      uldci.m_dai = 1;            // TDD parameter
+      uldci.m_tpc = 0;
+      uldci.m_cqiRequest = false;
+      uldci.m_ulIndex = 0;
+      uldci.m_dai = 1;
       uldci.m_freqHopping = 0;
-      uldci.m_pdcchPowerOffset = 0; // not used
+      uldci.m_pdcchPowerOffset = 0;
 
       uint8_t harqId = 0;
       auto itProcId = m_ulHarqCurrentProcessId.find(uldci.m_rnti);
@@ -591,9 +547,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
   }
   m_rachList.clear();
 
-  // Process DL HARQ feedback
   RefreshHarqProcesses();
-  // retrieve past HARQ retx buffered
   if (!m_dlInfoListBuffered.empty()) {
     if (!params.m_dlInfoList.empty()) {
       NS_LOG_INFO(this << " Received DL-HARQ feedback");
@@ -607,14 +561,12 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     }
   }
   if (!m_harqOn) {
-    // Ignore HARQ feedback
     m_dlInfoListBuffered.clear();
   }
   std::vector<DlInfoListElement_s> dlInfoListUntxed;
   for (std::size_t i = 0; i < m_dlInfoListBuffered.size(); i++) {
     auto itRnti = rntiAllocated.find(m_dlInfoListBuffered.at(i).m_rnti);
     if (itRnti != rntiAllocated.end()) {
-      // RNTI already allocated for retx
       continue;
     }
     auto nLayers = m_dlInfoListBuffered.at(i).m_harqStatus.size();
@@ -631,7 +583,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                      DlInfoListElement_s::NACK);
     }
     if (retx.at(0) || retx.at(1)) {
-      // retrieve HARQ process information
       uint16_t rnti = m_dlInfoListBuffered.at(i).m_rnti;
       uint8_t harqId = m_dlInfoListBuffered.at(i).m_harqProcessId;
       NS_LOG_INFO(this << " HARQ retx RNTI " << rnti << " harqId "
@@ -651,7 +602,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       }
 
       if (rv == 3) {
-        // maximum number of retx reached -> drop process
         NS_LOG_INFO(
             "Maximum number of retransmissions reached -> drop process");
         auto it = m_dlHarqProcessesStatus.find(rnti);
@@ -670,8 +620,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         }
         continue;
       }
-      // check the feasibility of retransmitting on the same RBGs
-      // translate the DCI to Spectrum framework
       std::vector<int> dciRbg;
       uint32_t mask = 0x1;
       NS_LOG_INFO("Original RBGs " << dci.m_rbBitmap << " rnti " << dci.m_rnti);
@@ -690,8 +638,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         }
       }
       if (free) {
-        // use the same RBGs for the retx
-        // reserve RBGs
         for (std::size_t j = 0; j < dciRbg.size(); j++) {
           rbgMap.at(dciRbg.at(j)) = true;
           NS_LOG_INFO("RBG " << dciRbg.at(j) << " assigned");
@@ -700,7 +646,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
 
         NS_LOG_INFO(this << " Send retx in the same RBGs");
       } else {
-        // find RBGs for sending HARQ retx
         uint8_t j = 0;
         uint8_t rbgId = (dciRbg.at(dciRbg.size() - 1) + 1) % rbgNum;
         uint8_t startRbg = dciRbg.at(dciRbg.size() - 1);
@@ -714,7 +659,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
           rbgId = (rbgId + 1) % rbgNum;
         }
         if (j == dciRbg.size()) {
-          // find new RBGs -> update DCI map
           uint32_t rbgMask = 0;
           for (std::size_t k = 0; k < dciRbg.size(); k++) {
             rbgMask = rbgMask + (0x1 << dciRbg.at(k));
@@ -724,12 +668,10 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
           rbgMap = rbgMapCopy;
           NS_LOG_INFO(this << " Move retx in RBGs " << dciRbg.size());
         } else {
-          // HARQ retx cannot be performed on this TTI -> store it
           dlInfoListUntxed.push_back(m_dlInfoListBuffered.at(i));
           NS_LOG_INFO(this << " No resource for this retx -> buffer it");
         }
       }
-      // retrieve RLC PDU list for retx TBsize and update DCI
       BuildDataListElement_s newEl;
       auto itRlcPdu = m_dlHarqProcessesRlcPduListBuffer.find(rnti);
       if (itRlcPdu == m_dlHarqProcessesRlcPduListBuffer.end()) {
@@ -739,7 +681,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       for (std::size_t j = 0; j < nLayers; j++) {
         if (retx.at(j)) {
           if (j >= dci.m_ndi.size()) {
-            // for avoiding errors in MIMO transient phases
             dci.m_ndi.push_back(0);
             dci.m_rv.push_back(0);
             dci.m_mcs.push_back(0);
@@ -754,7 +695,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                              << (uint16_t)dci.m_rv.at(j));
           }
         } else {
-          // empty TB of layer j
           dci.m_ndi.at(j) = 0;
           dci.m_rv.at(j) = 0;
           dci.m_mcs.at(j) = 0;
@@ -773,9 +713,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
               rlcPduListPerLc.push_back(
                   (*itRlcPdu).second.at(j).at(dci.m_harqProcess).at(k));
             }
-          } else { // if no retx needed on layer j, push an RlcPduListElement_s
-                   // object with m_size=0 to keep the size of rlcPduListPerLc
-                   // vector = 2 in case of MIMO
+          } else {
             NS_LOG_INFO(" layer " << (uint16_t)j << " tb size "
                                   << dci.m_tbsSize.at(j));
             RlcPduListElement_s emptyElement;
@@ -797,7 +735,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       newEl.m_rnti = rnti;
       newEl.m_dci = dci;
       (*itHarq).second.at(harqId).m_rv = dci.m_rv;
-      // refresh timer
       auto itHarqTimer = m_dlHarqProcessesTimer.find(rnti);
       if (itHarqTimer == m_dlHarqProcessesTimer.end()) {
         NS_FATAL_ERROR("Unable to find HARQ timer for RNTI " << (uint16_t)rnti);
@@ -806,7 +743,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       ret.m_buildDataList.push_back(newEl);
       rntiAllocated.insert(rnti);
     } else {
-      // update HARQ process status
       NS_LOG_INFO(this << " HARQ received ACK for UE "
                        << m_dlInfoListBuffered.at(i).m_rnti);
       auto it = m_dlHarqProcessesStatus.find(m_dlInfoListBuffered.at(i).m_rnti);
@@ -833,14 +769,12 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
   m_dlInfoListBuffered = dlInfoListUntxed;
 
   if (rbgAllocatedNum == rbgNum) {
-    // all the RBGs are already allocated -> exit
     if (!ret.m_buildDataList.empty() || !ret.m_buildRarList.empty()) {
       m_schedSapUser->SchedDlConfigInd(ret);
     }
     return;
   }
 
-  // update token pool, counter and bank size
   for (auto itStats = m_flowStatsDl.begin(); itStats != m_flowStatsDl.end();
        itStats++) {
     if ((*itStats).second.tokenGenerationRate / 1000 +
@@ -860,13 +794,11 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     }
   }
 
-  std::set<uint16_t> allocatedRnti; // store UEs which are already assigned RBGs
-  std::set<uint8_t>
-      allocatedRbg; // store RBGs which are already allocated to UE
+  std::set<uint16_t> allocatedRnti;
+  std::set<uint8_t> allocatedRbg;
 
   int totalRbg = 0;
   while (totalRbg < rbgNum) {
-    // select UE with largest metric
     std::map<uint16_t, fdtbfqsFlowPerf_t>::iterator it;
     auto itMax = m_flowStatsDl.end();
     double metricMax = 0.0;
@@ -875,8 +807,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       auto itRnti = rntiAllocated.find((*it).first);
       if ((itRnti != rntiAllocated.end()) ||
           (!HarqProcessAvailability((*it).first))) {
-        // UE already allocated for HARQ or without HARQ process available ->
-        // drop it
         if (itRnti != rntiAllocated.end()) {
           NS_LOG_DEBUG(this << " RNTI discarded for HARQ tx"
                             << (uint16_t)(*it).first);
@@ -887,7 +817,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         }
         continue;
       }
-      // check first the channel conditions for this UE, if CQI!=0
       auto itCqi = m_a30CqiRxed.find((*it).first);
       auto itTxMode = m_uesTxMode.find((*it).first);
       if (itTxMode == m_uesTxMode.end()) {
@@ -900,7 +829,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       for (int k = 0; k < rbgNum; k++) {
         for (uint8_t j = 0; j < nLayer; j++) {
           if (itCqi == m_a30CqiRxed.end()) {
-            cqiSum += 1; // no info on this user -> lowest MCS
+            cqiSum += 1;
           } else {
             cqiSum += (*itCqi).second.m_higherLayerSelected.at(k).m_sbCqi.at(j);
           }
@@ -917,8 +846,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       }
 
       auto rnti = allocatedRnti.find((*it).first);
-      if (rnti != allocatedRnti.end()) //  already allocated RBGs to this UE
-      {
+      if (rnti != allocatedRnti.end()) {
         continue;
       }
 
@@ -935,19 +863,14 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         metricMax = metric;
         itMax = it;
       }
-    } // end for m_flowStatsDl
+    }
 
     if (itMax == m_flowStatsDl.end()) {
-      // all UEs are allocated RBG or all UEs already allocated for HARQ or
-      // without HARQ process available
       break;
     }
 
-    // mark this UE as "allocated"
     allocatedRnti.insert((*itMax).first);
 
-    // calculate the maximum number of byte that the scheduler can assigned to
-    // this UE
     uint32_t budget = 0;
     if (bankSize > 0) {
       budget = (*itMax).second.counter - (*itMax).second.debtLimit;
@@ -960,12 +883,9 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     }
     budget = budget + (*itMax).second.tokenPoolSize;
 
-    // calculate how much bytes this UE actually need
     if (budget == 0) {
-      // there are no tokens for this UE
       continue;
     } else {
-      // calculate rlc buffer size
       uint32_t rlcBufSize = 0;
       uint8_t lcid = 0;
       for (auto itRlcBuf = m_rlcBufferReq.begin();
@@ -988,7 +908,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       }
     }
 
-    // assign RBGs to this UE
     uint32_t bytesTxed = 0;
     uint32_t bytesTxedTmp = 0;
     int rbgIndex = 0;
@@ -1003,18 +922,15 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       auto nLayer =
           TransmissionModesLayers::TxMode2LayerNum((*itTxMode).second);
 
-      // find RBG with largest achievableRate
       double achievableRateMax = 0.0;
       rbgIndex = rbgNum;
       for (int k = 0; k < rbgNum; k++) {
         auto rbg = allocatedRbg.find(k);
-        if (rbg != allocatedRbg.end()) // RBGs are already allocated to this UE
-        {
+        if (rbg != allocatedRbg.end()) {
           continue;
         }
 
-        if (rbgMap.at(k)) // this RBG is allocated in RACH procedure
-        {
+        if (rbgMap.at(k)) {
           continue;
         }
 
@@ -1024,7 +940,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
 
         std::vector<uint8_t> sbCqi;
         if (itCqi == m_a30CqiRxed.end()) {
-          sbCqi = std::vector<uint8_t>(nLayer, 1); // start with lowest value
+          sbCqi = std::vector<uint8_t>(nLayer, 1);
         } else {
           sbCqi = (*itCqi).second.m_higherLayerSelected.at(k).m_sbCqi;
         }
@@ -1034,63 +950,50 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
           cqi2 = sbCqi.at(1);
         }
 
-        if ((cqi1 > 0) ||
-            (cqi2 >
-             0)) // CQI == 0 means "out of range" (see table 7.2.3-1 of 36.213)
-        {
+        if ((cqi1 > 0) || (cqi2 > 0)) {
           if (LcActivePerFlow((*itMax).first) > 0) {
-            // this UE has data to transmit
             double achievableRate = 0.0;
             for (uint8_t j = 0; j < nLayer; j++) {
               uint8_t mcs = 0;
               if (sbCqi.size() > j) {
                 mcs = m_amc->GetMcsFromCqi(sbCqi.at(j));
               } else {
-                // no info on this subband -> worst MCS
                 mcs = 0;
               }
-              achievableRate += ((m_amc->GetDlTbSizeFromMcs(mcs, rbgSize) / 8) /
-                                 0.001); // = TB size / TTI
+              achievableRate +=
+                  ((m_amc->GetDlTbSizeFromMcs(mcs, rbgSize) / 8) / 0.001);
             }
 
             if (achievableRate > achievableRateMax) {
               achievableRateMax = achievableRate;
               rbgIndex = k;
             }
-          } // end of LcActivePerFlow
-        } // end of cqi
-      } // end of for rbgNum
+          }
+        }
+      }
 
-      if (rbgIndex == rbgNum) // impossible
-      {
-        // all RBGs are already assigned
+      if (rbgIndex == rbgNum) {
         totalRbg = rbgNum;
         break;
       } else {
-        // mark this UE as "allocated"
         allocatedRbg.insert(rbgIndex);
       }
 
-      // assign this RBG to UE
       auto itMap = allocationMap.find((*itMax).first);
       uint16_t RbgPerRnti;
       if (itMap == allocationMap.end()) {
-        // insert new element
         std::vector<uint16_t> tempMap;
         tempMap.push_back(rbgIndex);
         allocationMap.insert(std::pair<uint16_t, std::vector<uint16_t>>(
             (*itMax).first, tempMap));
-        itMap = allocationMap.find(
-            (*itMax)
-                .first); // point itMap to the first RBGs assigned to this UE
+        itMap = allocationMap.find((*itMax).first);
       } else {
         (*itMap).second.push_back(rbgIndex);
       }
-      rbgMap.at(rbgIndex) = true; // Mark this RBG as allocated
+      rbgMap.at(rbgIndex) = true;
 
       RbgPerRnti = (*itMap).second.size();
 
-      // calculate tb size
       std::vector<uint8_t> worstCqi(2, 15);
       if (itCqi != m_a30CqiRxed.end()) {
         for (std::size_t k = 0; k < (*itMap).second.size(); k++) {
@@ -1109,21 +1012,18 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                                         .m_sbCqi.at(j));
                 }
               } else {
-                // no CQI for this layer of this suband -> worst one
                 worstCqi.at(j) = 1;
               }
             }
           } else {
             for (uint8_t j = 0; j < nLayer; j++) {
-              worstCqi.at(j) =
-                  1; // try with lowest MCS in RBG with no info on channel
+              worstCqi.at(j) = 1;
             }
           }
         }
       } else {
         for (uint8_t j = 0; j < nLayer; j++) {
-          worstCqi.at(j) =
-              1; // try with lowest MCS in RBG with no info on channel
+          worstCqi.at(j) = 1;
         }
       }
 
@@ -1133,33 +1033,26 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         int tbSize =
             (m_amc->GetDlTbSizeFromMcs(m_amc->GetMcsFromCqi(worstCqi.at(j)),
                                        RbgPerRnti * rbgSize) /
-             8); // (size of TB in bytes according to table 7.1.7.2.1-1
-                 // of 36.213)
+             8);
         bytesTxed += tbSize;
       }
+    }
 
-    } // end of while()
-
-    // remove and unmark last RBG assigned to UE
     if (bytesTxed > budget) {
       NS_LOG_DEBUG("budget: " << budget << " bytesTxed: " << bytesTxed << " at "
                               << Simulator::Now().As(Time::MS));
       auto itMap = allocationMap.find((*itMax).first);
       (*itMap).second.pop_back();
       allocatedRbg.erase(rbgIndex);
-      bytesTxed = bytesTxedTmp; // recovery bytesTxed
+      bytesTxed = bytesTxedTmp;
       totalRbg--;
-      rbgMap.at(rbgIndex) = false; // unmark this RBG
-      // If all the RBGs are removed from the allocation
-      // of this RNTI, we remove the UE from the allocation map
+      rbgMap.at(rbgIndex) = false;
       if ((*itMap).second.empty()) {
         itMap = allocationMap.erase(itMap);
       }
     }
 
-    // only update the UE stats if it exists in the allocation map
     if (allocationMap.find((*itMax).first) != allocationMap.end()) {
-      // update UE stats
       if (bytesTxed <= (*itMax).second.tokenPoolSize) {
         (*itMax).second.tokenPoolSize -= bytesTxed;
       } else {
@@ -1173,17 +1066,13 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
         }
       }
     }
-  } // end of RBGs
+  }
 
-  // generate the transmission opportunities by grouping the RBGs of the same
-  // RNTI and creating the correspondent DCIs
   auto itMap = allocationMap.begin();
   while (itMap != allocationMap.end()) {
     NS_LOG_DEBUG("Preparing DCI for RNTI " << (*itMap).first);
-    // create new BuildDataListElement_s for this LC
     BuildDataListElement_s newEl;
     newEl.m_rnti = (*itMap).first;
-    // create the DlDciListElement_s
     DlDciListElement_s newDci;
     newDci.m_rnti = (*itMap).first;
     newDci.m_harqProcess = UpdateHarqProcessId((*itMap).first);
@@ -1192,8 +1081,7 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     NS_LOG_INFO(this << "Allocate user " << newEl.m_rnti << " rbg "
                      << lcActives);
     if (lcActives == 0) {
-      // Set to max value, to avoid divide by 0 below
-      lcActives = (uint16_t)65535; // UINT16_MAX;
+      lcActives = (uint16_t)65535;
     }
     uint16_t RgbPerRnti = (*itMap).second.size();
     auto itCqi = m_a30CqiRxed.find((*itMap).first);
@@ -1225,21 +1113,18 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                          .m_sbCqi.at(j));
               }
             } else {
-              // no CQI for this layer of this suband -> worst one
               worstCqi.at(j) = 1;
             }
           }
         } else {
           for (uint8_t j = 0; j < nLayer; j++) {
-            worstCqi.at(j) =
-                1; // try with lowest MCS in RBG with no info on channel
+            worstCqi.at(j) = 1;
           }
         }
       }
     } else {
       for (uint8_t j = 0; j < nLayer; j++) {
-        worstCqi.at(j) =
-            1; // try with lowest MCS in RBG with no info on channel
+        worstCqi.at(j) = 1;
       }
     }
     for (uint8_t j = 0; j < nLayer; j++) {
@@ -1250,22 +1135,21 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       newDci.m_mcs.push_back(m_amc->GetMcsFromCqi(worstCqi.at(j)));
       int tbSize =
           (m_amc->GetDlTbSizeFromMcs(newDci.m_mcs.at(j), RgbPerRnti * rbgSize) /
-           8); // (size of TB in bytes according to table 7.1.7.2.1-1 of 36.213)
+           8);
       newDci.m_tbsSize.push_back(tbSize);
       NS_LOG_INFO(this << " Layer " << (uint16_t)j << " MCS selected"
                        << (uint16_t)m_amc->GetMcsFromCqi(worstCqi.at(j)));
     }
 
-    newDci.m_resAlloc = 0; // only allocation type 0 at this stage
-    newDci.m_rbBitmap = 0; // TBD (32 bit bitmap see 7.1.6 of 36.213)
+    newDci.m_resAlloc = 0;
+    newDci.m_rbBitmap = 0;
     uint32_t rbgMask = 0;
     for (std::size_t k = 0; k < (*itMap).second.size(); k++) {
       rbgMask = rbgMask + (0x1 << (*itMap).second.at(k));
       NS_LOG_INFO(this << " Allocated RBG " << (*itMap).second.at(k));
     }
-    newDci.m_rbBitmap = rbgMask; // (32 bit bitmap see 7.1.6 of 36.213)
+    newDci.m_rbBitmap = rbgMask;
 
-    // create the rlc PDUs -> equally divide resources among actives LCs
     for (auto itBufReq = m_rlcBufferReq.begin();
          itBufReq != m_rlcBufferReq.end(); itBufReq++) {
       if (((*itBufReq).first.m_rnti == (*itMap).first) &&
@@ -1285,7 +1169,6 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
                                 newRlcEl.m_logicalChannelIdentity,
                                 newRlcEl.m_size);
           if (m_harqOn) {
-            // store RLC PDU list for HARQ
             auto itRlcPdu =
                 m_dlHarqProcessesRlcPduListBuffer.find((*itMap).first);
             if (itRlcPdu == m_dlHarqProcessesRlcPduListBuffer.end()) {
@@ -1315,14 +1198,12 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
     newEl.m_dci = newDci;
 
     if (m_harqOn) {
-      // store DCI for HARQ
       auto itDci = m_dlHarqProcessesDciBuffer.find(newEl.m_rnti);
       if (itDci == m_dlHarqProcessesDciBuffer.end()) {
         NS_FATAL_ERROR("Unable to find RNTI entry in DCI HARQ buffer for RNTI "
                        << newEl.m_rnti);
       }
       (*itDci).second.at(newDci.m_harqProcess) = newDci;
-      // refresh timer
       auto itHarqTimer = m_dlHarqProcessesTimer.find(newEl.m_rnti);
       if (itHarqTimer == m_dlHarqProcessesTimer.end()) {
         NS_FATAL_ERROR("Unable to find HARQ timer for RNTI "
@@ -1331,14 +1212,11 @@ void FdTbfqFfMacScheduler::DoSchedDlTriggerReq(
       (*itHarqTimer).second.at(newDci.m_harqProcess) = 0;
     }
 
-    // ...more parameters -> ignored in this version
-
     ret.m_buildDataList.push_back(newEl);
 
     itMap++;
-  } // end while allocation
-  ret.m_nrOfPdcchOfdmSymbols =
-      1; /// \todo check correct value according the DCIs txed
+  }
+  ret.m_nrOfPdcchOfdmSymbols = 1;
 
   m_schedSapUser->SchedDlConfigInd(ret);
 }
@@ -1363,33 +1241,24 @@ void FdTbfqFfMacScheduler::DoSchedDlCqiInfoReq(
       uint16_t rnti = params.m_cqiList.at(i).m_rnti;
       auto it = m_p10CqiRxed.find(rnti);
       if (it == m_p10CqiRxed.end()) {
-        // create the new entry
         m_p10CqiRxed.insert(std::pair<uint16_t, uint8_t>(
-            rnti,
-            params.m_cqiList.at(i).m_wbCqi.at(
-                0))); // only codeword 0 at this stage (SISO)
-        // generate correspondent timer
+            rnti, params.m_cqiList.at(i).m_wbCqi.at(0)));
         m_p10CqiTimers.insert(
             std::pair<uint16_t, uint32_t>(rnti, m_cqiTimersThreshold));
       } else {
-        // update the CQI value and refresh correspondent timer
         (*it).second = params.m_cqiList.at(i).m_wbCqi.at(0);
-        // update correspondent timer
         auto itTimers = m_p10CqiTimers.find(rnti);
         (*itTimers).second = m_cqiTimersThreshold;
       }
     } else if (params.m_cqiList.at(i).m_cqiType == CqiListElement_s::A30) {
-      // subband CQI reporting high layer configured
       uint16_t rnti = params.m_cqiList.at(i).m_rnti;
       auto it = m_a30CqiRxed.find(rnti);
       if (it == m_a30CqiRxed.end()) {
-        // create the new entry
         m_a30CqiRxed.insert(std::pair<uint16_t, SbMeasResult_s>(
             rnti, params.m_cqiList.at(i).m_sbMeasResult));
         m_a30CqiTimers.insert(
             std::pair<uint16_t, uint32_t>(rnti, m_cqiTimersThreshold));
       } else {
-        // update the CQI value and refresh correspondent timer
         (*it).second = params.m_cqiList.at(i).m_sbMeasResult;
         auto itTimers = m_a30CqiTimers.find(rnti);
         (*itTimers).second = m_cqiTimersThreshold;
@@ -1403,10 +1272,8 @@ void FdTbfqFfMacScheduler::DoSchedDlCqiInfoReq(
 double FdTbfqFfMacScheduler::EstimateUlSinr(uint16_t rnti, uint16_t rb) {
   auto itCqi = m_ueCqi.find(rnti);
   if (itCqi == m_ueCqi.end()) {
-    // no cqi info about this UE
     return (NO_SINR);
   } else {
-    // take the average SINR value among the available
     double sinrSum = 0;
     unsigned int sinrNum = 0;
     for (uint32_t i = 0; i < m_cschedCellConfig.m_ulBandwidth; i++) {
@@ -1417,7 +1284,6 @@ double FdTbfqFfMacScheduler::EstimateUlSinr(uint16_t rnti, uint16_t rb) {
       }
     }
     double estimatedSinr = (sinrNum > 0) ? (sinrSum / sinrNum) : DBL_MAX;
-    // store the value
     (*itCqi).second.at(rb) = estimatedSinr;
     return (estimatedSinr);
   }
@@ -1432,15 +1298,12 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
   RefreshUlCqiMaps();
   m_ffrSapProvider->ReportUlCqiInfo(m_ueCqi);
 
-  // Generate RBs map
   FfMacSchedSapUser::SchedUlConfigIndParameters ret;
   std::vector<bool> rbMap;
   uint16_t rbAllocatedNum = 0;
   std::set<uint16_t> rntiAllocated;
   std::vector<uint16_t> rbgAllocationMap;
-  // update with RACH allocation map
   rbgAllocationMap = m_rachAllocationMap;
-  // rbgAllocationMap.resize (m_cschedCellConfig.m_ulBandwidth, 0);
   m_rachAllocationMap.clear();
   m_rachAllocationMap.resize(m_cschedCellConfig.m_ulBandwidth, 0);
 
@@ -1458,7 +1321,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
       m_ffrSapProvider->GetMinContinuousUlBandwidth();
   uint8_t ffrUlBandwidth = m_cschedCellConfig.m_ulBandwidth - rbAllocatedNum;
 
-  // remove RACH allocation
   for (uint16_t i = 0; i < m_cschedCellConfig.m_ulBandwidth; i++) {
     if (rbgAllocationMap.at(i) != 0) {
       rbMap.at(i) = true;
@@ -1467,11 +1329,9 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
   }
 
   if (m_harqOn) {
-    //   Process UL HARQ feedback
     for (std::size_t i = 0; i < params.m_ulInfoList.size(); i++) {
       if (params.m_ulInfoList.at(i).m_receptionStatus ==
           UlInfoListElement_s::NotOk) {
-        // retx correspondent block: retrieve the UL-DCI
         uint16_t rnti = params.m_ulInfoList.at(i).m_rnti;
         auto itProcId = m_ulHarqCurrentProcessId.find(rnti);
         if (itProcId == m_ulHarqCurrentProcessId.end()) {
@@ -1508,7 +1368,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
           }
         }
         if (free) {
-          // retx on the same RBs
           for (int j = dci.m_rbStart; j < dci.m_rbStart + dci.m_rbLen; j++) {
             rbMap.at(j) = true;
             rbgAllocationMap.at(j) = dci.m_rnti;
@@ -1525,7 +1384,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
           continue;
         }
         dci.m_ndi = 0;
-        // Update HARQ buffers with new HarqId
         (*itStat).second.at((*itProcId).second) =
             (*itStat).second.at(harqId) + 1;
         (*itStat).second.at(harqId) = 0;
@@ -1544,7 +1402,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
 
   for (it = m_ceBsrRxed.begin(); it != m_ceBsrRxed.end(); it++) {
     auto itRnti = rntiAllocated.find((*it).first);
-    // select UEs with queues not empty and not yet allocated for HARQ
     if (((*it).second > 0) && (itRnti == rntiAllocated.end())) {
       nflows++;
     }
@@ -1557,20 +1414,16 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
       m_schedSapUser->SchedUlConfigInd(ret);
     }
 
-    return; // no flows to be scheduled
+    return;
   }
 
-  // Divide the remaining resources equally among the active users starting from
-  // the subsequent one served last scheduling trigger
   uint16_t tempRbPerFlow = (ffrUlBandwidth) / (nflows + rntiAllocated.size());
   uint16_t rbPerFlow = (minContinuousUlBandwidth < tempRbPerFlow)
                            ? minContinuousUlBandwidth
                            : tempRbPerFlow;
 
   if (rbPerFlow < 3) {
-    rbPerFlow = 3; // at least 3 rbg per flow (till available resource) to
-                   // ensure TxOpportunity
-                   // >= 7 bytes
+    rbPerFlow = 3;
   }
   int rbAllocated = 0;
 
@@ -1590,22 +1443,17 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
   do {
     auto itRnti = rntiAllocated.find((*it).first);
     if ((itRnti != rntiAllocated.end()) || ((*it).second == 0)) {
-      // UE already allocated for UL-HARQ -> skip it
       NS_LOG_DEBUG(this << " UE already allocated in HARQ -> discarded, RNTI "
                         << (*it).first);
       it++;
       if (it == m_ceBsrRxed.end()) {
-        // restart from the first
         it = m_ceBsrRxed.begin();
       }
       continue;
     }
     if (rbAllocated + rbPerFlow - 1 > m_cschedCellConfig.m_ulBandwidth) {
-      // limit to physical resources last resource assignment
       rbPerFlow = m_cschedCellConfig.m_ulBandwidth - rbAllocated;
-      // at least 3 rbg per flow to ensure TxOpportunity >= 7 bytes
       if (rbPerFlow < 3) {
-        // terminate allocation
         rbPerFlow = 0;
       }
     }
@@ -1620,7 +1468,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
     while ((!allocated) &&
            ((rbAllocated + rbPerFlow - m_cschedCellConfig.m_ulBandwidth) < 1) &&
            (rbPerFlow != 0)) {
-      // check availability
       bool free = true;
       for (int j = rbAllocated; j < rbAllocated + rbPerFlow; j++) {
         if (rbMap.at(j)) {
@@ -1640,7 +1487,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
 
         for (int j = rbAllocated; j < rbAllocated + rbPerFlow; j++) {
           rbMap.at(j) = true;
-          // store info on allocation for managing ul-cqi interpretation
           rbgAllocationMap.at(j) = (*it).first;
         }
         rbAllocated += rbPerFlow;
@@ -1649,34 +1495,21 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
       }
       rbAllocated++;
       if (rbAllocated + rbPerFlow - 1 > m_cschedCellConfig.m_ulBandwidth) {
-        // limit to physical resources last resource assignment
         rbPerFlow = m_cschedCellConfig.m_ulBandwidth - rbAllocated;
-        // at least 3 rbg per flow to ensure TxOpportunity >= 7 bytes
         if (rbPerFlow < 3) {
-          // terminate allocation
           rbPerFlow = 0;
         }
       }
     }
     if (!allocated) {
-      // unable to allocate new resource: finish scheduling
-      //          m_nextRntiUl = (*it).first;
-      //          if (ret.m_dciList.size () > 0)
-      //            {
-      //              m_schedSapUser->SchedUlConfigInd (ret);
-      //            }
-      //          m_allocationMaps.insert (std::pair <uint16_t, std::vector
-      //          <uint16_t> > (params.m_sfnSf, rbgAllocationMap)); return;
       break;
     }
 
     auto itCqi = m_ueCqi.find((*it).first);
     int cqi = 0;
     if (itCqi == m_ueCqi.end()) {
-      // no cqi info about this UE
-      uldci.m_mcs = 0; // MCS 0 -> UL-AMC TBD
+      uldci.m_mcs = 0;
     } else {
-      // take the lowest CQI value (worst RB)
       NS_ABORT_MSG_IF((*itCqi).second.empty(),
                       "CQI of RNTI = " << (*it).first << " has expired");
       double minSinr = (*itCqi).second.at(uldci.m_rbStart);
@@ -1694,24 +1527,21 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
         }
       }
 
-      // translate SINR -> cqi: WILD ACK: same as DL
       double s = log2(1 + (std::pow(10, minSinr / 10) /
                            ((-std::log(5.0 * 0.00005)) / 1.5)));
       cqi = m_amc->GetCqiFromSpectralEfficiency(s);
       if (cqi == 0) {
         it++;
         if (it == m_ceBsrRxed.end()) {
-          // restart from the first
           it = m_ceBsrRxed.begin();
         }
         NS_LOG_DEBUG(this << " UE discarded for CQI = 0, RNTI "
                           << uldci.m_rnti);
-        // remove UE from allocation map
         for (uint16_t i = uldci.m_rbStart; i < uldci.m_rbStart + uldci.m_rbLen;
              i++) {
           rbgAllocationMap.at(i) = 0;
         }
-        continue; // CQI == 0 means "out of range" (see table 7.2.3-1 of 36.213)
+        continue;
       }
       uldci.m_mcs = m_amc->GetMcsFromCqi(cqi);
     }
@@ -1721,17 +1551,16 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
     uldci.m_ndi = 1;
     uldci.m_cceIndex = 0;
     uldci.m_aggrLevel = 1;
-    uldci.m_ueTxAntennaSelection = 3; // antenna selection OFF
+    uldci.m_ueTxAntennaSelection = 3;
     uldci.m_hopping = false;
     uldci.m_n2Dmrs = 0;
-    uldci.m_tpc = 0;            // no power control
-    uldci.m_cqiRequest = false; // only period CQI at this stage
-    uldci.m_ulIndex = 0;        // TDD parameter
-    uldci.m_dai = 1;            // TDD parameter
+    uldci.m_tpc = 0;
+    uldci.m_cqiRequest = false;
+    uldci.m_ulIndex = 0;
+    uldci.m_dai = 1;
     uldci.m_freqHopping = 0;
-    uldci.m_pdcchPowerOffset = 0; // not used
+    uldci.m_pdcchPowerOffset = 0;
     ret.m_dciList.push_back(uldci);
-    // store DCI for HARQ_PERIOD
     uint8_t harqId = 0;
     if (m_harqOn) {
       auto itProcId = m_ulHarqCurrentProcessId.find(uldci.m_rnti);
@@ -1746,7 +1575,6 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
             << uldci.m_rnti);
       }
       (*itDci).second.at(harqId) = uldci;
-      // Update HARQ process status (RV 0)
       auto itStat = m_ulHarqProcessesStatus.find(uldci.m_rnti);
       if (itStat == m_ulHarqProcessesStatus.end()) {
         NS_LOG_ERROR("No info find in HARQ buffer for UE (might change eNB) "
@@ -1764,11 +1592,9 @@ void FdTbfqFfMacScheduler::DoSchedUlTriggerReq(
 
     it++;
     if (it == m_ceBsrRxed.end()) {
-      // restart from the first
       it = m_ceBsrRxed.begin();
     }
     if ((rbAllocated == m_cschedCellConfig.m_ulBandwidth) || (rbPerFlow == 0)) {
-      // Stop allocation: no more PRBs
       m_nextRntiUl = (*it).first;
       break;
     }
@@ -1796,12 +1622,6 @@ void FdTbfqFfMacScheduler::DoSchedUlMacCtrlInfoReq(
 
   for (unsigned int i = 0; i < params.m_macCeList.size(); i++) {
     if (params.m_macCeList.at(i).m_macCeType == MacCeListElement_s::BSR) {
-      // buffer status report
-      // note that this scheduler does not differentiate the
-      // allocation according to which LCGs have more/less bytes
-      // to send.
-      // Hence the BSR of different LCGs are just summed up to get
-      // a total queue size that is used for allocation purposes.
 
       uint32_t buffer = 0;
       for (uint8_t lcg = 0; lcg < 4; ++lcg) {
@@ -1814,10 +1634,8 @@ void FdTbfqFfMacScheduler::DoSchedUlMacCtrlInfoReq(
       NS_LOG_LOGIC(this << "RNTI=" << rnti << " buffer=" << buffer);
       auto it = m_ceBsrRxed.find(rnti);
       if (it == m_ceBsrRxed.end()) {
-        // create the new entry
         m_ceBsrRxed.insert(std::pair<uint16_t, uint32_t>(rnti, buffer));
       } else {
-        // update the buffer size value
         (*it).second = buffer;
       }
     }
@@ -1827,16 +1645,13 @@ void FdTbfqFfMacScheduler::DoSchedUlMacCtrlInfoReq(
 void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
     const FfMacSchedSapProvider::SchedUlCqiInfoReqParameters &params) {
   NS_LOG_FUNCTION(this);
-  // retrieve the allocation for this subframe
   switch (m_ulCqiFilter) {
   case FfMacScheduler::SRS_UL_CQI: {
-    // filter all the CQIs that are not SRS based
     if (params.m_ulCqi.m_type != UlCqi_s::SRS) {
       return;
     }
   } break;
   case FfMacScheduler::PUSCH_UL_CQI: {
-    // filter all the CQIs that are not SRS based
     if (params.m_ulCqi.m_type != UlCqi_s::PUSCH) {
       return;
     }
@@ -1855,41 +1670,33 @@ void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
       return;
     }
     for (uint32_t i = 0; i < (*itMap).second.size(); i++) {
-      // convert from fixed point notation Sxxxxxxxxxxx.xxx to double
       double sinr =
           LteFfConverter::fpS11dot3toDouble(params.m_ulCqi.m_sinr.at(i));
       auto itCqi = m_ueCqi.find((*itMap).second.at(i));
       if (itCqi == m_ueCqi.end()) {
-        // create a new entry
         std::vector<double> newCqi;
         for (uint32_t j = 0; j < m_cschedCellConfig.m_ulBandwidth; j++) {
           if (i == j) {
             newCqi.push_back(sinr);
           } else {
-            // initialize with NO_SINR value.
             newCqi.push_back(NO_SINR);
           }
         }
         m_ueCqi.insert(std::pair<uint16_t, std::vector<double>>(
             (*itMap).second.at(i), newCqi));
-        // generate correspondent timer
         m_ueCqiTimers.insert(std::pair<uint16_t, uint32_t>(
             (*itMap).second.at(i), m_cqiTimersThreshold));
       } else {
-        // update the value
         (*itCqi).second.at(i) = sinr;
         NS_LOG_DEBUG(this << " RNTI " << (*itMap).second.at(i) << " RB " << i
                           << " SINR " << sinr);
-        // update correspondent timer
         auto itTimers = m_ueCqiTimers.find((*itMap).second.at(i));
         (*itTimers).second = m_cqiTimersThreshold;
       }
     }
-    // remove obsolete info on allocation
     m_allocationMaps.erase(itMap);
   } break;
   case UlCqi_s::SRS: {
-    // get the RNTI from vendor specific parameters
     uint16_t rnti = 0;
     NS_ASSERT(!params.m_vendorSpecificList.empty());
     for (std::size_t i = 0; i < params.m_vendorSpecificList.size(); i++) {
@@ -1901,7 +1708,6 @@ void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
     }
     auto itCqi = m_ueCqi.find(rnti);
     if (itCqi == m_ueCqi.end()) {
-      // create a new entry
       std::vector<double> newCqi;
       for (uint32_t j = 0; j < m_cschedCellConfig.m_ulBandwidth; j++) {
         double sinr =
@@ -1911,11 +1717,9 @@ void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
                          << " value " << sinr);
       }
       m_ueCqi.insert(std::pair<uint16_t, std::vector<double>>(rnti, newCqi));
-      // generate correspondent timer
       m_ueCqiTimers.insert(
           std::pair<uint16_t, uint32_t>(rnti, m_cqiTimersThreshold));
     } else {
-      // update the values
       for (uint32_t j = 0; j < m_cschedCellConfig.m_ulBandwidth; j++) {
         double sinr =
             LteFfConverter::fpS11dot3toDouble(params.m_ulCqi.m_sinr.at(j));
@@ -1923,7 +1727,6 @@ void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
         NS_LOG_INFO(this << " RNTI " << rnti << " update SRS-CQI for RB  " << j
                          << " value " << sinr);
       }
-      // update correspondent timer
       auto itTimers = m_ueCqiTimers.find(rnti);
       (*itTimers).second = m_cqiTimersThreshold;
     }
@@ -1939,14 +1742,12 @@ void FdTbfqFfMacScheduler::DoSchedUlCqiInfoReq(
 }
 
 void FdTbfqFfMacScheduler::RefreshDlCqiMaps() {
-  // refresh DL CQI P01 Map
   auto itP10 = m_p10CqiTimers.begin();
   while (itP10 != m_p10CqiTimers.end()) {
     NS_LOG_INFO(this << " P10-CQI for user " << (*itP10).first << " is "
                      << (uint32_t)(*itP10).second << " thr "
                      << (uint32_t)m_cqiTimersThreshold);
     if ((*itP10).second == 0) {
-      // delete correspondent entries
       auto itMap = m_p10CqiRxed.find((*itP10).first);
       NS_ASSERT_MSG(itMap != m_p10CqiRxed.end(),
                     " Does not find CQI report for user " << (*itP10).first);
@@ -1961,14 +1762,12 @@ void FdTbfqFfMacScheduler::RefreshDlCqiMaps() {
     }
   }
 
-  // refresh DL CQI A30 Map
   auto itA30 = m_a30CqiTimers.begin();
   while (itA30 != m_a30CqiTimers.end()) {
     NS_LOG_INFO(this << " A30-CQI for user " << (*itA30).first << " is "
                      << (uint32_t)(*itA30).second << " thr "
                      << (uint32_t)m_cqiTimersThreshold);
     if ((*itA30).second == 0) {
-      // delete correspondent entries
       auto itMap = m_a30CqiRxed.find((*itA30).first);
       NS_ASSERT_MSG(itMap != m_a30CqiRxed.end(),
                     " Does not find CQI report for user " << (*itA30).first);
@@ -1985,14 +1784,12 @@ void FdTbfqFfMacScheduler::RefreshDlCqiMaps() {
 }
 
 void FdTbfqFfMacScheduler::RefreshUlCqiMaps() {
-  // refresh UL CQI  Map
   auto itUl = m_ueCqiTimers.begin();
   while (itUl != m_ueCqiTimers.end()) {
     NS_LOG_INFO(this << " UL-CQI for user " << (*itUl).first << " is "
                      << (uint32_t)(*itUl).second << " thr "
                      << (uint32_t)m_cqiTimersThreshold);
     if ((*itUl).second == 0) {
-      // delete correspondent entries
       auto itMap = m_ueCqi.find((*itUl).first);
       NS_ASSERT_MSG(itMap != m_ueCqi.end(),
                     " Does not find CQI report for user " << (*itUl).first);
@@ -2019,8 +1816,6 @@ void FdTbfqFfMacScheduler::UpdateDlRlcBufferInfo(uint16_t rnti, uint8_t lcid,
              << (*it).second.m_rlcTransmissionQueueSize << " retxqueue "
              << (*it).second.m_rlcRetransmissionQueueSize << " status "
              << (*it).second.m_rlcStatusPduSize << " decrease " << size);
-    // Update queues: RLC tx order Status, ReTx, Tx
-    // Update status queue
     if (((*it).second.m_rlcStatusPduSize > 0) &&
         (size >= (*it).second.m_rlcStatusPduSize)) {
       (*it).second.m_rlcStatusPduSize = 0;
@@ -2030,16 +1825,10 @@ void FdTbfqFfMacScheduler::UpdateDlRlcBufferInfo(uint16_t rnti, uint8_t lcid,
     } else if ((*it).second.m_rlcTransmissionQueueSize > 0) {
       uint32_t rlcOverhead;
       if (lcid == 1) {
-        // for SRB1 (using RLC AM) it's better to
-        // overestimate RLC overhead rather than
-        // underestimate it and risk unneeded
-        // segmentation which increases delay
         rlcOverhead = 4;
       } else {
-        // minimum RLC overhead due to header
         rlcOverhead = 2;
       }
-      // update transmission queue
       if ((*it).second.m_rlcTransmissionQueueSize <= size - rlcOverhead) {
         (*it).second.m_rlcTransmissionQueueSize = 0;
       } else {
@@ -2052,7 +1841,7 @@ void FdTbfqFfMacScheduler::UpdateDlRlcBufferInfo(uint16_t rnti, uint8_t lcid,
 }
 
 void FdTbfqFfMacScheduler::UpdateUlRlcBufferInfo(uint16_t rnti, uint16_t size) {
-  size = size - 2; // remove the minimum RLC overhead
+  size = size - 2;
   auto it = m_ceBsrRxed.find(rnti);
   if (it != m_ceBsrRxed.end()) {
     NS_LOG_INFO(this << " UE " << rnti << " size " << size << " BSR "

@@ -1,28 +1,3 @@
-/*
- * Copyright (c) 2015 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Amir Modarresi <amodarresi@ittc.ku.edu>
-
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -34,24 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpHtcpTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the congestion avoidance increment on TcpHtcp
- */
 class TcpHtcpIncrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param segmentsAcked Segments already ACKed.
-   * \param lastCongestion Last congestion time.
-   * \param firstAck First ACK time.
-   * \param secondAck Second ACK time.
-   * \param expectedCwnd Expected cWnd.
-   * \param name Test description.
-   */
   TcpHtcpIncrementTest(uint32_t cWnd, uint32_t segmentSize,
                        uint32_t segmentsAcked, Time lastCongestion,
                        Time firstAck, Time secondAck, uint32_t expectedCwnd,
@@ -60,14 +19,14 @@ public:
 private:
   void DoRun() override;
 
-  uint32_t m_cWnd;             //!< Congestion window.
-  uint32_t m_segmentSize;      //!< Segment size.
-  uint32_t m_segmentsAcked;    //!< Segments already ACKed.
-  Time m_lastCongestion;       //!< Last congestion time.
-  Time m_firstAck;             //!< First ACK time.
-  Time m_secondAck;            //!< Second ACK time.
-  uint32_t m_expectedCwnd;     //!< Expected cWnd.
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  Time m_lastCongestion;
+  Time m_firstAck;
+  Time m_secondAck;
+  uint32_t m_expectedCwnd;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpHtcpIncrementTest::TcpHtcpIncrementTest(uint32_t cWnd, uint32_t segmentSize,
@@ -81,12 +40,6 @@ TcpHtcpIncrementTest::TcpHtcpIncrementTest(uint32_t cWnd, uint32_t segmentSize,
       m_firstAck(firstAck), m_secondAck(secondAck),
       m_expectedCwnd(expectedCwnd) {}
 
-/**
- * \brief Since the calculation depends on the throughput and its associated
- * timing, we schedule a few exact events. We get the value from HTCP methods
- * during the simulation and compare them with their associated expected
- * values calculated from the algorithm by hand.
- */
 void TcpHtcpIncrementTest::DoRun() {
   NS_LOG_FUNCTION(this);
   m_state = CreateObject<TcpSocketState>();
@@ -122,22 +75,6 @@ void TcpHtcpIncrementTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Htcp TestSuite.
- *
- * The following tests simulate conditions after a congestion event and
- * return to 1/2 ssthresh. After that, two acks are scheduled and the
- * value of the cWnd is compared at the end of the event.
- * The values in each test have been chosen randomly. The first test
- * simulates receiving acks for 38 packets with segmentSize=536,
- * the second one receives ack for 100 packets with segmentSize=1 and
- * the third one receives ack for 50 segment with segmentSize=1446.
- * The cWnd values of 20383, 40 and 76671 have been
- * calculated manually from the algorithm.
- */
-
 class TcpHtcpTestSuite : public TestSuite {
 public:
   TcpHtcpTestSuite() : TestSuite("tcp-htcp-test", UNIT) {
@@ -159,5 +96,4 @@ public:
   }
 };
 
-static TcpHtcpTestSuite
-    g_TcpHtcpTest; //!< Static variable for test initialization
+static TcpHtcpTestSuite g_TcpHtcpTest;

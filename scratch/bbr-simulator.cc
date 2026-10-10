@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -30,16 +17,6 @@
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("BbrSimulator");
-
-// ============================================================================
-// 实验目标：BBR + RED (drop-only) 负对照
-// 与 bbr-ecn-simulator.cc 用完全相同的拓扑 / RED 参数，
-// 唯一差别是：UseEcn = false，RED 超阈值时只丢包不标记。
-// 这样可以清晰看到 ECN 标记对 BBR 的作用是否显著，以及：
-//   * 队列稳态长度
-//   * 重传/丢包次数
-//   * RTT 分布
-// ============================================================================
 
 static void QueueLengthTracer(Ptr<OutputStreamWrapper> stream, uint32_t oldVal,
                               uint32_t newVal) {
@@ -89,12 +66,10 @@ int main(int argc, char *argv[]) {
   cmd.AddValue("simTime", "Simulation time (s)", simTime);
   cmd.Parse(argc, argv);
 
-  //! BBR
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      TypeIdValue(TcpBbr::GetTypeId()));
   Config::SetDefault("ns3::TcpSocketState::EnablePacing", BooleanValue(true));
 
-  //! 本脚本作为 ECN 研究中的负对照：TCP 不开 ECN，RED 也不做 ECN 标记
   Config::SetDefault("ns3::TcpSocketBase::UseEcn", StringValue("Off"));
   Config::SetDefault("ns3::RedQueueDisc::UseEcn", BooleanValue(false));
   Config::SetDefault("ns3::RedQueueDisc::UseHardDrop", BooleanValue(true));

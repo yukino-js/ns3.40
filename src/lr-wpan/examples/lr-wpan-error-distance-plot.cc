@@ -1,41 +1,4 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tom Henderson <thomas.r.henderson@boeing.com>
- */
 
-/*
-   This program produces a gnuplot file that plots the packet success rate
-   as a function of distance for the 802.15.4 models, assuming a default
-   LogDistance propagation loss model, the 2.4 GHz OQPSK error model, a
-   default transmit power of 0 dBm, and a default packet size of 20 bytes of
-   802.15.4 payload and a default rx sensitivity of -106.58 dBm.
-
-   Tx power of the transmitter node and the Rx sensitivity of the receiving node
-   as well as the transmitted packet size can be adjusted to obtain a different
-   distance plot.
-
-    Node1                       Node2
-   (dev0) --------------------->(dev1)
-
-   Usage:
-
-   ./ns3 run "lr-wpan-error-distance-plot --txPower= 0 --rxSensitivity=-92"
-
-*/
 #include <ns3/abort.h>
 #include <ns3/callback.h>
 #include <ns3/command-line.h>
@@ -66,15 +29,10 @@
 
 using namespace ns3;
 
-uint32_t g_packetsReceived = 0; //!< number of packets received
+uint32_t g_packetsReceived = 0;
 
 NS_LOG_COMPONENT_DEFINE("LrWpanErrorDistancePlot");
 
-/**
- * Function called when a Data indication is invoked
- * \param params MCPS data indication parameters
- * \param p packet
- */
 void LrWpanErrorDistanceCallback(McpsDataIndicationParams params,
                                  Ptr<Packet> p) {
   g_packetsReceived++;
@@ -85,13 +43,13 @@ int main(int argc, char *argv[]) {
   std::ofstream berfile("802.15.4-psr-distance.plt");
 
   int minDistance = 1;
-  int maxDistance = 200; // meters
+  int maxDistance = 200;
   int increment = 1;
   int maxPackets = 1000;
-  int packetSize = 7; // PSDU = 20 bytes (11 bytes MAC header + 7 bytes MSDU )
+  int packetSize = 7;
   double txPower = 0;
   uint32_t channelNumber = 11;
-  double rxSensitivity = -106.58; // dBm
+  double rxSensitivity = -106.58;
 
   CommandLine cmd(__FILE__);
 
@@ -136,7 +94,6 @@ int main(int argc, char *argv[]) {
       svh.CreateTxPowerSpectralDensity(txPower, channelNumber);
   dev0->GetPhy()->SetTxPowerSpectralDensity(psd);
 
-  // Set Rx sensitivity of the receiving device
   dev1->GetPhy()->SetRxSensitivity(rxSensitivity);
 
   McpsDataIndicationCallback cb0;

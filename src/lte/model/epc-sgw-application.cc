@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017-2018 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "epc-sgw-application.h"
 
@@ -37,8 +18,7 @@ EpcSgwApplication::EpcSgwApplication(const Ptr<Socket> s1uSocket,
                                      const Ptr<Socket> s5uSocket,
                                      const Ptr<Socket> s5cSocket)
     : m_s5Addr(s5Addr), m_s5uSocket(s5uSocket), m_s5cSocket(s5cSocket),
-      m_s1uSocket(s1uSocket), m_gtpuUdpPort(2152), // fixed by the standard
-      m_gtpcUdpPort(2123),                         // fixed by the standard
+      m_s1uSocket(s1uSocket), m_gtpuUdpPort(2152), m_gtpcUdpPort(2123),
       m_teidCount(0) {
   NS_LOG_FUNCTION(this << s1uSocket << s5Addr << s5uSocket << s5cSocket);
   m_s1uSocket->SetRecvCallback(
@@ -177,8 +157,6 @@ void EpcSgwApplication::SendToS1uSocket(Ptr<Packet> packet, Ipv4Address enbAddr,
 
   GtpuHeader gtpu;
   gtpu.SetTeid(teid);
-  // From 3GPP TS 29.281 v10.0.0 Section 5.1
-  // Length of the payload + the non obligatory GTP-U header
   gtpu.SetLength(packet->GetSize() + gtpu.GetSerializedSize() - 8);
   packet->AddHeader(gtpu);
   m_s1uSocket->SendTo(packet, 0, InetSocketAddress(enbAddr, m_gtpuUdpPort));
@@ -190,16 +168,10 @@ void EpcSgwApplication::SendToS5uSocket(Ptr<Packet> packet, Ipv4Address pgwAddr,
 
   GtpuHeader gtpu;
   gtpu.SetTeid(teid);
-  // From 3GPP TS 29.281 v10.0.0 Section 5.1
-  // Length of the payload + the non obligatory GTP-U header
   gtpu.SetLength(packet->GetSize() + gtpu.GetSerializedSize() - 8);
   packet->AddHeader(gtpu);
   m_s5uSocket->SendTo(packet, 0, InetSocketAddress(pgwAddr, m_gtpuUdpPort));
 }
-
-///////////////////////////////////
-// Process messages from the MME
-///////////////////////////////////
 
 void EpcSgwApplication::DoRecvCreateSessionRequest(Ptr<Packet> packet) {
   NS_LOG_FUNCTION(this);
@@ -228,7 +200,7 @@ void EpcSgwApplication::DoRecvCreateSessionRequest(Ptr<Packet> packet) {
   sgwS5cFteid.teid = imsi;
   m_mmeS11FteidBySgwS5cTeid[sgwS5cFteid.teid] = mmeS11Fteid;
   sgwS5cFteid.addr = m_s5Addr;
-  msgOut.SetSenderCpFteid(sgwS5cFteid); // S5 SGW GTP-C TEID
+  msgOut.SetSenderCpFteid(sgwS5cFteid);
 
   std::list<GtpcCreateSessionRequestMessage::BearerContextToBeCreated>
       bearerContexts = msg.GetBearerContextsToBeCreated();
@@ -236,9 +208,6 @@ void EpcSgwApplication::DoRecvCreateSessionRequest(Ptr<Packet> packet) {
   std::list<GtpcCreateSessionRequestMessage::BearerContextToBeCreated>
       bearerContextsOut;
   for (auto &bearerContext : bearerContexts) {
-    // simple sanity check. If you ever need more than 4M teids
-    // throughout your simulation, you'll need to implement a smarter teid
-    // management algorithm.
     NS_ABORT_IF(m_teidCount == 0xFFFFFFFF);
     uint32_t teid = ++m_teidCount;
 
@@ -247,7 +216,7 @@ void EpcSgwApplication::DoRecvCreateSessionRequest(Ptr<Packet> packet) {
 
     GtpcCreateSessionRequestMessage::BearerContextToBeCreated bearerContextOut;
     bearerContextOut.sgwS5uFteid.interfaceType = GtpcHeader::S5_SGW_GTPU;
-    bearerContextOut.sgwS5uFteid.teid = teid; // S5U SGW FTEID
+    bearerContextOut.sgwS5uFteid.teid = teid;
     bearerContextOut.sgwS5uFteid.addr = enbit->second.sgwAddr;
     bearerContextOut.epsBearerId = bearerContext.epsBearerId;
     bearerContextOut.bearerLevelQos = bearerContext.bearerLevelQos;
@@ -361,10 +330,6 @@ void EpcSgwApplication::DoRecvDeleteBearerResponse(Ptr<Packet> packet) {
   m_s5cSocket->SendTo(packetOut, 0,
                       InetSocketAddress(m_pgwAddr, m_gtpcUdpPort));
 }
-
-////////////////////////////////////////////
-// Process messages received from the PGW
-////////////////////////////////////////////
 
 void EpcSgwApplication::DoRecvCreateSessionResponse(Ptr<Packet> packet) {
   NS_LOG_FUNCTION(this);

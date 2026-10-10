@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/lollipop-counter.h"
 #include "ns3/test.h"
@@ -25,12 +7,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Lollipop Counter Test
- */
 class LollipopCounterTest : public TestCase {
 public:
   void DoRun() override;
@@ -49,7 +25,6 @@ void LollipopCounterTest::DoRun() {
   bool equal;
   bool isComparable;
 
-  // tests with uint8_t
   counter8a = 240;
   counter8b = 5;
 
@@ -143,12 +118,6 @@ void LollipopCounterTest::DoRun() {
                         "Correct interpretation of prefix operator");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief Lollipop Counter TestSuite
- */
 class LolipopCounterTestSuite : public TestSuite {
 public:
   LolipopCounterTestSuite();
@@ -161,5 +130,4 @@ LolipopCounterTestSuite::LolipopCounterTestSuite()
   AddTestCase(new LollipopCounterTest(), TestCase::QUICK);
 }
 
-static LolipopCounterTestSuite
-    g_lollipopCounterTestSuite; //!< Static variable for test initialization
+static LolipopCounterTestSuite g_lollipopCounterTestSuite;

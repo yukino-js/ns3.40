@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "supported-rates.h"
 
@@ -30,8 +12,7 @@ NS_LOG_COMPONENT_DEFINE("SupportedRates");
 #define BSS_MEMBERSHIP_SELECTOR_HT_PHY 127
 #define BSS_MEMBERSHIP_SELECTOR_VHT_PHY 126
 #define BSS_MEMBERSHIP_SELECTOR_HE_PHY 122
-#define BSS_MEMBERSHIP_SELECTOR_EHT_PHY                                        \
-  121 // TODO not defined yet as of 802.11be D1.4
+#define BSS_MEMBERSHIP_SELECTOR_EHT_PHY 121
 
 SupportedRates::SupportedRates() { NS_LOG_FUNCTION(this); }
 

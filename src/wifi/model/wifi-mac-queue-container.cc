@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-mac-queue-container.h"
 
@@ -117,23 +99,18 @@ WifiMacQueueContainer::DoExtractExpiredMpdus(ContainerQueue &queue) const {
   Time now = Simulator::Now();
 
   do {
-    // advance firstExpiredIt and lastExpiredIt to skip all inflight MPDUs
     for (firstExpiredIt = lastExpiredIt;
          firstExpiredIt != queue.end() && !firstExpiredIt->inflights.empty();
          ++firstExpiredIt, ++lastExpiredIt) {
     }
 
     if (!ret) {
-      // we get here in the first iteration only
       ret = std::make_pair(firstExpiredIt, lastExpiredIt);
     }
 
-    // advance lastExpiredIt as we encounter MPDUs with expired lifetime that
-    // are not inflight
     while (lastExpiredIt != queue.end() && lastExpiredIt->expiryTime <= now &&
            lastExpiredIt->inflights.empty()) {
       lastExpiredIt->expired = true;
-      // this MPDU is no longer queued
       lastExpiredIt->ac = AC_UNDEF;
       lastExpiredIt->deleter(lastExpiredIt->mpdu);
 
@@ -147,8 +124,6 @@ WifiMacQueueContainer::DoExtractExpiredMpdus(ContainerQueue &queue) const {
     }
 
     if (lastExpiredIt != firstExpiredIt) {
-      // transfer non-inflight MPDUs with expired lifetime to the tail of
-      // m_expiredQueue
       m_expiredQueue.splice(m_expiredQueue.end(), queue, firstExpiredIt,
                             lastExpiredIt);
       ret->second = m_expiredQueue.end();
@@ -167,7 +142,6 @@ WifiMacQueueContainer::ExtractAllExpiredMpdus() const {
     auto [firstIt, lastIt] = DoExtractExpiredMpdus(queue.second);
 
     if (firstIt != lastIt && !firstExpiredIt) {
-      // this is the first queue with MPDUs with expired lifetime
       firstExpiredIt = firstIt;
     }
   }
@@ -181,10 +155,6 @@ WifiMacQueueContainer::GetAllExpiredMpdus() const {
 }
 
 } // namespace ns3
-
-/****************************************************
- *      Global Functions (outside namespace ns3)
- ***************************************************/
 
 std::size_t std::hash<ns3::WifiContainerQueueId>::operator()(
     ns3::WifiContainerQueueId queueId) const {

@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2007 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/drop-tail-queue.h"
 #include "ns3/string.h"
@@ -21,12 +5,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * DropTailQueue unit tests.
- */
 class DropTailQueueTestCase : public TestCase {
 public:
   DropTailQueueTestCase();
@@ -62,7 +40,7 @@ void DropTailQueueTestCase::DoRun() {
   queue->Enqueue(p3);
   NS_TEST_EXPECT_MSG_EQ(queue->GetNPackets(), 3,
                         "There should be three packets in there");
-  queue->Enqueue(p4); // will be dropped
+  queue->Enqueue(p4);
   NS_TEST_EXPECT_MSG_EQ(queue->GetNPackets(), 3,
                         "There should be still three packets in there");
 
@@ -94,12 +72,6 @@ void DropTailQueueTestCase::DoRun() {
                         "There are really no packets in there");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief DropTail Queue TestSuite
- */
 class DropTailQueueTestSuite : public TestSuite {
 public:
   DropTailQueueTestSuite() : TestSuite("drop-tail-queue", UNIT) {
@@ -107,5 +79,4 @@ public:
   }
 };
 
-static DropTailQueueTestSuite
-    g_dropTailQueueTestSuite; //!< Static variable for test initialization
+static DropTailQueueTestSuite g_dropTailQueueTestSuite;

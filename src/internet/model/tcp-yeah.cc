@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "tcp-yeah.h"
 
@@ -116,7 +92,6 @@ void TcpYeah::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
   m_baseRtt = std::min(m_baseRtt, rtt);
   NS_LOG_DEBUG("Updated m_baseRtt = " << m_baseRtt.GetMilliSeconds() << " ms");
 
-  // Update RTT counter
   m_cntRtt++;
   NS_LOG_DEBUG("Updated m_cntRtt = " << m_cntRtt);
 }
@@ -153,40 +128,26 @@ void TcpYeah::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
   if (tcb->m_cWnd < tcb->m_ssThresh) {
     NS_LOG_LOGIC("In slow start, invoke NewReno slow start.");
     TcpNewReno::SlowStart(tcb, segmentsAcked);
-  } else if (!m_doingRenoNow) { // Fast mode
+  } else if (!m_doingRenoNow) {
     NS_LOG_LOGIC("In Fast mode, increment cwnd according to STCP rule.");
     m_stcp->IncreaseWindow(tcb, segmentsAcked);
     NS_LOG_INFO("In Fast mode, updated to cwnd " << tcb->m_cWnd << " ssthresh "
                                                  << tcb->m_ssThresh);
-  } else { // Behave like NewReno
+  } else {
     TcpNewReno::CongestionAvoidance(tcb, segmentsAcked);
   }
 
-  if (tcb->m_lastAckedSeq >= m_begSndNxt) { // A YeAH cycle has finished, we do
-                                            // YeAH cwnd adjustment every RTT.
+  if (tcb->m_lastAckedSeq >= m_begSndNxt) {
 
     NS_LOG_LOGIC("A YeAH cycle has finished, check if enough RTT samples.");
-    /*
-     * We perform YeAH calculations only if we got enough RTT samples to
-     * insure that at least 1 of those samples wasn't from a delayed ACK.
-     */
     if (m_cntRtt > 2) {
       NS_LOG_LOGIC("Enough RTT samples to perform YeAH calculations");
-      /*
-       * We have enough RTT samples to perform YeAH algorithm.
-       * Now we need to determine if we should operate in Fast or Slow mode,
-       * and if we should execute the precautionary decongestion algorithm.
-       */
 
       uint32_t segCwnd = tcb->GetCwndInSegments();
 
-      // Calculate the extra number of packets in queue
-      // Naming convention: minRtt is the minimum RTT of this round,
-      // baseRtt is the minimum RTT of the entire transmission.
       NS_ASSERT(m_minRtt >= m_baseRtt);
       Time rttQueue = m_minRtt - m_baseRtt;
 
-      // queue = rttQueue * bw = rttQueue * (cwnd/RTTmin)
       double bw = segCwnd / m_minRtt.GetSeconds();
       auto queue = static_cast<uint32_t>(bw * rttQueue.GetSeconds());
       NS_LOG_DEBUG("Queue backlog = "
@@ -198,9 +159,8 @@ void TcpYeah::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
       double L = rttQueue.GetSeconds() / m_baseRtt.GetSeconds();
       NS_LOG_DEBUG("Network congestion level = " << L);
 
-      if (queue > m_alpha || L > (1 / m_phy)) { // Slow mode
-        if (queue > m_alpha &&
-            segCwnd > m_renoCount) { // Precautionary decongestion
+      if (queue > m_alpha || L > (1 / m_phy)) {
+        if (queue > m_alpha && segCwnd > m_renoCount) {
           NS_LOG_LOGIC("Execute the precautionary decongestion.");
           uint32_t reduction = std::min(queue / m_gamma, segCwnd >> m_epsilon);
           segCwnd -= reduction;
@@ -222,9 +182,9 @@ void TcpYeah::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
         m_doingRenoNow = m_doingRenoNow + 1;
         NS_LOG_DEBUG("In Slow mode, updated to m_renoCount = "
                      << m_renoCount << " m_doingRenoNow = " << m_doingRenoNow);
-      } else { // Fast mode
+      } else {
         m_fastCount++;
-        if (m_fastCount > m_zeta) { // Reset renoCount
+        if (m_fastCount > m_zeta) {
           m_renoCount = 2;
           m_fastCount = 0;
         }
@@ -235,10 +195,8 @@ void TcpYeah::IncreaseWindow(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked) {
       m_lastQ = queue;
     }
 
-    // Save the current right edge for next Yeah cycle
     m_begSndNxt = tcb->m_nextTxSequence;
 
-    // Reset cntRtt & minRtt
     m_cntRtt = 0;
     m_minRtt = Time::Max();
   }
@@ -252,12 +210,12 @@ uint32_t TcpYeah::GetSsThresh(Ptr<const TcpSocketState> tcb,
   uint32_t reduction;
   uint32_t segBytesInFlight = bytesInFlight / tcb->m_segmentSize;
 
-  if (m_doingRenoNow < m_rho) { // Not competing with Reno flows
+  if (m_doingRenoNow < m_rho) {
     NS_LOG_LOGIC("Not competing with Reno flows upon loss");
     reduction = m_lastQ;
     reduction = std::max(reduction, segBytesInFlight >> m_delta);
     reduction = std::min(reduction, std::max(segBytesInFlight >> 1, 2U));
-  } else { // Competing with Reno flows
+  } else {
     NS_LOG_LOGIC("Competing with Reno flows upon loss");
     reduction = std::max(segBytesInFlight >> 1, static_cast<uint32_t>(2));
   }
@@ -267,7 +225,6 @@ uint32_t TcpYeah::GetSsThresh(Ptr<const TcpSocketState> tcb,
   m_fastCount = 0;
   m_renoCount = std::max(m_renoCount >> 1, static_cast<uint32_t>(2));
 
-  // Allow, at least, 2 segment to go out
   uint32_t ret = std::max(bytesInFlight - (reduction * tcb->m_segmentSize),
                           2U * tcb->m_segmentSize);
   return ret;

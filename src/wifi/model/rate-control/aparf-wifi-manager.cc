@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universidad de la República - Uruguay
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Matias Richart <mrichart@fing.edu.uy>
- */
 
 #include "aparf-wifi-manager.h"
 
@@ -30,28 +12,20 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("AparfWifiManager");
 
-/**
- * Hold per-remote-station state for APARF Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the APARF Wifi manager
- */
 struct AparfWifiRemoteStation : public WifiRemoteStation {
-  uint32_t m_nSuccess;         //!< Number of successful transmission attempts.
-  uint32_t m_nFailed;          //!< Number of failed transmission attempts.
-  uint32_t m_pCount;           //!< Number of power changes.
-  uint32_t m_successThreshold; //!< The minimum number of successful
-                               //!< transmissions to try a new power or rate.
-  uint32_t m_failThreshold; //!< The minimum number of failed transmissions to
-                            //!< try a new power or rate.
-  uint8_t m_prevRateIndex;  //!< Rate index of the previous transmission.
-  uint8_t m_rateIndex;      //!< Current rate index.
-  uint8_t m_critRateIndex;  //!< Critical rate.
-  uint8_t m_prevPowerLevel; //!< Power level of the previous transmission.
-  uint8_t m_powerLevel;     //!< Current power level.
-  uint8_t m_nSupported; //!< Number of supported rates by the remote station.
-  bool m_initialized;   //!< For initializing variables.
-  AparfWifiManager::State m_aparfState; //!< The estimated state of the channel.
+  uint32_t m_nSuccess;
+  uint32_t m_nFailed;
+  uint32_t m_pCount;
+  uint32_t m_successThreshold;
+  uint32_t m_failThreshold;
+  uint8_t m_prevRateIndex;
+  uint8_t m_rateIndex;
+  uint8_t m_critRateIndex;
+  uint8_t m_prevPowerLevel;
+  uint8_t m_powerLevel;
+  uint8_t m_nSupported;
+  bool m_initialized;
+  AparfWifiManager::State m_aparfState;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(AparfWifiManager);
@@ -324,8 +298,6 @@ WifiTxVector AparfWifiManager::DoGetDataTxVector(WifiRemoteStation *st,
 
 WifiTxVector AparfWifiManager::DoGetRtsTxVector(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
-  /// \todo we could/should implement the ARF algorithm for
-  /// RTS only by picking a single rate within the BasicRateSet.
   auto station = static_cast<AparfWifiRemoteStation *>(st);
   uint16_t channelWidth = GetChannelWidth(station);
   if (channelWidth > 20 && channelWidth != 22) {

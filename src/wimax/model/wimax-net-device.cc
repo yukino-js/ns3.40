@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "wimax-net-device.h"
 
@@ -57,8 +37,6 @@ TypeId WimaxNetDevice::GetTypeId() {
 
           .SetParent<NetDevice>()
           .SetGroupName("Wimax")
-
-          // No AddConstructor because this is an abstract class.
 
           .AddAttribute("Mtu", "The MAC-level Maximum Transmission Unit",
                         UintegerValue(DEFAULT_MSDU_SIZE),
@@ -230,15 +208,7 @@ void WimaxNetDevice::SetNode(Ptr<Node> node) { m_node = node; }
 
 Ptr<Node> WimaxNetDevice::GetNode() const { return m_node; }
 
-bool WimaxNetDevice::NeedsArp() const {
-  return false;
-  /*
-   * Modified by Mohamed Amine ISMAIL.
-   * see "Transmission of IPv4 packets over IEEE 802.16's IP Convergence
-   *      Sublayer draft-ietf-16ng-ipv4-over-802-dot-16-ipcs-04.txt" section
-   * 5.2
-   */
-}
+bool WimaxNetDevice::NeedsArp() const { return false; }
 
 void WimaxNetDevice::SetReceiveCallback(ReceiveCallback cb) {
   m_forwardUp = cb;
@@ -374,9 +344,7 @@ void WimaxNetDevice::SetPromiscReceiveCallback(PromiscReceiveCallback cb) {
 
 bool WimaxNetDevice::IsPromisc() { return !(m_promiscRx.IsNull()); }
 
-void WimaxNetDevice::NotifyPromiscTrace(Ptr<Packet> p) {
-  // m_promiscRx(p);
-}
+void WimaxNetDevice::NotifyPromiscTrace(Ptr<Packet> p) {}
 
 bool WimaxNetDevice::SupportsSendFrom() const { return false; }
 
@@ -388,12 +356,6 @@ void WimaxNetDevice::ForwardDown(Ptr<PacketBurst> burst,
 }
 
 void WimaxNetDevice::InitializeChannels() {
-  // initializing vector of channels (or frequencies)
-  // Values according to WirelessMAN-OFDM RF profile for 10 MHz channelization
-  // Section 12.3.3.1 from IEEE 802.16-2004 standard
-  // profR10_3 :
-  // channels: 5000 + n ⋅ 5 MHz, ∀n ∈ { 147, 149, 151, 153, 155, 157, 159, 161,
-  // 163, 165, 167 } from a range 5GHz to 6GHz, according to Section 8.5.1.
   uint64_t frequency = 5000;
 
   for (uint8_t i = 0; i < 200; i++) {
@@ -412,11 +374,6 @@ Address WimaxNetDevice::GetMulticast(Ipv4Address multicastGroup) const {
 
   Mac48Address ad = Mac48Address::GetMulticast(multicastGroup);
 
-  //
-  // Implicit conversion (operator Address ()) is defined for Mac48Address, so
-  // use it by just returning the EUI-48 address which is automagically
-  // converted to an Address.
-  //
   NS_LOG_LOGIC("multicast address is " << ad);
 
   return ad;
@@ -430,11 +387,6 @@ Address WimaxNetDevice::GetMulticast(Ipv6Address addr) const {
 }
 
 void WimaxNetDevice::AddLinkChangeCallback(Callback<void> callback) {
-  /* \todo Add a callback invoked whenever the link
-   * status changes to UP. This callback is typically used
-   * by the IP/ARP layer to flush the ARP cache and by IPv6 stack
-   * to flush NDISC cache whenever the link goes up.
-   */
   NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
 }
 } // namespace ns3

@@ -1,40 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- * Author: Valerio Sartini <valesar@gmail.com>
- *
- * This program conducts a simple experiment: It builds up a topology based on
- * either Inet or Orbis trace files. A random node is then chosen, and all the
- * other nodes will send a packet to it. The TTL is measured and reported as an
- * histogram.
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -48,59 +12,28 @@
 #include <list>
 #include <sstream>
 
-/**
- * \ingroup topology
- * Example of TopologyReader: read in a topology in a specified format.
- *
- * This example can be used with the following parameters:
- *   - <tt>--format=Inet
- * --input=src/topology-read/examples/Inet_small_toposample.txt</tt>
- *   - <tt>--format=Inet
- * --input=src/topology-read/examples/Inet_toposample.txt</tt>
- *   - <tt>--format=Orbis
- * --input=src/topology-read/examples/Orbis_toposample.txt</tt>
- *   - <tt>--format=Rocket
- *     --input=src/topology-read/examples/RocketFuel_sample_4755.r0.cch_maps.txt</tt>
- *   - <tt>--format=Rocket
- *     --input=src/topology-read/examples/RocketFuel_toposample_1239_weights.txt</tt>
- */
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TopologyCreationExperiment");
 
-/**
- * Print the TTL of received packet
- * \param p received packet
- * \param ad sender address
- */
 static void SinkRx(Ptr<const Packet> p, const Address &ad) {
   Ipv4Header ipv4;
   p->PeekHeader(ipv4);
   std::cout << "TTL: " << (unsigned)ipv4.GetTtl() << std::endl;
 }
 
-// ----------------------------------------------------------------------
-// -- main
-// ----------------------------------------------
 int main(int argc, char *argv[]) {
   std::string format("Inet");
   std::string input("src/topology-read/examples/Inet_small_toposample.txt");
 
   LogComponentEnable("TopologyCreationExperiment", LOG_LEVEL_INFO);
 
-  // Set up command line parameters used to control the experiment.
   CommandLine cmd(__FILE__);
   cmd.AddValue("format",
                "Format to use for data input [Orbis|Inet|Rocketfuel].", format);
   cmd.AddValue("input", "Name of the input file.", input);
   cmd.Parse(argc, argv);
 
-  // ------------------------------------------------------------
-  // -- Read topology data.
-  // --------------------------------------------
-
-  // Pick a topology reader based in the requested format.
   TopologyReaderHelper topoHelp;
   topoHelp.SetFileName(input);
   topoHelp.SetFileType(format);
@@ -117,15 +50,11 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  // ------------------------------------------------------------
-  // -- Create nodes and network stacks
-  // --------------------------------------------
   NS_LOG_INFO("creating internet stack");
   InternetStackHelper stack;
 
-  // Setup NixVector Routing
   Ipv4NixVectorHelper nixRouting;
-  stack.SetRoutingHelper(nixRouting); // has effect on the next Install ()
+  stack.SetRoutingHelper(nixRouting);
   stack.Install(nodes);
 
   NS_LOG_INFO("creating IPv4 addresses");
@@ -146,13 +75,11 @@ int main(int argc, char *argv[]) {
   auto ndc = new NetDeviceContainer[totlinks];
   PointToPointHelper p2p;
   for (int i = 0; i < totlinks; i++) {
-    // p2p.SetChannelAttribute ("Delay", TimeValue(MilliSeconds(weight[i])));
     p2p.SetChannelAttribute("Delay", StringValue("2ms"));
     p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     ndc[i] = p2p.Install(nc[i]);
   }
 
-  // it crates little subnets, one for each couple of nodes.
   NS_LOG_INFO("creating IPv4 interfaces");
   auto ipic = new Ipv4InterfaceContainer[totlinks];
   for (int i = 0; i < totlinks; i++) {
@@ -172,9 +99,6 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceAddress iaddrServer = ipv4Server->GetAddress(1, 0);
   Ipv4Address ipv4AddrServer = iaddrServer.GetLocal();
 
-  // ------------------------------------------------------------
-  // -- Send around packets to check the ttl
-  // --------------------------------------------
   Config::SetDefault("ns3::Ipv4RawSocketImpl::Protocol", StringValue("2"));
   InetSocketAddress dst(ipv4AddrServer);
 
@@ -199,14 +123,10 @@ int main(int argc, char *argv[]) {
   apps.Start(Seconds(0.0));
   apps.Stop(Seconds(3.0));
 
-  // we trap the packet sink receiver to extract the TTL.
   Config::ConnectWithoutContext(
       "/NodeList/*/ApplicationList/*/$ns3::PacketSink/Rx",
       MakeCallback(&SinkRx));
 
-  // ------------------------------------------------------------
-  // -- Run the simulation
-  // --------------------------------------------
   NS_LOG_INFO("Run Simulation.");
   Simulator::Run();
   Simulator::Destroy();
@@ -218,6 +138,4 @@ int main(int argc, char *argv[]) {
   NS_LOG_INFO("Done.");
 
   return 0;
-
-  // end main
 }

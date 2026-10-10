@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *
- */
 
 #include "three-gpp-http-client.h"
 
@@ -49,7 +30,6 @@ ThreeGppHttpClient::ThreeGppHttpClient()
   NS_LOG_FUNCTION(this);
 }
 
-// static
 TypeId ThreeGppHttpClient::GetTypeId() {
   static TypeId tid =
       TypeId("ns3::ThreeGppHttpClient")
@@ -70,7 +50,7 @@ TypeId ThreeGppHttpClient::GetTypeId() {
           .AddAttribute(
               "RemoteServerPort",
               "The destination port of the outbound packets.",
-              UintegerValue(80), // the default HTTP port
+              UintegerValue(80),
               MakeUintegerAccessor(&ThreeGppHttpClient::m_remoteServerPort),
               MakeUintegerChecker<uint16_t>())
           .AddTraceSource(
@@ -159,7 +139,6 @@ std::string ThreeGppHttpClient::GetStateString() const {
   return GetStateString(m_state);
 }
 
-// static
 std::string
 ThreeGppHttpClient::GetStateString(ThreeGppHttpClient::State_t state) {
   switch (state) {
@@ -190,7 +169,7 @@ void ThreeGppHttpClient::DoDispose() {
     StopApplication();
   }
 
-  Application::DoDispose(); // Chain up.
+  Application::DoDispose();
 }
 
 void ThreeGppHttpClient::StartApplication() {
@@ -282,11 +261,10 @@ void ThreeGppHttpClient::ReceivedDataCallback(Ptr<Socket> socket) {
 
   while ((packet = socket->RecvFrom(from))) {
     if (packet->GetSize() == 0) {
-      break; // EOF
+      break;
     }
 
 #ifdef NS3_LOG_ENABLE
-    // Some log messages.
     if (InetSocketAddress::IsMatchingType(from)) {
       NS_LOG_INFO(this << " A packet of " << packet->GetSize() << " bytes"
                        << " received from "
@@ -302,7 +280,7 @@ void ThreeGppHttpClient::ReceivedDataCallback(Ptr<Socket> socket) {
                << Inet6SocketAddress::ConvertFrom(from).GetPort() << " / "
                << Inet6SocketAddress::ConvertFrom(from) << ".");
     }
-#endif /* NS3_LOG_ENABLE */
+#endif
 
     m_rxTrace(packet, from);
 
@@ -318,10 +296,8 @@ void ThreeGppHttpClient::ReceivedDataCallback(Ptr<Socket> socket) {
                                       << " for ReceivedData().");
       break;
     }
-
-  } // end of `while ((packet = socket->RecvFrom (from)))`
-
-} // end of `void ReceivedDataCallback (Ptr<Socket> socket)`
+  }
+}
 
 void ThreeGppHttpClient::OpenConnection() {
   NS_LOG_FUNCTION(this);
@@ -374,23 +350,20 @@ void ThreeGppHttpClient::OpenConnection() {
         MakeCallback(&ThreeGppHttpClient::ErrorCloseCallback, this));
     m_socket->SetRecvCallback(
         MakeCallback(&ThreeGppHttpClient::ReceivedDataCallback, this));
-    m_socket->SetAttribute("MaxSegLifetime", DoubleValue(0.02)); // 20 ms.
+    m_socket->SetAttribute("MaxSegLifetime", DoubleValue(0.02));
 
-  } // end of `if (m_state == {NOT_STARTED, EXPECTING_EMBEDDED_OBJECT,
-    // PARSING_MAIN_OBJECT, READING})`
-  else {
+  } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for OpenConnection().");
   }
-
-} // end of `void OpenConnection ()`
+}
 
 void ThreeGppHttpClient::RequestMainObject() {
   NS_LOG_FUNCTION(this);
 
   if (m_state == CONNECTING || m_state == READING) {
     ThreeGppHttpHeader header;
-    header.SetContentLength(0); // Request does not need any content length.
+    header.SetContentLength(0);
     header.SetContentType(ThreeGppHttpHeader::MAIN_OBJECT);
     header.SetClientTs(Simulator::Now());
 
@@ -410,14 +383,13 @@ void ThreeGppHttpClient::RequestMainObject() {
                         << " waiting for another Tx opportunity.");
     } else {
       SwitchToState(EXPECTING_MAIN_OBJECT);
-      m_pageLoadStartTs = Simulator::Now(); // start counting page loading time
+      m_pageLoadStartTs = Simulator::Now();
     }
   } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for RequestMainObject().");
   }
-
-} // end of `void RequestMainObject ()`
+}
 
 void ThreeGppHttpClient::RequestEmbeddedObject() {
   NS_LOG_FUNCTION(this);
@@ -426,7 +398,7 @@ void ThreeGppHttpClient::RequestEmbeddedObject() {
       m_state == EXPECTING_EMBEDDED_OBJECT) {
     if (m_embeddedObjectsToBeRequested > 0) {
       ThreeGppHttpHeader header;
-      header.SetContentLength(0); // Request does not need any content length.
+      header.SetContentLength(0);
       header.SetContentType(ThreeGppHttpHeader::EMBEDDED_OBJECT);
       header.SetClientTs(Simulator::Now());
 
@@ -456,141 +428,93 @@ void ThreeGppHttpClient::RequestEmbeddedObject() {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for RequestEmbeddedObject().");
   }
-
-} // end of `void RequestEmbeddedObject ()`
+}
 
 void ThreeGppHttpClient::ReceiveMainObject(Ptr<Packet> packet,
                                            const Address &from) {
   NS_LOG_FUNCTION(this << packet << from);
 
   if (m_state == EXPECTING_MAIN_OBJECT) {
-    /*
-     * In the following call to Receive(), #m_objectBytesToBeReceived *will*
-     * be updated. #m_objectClientTs and #m_objectServerTs *may* be updated.
-     * ThreeGppHttpHeader will be removed from the packet, if it is the first
-     * packet of the object to be received; the header will be available in
-     * #m_constructedPacketHeader.
-     * #m_constructedPacket will also be updated.
-     */
     Receive(packet);
     m_rxMainObjectPacketTrace(packet);
 
     if (m_objectBytesToBeReceived > 0) {
-      /*
-       * There are more packets of this main object, so just stay still
-       * and wait until they arrive.
-       */
       NS_LOG_INFO(this << " " << m_objectBytesToBeReceived << " byte(s)"
                        << " remains from this chunk of main object.");
     } else {
-      /*
-       * This is the last packet of this main object. Acknowledge the
-       * reception of a whole main object
-       */
       NS_LOG_INFO(this << " Finished receiving a main object.");
       m_rxMainObjectTrace(this, m_constructedPacket);
 
       if (!m_objectServerTs.IsZero()) {
         m_rxDelayTrace(Simulator::Now() - m_objectServerTs, from);
-        m_objectServerTs = MilliSeconds(0); // Reset back to zero.
+        m_objectServerTs = MilliSeconds(0);
       }
 
       if (!m_objectClientTs.IsZero()) {
         m_rxRttTrace(Simulator::Now() - m_objectClientTs, from);
-        m_objectClientTs = MilliSeconds(0); // Reset back to zero.
+        m_objectClientTs = MilliSeconds(0);
       }
 
       EnterParsingTime();
+    }
 
-    } // end of else of `if (m_objectBytesToBeReceived > 0)`
-
-  } // end of `if (m_state == EXPECTING_MAIN_OBJECT)`
-  else {
+  } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for ReceiveMainObject().");
   }
-
-} // end of `void ReceiveMainObject (Ptr<Packet> packet)`
+}
 
 void ThreeGppHttpClient::ReceiveEmbeddedObject(Ptr<Packet> packet,
                                                const Address &from) {
   NS_LOG_FUNCTION(this << packet << from);
 
   if (m_state == EXPECTING_EMBEDDED_OBJECT) {
-    /*
-     * In the following call to Receive(), #m_objectBytesToBeReceived *will*
-     * be updated. #m_objectClientTs and #m_objectServerTs *may* be updated.
-     * ThreeGppHttpHeader will be removed from the packet, if it is the first
-     * packet of the object to be received; the header will be available in
-     * #m_constructedPacket, which will also be updated.
-     */
     Receive(packet);
     m_rxEmbeddedObjectPacketTrace(packet);
 
     if (m_objectBytesToBeReceived > 0) {
-      /*
-       * There are more packets of this embedded object, so just stay
-       * still and wait until they arrive.
-       */
       NS_LOG_INFO(this << " " << m_objectBytesToBeReceived << " byte(s)"
                        << " remains from this chunk of embedded object");
     } else {
-      /*
-       * This is the last packet of this embedded object. Acknowledge
-       * the reception of a whole embedded object
-       */
       NS_LOG_INFO(this << " Finished receiving an embedded object.");
       m_rxEmbeddedObjectTrace(this, m_constructedPacket);
 
       if (!m_objectServerTs.IsZero()) {
         m_rxDelayTrace(Simulator::Now() - m_objectServerTs, from);
-        m_objectServerTs = MilliSeconds(0); // Reset back to zero.
+        m_objectServerTs = MilliSeconds(0);
       }
 
       if (!m_objectClientTs.IsZero()) {
         m_rxRttTrace(Simulator::Now() - m_objectClientTs, from);
-        m_objectClientTs = MilliSeconds(0); // Reset back to zero.
+        m_objectClientTs = MilliSeconds(0);
       }
 
       if (m_embeddedObjectsToBeRequested > 0) {
         NS_LOG_INFO(this << " " << m_embeddedObjectsToBeRequested
                          << " more embedded object(s) to be requested.");
-        // Immediately request another using the existing connection.
         m_eventRequestEmbeddedObject = Simulator::ScheduleNow(
             &ThreeGppHttpClient::RequestEmbeddedObject, this);
       } else {
-        /*
-         * There is no more embedded object, the web page has been
-         * downloaded completely. Now is the time to read it.
-         */
         NS_LOG_INFO(this << " Finished receiving a web page.");
-        FinishReceivingPage(); // trigger callback for page loading time
+        FinishReceivingPage();
         EnterReadingTime();
       }
+    }
 
-    } // end of else of `if (m_objectBytesToBeReceived > 0)`
-
-  } // end of `if (m_state == EXPECTING_EMBEDDED_OBJECT)`
-  else {
+  } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for ReceiveEmbeddedObject().");
   }
-
-} // end of `void ReceiveEmbeddedObject (Ptr<Packet> packet)`
+}
 
 void ThreeGppHttpClient::Receive(Ptr<Packet> packet) {
   NS_LOG_FUNCTION(this << packet);
 
-  /* In a "real" HTTP message the message size is coded differently. The use of
-   * a header is to avoid the burden of doing a real message parser.
-   */
   bool firstPacket = false;
 
   if (m_objectBytesToBeReceived == 0) {
-    // This is the first packet of the object.
     firstPacket = true;
 
-    // Remove the header in order to calculate remaining data to be received.
     ThreeGppHttpHeader httpHeader;
     packet->RemoveHeader(httpHeader);
 
@@ -598,24 +522,18 @@ void ThreeGppHttpClient::Receive(Ptr<Packet> packet) {
     m_objectClientTs = httpHeader.GetClientTs();
     m_objectServerTs = httpHeader.GetServerTs();
 
-    // Take a copy for constructed packet trace. Note that header is included.
     m_constructedPacket = packet->Copy();
     m_constructedPacket->AddHeader(httpHeader);
   }
   uint32_t contentSize = packet->GetSize();
-  m_numberBytesPage += contentSize; // increment counter of page size
+  m_numberBytesPage += contentSize;
 
-  /* Note that the packet does not contain header at this point.
-   * The content is purely raw data, which was the only intended data to be
-   * received.
-   */
   if (m_objectBytesToBeReceived < contentSize) {
     NS_LOG_WARN(this << " The received packet"
                      << " (" << contentSize << " bytes of content)"
                      << " is larger than"
                      << " the content that we expected to receive"
                      << " (" << m_objectBytesToBeReceived << " bytes).");
-    // Stop expecting any more packet of this object.
     m_objectBytesToBeReceived = 0;
     m_constructedPacket = nullptr;
   } else {
@@ -625,8 +543,7 @@ void ThreeGppHttpClient::Receive(Ptr<Packet> packet) {
       m_constructedPacket->AddAtEnd(packetCopy);
     }
   }
-
-} // end of `void Receive (packet)`
+}
 
 void ThreeGppHttpClient::EnterParsingTime() {
   NS_LOG_FUNCTION(this);
@@ -649,34 +566,24 @@ void ThreeGppHttpClient::ParseMainObject() {
 
   if (m_state == PARSING_MAIN_OBJECT) {
     m_embeddedObjectsToBeRequested = m_httpVariables->GetNumOfEmbeddedObjects();
-    // saving total number of embedded objects
     m_numberEmbeddedObjectsRequested = m_embeddedObjectsToBeRequested;
     NS_LOG_INFO(this << " Parsing has determined "
                      << m_embeddedObjectsToBeRequested
                      << " embedded object(s) in the main object.");
 
     if (m_embeddedObjectsToBeRequested > 0) {
-      /*
-       * Immediately request the first embedded object using the
-       * existing connection.
-       */
       m_eventRequestEmbeddedObject = Simulator::ScheduleNow(
           &ThreeGppHttpClient::RequestEmbeddedObject, this);
     } else {
-      /*
-       * There is no embedded object in the main object. So sit back and
-       * enjoy the plain web page.
-       */
       NS_LOG_INFO(this << " Finished receiving a web page.");
-      FinishReceivingPage(); // trigger callback for page loading time
+      FinishReceivingPage();
       EnterReadingTime();
     }
   } else {
     NS_FATAL_ERROR("Invalid state " << GetStateString()
                                     << " for ParseMainObject().");
   }
-
-} // end of `void ParseMainObject ()`
+}
 
 void ThreeGppHttpClient::EnterReadingTime() {
   NS_LOG_FUNCTION(this);
@@ -686,7 +593,6 @@ void ThreeGppHttpClient::EnterReadingTime() {
     NS_LOG_INFO(this << " Client will finish reading this web page in "
                      << readingTime.As(Time::S) << ".");
 
-    // Schedule a request of another main object once the reading time expires.
     m_eventRequestMainObject = Simulator::Schedule(
         readingTime, &ThreeGppHttpClient::RequestMainObject, this);
     SwitchToState(READING);
@@ -747,7 +653,6 @@ void ThreeGppHttpClient::SwitchToState(ThreeGppHttpClient::State_t state) {
 void ThreeGppHttpClient::FinishReceivingPage() {
   m_rxPageTrace(this, Simulator::Now() - m_pageLoadStartTs,
                 m_numberEmbeddedObjectsRequested, m_numberBytesPage);
-  // Reset counter variables.
   m_numberEmbeddedObjectsRequested = 0;
   m_numberBytesPage = 0;
 }

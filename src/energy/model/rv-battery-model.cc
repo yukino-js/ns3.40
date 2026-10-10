@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Network Security Lab, University of Washington, Seattle.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Sidharth Nabar <snabar@uw.edu>, He Wu <mdzz@u.washington.edu>
- */
 
 #include "rv-battery-model.h"
 
@@ -45,11 +27,10 @@ TypeId RvBatteryModel::GetTypeId() {
                         MakeTimeAccessor(&RvBatteryModel::SetSamplingInterval,
                                          &RvBatteryModel::GetSamplingInterval),
                         MakeTimeChecker())
-          .AddAttribute(
-              "RvBatteryModelLowBatteryThreshold", "Low battery threshold.",
-              DoubleValue(0.10), // as a fraction of the initial energy
-              MakeDoubleAccessor(&RvBatteryModel::m_lowBatteryTh),
-              MakeDoubleChecker<double>())
+          .AddAttribute("RvBatteryModelLowBatteryThreshold",
+                        "Low battery threshold.", DoubleValue(0.10),
+                        MakeDoubleAccessor(&RvBatteryModel::m_lowBatteryTh),
+                        MakeDoubleChecker<double>())
           .AddAttribute(
               "RvBatteryModelOpenCircuitVoltage",
               "RV battery model open circuit voltage.", DoubleValue(4.1),
@@ -74,7 +55,7 @@ TypeId RvBatteryModel::GetTypeId() {
           .AddAttribute("RvBatteryModelNumOfTerms",
                         "The number of terms of the infinite sum for "
                         "estimating battery level.",
-                        IntegerValue(10), // value used in paper
+                        IntegerValue(10),
                         MakeIntegerAccessor(&RvBatteryModel::SetNumOfTerms,
                                             &RvBatteryModel::GetNumOfTerms),
                         MakeIntegerChecker<int>())
@@ -94,7 +75,7 @@ RvBatteryModel::RvBatteryModel() {
   m_lastSampleTime = Simulator::Now();
   m_timeStamps.push_back(m_lastSampleTime);
   m_previousLoad = -1.0;
-  m_batteryLevel = 1; // fully charged
+  m_batteryLevel = 1;
   m_lifetime = Seconds(0.0);
 }
 
@@ -107,7 +88,6 @@ double RvBatteryModel::GetInitialEnergy() const {
 
 double RvBatteryModel::GetSupplyVoltage() const {
   NS_LOG_FUNCTION(this);
-  // average of Voc and Vcutoff
   return (m_openCircuitVoltage - m_cutoffVoltage) / 2 + m_cutoffVoltage;
 }
 
@@ -125,13 +105,11 @@ double RvBatteryModel::GetEnergyFraction() {
 void RvBatteryModel::UpdateEnergySource() {
   NS_LOG_FUNCTION(this);
 
-  // do not update if battery is already dead
   if (m_batteryLevel <= 0) {
     NS_LOG_DEBUG("RvBatteryModel:Battery is dead!");
     return;
   }
 
-  // do not update if simulation has finished
   if (Simulator::IsFinished()) {
     return;
   }
@@ -140,20 +118,18 @@ void RvBatteryModel::UpdateEnergySource() {
 
   m_currentSampleEvent.Cancel();
 
-  double currentLoad = CalculateTotalCurrent() * 1000; // must be in mA
+  double currentLoad = CalculateTotalCurrent() * 1000;
   double calculatedAlpha = Discharge(currentLoad, Simulator::Now());
 
   NS_LOG_DEBUG("RvBatteryModel:Calculated alpha = "
                << calculatedAlpha
                << " time = " << Simulator::Now().As(Time::S));
 
-  // calculate battery level
   m_batteryLevel = 1 - (calculatedAlpha / m_alpha);
   if (m_batteryLevel < 0) {
     m_batteryLevel = 0;
   }
 
-  // check if battery level is below the low battery threshold.
   if (m_batteryLevel <= m_lowBatteryTh) {
     m_lifetime = Simulator::Now() - m_timeStamps[0];
     NS_LOG_DEBUG("RvBatteryModel:Battery level below threshold!");
@@ -241,31 +217,26 @@ int RvBatteryModel::GetNumOfTerms() const {
   return m_numOfTerms;
 }
 
-/*
- * Private functions start here.
- */
-
 void RvBatteryModel::DoInitialize() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("RvBatteryModel:Starting battery level update!");
-  UpdateEnergySource(); // start periodic sampling of load (total current)
+  UpdateEnergySource();
 }
 
 void RvBatteryModel::DoDispose() {
   NS_LOG_FUNCTION(this);
-  BreakDeviceEnergyModelRefCycle(); // break reference cycle
+  BreakDeviceEnergyModelRefCycle();
 }
 
 void RvBatteryModel::HandleEnergyDrainedEvent() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("RvBatteryModel:Energy depleted!");
-  NotifyEnergyDrained(); // notify DeviceEnergyModel objects
+  NotifyEnergyDrained();
 }
 
 double RvBatteryModel::Discharge(double load, Time t) {
   NS_LOG_FUNCTION(this << load << t);
 
-  // record only when load changes
   if (load != m_previousLoad) {
     m_load.push_back(load);
     m_previousLoad = load;
@@ -279,14 +250,11 @@ double RvBatteryModel::Discharge(double load, Time t) {
 
   m_lastSampleTime = t;
 
-  // calculate alpha for new t
-  NS_ASSERT(m_load.size() == m_timeStamps.size() - 1); // size must be equal
+  NS_ASSERT(m_load.size() == m_timeStamps.size() - 1);
   double calculatedAlpha = 0.0;
   if (m_timeStamps.size() == 1) {
-    // constant load
     calculatedAlpha = m_load[0] * RvModelAFunction(t, t, Seconds(0.0), m_beta);
   } else {
-    // changing load
     for (uint64_t i = 1; i < m_timeStamps.size(); i++) {
       calculatedAlpha +=
           m_load[i - 1] *
@@ -301,7 +269,6 @@ double RvBatteryModel::RvModelAFunction(Time t, Time sk, Time sk_1,
                                         double beta) {
   NS_LOG_FUNCTION(this << t << sk << sk_1 << beta);
 
-  // everything is in minutes
   double firstDelta = (t - sk).GetMinutes();
   double secondDelta = (t - sk_1).GetMinutes();
   double delta = (sk - sk_1).GetMinutes();

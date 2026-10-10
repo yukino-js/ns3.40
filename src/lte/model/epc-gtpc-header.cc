@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2018 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "epc-gtpc-header.h"
 
@@ -27,7 +9,6 @@ NS_LOG_COMPONENT_DEFINE("GtpcHeader");
 
 NS_OBJECT_ENSURE_REGISTERED(GtpcHeader);
 
-/// GTPv2-C protocol version number
 static const uint8_t VERSION = 2;
 
 TypeId GtpcHeader::GetTypeId() {
@@ -133,12 +114,10 @@ void GtpcHeader::SetIesLength(uint16_t iesLength) {
 
 void GtpcHeader::ComputeMessageLength() { SetIesLength(GetMessageSize()); }
 
-/////////////////////////////////////////////////////////////////////
-
 void GtpcIes::SerializeImsi(Buffer::Iterator &i, uint64_t imsi) const {
-  i.WriteU8(1);      // IE Type = IMSI
-  i.WriteHtonU16(8); // Length
-  i.WriteU8(0);      // Spare + Instance
+  i.WriteU8(1);
+  i.WriteHtonU16(8);
+  i.WriteU8(0);
   i.WriteHtonU64(imsi);
 }
 
@@ -155,11 +134,11 @@ uint32_t GtpcIes::DeserializeImsi(Buffer::Iterator &i, uint64_t &imsi) const {
 }
 
 void GtpcIes::SerializeCause(Buffer::Iterator &i, Cause_t cause) const {
-  i.WriteU8(2);      // IE Type = Cause
-  i.WriteHtonU16(2); // Length
-  i.WriteU8(0);      // Spare + Instance
-  i.WriteU8(cause);  // Cause value
-  i.WriteU8(0);      // Spare + CS
+  i.WriteU8(2);
+  i.WriteHtonU16(2);
+  i.WriteU8(0);
+  i.WriteU8(cause);
+  i.WriteU8(0);
 }
 
 uint32_t GtpcIes::DeserializeCause(Buffer::Iterator &i, Cause_t &cause) const {
@@ -176,9 +155,9 @@ uint32_t GtpcIes::DeserializeCause(Buffer::Iterator &i, Cause_t &cause) const {
 }
 
 void GtpcIes::SerializeEbi(Buffer::Iterator &i, uint8_t epsBearerId) const {
-  i.WriteU8(73);     // IE Type = EPS Bearer ID (EBI)
-  i.WriteHtonU16(1); // Length
-  i.WriteU8(0);      // Spare + Instance
+  i.WriteU8(73);
+  i.WriteHtonU16(1);
+  i.WriteU8(0);
   i.WriteU8(epsBearerId & 0x0f);
 }
 
@@ -219,10 +198,10 @@ uint64_t GtpcIes::ReadNtohU40(Buffer::Iterator &i) {
 
 void GtpcIes::SerializeBearerQos(Buffer::Iterator &i,
                                  EpsBearer bearerQos) const {
-  i.WriteU8(80);      // IE Type = Bearer QoS
-  i.WriteHtonU16(22); // Length
-  i.WriteU8(0);       // Spare + Instance
-  i.WriteU8(0);       // MRE TODO: bearerQos.arp
+  i.WriteU8(80);
+  i.WriteHtonU16(22);
+  i.WriteU8(0);
+  i.WriteU8(0);
   i.WriteU8(bearerQos.qci);
   WriteHtonU40(i, bearerQos.gbrQosInfo.mbrUl);
   WriteHtonU40(i, bearerQos.gbrQosInfo.mbrDl);
@@ -249,32 +228,29 @@ uint32_t GtpcIes::DeserializeBearerQos(Buffer::Iterator &i,
 
 void GtpcIes::SerializeBearerTft(
     Buffer::Iterator &i, std::list<EpcTft::PacketFilter> packetFilters) const {
-  i.WriteU8(
-      84); // IE Type = EPS Bearer Level Fraffic Flow Template (Bearer TFT)
+  i.WriteU8(84);
   i.WriteHtonU16(1 + packetFilters.size() * serializedSizePacketFilter);
-  i.WriteU8(0); // Spare + Instance
-  i.WriteU8(0x20 + (packetFilters.size() &
-                    0x0f)); // Create new TFT + Number of packet filters
+  i.WriteU8(0);
+  i.WriteU8(0x20 + (packetFilters.size() & 0x0f));
 
   for (auto &pf : packetFilters) {
     i.WriteU8((pf.direction << 4) & 0x30);
     i.WriteU8(pf.precedence);
-    i.WriteU8(serializedSizePacketFilter -
-              3); // Length of Packet filter contents
+    i.WriteU8(serializedSizePacketFilter - 3);
 
-    i.WriteU8(0x10); // IPv4 remote address type
+    i.WriteU8(0x10);
     i.WriteHtonU32(pf.remoteAddress.Get());
     i.WriteHtonU32(pf.remoteMask.Get());
-    i.WriteU8(0x11); // IPv4 local address type
+    i.WriteU8(0x11);
     i.WriteHtonU32(pf.localAddress.Get());
     i.WriteHtonU32(pf.localMask.Get());
-    i.WriteU8(0x41); // Local port range type
+    i.WriteU8(0x41);
     i.WriteHtonU16(pf.localPortStart);
     i.WriteHtonU16(pf.localPortEnd);
-    i.WriteU8(0x51); // Remote port range type
+    i.WriteU8(0x51);
     i.WriteHtonU16(pf.remotePortStart);
     i.WriteHtonU16(pf.remotePortEnd);
-    i.WriteU8(0x70); // Type of service
+    i.WriteU8(0x70);
     i.WriteU8(pf.typeOfService);
     i.WriteU8(pf.typeOfServiceMask);
   }
@@ -292,7 +268,7 @@ uint32_t GtpcIes::DeserializeBearerTft(Buffer::Iterator &i,
     EpcTft::PacketFilter packetFilter;
     packetFilter.direction = EpcTft::Direction((i.ReadU8() & 0x30) >> 4);
     packetFilter.precedence = i.ReadU8();
-    i.ReadU8(); // Length of Packet filter contents
+    i.ReadU8();
     i.ReadU8();
     packetFilter.remoteAddress = Ipv4Address(i.ReadNtohU32());
     packetFilter.remoteMask = Ipv4Mask(i.ReadNtohU32());
@@ -320,13 +296,13 @@ uint32_t GtpcIes::GetSerializedSizeBearerTft(
 }
 
 void GtpcIes::SerializeUliEcgi(Buffer::Iterator &i, uint32_t uliEcgi) const {
-  i.WriteU8(86);     // IE Type = ULI (ECGI)
-  i.WriteHtonU16(8); // Length
-  i.WriteU8(0);      // Spare + Instance
-  i.WriteU8(0x10);   // ECGI flag
-  i.WriteU8(0);      // Dummy MCC and MNC
-  i.WriteU8(0);      // Dummy MCC and MNC
-  i.WriteU8(0);      // Dummy MCC and MNC
+  i.WriteU8(86);
+  i.WriteHtonU16(8);
+  i.WriteU8(0);
+  i.WriteU8(0x10);
+  i.WriteU8(0);
+  i.WriteU8(0);
+  i.WriteU8(0);
   i.WriteHtonU32(uliEcgi);
 }
 
@@ -346,13 +322,12 @@ uint32_t GtpcIes::DeserializeUliEcgi(Buffer::Iterator &i,
 
 void GtpcIes::SerializeFteid(Buffer::Iterator &i,
                              GtpcHeader::Fteid_t fteid) const {
-  i.WriteU8(87);     // IE Type = Fully Qualified TEID (F-TEID)
-  i.WriteHtonU16(9); // Length
-  i.WriteU8(0);      // Spare + Instance
-  i.WriteU8(0x80 | ((uint8_t)fteid.interfaceType &
-                    0x1f));         // IP version flag + Iface type
-  i.WriteHtonU32(fteid.teid);       // TEID
-  i.WriteHtonU32(fteid.addr.Get()); // IPv4 address
+  i.WriteU8(87);
+  i.WriteHtonU16(9);
+  i.WriteU8(0);
+  i.WriteU8(0x80 | ((uint8_t)fteid.interfaceType & 0x1f));
+  i.WriteHtonU32(fteid.teid);
+  i.WriteHtonU32(fteid.addr.Get());
 }
 
 uint32_t GtpcIes::DeserializeFteid(Buffer::Iterator &i,
@@ -363,19 +338,19 @@ uint32_t GtpcIes::DeserializeFteid(Buffer::Iterator &i,
   NS_ASSERT_MSG(length == 9, "Wrong FTEID IE length");
   uint8_t instance = i.ReadU8() & 0x0f;
   NS_ASSERT_MSG(instance == 0, "Wrong FTEID IE instance");
-  uint8_t flags = i.ReadU8(); // IP version flag + Iface type
+  uint8_t flags = i.ReadU8();
   fteid.interfaceType = GtpcHeader::InterfaceType_t(flags & 0x1f);
-  fteid.teid = i.ReadNtohU32();    // TEID
-  fteid.addr.Set(i.ReadNtohU32()); // IPv4 address
+  fteid.teid = i.ReadNtohU32();
+  fteid.addr.Set(i.ReadNtohU32());
 
   return serializedSizeFteid;
 }
 
 void GtpcIes::SerializeBearerContextHeader(Buffer::Iterator &i,
                                            uint16_t length) const {
-  i.WriteU8(93); // IE Type = Bearer Context
+  i.WriteU8(93);
   i.WriteU16(length);
-  i.WriteU8(0); // Spare + Instance
+  i.WriteU8(0);
 }
 
 uint32_t GtpcIes::DeserializeBearerContextHeader(Buffer::Iterator &i,
@@ -389,8 +364,6 @@ uint32_t GtpcIes::DeserializeBearerContextHeader(Buffer::Iterator &i,
 
   return serializedSizeBearerContextHeader;
 }
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId GtpcCreateSessionRequestMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcCreateSessionRequestMessage")
@@ -516,8 +489,6 @@ void GtpcCreateSessionRequestMessage::SetBearerContextsToBeCreated(
   m_bearerContextsToBeCreated = bearerContexts;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 TypeId GtpcCreateSessionResponseMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcCreateSessionResponseMessage")
                           .SetParent<Header>()
@@ -637,8 +608,6 @@ void GtpcCreateSessionResponseMessage::SetBearerContextsCreated(
   m_bearerContextsCreated = bearerContexts;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 TypeId GtpcModifyBearerRequestMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcModifyBearerRequestMessage")
                           .SetParent<Header>()
@@ -736,8 +705,6 @@ void GtpcModifyBearerRequestMessage::SetBearerContextsToBeModified(
   m_bearerContextsToBeModified = bearerContexts;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 TypeId GtpcModifyBearerResponseMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcModifyBearerResponseMessage")
                           .SetParent<Header>()
@@ -795,8 +762,6 @@ void GtpcModifyBearerResponseMessage::SetCause(
     GtpcModifyBearerResponseMessage::Cause_t cause) {
   m_cause = cause;
 }
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId GtpcDeleteBearerCommandMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcDeleteBearerCommandMessage")
@@ -873,8 +838,6 @@ void GtpcDeleteBearerCommandMessage::SetBearerContexts(
   m_bearerContexts = bearerContexts;
 }
 
-/////////////////////////////////////////////////////////////////////
-
 TypeId GtpcDeleteBearerRequestMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcDeleteBearerRequestMessage")
                           .SetParent<Header>()
@@ -941,8 +904,6 @@ void GtpcDeleteBearerRequestMessage::SetEpsBearerIds(
     std::list<uint8_t> epsBearerId) {
   m_epsBearerIds = epsBearerId;
 }
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId GtpcDeleteBearerResponseMessage::GetTypeId() {
   static TypeId tid = TypeId("ns3::GtpcDeleteBearerResponseMessage")

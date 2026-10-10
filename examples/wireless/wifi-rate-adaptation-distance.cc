@@ -1,62 +1,4 @@
-/*
- * Copyright (c) 2014 Universidad de la República - Uruguay
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Matías Richart <mrichart@fing.edu.uy>
- */
 
-/**
- * This example program is designed to illustrate the behavior of
- * rate-adaptive WiFi rate controls such as Minstrel.  Power-adaptive
- * rate controls can be illustrated also, but separate examples exist for
- * highlighting the power adaptation.
- *
- * This simulation consist of 2 nodes, one AP and one STA.
- * The AP generates UDP traffic with a CBR of 54 Mbps to the STA.
- * The AP can use any power and rate control mechanism and the STA uses
- * only Minstrel rate control.
- * The STA can be configured to move away from (or towards to) the AP.
- * By default, the AP is at coordinate (0,0,0) and the STA starts at
- * coordinate (5,0,0) (meters) and moves away on the x axis by 1 meter every
- * second.
- *
- * The output consists of:
- * - A plot of average throughput vs. distance.
- * - (if logging is enabled) the changes of rate to standard output.
- *
- * Example usage:
- * ./ns3 run "wifi-rate-adaptation-distance --standard=802.11a
- * --staManager=ns3::MinstrelWifiManager
- * --apManager=ns3::MinstrelWifiManager --outputFileName=minstrel"
- *
- * Another example (moving towards the AP):
- * ./ns3 run "wifi-rate-adaptation-distance --standard=802.11a
- * --staManager=ns3::MinstrelWifiManager
- * --apManager=ns3::MinstrelWifiManager --outputFileName=minstrel --stepsSize=1
- * --STA1_x=-200"
- *
- * Example for HT rates with SGI and channel width of 40MHz:
- * ./ns3 run "wifi-rate-adaptation-distance
- * --staManager=ns3::MinstrelHtWifiManager
- * --apManager=ns3::MinstrelHtWifiManager --outputFileName=minstrelHt
- * --shortGuardInterval=true
- * --channelWidth=40"
- *
- * To enable the log of rate changes:
- * export NS_LOG=RateAdaptationDistance=level_info
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -80,51 +22,20 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("RateAdaptationDistance");
 
-/** Node statistics */
 class NodeStatistics {
 public:
-  /**
-   * Constructor
-   * \param aps AP devices
-   * \param stas STA devices
-   */
   NodeStatistics(NetDeviceContainer aps, NetDeviceContainer stas);
 
-  /**
-   * RX callback
-   * \param path path
-   * \param packet received packet
-   * \param from sender
-   */
   void RxCallback(std::string path, Ptr<const Packet> packet,
                   const Address &from);
-  /**
-   * Set node position
-   * \param node the node
-   * \param position the position
-   */
   void SetPosition(Ptr<Node> node, Vector position);
-  /**
-   * Advance node position
-   * \param node the node
-   * \param stepsSize the size of a step
-   * \param stepsTime the time interval between steps
-   */
   void AdvancePosition(Ptr<Node> node, int stepsSize, int stepsTime);
-  /**
-   * Get node position
-   * \param node the node
-   * \return the position
-   */
   Vector GetPosition(Ptr<Node> node);
-  /**
-   * \return the gnuplot 2d dataset
-   */
   Gnuplot2dDataset GetDatafile();
 
 private:
-  uint32_t m_bytesTotal;     //!< total bytes
-  Gnuplot2dDataset m_output; //!< gnuplot 2d dataset
+  uint32_t m_bytesTotal;
+  Gnuplot2dDataset m_output;
 };
 
 NodeStatistics::NodeStatistics(NetDeviceContainer aps,
@@ -161,12 +72,6 @@ void NodeStatistics::AdvancePosition(Ptr<Node> node, int stepsSize,
 
 Gnuplot2dDataset NodeStatistics::GetDatafile() { return m_output; }
 
-/**
- * Callback for 'Rate' trace source
- *
- * \param oldRate old MCS rate (bits/sec)
- * \param newRate new MCS rate (bits/sec)
- */
 void RateCallback(uint64_t oldRate, uint64_t newRate) {
   NS_LOG_INFO("Rate " << newRate / 1000000.0 << " Mbps");
 }
@@ -217,18 +122,15 @@ int main(int argc, char *argv[]) {
                                << " is not supported by this program");
   }
 
-  // Define the APs
   NodeContainer wifiApNodes;
   wifiApNodes.Create(1);
 
-  // Define the STAs
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create(1);
 
   YansWifiPhyHelper wifiPhy;
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   wifiPhy.SetChannel(wifiChannel.Create());
-  // Channel configuration via ChannelSettings attribute can be performed here
   std::string frequencyBand;
   if (standard == "802.11b" || standard == "802.11g" ||
       standard == "802.11n-2.4GHz") {
@@ -239,14 +141,6 @@ int main(int argc, char *argv[]) {
   wifiPhy.Set("ChannelSettings", StringValue("{0, " + std::to_string(chWidth) +
                                              ", " + frequencyBand + ", 0}"));
 
-  // By default, the CCA sensitivity is -82 dBm, meaning if the RSS is
-  // below this value, the receiver will reject the Wi-Fi frame.
-  // However, we want to allow the rate adaptation to work down to low
-  // SNR values.  To allow this, we need to do three things:  1) disable
-  // the noise figure (set it to 0 dB) so that the noise level in 20 MHz
-  // is around -101 dBm, 2) lower the CCA sensitivity to a value that
-  // disables it (e.g. -110 dBm), and 3) disable the Wi-Fi preamble
-  // detection model.
   wifiPhy.Set("CcaSensitivity", DoubleValue(-110));
   wifiPhy.Set("RxNoiseFigure", DoubleValue(0));
   wifiPhy.DisablePreambleDetectionModel();
@@ -266,7 +160,6 @@ int main(int argc, char *argv[]) {
     }
     WifiMacHelper wifiMac;
 
-    // Configure the STA node
     wifi.SetRemoteStationManager(staManager, "RtsCtsThreshold",
                                  UintegerValue(rtsThreshold));
 
@@ -274,7 +167,6 @@ int main(int argc, char *argv[]) {
     wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
     wifiStaDevices.Add(wifi.Install(wifiPhy, wifiMac, wifiStaNodes.Get(0)));
 
-    // Configure the AP node
     wifi.SetRemoteStationManager(apManager, "RtsCtsThreshold",
                                  UintegerValue(rtsThreshold));
 
@@ -291,7 +183,6 @@ int main(int argc, char *argv[]) {
 
     WifiMacHelper wifiMac;
 
-    // Configure the STA node
     wifi.SetRemoteStationManager(staManager, "RtsCtsThreshold",
                                  UintegerValue(rtsThreshold));
 
@@ -299,7 +190,6 @@ int main(int argc, char *argv[]) {
     wifiMac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
     wifiStaDevices.Add(wifi.Install(wifiPhy, wifiMac, wifiStaNodes.Get(0)));
 
-    // Configure the AP node
     wifi.SetRemoteStationManager(apManager, "RtsCtsThreshold",
                                  UintegerValue(rtsThreshold));
 
@@ -315,16 +205,13 @@ int main(int argc, char *argv[]) {
   wifiDevices.Add(wifiStaDevices);
   wifiDevices.Add(wifiApDevices);
 
-  // Set guard interval
   Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/HtConfiguration/"
               "ShortGuardIntervalSupported",
               BooleanValue(shortGuardInterval));
 
-  // Configure the mobility.
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  // Initial position of AP and STA
   positionAlloc->Add(Vector(ap1_x, ap1_y, 0.0));
   positionAlloc->Add(Vector(sta1_x, sta1_y, 0.0));
   mobility.SetPositionAllocator(positionAlloc);
@@ -332,15 +219,12 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNodes.Get(0));
   mobility.Install(wifiStaNodes.Get(0));
 
-  // Statistics counter
   NodeStatistics atpCounter = NodeStatistics(wifiApDevices, wifiStaDevices);
 
-  // Move the STA by stepsSize meters every stepsTime seconds
   Simulator::Schedule(Seconds(0.5 + stepsTime),
                       &NodeStatistics::AdvancePosition, &atpCounter,
                       wifiStaNodes.Get(0), stepsSize, stepsTime);
 
-  // Configure the IP stack
   InternetStackHelper stack;
   stack.Install(wifiApNodes);
   stack.Install(wifiStaNodes);
@@ -350,7 +234,6 @@ int main(int argc, char *argv[]) {
   Ipv4Address sinkAddress = i.GetAddress(0);
   uint16_t port = 9;
 
-  // Configure the CBR generator
   PacketSinkHelper sink("ns3::UdpSocketFactory",
                         InetSocketAddress(sinkAddress, port));
   ApplicationContainer apps_sink = sink.Install(wifiStaNodes.Get(0));
@@ -365,15 +248,9 @@ int main(int argc, char *argv[]) {
   apps_sink.Start(Seconds(0.5));
   apps_sink.Stop(Seconds(simuTime));
 
-  //------------------------------------------------------------
-  //-- Setup stats and data collection
-  //--------------------------------------------
-
-  // Register packet receptions to calculate throughput
   Config::Connect("/NodeList/1/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&NodeStatistics::RxCallback, &atpCounter));
 
-  // Callbacks to print every change of rate
   Config::ConnectWithoutContextFailSafe(
       "/NodeList/0/DeviceList/*/$ns3::WifiNetDevice/RemoteStationManager/$" +
           apManager + "/Rate",

@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011-2019 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- *         Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "emu-epc-helper.h"
 
@@ -39,10 +18,8 @@ NS_OBJECT_ENSURE_REGISTERED(EmuEpcHelper);
 
 EmuEpcHelper::EmuEpcHelper() : NoBackhaulEpcHelper() {
   NS_LOG_FUNCTION(this);
-  // To access the attribute value within the constructor
   ObjectBase::ConstructSelf(AttributeConstructionList());
 
-  // Create EmuFdNetDevice for SGW
   EmuFdNetDeviceHelper emu;
   NS_LOG_LOGIC("SGW device: " << m_sgwDeviceName);
   emu.SetDeviceName(m_sgwDeviceName);
@@ -54,11 +31,9 @@ EmuEpcHelper::EmuEpcHelper() : NoBackhaulEpcHelper() {
   sgwDevice->SetAttribute("Address",
                           Mac48AddressValue(m_sgwMacAddress.c_str()));
 
-  // Address of the SGW: 10.0.0.1
   m_epcIpv4AddressHelper.SetBase("10.0.0.0", "255.255.255.0", "0.0.0.1");
   m_sgwIpIfaces = m_epcIpv4AddressHelper.Assign(sgwDevices);
 
-  // Address of the first eNB: 10.0.0.101
   m_epcIpv4AddressHelper.SetBase("10.0.0.0", "255.255.255.0", "0.0.0.101");
 }
 
@@ -107,7 +82,6 @@ void EmuEpcHelper::AddEnb(Ptr<Node> enb, Ptr<NetDevice> lteEnbNetDevice,
 
   NoBackhaulEpcHelper::AddEnb(enb, lteEnbNetDevice, cellIds);
 
-  // Create an EmuFdNetDevice for the eNB to connect with the SGW and other eNBs
   EmuFdNetDeviceHelper emu;
   NS_LOG_LOGIC("eNB cellId: " << cellIds.at(0));
   NS_LOG_LOGIC("eNB device: " << m_enbDeviceName);
@@ -121,8 +95,6 @@ void EmuEpcHelper::AddEnb(Ptr<Node> enb, Ptr<NetDevice> lteEnbNetDevice,
   Ptr<NetDevice> enbDev = enbDevices.Get(0);
   enbDev->SetAttribute("Address",
                        Mac48AddressValue(enbMacAddress.str().c_str()));
-
-  // emu.EnablePcap ("enbDevice", enbDev);
 
   NS_LOG_LOGIC("number of Ipv4 ifaces of the eNB after installing emu dev: "
                << enb->GetObject<Ipv4>()->GetNInterfaces());
@@ -143,7 +115,6 @@ void EmuEpcHelper::AddX2Interface(Ptr<Node> enb1, Ptr<Node> enb2) {
 
   NS_LOG_WARN("X2 support still untested");
 
-  // for X2, we reuse the same device and IP address of the S1-U interface
   Ptr<Ipv4> enb1Ipv4 = enb1->GetObject<Ipv4>();
   Ptr<Ipv4> enb2Ipv4 = enb2->GetObject<Ipv4>();
   NS_LOG_LOGIC(
@@ -153,7 +124,6 @@ void EmuEpcHelper::AddX2Interface(Ptr<Node> enb1, Ptr<Node> enb2) {
   NS_LOG_LOGIC("number of NetDevices of the eNB #1: " << enb1->GetNDevices());
   NS_LOG_LOGIC("number of NetDevices of the eNB #2: " << enb2->GetNDevices());
 
-  // 0 is the LTE device, 1 is localhost, 2 is the EPC NetDevice
   Ptr<NetDevice> enb1EpcDev = enb1->GetDevice(2);
   Ptr<NetDevice> enb2EpcDev = enb2->GetDevice(2);
 
@@ -168,7 +138,6 @@ void EmuEpcHelper::AddX2Interface(Ptr<Node> enb1, Ptr<Node> enb2) {
   NS_LOG_LOGIC(" eNB 1 IP address: " << enb1Addr);
   NS_LOG_LOGIC(" eNB 2 IP address: " << enb2Addr);
 
-  // Add X2 interface to both eNBs' X2 entities
   Ptr<EpcX2> enb1X2 = enb1->GetObject<EpcX2>();
   Ptr<LteEnbNetDevice> enb1LteDev =
       enb1->GetDevice(0)->GetObject<LteEnbNetDevice>();

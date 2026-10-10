@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/config-store.h"
@@ -96,7 +77,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::LteHelper::UsePdschForCqiGeneration",
                      BooleanValue(true));
 
-  // Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(true));
   Config::SetDefault("ns3::LteUePowerControl::ClosedLoop", BooleanValue(true));
@@ -114,7 +94,6 @@ int main(int argc, char *argv[]) {
   Box macroUeBox = Box(-distance * 0.5, distance * 1.5, -distance * 0.5,
                        distance * 1.5, 1.5, 1.5);
 
-  // Command line arguments
   CommandLine cmd(__FILE__);
   cmd.AddValue("numberOfUes", "Number of UEs", numberOfRandomUes);
   cmd.AddValue("simTime", "Total duration of the simulation (in seconds)",
@@ -139,19 +118,16 @@ int main(int argc, char *argv[]) {
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
-  lteHelper->SetHandoverAlgorithmType(
-      "ns3::NoOpHandoverAlgorithm"); // disable automatic handover
+  lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the Internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -162,42 +138,22 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
   Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
 
-  // Routing of the Internet Host (towards the LTE network)
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
       ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-  // interface 0 is localhost, 1 is the p2p device
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.0.0.0"), 1);
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer randomUeNodes;
   enbNodes.Create(3);
   randomUeNodes.Create(numberOfRandomUes);
 
-  /*   the topology is the following:
-   *                 eNB3
-   *                /     \
-   *               /       \
-   *              /         \
-   *             /           \
-   *   distance /             \ distance
-   *           /      UEs      \
-   *          /                 \
-   *         /                   \
-   *        /                     \
-   *       /                       \
-   *   eNB1-------------------------eNB2
-   *                  distance
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> enbPositionAlloc =
       CreateObject<ListPositionAllocator>();
-  enbPositionAlloc->Add(Vector(0.0, 0.0, 0.0));                         // eNB1
-  enbPositionAlloc->Add(Vector(distance, 0.0, 0.0));                    // eNB2
-  enbPositionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0)); // eNB3
+  enbPositionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  enbPositionAlloc->Add(Vector(distance, 0.0, 0.0));
+  enbPositionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(enbPositionAlloc);
@@ -220,7 +176,6 @@ int main(int argc, char *argv[]) {
   mobility.SetPositionAllocator(randomUePositionAlloc);
   mobility.Install(randomUeNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer randomUeDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
@@ -245,15 +200,12 @@ int main(int argc, char *argv[]) {
   lteHelper->SetFfrAlgorithmAttribute("CenterAreaTpc", UintegerValue(0));
   lteHelper->SetFfrAlgorithmAttribute("EdgeAreaTpc", UintegerValue(3));
 
-  // ns3::LteFfrDistributedAlgorithm works with Absolute Mode Uplink Power
-  // Control
   Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                      BooleanValue(false));
 
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   randomUeDevs = lteHelper->InstallUeDevice(randomUeNodes);
 
-  // Add X2 interface
   lteHelper->AddX2Interface(enbNodes);
 
   NodeContainer ueNodes;
@@ -261,21 +213,15 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer ueDevs;
   ueDevs.Add(randomUeDevs);
 
-  // Install the IP stack on the UEs
   internet.Install(ueNodes);
   Ipv4InterfaceContainer ueIpIfaces;
   ueIpIfaces = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueDevs));
 
-  // Attach a UE to a eNB
   lteHelper->AttachToClosestEnb(ueDevs, enbDevs);
 
-  // Install and start applications on UEs and remote host
   uint16_t dlPort = 10000;
   uint16_t ulPort = 20000;
 
-  // randomize a bit start times to avoid simulation artifacts
-  // (e.g., buffer overflows due to packet transmissions happening
-  // exactly at the same time)
   Ptr<UniformRandomVariable> startTimeSeconds =
       CreateObject<UniformRandomVariable>();
   startTimeSeconds->SetAttribute("Min", DoubleValue(0));
@@ -283,7 +229,6 @@ int main(int argc, char *argv[]) {
 
   for (uint32_t u = 0; u < ueNodes.GetN(); ++u) {
     Ptr<Node> ue = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -332,7 +277,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Spectrum analyzer
   NodeContainer spectrumAnalyzerNodes;
   spectrumAnalyzerNodes.Create(1);
   SpectrumAnalyzerHelper spectrumAnalyzerHelper;
@@ -340,11 +284,7 @@ int main(int argc, char *argv[]) {
   if (generateSpectrumTrace) {
     Ptr<ListPositionAllocator> positionAlloc =
         CreateObject<ListPositionAllocator>();
-    // position of Spectrum Analyzer
-    positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // eNB1
-    //      positionAlloc->Add (Vector (distance,  0.0, 0.0)); // eNB2
-    //      positionAlloc->Add (Vector (distance*0.5, distance*0.866, 0.0)); //
-    //      eNB3
+    positionAlloc->Add(Vector(0.0, 0.0, 0.0));
 
     MobilityHelper mobility;
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -365,7 +305,7 @@ int main(int argc, char *argv[]) {
     spectrumAnalyzerHelper.SetPhyAttribute("Resolution",
                                            TimeValue(MicroSeconds(10)));
     spectrumAnalyzerHelper.SetPhyAttribute("NoisePowerSpectralDensity",
-                                           DoubleValue(1e-15)); // -120 dBm/Hz
+                                           DoubleValue(1e-15));
     spectrumAnalyzerHelper.EnableAsciiAll("spectrum-analyzer-output");
     spectrumAnalyzerHelper.Install(spectrumAnalyzerNodes);
   }
@@ -401,7 +341,6 @@ int main(int argc, char *argv[]) {
     }
 
     remHelper->Install();
-    // simulation will stop right after the REM has been generated
   } else {
     Simulator::Stop(Seconds(simTime));
   }

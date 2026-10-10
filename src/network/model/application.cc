@@ -1,24 +1,4 @@
-/*
- * Copyright (c) 2006 Georgia Tech Research Corporation
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: George F. Riley<riley@ece.gatech.edu>
- */
 
-// Implementation for ns3 Application base class.
-// George F. Riley, Georgia Tech, Fall 2006
 
 #include "application.h"
 
@@ -33,8 +13,6 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("Application");
 
 NS_OBJECT_ENSURE_REGISTERED(Application);
-
-// Application Methods
 
 TypeId Application::GetTypeId() {
   static TypeId tid =
@@ -52,10 +30,8 @@ TypeId Application::GetTypeId() {
   return tid;
 }
 
-// \brief Application Constructor
 Application::Application() { NS_LOG_FUNCTION(this); }
 
-// \brief Application Destructor
 Application::~Application() { NS_LOG_FUNCTION(this); }
 
 void Application::SetStartTime(Time start) {
@@ -97,16 +73,8 @@ void Application::SetNode(Ptr<Node> node) {
   m_node = node;
 }
 
-// Protected methods
-// StartApp and StopApp will likely be overridden by application subclasses
-void Application::StartApplication() { // Provide null functionality in case
-                                       // subclass is not interested
-  NS_LOG_FUNCTION(this);
-}
+void Application::StartApplication() { NS_LOG_FUNCTION(this); }
 
-void Application::StopApplication() { // Provide null functionality in case
-                                      // subclass is not interested
-  NS_LOG_FUNCTION(this);
-}
+void Application::StopApplication() { NS_LOG_FUNCTION(this); }
 
 } // namespace ns3

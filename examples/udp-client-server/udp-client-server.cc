@@ -1,33 +1,4 @@
-/*
- * Copyright (c) 2009 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- */
 
-// Network topology
-//
-//       n0    n1
-//       |     |
-//       =======
-//         LAN (CSMA)
-//
-// - UDP flow from n0 to n1 of 1024 byte packets at intervals of 50 ms
-//   - maximum of 320 packets sent (or limited by simulation duration)
-//   - option to use IPv4 or IPv6 addressing
-//   - option to disable logging statements
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -41,7 +12,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("UdpClientServerExample");
 
 int main(int argc, char *argv[]) {
-  // Declare variables used in command-line arguments
   bool useV6 = false;
   bool logging = true;
   Address serverAddress;

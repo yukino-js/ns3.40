@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tom Henderson <thomas.r.henderson@boeing.com>
- */
 #include "ns3/rng-seed-manager.h"
 #include <ns3/callback.h>
 #include <ns3/constant-position-mobility-model.h>
@@ -36,41 +18,20 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("lr-wpan-error-model-test");
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan Error Vs Distance Test
- */
 class LrWpanErrorDistanceTestCase : public TestCase {
 public:
   LrWpanErrorDistanceTestCase();
   ~LrWpanErrorDistanceTestCase() override;
 
-  /**
-   * \brief Get the number of received packets.
-   * \returns The number of received packets.
-   */
   uint32_t GetReceived() const { return m_received; }
 
 private:
   void DoRun() override;
 
-  /**
-   * \brief Function to be called when a packet is received.
-   * \param params MCPS params.
-   * \param p The packet.
-   */
   void Callback(McpsDataIndicationParams params, Ptr<Packet> p);
-  uint32_t m_received; //!< The number of received packets.
+  uint32_t m_received;
 };
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan Error model Test
- */
 class LrWpanErrorModelTestCase : public TestCase {
 public:
   LrWpanErrorModelTestCase();
@@ -91,7 +52,6 @@ void LrWpanErrorDistanceTestCase::Callback(McpsDataIndicationParams params,
 }
 
 void LrWpanErrorDistanceTestCase::DoRun() {
-  // Set the random seed and run number for this test
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(6);
 
@@ -100,7 +60,6 @@ void LrWpanErrorDistanceTestCase::DoRun() {
   Ptr<LrWpanNetDevice> dev0 = CreateObject<LrWpanNetDevice>();
   Ptr<LrWpanNetDevice> dev1 = CreateObject<LrWpanNetDevice>();
 
-  // Make random variable stream assignment deterministic
   dev0->AssignStreams(0);
   dev1->AssignStreams(10);
 
@@ -145,14 +104,11 @@ void LrWpanErrorDistanceTestCase::DoRun() {
 
   Simulator::Run();
 
-  // Test that we received 977 packets out of 1000, at distance of 100 m
-  // with default power of 0
   NS_TEST_ASSERT_MSG_EQ(GetReceived(), 977, "Model fails");
 
   Simulator::Destroy();
 }
 
-// ==============================================================================
 LrWpanErrorModelTestCase::LrWpanErrorModelTestCase()
     : TestCase("Test the 802.15.4 error model") {}
 
@@ -161,7 +117,6 @@ LrWpanErrorModelTestCase::~LrWpanErrorModelTestCase() {}
 void LrWpanErrorModelTestCase::DoRun() {
   Ptr<LrWpanErrorModel> model = CreateObject<LrWpanErrorModel>();
 
-  // Test a few values
   double snr = 5;
   double ber = 1.0 - model->GetChunkSuccessRate(pow(10.0, snr / 10.0), 1);
   NS_TEST_ASSERT_MSG_EQ_TOL(ber, 7.38e-14, 0.01e-14,
@@ -183,12 +138,6 @@ void LrWpanErrorModelTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ_TOL(ber, 0.175, 0.001, "Model fails for SNR = " << snr);
 }
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan Error model TestSuite
- */
 class LrWpanErrorModelTestSuite : public TestSuite {
 public:
   LrWpanErrorModelTestSuite();
@@ -200,5 +149,4 @@ LrWpanErrorModelTestSuite::LrWpanErrorModelTestSuite()
   AddTestCase(new LrWpanErrorDistanceTestCase, TestCase::QUICK);
 }
 
-static LrWpanErrorModelTestSuite
-    g_lrWpanErrorModelTestSuite; //!< Static variable for test initialization
+static LrWpanErrorModelTestSuite g_lrWpanErrorModelTestSuite;

@@ -1,19 +1,3 @@
-//
-// Copyright (c) 2008 University of Washington
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
 
 #include "ipv4-global-routing.h"
 
@@ -135,7 +119,6 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::LookupGlobal(Ipv4Address dest,
   NS_LOG_FUNCTION(this << dest << oif);
   NS_LOG_LOGIC("Looking for route for destination " << dest);
   Ptr<Ipv4Route> rtentry = nullptr;
-  // store all available routes that bring packets to their destination
   typedef std::vector<Ipv4RoutingTableEntry *> RouteVec_t;
   RouteVec_t allRoutes;
 
@@ -153,8 +136,7 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::LookupGlobal(Ipv4Address dest,
       NS_LOG_LOGIC(allRoutes.size() << "Found global host route" << *i);
     }
   }
-  if (allRoutes.empty()) // if no host route is found
-  {
+  if (allRoutes.empty()) {
     NS_LOG_LOGIC("Number of m_networkRoutes" << m_networkRoutes.size());
     for (auto j = m_networkRoutes.begin(); j != m_networkRoutes.end(); j++) {
       Ipv4Mask mask = (*j)->GetDestNetworkMask();
@@ -171,8 +153,7 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::LookupGlobal(Ipv4Address dest,
       }
     }
   }
-  if (allRoutes.empty()) // consider external if no host/network found
-  {
+  if (allRoutes.empty()) {
     for (auto k = m_ASexternalRoutes.begin(); k != m_ASexternalRoutes.end();
          k++) {
       Ipv4Mask mask = (*k)->GetDestNetworkMask();
@@ -190,11 +171,7 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::LookupGlobal(Ipv4Address dest,
       }
     }
   }
-  if (!allRoutes.empty()) // if route(s) is found
-  {
-    // pick up one of the routes uniformly at random if random
-    // ECMP routing is enabled, or always select the first route
-    // consistently if random ECMP routing is disabled
+  if (!allRoutes.empty()) {
     uint32_t selectIndex;
     if (m_flowEcmpRouting) {
       selectIndex = flowHash % allRoutes.size();
@@ -204,10 +181,8 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::LookupGlobal(Ipv4Address dest,
       selectIndex = 0;
     }
     Ipv4RoutingTableEntry *route = allRoutes.at(selectIndex);
-    // create a Ipv4Route object from the selected routing table entry
     rtentry = Create<Ipv4Route>();
     rtentry->SetDestination(route->GetDest());
-    /// \todo handle multi-address case
     rtentry->SetSource(m_ipv4->GetAddress(route->GetInterface(), 0).GetLocal());
     rtentry->SetGateway(route->GetGateway());
     uint32_t interfaceIdx = route->GetInterface();
@@ -258,7 +233,6 @@ Ipv4RoutingTableEntry *Ipv4GlobalRouting::GetRoute(uint32_t index) const {
     tmp++;
   }
   NS_ASSERT(false);
-  // quiet compiler.
   return nullptr;
 }
 
@@ -338,12 +312,10 @@ void Ipv4GlobalRouting::DoDispose() {
   Ipv4RoutingProtocol::DoDispose();
 }
 
-// Formatted like output of "route -n" command
 void Ipv4GlobalRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
                                           Time::Unit unit) const {
   NS_LOG_FUNCTION(this << stream);
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -378,13 +350,10 @@ void Ipv4GlobalRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
         flags << "G";
       }
       *os << std::setw(6) << flags.str();
-      // Metric not implemented
       *os << "-"
           << "      ";
-      // Ref ct not implemented
       *os << "-"
           << "      ";
-      // Use not implemented
       *os << "-"
           << "   ";
       if (!Names::FindName(m_ipv4->GetNetDevice(route.GetInterface()))
@@ -397,7 +366,6 @@ void Ipv4GlobalRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
     }
   }
   *os << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
 
@@ -412,17 +380,10 @@ Ptr<Ipv4Route> Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
     flowHash =
         Ipv4QueueDiscItem(p, Address(), header.GetProtocol(), header).Hash(0);
   }
-  //
-  // First, see if this is a multicast packet we have a route for.  If we
-  // have a route, then send the packet down each of the specified interfaces.
-  //
   if (header.GetDestination().IsMulticast()) {
     NS_LOG_LOGIC("Multicast destination-- returning false");
-    return nullptr; // Let other routing protocols try to handle this
+    return nullptr;
   }
-  //
-  // See if this is a unicast packet we have a route for.
-  //
   NS_LOG_LOGIC("Unicast destination- looking up");
   Ptr<Ipv4Route> rtentry = LookupGlobal(header.GetDestination(), flowHash, oif);
   if (rtentry) {
@@ -447,7 +408,6 @@ bool Ipv4GlobalRouting::RouteInput(
             .Hash(0);
   }
 
-  // Check if input device supports IP
   NS_ASSERT(m_ipv4->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv4->GetInterfaceForDevice(idev);
 
@@ -457,22 +417,15 @@ bool Ipv4GlobalRouting::RouteInput(
       lcb(p, header, iif);
       return true;
     } else {
-      // The local delivery callback is null.  This may be a multicast
-      // or broadcast packet, so return false so that another
-      // multicast routing protocol can handle it.  It should be possible
-      // to extend this to explicitly check whether it is a unicast
-      // packet, and invoke the error callback if so
       return false;
     }
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv4->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     ecb(p, header, Socket::ERROR_NOROUTETOHOST);
     return true;
   }
-  // Next, try to find a route
   NS_LOG_LOGIC("Unicast destination- looking up global route");
   Ptr<Ipv4Route> rtentry = LookupGlobal(header.GetDestination(), flowHash);
   if (rtentry) {
@@ -481,16 +434,13 @@ bool Ipv4GlobalRouting::RouteInput(
     return true;
   } else {
     NS_LOG_LOGIC("Did not find unicast destination- returning false");
-    return false; // Let other routing protocols try to handle this
-                  // route request.
+    return false;
   }
 }
 
 void Ipv4GlobalRouting::NotifyInterfaceUp(uint32_t i) {
   NS_LOG_FUNCTION(this << i);
-  if (m_respondToInterfaceEvents &&
-      Simulator::Now().GetSeconds() > 0) // avoid startup events
-  {
+  if (m_respondToInterfaceEvents && Simulator::Now().GetSeconds() > 0) {
     GlobalRouteManager::DeleteGlobalRoutes();
     GlobalRouteManager::BuildGlobalRoutingDatabase();
     GlobalRouteManager::InitializeRoutes();
@@ -499,9 +449,7 @@ void Ipv4GlobalRouting::NotifyInterfaceUp(uint32_t i) {
 
 void Ipv4GlobalRouting::NotifyInterfaceDown(uint32_t i) {
   NS_LOG_FUNCTION(this << i);
-  if (m_respondToInterfaceEvents &&
-      Simulator::Now().GetSeconds() > 0) // avoid startup events
-  {
+  if (m_respondToInterfaceEvents && Simulator::Now().GetSeconds() > 0) {
     GlobalRouteManager::DeleteGlobalRoutes();
     GlobalRouteManager::BuildGlobalRoutingDatabase();
     GlobalRouteManager::InitializeRoutes();
@@ -511,9 +459,7 @@ void Ipv4GlobalRouting::NotifyInterfaceDown(uint32_t i) {
 void Ipv4GlobalRouting::NotifyAddAddress(uint32_t interface,
                                          Ipv4InterfaceAddress address) {
   NS_LOG_FUNCTION(this << interface << address);
-  if (m_respondToInterfaceEvents &&
-      Simulator::Now().GetSeconds() > 0) // avoid startup events
-  {
+  if (m_respondToInterfaceEvents && Simulator::Now().GetSeconds() > 0) {
     GlobalRouteManager::DeleteGlobalRoutes();
     GlobalRouteManager::BuildGlobalRoutingDatabase();
     GlobalRouteManager::InitializeRoutes();
@@ -523,9 +469,7 @@ void Ipv4GlobalRouting::NotifyAddAddress(uint32_t interface,
 void Ipv4GlobalRouting::NotifyRemoveAddress(uint32_t interface,
                                             Ipv4InterfaceAddress address) {
   NS_LOG_FUNCTION(this << interface << address);
-  if (m_respondToInterfaceEvents &&
-      Simulator::Now().GetSeconds() > 0) // avoid startup events
-  {
+  if (m_respondToInterfaceEvents && Simulator::Now().GetSeconds() > 0) {
     GlobalRouteManager::DeleteGlobalRoutes();
     GlobalRouteManager::BuildGlobalRoutingDatabase();
     GlobalRouteManager::InitializeRoutes();

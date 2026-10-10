@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "ns3/config.h"
 #include "ns3/he-configuration.h"
@@ -46,49 +28,27 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiMacOfdmaTestSuite");
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Dummy Multi User Scheduler used to test OFDMA ack sequences
- *
- * This Multi User Scheduler returns SU_TX until the simulation time reaches 1.5
- * seconds (when all BA agreements have been established). Afterwards, it cycles
- * through UL_MU_TX (with a BSRP Trigger Frame), UL_MU_TX (with a Basic Trigger
- * Frame) and DL_MU_TX. This scheduler requires that 4 stations are associated
- * with the AP.
- *
- */
 class TestMultiUserScheduler : public MultiUserScheduler {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TestMultiUserScheduler();
   ~TestMultiUserScheduler() override;
 
 private:
-  // Implementation of pure virtual methods of MultiUserScheduler class
   TxFormat SelectTxFormat() override;
   DlMuInfo ComputeDlMuInfo() override;
   UlMuInfo ComputeUlMuInfo() override;
 
-  /**
-   * Compute the TX vector to use for MU PPDUs.
-   */
   void ComputeWifiTxVector();
 
-  TxFormat m_txFormat;              //!< the format of next transmission
-  TriggerFrameType m_ulTriggerType; //!< Trigger Frame type for UL MU
-  CtrlTriggerHeader m_trigger;      //!< Trigger Frame to send
-  WifiMacHeader m_triggerHdr;       //!< MAC header for Trigger Frame
-  WifiTxVector m_txVector;          //!< the TX vector for MU PPDUs
-  WifiTxParameters m_txParams;      //!< TX parameters
-  WifiPsduMap m_psduMap;            //!< the DL MU PPDU to transmit
-  WifiModulationClass
-      m_modClass; //!< modulation class for DL MU PPDUs and TB PPDUs
+  TxFormat m_txFormat;
+  TriggerFrameType m_ulTriggerType;
+  CtrlTriggerHeader m_trigger;
+  WifiMacHeader m_triggerHdr;
+  WifiTxVector m_txVector;
+  WifiTxParameters m_txParams;
+  WifiPsduMap m_psduMap;
+  WifiModulationClass m_modClass;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(TestMultiUserScheduler);
@@ -118,8 +78,6 @@ TestMultiUserScheduler::~TestMultiUserScheduler() { NS_LOG_FUNCTION_NOARGS(); }
 MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
   NS_LOG_FUNCTION(this);
 
-  // Do not use OFDMA if a BA agreement has not been established with all the
-  // stations
   if (Simulator::Now() < Seconds(1.5)) {
     NS_LOG_DEBUG("Return SU_TX");
     return SU_TX;
@@ -130,7 +88,6 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
   if (m_txFormat == SU_TX || m_txFormat == DL_MU_TX ||
       (m_txFormat == UL_MU_TX &&
        m_ulTriggerType == TriggerFrameType::BSRP_TRIGGER)) {
-    // try to send a Trigger Frame
     TriggerFrameType ulTriggerType =
         (m_txFormat == SU_TX || m_txFormat == DL_MU_TX
              ? TriggerFrameType::BSRP_TRIGGER
@@ -144,13 +101,11 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
 
     txVector.SetGuardInterval(m_trigger.GetGuardInterval());
 
-    uint32_t ampduSize =
-        (ulTriggerType == TriggerFrameType::BSRP_TRIGGER)
-            ? GetMaxSizeOfQosNullAmpdu(m_trigger)
-            : 3500; // allows aggregation of 2 MPDUs in TB PPDUs
+    uint32_t ampduSize = (ulTriggerType == TriggerFrameType::BSRP_TRIGGER)
+                             ? GetMaxSizeOfQosNullAmpdu(m_trigger)
+                             : 3500;
 
     auto staList = m_apMac->GetStaList(SINGLE_LINK_OP_ID);
-    // ignore non-HE stations
     for (auto it = staList.begin(); it != staList.end();) {
       it = m_apMac->GetHeSupported(it->second) ? std::next(it)
                                                : staList.erase(it);
@@ -178,7 +133,6 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
     auto item = Create<WifiMpdu>(packet, m_triggerHdr);
 
     m_txParams.Clear();
-    // set the TXVECTOR used to send the Trigger Frame
     m_txParams.m_txVector =
         m_apMac->GetWifiRemoteStationManager()->GetRtsTxVector(
             m_triggerHdr.GetAddr1());
@@ -186,9 +140,8 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
     if (!GetHeFem(SINGLE_LINK_OP_ID)
              ->TryAddMpdu(item, m_txParams, m_availableTime) ||
         (m_availableTime != Time::Min() &&
-         m_txParams.m_protection->protectionTime +
-                 m_txParams.m_txDuration // TF tx time
-                 + m_apMac->GetWifiPhy()->GetSifs() + duration +
+         m_txParams.m_protection->protectionTime + m_txParams.m_txDuration +
+                 m_apMac->GetWifiPhy()->GetSifs() + duration +
                  m_txParams.m_acknowledgment->acknowledgmentTime >
              m_availableTime)) {
       NS_LOG_DEBUG(
@@ -199,17 +152,14 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
     m_txFormat = UL_MU_TX;
     m_ulTriggerType = ulTriggerType;
   } else if (m_txFormat == UL_MU_TX) {
-    // try to send a DL MU PPDU
     m_psduMap.clear();
     auto staList = m_apMac->GetStaList(SINGLE_LINK_OP_ID);
-    // ignore non-HE stations
     for (auto it = staList.cbegin(); it != staList.cend();) {
       it = m_apMac->GetHeSupported(it->second) ? std::next(it)
                                                : staList.erase(it);
     }
     NS_ABORT_MSG_IF(staList.size() != 4, "There must be 4 associated stations");
 
-    /* Initialize TX params */
     m_txParams.Clear();
     m_txParams.m_txVector = m_txVector;
 
@@ -266,7 +216,6 @@ MultiUserScheduler::TxFormat TestMultiUserScheduler::SelectTxFormat() {
 
 void TestMultiUserScheduler::ComputeWifiTxVector() {
   if (m_txVector.IsDlMu()) {
-    // the TX vector has been already computed
     return;
   }
 
@@ -285,7 +234,6 @@ void TestMultiUserScheduler::ComputeWifiTxVector() {
       GetWifiRemoteStationManager(SINGLE_LINK_OP_ID)->GetDefaultTxPowerLevel());
 
   auto staList = m_apMac->GetStaList(SINGLE_LINK_OP_ID);
-  // ignore non-HE stations
   for (auto it = staList.cbegin(); it != staList.cend();) {
     it =
         m_apMac->GetHeSupported(it->second) ? std::next(it) : staList.erase(it);
@@ -338,58 +286,17 @@ MultiUserScheduler::UlMuInfo TestMultiUserScheduler::ComputeUlMuInfo() {
   return UlMuInfo{m_trigger, m_triggerHdr, std::move(m_txParams)};
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- * The scenarios
- */
-enum class WifiOfdmaScenario : uint8_t {
-  HE = 0, // HE AP and HE non-AP STAs
-  HE_EHT, // EHT AP, some EHT non-AP STAs and some non-EHT HE non-AP STAs
-  EHT     // EHT AP and EHT non-AP STAs
-};
+enum class WifiOfdmaScenario : uint8_t { HE = 0, HE_EHT, EHT };
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test OFDMA acknowledgment sequences
- *
- * Run this test with:
- *
- * NS_LOG="WifiMacOfdmaTestSuite=info|prefix_time|prefix_node" ./ns3 run
- * "test-runner
- * --suite=wifi-mac-ofdma"
- *
- * to print the list of transmitted frames only, along with the TX time and the
- * node prefix. Replace 'info' with 'debug' if you want to print the debug
- * messages from the test multi-user scheduler only. Replace 'info' with
- * 'level_debug' if you want to print both the transmitted frames and the debug
- * messages.
- */
 class OfdmaAckSequenceTest : public TestCase {
 public:
-  /**
-   * MU EDCA Parameter Set
-   */
   struct MuEdcaParameterSet {
-    uint8_t muAifsn;  //!< MU AIFS (0 to disable EDCA)
-    uint16_t muCwMin; //!< MU CW min
-    uint16_t muCwMax; //!< MU CW max
-    uint8_t muTimer;  //!< MU EDCA Timer in units of 8192 microseconds (0 not to
-                      //!< use MU EDCA)
+    uint8_t muAifsn;
+    uint16_t muCwMin;
+    uint16_t muCwMax;
+    uint8_t muTimer;
   };
 
-  /**
-   * Constructor
-   * \param width the PHY channel bandwidth in MHz
-   * \param dlType the DL MU ack sequence type
-   * \param maxAmpduSize the maximum A-MPDU size in bytes
-   * \param txopLimit the TXOP limit in microseconds
-   * \param nPktsPerSta number of packets to send to/receive from each station
-   * \param muEdcaParameterSet the MU EDCA Parameter Set
-   * \param scenario the OFDMA scenario to test
-   */
   OfdmaAckSequenceTest(uint16_t width, WifiAcknowledgment::Method dlType,
                        uint32_t maxAmpduSize, uint16_t txopLimit,
                        uint16_t nPktsPerSta,
@@ -397,72 +304,44 @@ public:
                        WifiOfdmaScenario scenario);
   ~OfdmaAckSequenceTest() override;
 
-  /**
-   * Function to trace packets received by the server application
-   * \param context the context
-   * \param p the packet
-   * \param addr the address
-   */
   void L7Receive(std::string context, Ptr<const Packet> p, const Address &addr);
-  /**
-   * Function to trace CW value used by the given station after the MU exchange
-   * \param staIndex the index of the given station
-   * \param cw the current Contention Window value
-   */
-  void TraceCw(uint32_t staIndex, uint32_t cw, uint8_t /* linkId */);
-  /**
-   * Callback invoked when FrameExchangeManager passes PSDUs to the PHY
-   * \param context the context
-   * \param psduMap the PSDU map
-   * \param txVector the TX vector
-   * \param txPowerW the tx power in Watts
-   */
+  void TraceCw(uint32_t staIndex, uint32_t cw, uint8_t);
   void Transmit(std::string context, WifiConstPsduMap psduMap,
                 WifiTxVector txVector, double txPowerW);
-  /**
-   * Check correctness of transmitted frames
-   * \param sifs the SIFS duration
-   * \param slotTime a slot duration
-   * \param aifsn the AIFSN
-   */
   void CheckResults(Time sifs, Time slotTime, uint8_t aifsn);
 
 private:
   void DoRun() override;
 
-  static constexpr uint16_t m_muTimerRes =
-      8192; ///< MU timer resolution in usec
+  static constexpr uint16_t m_muTimerRes = 8192;
 
-  /// Information about transmitted frames
   struct FrameInfo {
-    Time startTx;             ///< start TX time
-    Time endTx;               ///< end TX time
-    WifiConstPsduMap psduMap; ///< transmitted PSDU map
-    WifiTxVector txVector;    ///< TXVECTOR
+    Time startTx;
+    Time endTx;
+    WifiConstPsduMap psduMap;
+    WifiTxVector txVector;
   };
 
-  uint16_t m_nStations;            ///< number of stations
-  NetDeviceContainer m_staDevices; ///< stations' devices
-  Ptr<WifiNetDevice> m_apDevice;   ///< AP's device
-  std::vector<PacketSocketAddress>
-      m_sockets;               ///< packet socket addresses for STAs
-  uint16_t m_channelWidth;     ///< PHY channel bandwidth in MHz
-  uint8_t m_muRtsRuAllocation; ///< B7-B1 of RU Allocation subfield of MU-RTS
-  std::vector<FrameInfo> m_txPsdus;         ///< transmitted PSDUs
-  WifiAcknowledgment::Method m_dlMuAckType; ///< DL MU ack sequence type
-  uint32_t m_maxAmpduSize;                  ///< maximum A-MPDU size in bytes
-  uint16_t m_txopLimit;                     ///< TXOP limit in microseconds
-  uint16_t m_nPktsPerSta; ///< number of packets to send to each station
-  MuEdcaParameterSet m_muEdcaParameterSet; ///< MU EDCA Parameter Set
-  WifiOfdmaScenario m_scenario;            ///< OFDMA scenario to test
-  WifiPreamble m_dlMuPreamble; ///< expected preamble type for DL MU PPDUs
-  WifiPreamble m_tbPreamble;   ///< expected preamble type for TB PPDUs
-  bool m_ulPktsGenerated;      ///< whether UL packets for HE TB PPDUs have been
-                               ///< generated
-  uint16_t m_received;         ///< number of packets received by the stations
-  uint16_t m_flushed; ///< number of DL packets flushed after DL MU PPDU
-  Time m_edcaDisabledStartTime;     ///< time when disabling EDCA started
-  std::vector<uint32_t> m_cwValues; ///< CW used by stations after MU exchange
+  uint16_t m_nStations;
+  NetDeviceContainer m_staDevices;
+  Ptr<WifiNetDevice> m_apDevice;
+  std::vector<PacketSocketAddress> m_sockets;
+  uint16_t m_channelWidth;
+  uint8_t m_muRtsRuAllocation;
+  std::vector<FrameInfo> m_txPsdus;
+  WifiAcknowledgment::Method m_dlMuAckType;
+  uint32_t m_maxAmpduSize;
+  uint16_t m_txopLimit;
+  uint16_t m_nPktsPerSta;
+  MuEdcaParameterSet m_muEdcaParameterSet;
+  WifiOfdmaScenario m_scenario;
+  WifiPreamble m_dlMuPreamble;
+  WifiPreamble m_tbPreamble;
+  bool m_ulPktsGenerated;
+  uint16_t m_received;
+  uint16_t m_flushed;
+  Time m_edcaDisabledStartTime;
+  std::vector<uint32_t> m_cwValues;
 };
 
 OfdmaAckSequenceTest::OfdmaAckSequenceTest(
@@ -476,9 +355,7 @@ OfdmaAckSequenceTest::OfdmaAckSequenceTest(
       m_muEdcaParameterSet(muEdcaParameterSet), m_scenario(scenario),
       m_ulPktsGenerated(false), m_received(0), m_flushed(0),
       m_edcaDisabledStartTime(Seconds(0)),
-      m_cwValues(
-          std::vector<uint32_t>(m_nStations, 2)) // 2 is an invalid CW value
-{
+      m_cwValues(std::vector<uint32_t>(m_nStations, 2)) {
   switch (m_scenario) {
   case WifiOfdmaScenario::HE:
   case WifiOfdmaScenario::HE_EHT:
@@ -493,10 +370,10 @@ OfdmaAckSequenceTest::OfdmaAckSequenceTest(
 
   switch (m_channelWidth) {
   case 20:
-    m_muRtsRuAllocation = 61; // p20 index is 0
+    m_muRtsRuAllocation = 61;
     break;
   case 40:
-    m_muRtsRuAllocation = 65; // p20 index is 0
+    m_muRtsRuAllocation = 65;
     break;
   case 80:
     m_muRtsRuAllocation = 67;
@@ -520,11 +397,8 @@ void OfdmaAckSequenceTest::L7Receive(std::string context, Ptr<const Packet> p,
   }
 }
 
-void OfdmaAckSequenceTest::TraceCw(uint32_t staIndex, uint32_t cw,
-                                   uint8_t /* linkId */) {
+void OfdmaAckSequenceTest::TraceCw(uint32_t staIndex, uint32_t cw, uint8_t) {
   if (m_cwValues.at(staIndex) == 2) {
-    // store the first CW used after MU exchange (the last one may be used after
-    // the MU EDCA timer expired)
     m_cwValues[staIndex] = cw;
   }
 }
@@ -532,8 +406,6 @@ void OfdmaAckSequenceTest::TraceCw(uint32_t staIndex, uint32_t cw,
 void OfdmaAckSequenceTest::Transmit(std::string context,
                                     WifiConstPsduMap psduMap,
                                     WifiTxVector txVector, double txPowerW) {
-  // skip beacon frames and frames transmitted before 1.5s (association
-  // request/response, ADDBA request, ...)
   if (!psduMap.begin()->second->GetHeader(0).IsBeacon() &&
       Simulator::Now() >= Seconds(1.5)) {
     Time txDuration =
@@ -556,8 +428,6 @@ void OfdmaAckSequenceTest::Transmit(std::string context,
     }
   }
 
-  // Flush the MAC queue of the AP after sending a DL MU PPDU (no need for
-  // further transmissions)
   if (txVector.GetPreambleType() == m_dlMuPreamble) {
     m_flushed = 0;
     for (uint32_t i = 0; i < m_staDevices.GetN(); i++) {
@@ -592,17 +462,10 @@ void OfdmaAckSequenceTest::Transmit(std::string context,
 
         if (m_muEdcaParameterSet.muTimer > 0 &&
             m_muEdcaParameterSet.muAifsn > 0) {
-          // stations use worse access parameters, trace CW. MU AIFSN must be
-          // large enough to avoid collisions between stations trying to
-          // transmit using EDCA right after the UL MU transmission and the AP
-          // trying to send a DL MU PPDU
           qosTxop->TraceConnectWithoutContext(
               "CwTrace",
               MakeCallback(&OfdmaAckSequenceTest::TraceCw, this).Bind(i));
         } else {
-          // there is no "protection" against collisions from stations, hence
-          // flush their MAC queues after sending an HE TB PPDU containing QoS
-          // data frames, so that the AP can send a DL MU PPDU
           qosTxop->GetWifiMacQueue()->Flush();
         }
         break;
@@ -618,8 +481,6 @@ void OfdmaAckSequenceTest::Transmit(std::string context,
     psduMap.begin()->second->GetPayload(0)->PeekHeader(blockAck);
 
     if (blockAck.IsMultiSta()) {
-      // AP is transmitting a multi-STA BlockAck and stations have to disable
-      // EDCA, record the starting time
       m_edcaDisabledStartTime =
           Simulator::Now() + m_txPsdus.back().endTx - m_txPsdus.back().startTx;
     }
@@ -629,9 +490,6 @@ void OfdmaAckSequenceTest::Transmit(std::string context,
     CtrlTriggerHeader trigger;
     psduMap.begin()->second->GetPayload(0)->PeekHeader(trigger);
     if (trigger.IsBasic()) {
-      // the AP is starting the transmission of the Basic Trigger frame, so
-      // generate the configured number of packets at STAs, which are sent in HE
-      // TB PPDUs
       Time txDuration =
           WifiPhy::CalculateTxDuration(psduMap, txVector, WIFI_PHY_BAND_5GHZ);
       for (uint16_t i = 0; i < m_nStations; i++) {
@@ -639,11 +497,11 @@ void OfdmaAckSequenceTest::Transmit(std::string context,
         client->SetAttribute("PacketSize", UintegerValue(1400 + i * 100));
         client->SetAttribute("MaxPackets", UintegerValue(m_nPktsPerSta));
         client->SetAttribute("Interval", TimeValue(MicroSeconds(0)));
-        client->SetAttribute("Priority", UintegerValue(i * 2)); // 0, 2, 4 and 6
+        client->SetAttribute("Priority", UintegerValue(i * 2));
         client->SetRemote(m_sockets[i]);
         m_staDevices.Get(i)->GetNode()->AddApplication(client);
-        client->SetStartTime(txDuration);  // start when TX ends
-        client->SetStopTime(Seconds(1.0)); // stop in a second
+        client->SetStartTime(txDuration);
+        client->SetStopTime(Seconds(1.0));
         client->Initialize();
       }
       m_ulPktsGenerated = true;
@@ -655,37 +513,12 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                                         uint8_t aifsn) {
   CtrlTriggerHeader trigger;
   CtrlBAckResponseHeader blockAck;
-  Time tEnd;                         // TX end for a frame
-  Time tStart;                       // TX start for the next frame
-  Time tolerance = NanoSeconds(500); // due to propagation delay
+  Time tEnd;
+  Time tStart;
+  Time tolerance = NanoSeconds(500);
   Time ifs = (m_txopLimit > 0 ? sifs : sifs + aifsn * slotTime);
   Time navEnd;
 
-  /*
-   *        |-------------NAV----------->|
-   * |-----------------NAV------------------->|
-   *                 |---------NAV------>| |--------------NAV------------->|
-   *                           |---NAV-->| |--------NAV-------->| ┌───┐    ┌───┐
-   * ┌────┐    ┌────┐     ┌───┐    ┌───┐    ┌─────┐    ┌────┐    ┌─────┐ │   │
-   * │   │    │    │    │QoS │     │   │    │   │    │     │    │QoS │    │ │ │
-   * │    │   │    │    │    │Null│     │   │    │   │    │     │    │Data│    │
-   * │ │   │    │   │    │    │    ├────┤     │   │    │   │    │     │ ├────┤
-   * │     │ │   │    │   │    │    │    │QoS │     │   │    │   │    │     │
-   * │QoS │    │Multi│ │MU-│    │CTS│    │BSRP│    │Null│     │MU-│    │CTS│
-   * │Basic│    │Data│    │-STA │ │RTS│SIFS│   │SIFS│ TF
-   * │SIFS├────┤<IFS>│RTS│SIFS│   │SIFS│ TF  │SIFS├────┤SIFS│Block│ │TF │    │x4
-   * │    │    │    │QoS │     │TF │    │x4 │    │     │    │QoS │    │ Ack │ │
-   * │    │   │    │    │    │Null│     │   │    │   │    │     │    │Data│    │
-   * │ │   │    │   │    │    │    ├────┤     │   │    │   │    │     │ ├────┤
-   * │     │ │   │    │   │    │    │    │QoS │     │   │    │   │    │     │
-   * │QoS │    │     │ │   │    │   │    │    │    │Null│     │   │    │   │ │
-   * │    │Data│    │     │
-   * ───┴───┴────┴───┴────┴────┴────┴────┴─────┴───┴────┴───┴────┴─────┴────┴────┴────┴─────┴──
-   * From: AP     all       AP        all       AP       all       AP all AP To:
-   * all    AP        all       AP        all      AP        all        AP all
-   */
-
-  // the first packet sent after 1.5s is an MU-RTS Trigger Frame
   NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 5,
                               "Expected at least 5 transmitted packet");
   NS_TEST_EXPECT_MSG_EQ(
@@ -709,7 +542,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
   tEnd = m_txPsdus[0].endTx;
   navEnd = tEnd + m_txPsdus[0].psduMap[SU_STA_ID]->GetDuration();
 
-  // A first STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[1].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
        m_txPsdus[1].psduMap.size() == 1 &&
@@ -726,13 +558,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "CTS frame sent too late");
   Time ctsNavEnd =
       m_txPsdus[1].endTx + m_txPsdus[1].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= ctsNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                               "Duration/ID in CTS frame is too short");
   NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                         "Duration/ID in CTS frame is too long");
 
-  // A second STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[2].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
        m_txPsdus[2].psduMap.size() == 1 &&
@@ -749,13 +579,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "CTS frame sent too late");
   ctsNavEnd =
       m_txPsdus[2].endTx + m_txPsdus[2].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= ctsNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                               "Duration/ID in CTS frame is too short");
   NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                         "Duration/ID in CTS frame is too long");
 
-  // A third STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[3].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
        m_txPsdus[3].psduMap.size() == 1 &&
@@ -772,13 +600,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "CTS frame sent too late");
   ctsNavEnd =
       m_txPsdus[3].endTx + m_txPsdus[3].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= ctsNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                               "Duration/ID in CTS frame is too short");
   NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                         "Duration/ID in CTS frame is too long");
 
-  // A fourth STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[4].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
        m_txPsdus[4].psduMap.size() == 1 &&
@@ -795,13 +621,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "CTS frame sent too late");
   ctsNavEnd =
       m_txPsdus[4].endTx + m_txPsdus[4].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= ctsNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                               "Duration/ID in CTS frame is too short");
   NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                         "Duration/ID in CTS frame is too long");
 
-  // the AP sends a BSRP Trigger Frame
   NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 10,
                               "Expected at least 10 transmitted packet");
   NS_TEST_EXPECT_MSG_EQ(
@@ -822,14 +646,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "BSRP Trigger Frame sent too late");
   Time bsrpNavEnd =
       m_txPsdus[5].endTx + m_txPsdus[5].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= bsrpNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, bsrpNavEnd,
                               "Duration/ID in BSRP TF is too short");
   NS_TEST_EXPECT_MSG_LT(bsrpNavEnd, navEnd + tolerance,
                         "Duration/ID in BSRP TF is too long");
 
-  // A first STA sends a QoS Null frame in a TB PPDU a SIFS after the reception
-  // of the BSRP TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[6].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[6].psduMap.size() == 1 &&
@@ -866,14 +687,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
         qosNullNavEnd, m_txPsdus[6].endTx,
         "Expected null Duration/ID for QoS Null frame in HE TB PPDU");
   }
-  // navEnd <= qosNullNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosNullNavEnd,
                               "Duration/ID in QoS Null is too short");
   NS_TEST_EXPECT_MSG_LT(qosNullNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Null is too long");
 
-  // A second STA sends a QoS Null frame in a TB PPDU a SIFS after the reception
-  // of the BSRP TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[7].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[7].psduMap.size() == 1 &&
@@ -909,14 +727,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
         qosNullNavEnd, m_txPsdus[7].endTx,
         "Expected null Duration/ID for QoS Null frame in HE TB PPDU");
   }
-  // navEnd <= qosNullNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosNullNavEnd,
                               "Duration/ID in QoS Null is too short");
   NS_TEST_EXPECT_MSG_LT(qosNullNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Null is too long");
 
-  // A third STA sends a QoS Null frame in a TB PPDU a SIFS after the reception
-  // of the BSRP TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[8].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[8].psduMap.size() == 1 &&
@@ -952,14 +767,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
         qosNullNavEnd, m_txPsdus[8].endTx,
         "Expected null Duration/ID for QoS Null frame in HE TB PPDU");
   }
-  // navEnd <= qosNullNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosNullNavEnd,
                               "Duration/ID in QoS Null is too short");
   NS_TEST_EXPECT_MSG_LT(qosNullNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Null is too long");
 
-  // A fourth STA sends a QoS Null frame in a TB PPDU a SIFS after the reception
-  // of the BSRP TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[9].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[9].psduMap.size() == 1 &&
@@ -995,7 +807,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
         qosNullNavEnd, m_txPsdus[9].endTx,
         "Expected null Duration/ID for QoS Null frame in HE TB PPDU");
   }
-  // navEnd <= qosNullNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosNullNavEnd,
                               "Duration/ID in QoS Null is too short");
   NS_TEST_EXPECT_MSG_LT(qosNullNavEnd, navEnd + tolerance,
@@ -1008,20 +819,15 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
   if (m_txopLimit > 0) {
     NS_TEST_EXPECT_MSG_LT(tStart, tEnd + sifs + tolerance,
                           "Basic Trigger Frame sent too late");
-    // Duration/ID still protects until the end of the TXOP
     auto muRtsNavEnd =
         m_txPsdus[10].endTx + m_txPsdus[10].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= muRtsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, muRtsNavEnd,
                                 "Duration/ID in MU-RTS is too short");
     NS_TEST_EXPECT_MSG_LT(muRtsNavEnd, navEnd + tolerance,
                           "Duration/ID in MU-RTS is too long");
   }
 
-  // if the TXOP limit is not null, MU-RTS protection is not used because the
-  // next transmission is protected by the previous MU-RTS Trigger Frame
   if (m_txopLimit == 0) {
-    // the AP sends another MU-RTS Trigger Frame to protect the Basic TF
     NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 15,
                                 "Expected at least 15 transmitted packet");
     NS_TEST_EXPECT_MSG_EQ(
@@ -1047,11 +853,9 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Unexpected RU Allocation value in MU-RTS");
     }
 
-    // NAV end is now set by the Duration/ID of the second MU-RTS TF
     tEnd = m_txPsdus[10].endTx;
     navEnd = tEnd + m_txPsdus[10].psduMap[SU_STA_ID]->GetDuration();
 
-    // A first STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[11].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[11].psduMap.size() == 1 &&
@@ -1069,14 +873,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[11].endTx + m_txPsdus[11].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A second STA sends a CTS frame a SIFS after the reception of the MU-RTS
-    // TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[12].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[12].psduMap.size() == 1 &&
@@ -1094,13 +895,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[12].endTx + m_txPsdus[12].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A third STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[13].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[13].psduMap.size() == 1 &&
@@ -1118,14 +917,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[13].endTx + m_txPsdus[13].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A fourth STA sends a CTS frame a SIFS after the reception of the MU-RTS
-    // TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[14].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[14].psduMap.size() == 1 &&
@@ -1143,7 +939,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[14].endTx + m_txPsdus[14].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
@@ -1151,13 +946,10 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
 
     tEnd = m_txPsdus[14].endTx;
   } else {
-    // insert 5 elements in m_txPsdus to align the index of the following frames
-    // in the two cases (TXOP limit null and not null)
     m_txPsdus.insert(std::next(m_txPsdus.begin(), 10), 5, {});
     tEnd = m_txPsdus[9].endTx;
   }
 
-  // the AP sends a Basic Trigger Frame to solicit QoS data frames
   NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 21,
                               "Expected at least 21 transmitted packets");
   NS_TEST_EXPECT_MSG_EQ(
@@ -1177,14 +969,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "Basic Trigger Frame sent too late");
   Time basicNavEnd =
       m_txPsdus[15].endTx + m_txPsdus[15].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= basicNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, basicNavEnd,
                               "Duration/ID in Basic TF is too short");
   NS_TEST_EXPECT_MSG_LT(basicNavEnd, navEnd + tolerance,
                         "Duration/ID in Basic TF is too long");
 
-  // A first STA sends QoS data frames in a TB PPDU a SIFS after the reception
-  // of the Basic TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[16].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[16].psduMap.size() == 1 &&
@@ -1200,14 +989,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "QoS data frames in HE TB PPDU sent too late");
   Time qosDataNavEnd = m_txPsdus[16].endTx +
                        m_txPsdus[16].psduMap.begin()->second->GetDuration();
-  // navEnd <= qosDataNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosDataNavEnd,
                               "Duration/ID in QoS Data is too short");
   NS_TEST_EXPECT_MSG_LT(qosDataNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Data is too long");
 
-  // A second STA sends QoS data frames in a TB PPDU a SIFS after the reception
-  // of the Basic TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[17].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[17].psduMap.size() == 1 &&
@@ -1222,14 +1008,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "QoS data frames in HE TB PPDU sent too late");
   qosDataNavEnd = m_txPsdus[17].endTx +
                   m_txPsdus[17].psduMap.begin()->second->GetDuration();
-  // navEnd <= qosDataNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosDataNavEnd,
                               "Duration/ID in QoS Data is too short");
   NS_TEST_EXPECT_MSG_LT(qosDataNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Data is too long");
 
-  // A third STA sends QoS data frames in a TB PPDU a SIFS after the reception
-  // of the Basic TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[18].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[18].psduMap.size() == 1 &&
@@ -1244,14 +1027,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "QoS data frames in HE TB PPDU sent too late");
   qosDataNavEnd = m_txPsdus[18].endTx +
                   m_txPsdus[18].psduMap.begin()->second->GetDuration();
-  // navEnd <= qosDataNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosDataNavEnd,
                               "Duration/ID in QoS Data is too short");
   NS_TEST_EXPECT_MSG_LT(qosDataNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Data is too long");
 
-  // A fourth STA sends QoS data frames in a TB PPDU a SIFS after the reception
-  // of the Basic TF
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[19].txVector.GetPreambleType() == m_tbPreamble &&
        m_txPsdus[19].psduMap.size() == 1 &&
@@ -1266,13 +1046,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "QoS data frames in HE TB PPDU sent too late");
   qosDataNavEnd = m_txPsdus[19].endTx +
                   m_txPsdus[19].psduMap.begin()->second->GetDuration();
-  // navEnd <= qosDataNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, qosDataNavEnd,
                               "Duration/ID in QoS Data is too short");
   NS_TEST_EXPECT_MSG_LT(qosDataNavEnd, navEnd + tolerance,
                         "Duration/ID in QoS Data is too long");
 
-  // the AP sends a Multi-STA Block Ack
   NS_TEST_EXPECT_MSG_EQ(
       (m_txPsdus[20].psduMap.size() == 1 &&
        m_txPsdus[20].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAck() &&
@@ -1297,16 +1075,12 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "Multi-STA Block Ack sent too late");
   auto multiStaBaNavEnd =
       m_txPsdus[20].endTx + m_txPsdus[20].psduMap[SU_STA_ID]->GetDuration();
-  // navEnd <= multiStaBaNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, multiStaBaNavEnd,
                               "Duration/ID in Multi-STA BlockAck is too short");
   NS_TEST_EXPECT_MSG_LT(multiStaBaNavEnd, navEnd + tolerance,
                         "Duration/ID in Multi-STA BlockAck is too long");
 
-  // if the TXOP limit is not null, MU-RTS protection is not used because the
-  // next transmission is protected by the previous MU-RTS Trigger Frame
   if (m_txopLimit == 0) {
-    // the AP sends an MU-RTS Trigger Frame to protect the DL MU PPDU
     NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 26,
                                 "Expected at least 26 transmitted packet");
     NS_TEST_EXPECT_MSG_EQ(
@@ -1338,7 +1112,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
     tEnd = m_txPsdus[21].endTx;
     navEnd = tEnd + m_txPsdus[21].psduMap[SU_STA_ID]->GetDuration();
 
-    // A first STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[22].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[22].psduMap.size() == 1 &&
@@ -1356,14 +1129,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[22].endTx + m_txPsdus[22].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A second STA sends a CTS frame a SIFS after the reception of the MU-RTS
-    // TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[23].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[23].psduMap.size() == 1 &&
@@ -1381,13 +1151,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[23].endTx + m_txPsdus[23].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A third STA sends a CTS frame a SIFS after the reception of the MU-RTS TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[24].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[24].psduMap.size() == 1 &&
@@ -1405,14 +1173,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[24].endTx + m_txPsdus[24].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
                           "Duration/ID in CTS frame is too long");
 
-    // A fourth STA sends a CTS frame a SIFS after the reception of the MU-RTS
-    // TF
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[25].txVector.GetPreambleType() != WIFI_PREAMBLE_HE_TB &&
          m_txPsdus[25].psduMap.size() == 1 &&
@@ -1430,7 +1195,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "CTS frame sent too late");
     ctsNavEnd =
         m_txPsdus[25].endTx + m_txPsdus[25].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= ctsNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, ctsNavEnd,
                                 "Duration/ID in CTS frame is too short");
     NS_TEST_EXPECT_MSG_LT(ctsNavEnd, navEnd + tolerance,
@@ -1438,20 +1202,16 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
 
     tEnd = m_txPsdus[25].endTx;
   } else {
-    // insert 5 elements in m_txPsdus to align the index of the following frames
-    // in the two cases (TXOP limit null and not null)
     m_txPsdus.insert(std::next(m_txPsdus.begin(), 21), 5, {});
     tEnd = m_txPsdus[20].endTx;
   }
 
-  // the AP sends a DL MU PPDU
   NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 27,
                               "Expected at least 27 transmitted packet");
   NS_TEST_EXPECT_MSG_EQ(m_txPsdus[26].txVector.GetPreambleType(),
                         m_dlMuPreamble, "Expected a DL MU PPDU");
   NS_TEST_EXPECT_MSG_EQ(m_txPsdus[26].psduMap.size(), 4,
                         "Expected 4 PSDUs within the DL MU PPDU");
-  // the TX duration cannot exceed the maximum PPDU duration
   NS_TEST_EXPECT_MSG_LT_OR_EQ(
       m_txPsdus[26].endTx - m_txPsdus[26].startTx,
       GetPpduMaxTime(m_txPsdus[26].txVector.GetPreambleType()),
@@ -1465,7 +1225,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
   NS_TEST_EXPECT_MSG_LT(tStart, tEnd + sifs + tolerance,
                         "DL MU PPDU sent too late");
 
-  // The Duration/ID field is the same for all the PSDUs
   auto dlMuNavEnd = m_txPsdus[26].endTx;
   for (auto &psdu : m_txPsdus[26].psduMap) {
     if (dlMuNavEnd == m_txPsdus[26].endTx) {
@@ -1476,7 +1235,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Duration/ID must be the same for all PSDUs");
     }
   }
-  // navEnd <= dlMuNavEnd < navEnd + tolerance
   NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, dlMuNavEnd,
                               "Duration/ID in DL MU PPDU is too short");
   NS_TEST_EXPECT_MSG_LT(dlMuNavEnd, navEnd + tolerance,
@@ -1485,36 +1243,9 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
   std::size_t nTxPsdus = 0;
 
   if (m_dlMuAckType == WifiAcknowledgment::DL_MU_BAR_BA_SEQUENCE) {
-    /*
-     *        |-----------------------------------------NAV-------------------------------->|
-     *                 |----------------------------------NAV------------------------------>|
-     *                           |-----------------------------NAV------------------------->|
-     *                                   |-------------------------NAV--------------------->|
-     *                                            |--NAV->|        |--NAV->|
-     * |--NAV->| ┌───┐    ┌───┐    ┌────┐    ┌──┐    ┌───┐    ┌──┐    ┌───┐ ┌──┐
-     * ┌───┐    ┌──┐ │   │    │   │    │PSDU│    │  │    │   │    │  │    │   │
-     * │  │    │   │    │  │ │   │    │   │    │  1 │    │  │    │   │    │  │
-     * │   │    │  │    │   │    │  │ │   │    │   │    ├────┤    │  │    │   │
-     * │  │    │   │    │  │    │   │    │  │ │   │    │   │    │PSDU│    │  │
-     * │   │    │  │    │   │    │  │    │   │    │  │ │MU-│    │CTS│    │  2 │
-     * │BA│    │BAR│    │BA│    │BAR│    │BA│    │BAR│    │BA│ │RTS│SIFS│
-     * │SIFS├────┤SIFS│  │SIFS│   │SIFS│  │SIFS│   │SIFS│  │SIFS│   │SIFS│  │
-     *    │TF │    │x4 │    │PSDU│    │  │    │   │    │  │    │   │    │  │ │
-     * │    │  │ │   │    │   │    │  3 │    │  │    │   │    │  │    │   │    │
-     * │    │   │    │  │ │   │    │   │    ├────┤    │  │    │   │    │  │    │
-     * │    │  │    │   │    │  │ │   │    │   │    │PSDU│    │  │    │   │    │
-     * │    │   │    │  │    │   │    │  │ │   │    │   │    │  4 │    │  │    │
-     * │    │  │    │   │    │  │    │   │    │  │
-     * ───┴───┴────┴───┴────┴────┴────┴──┴────┴───┴────┴──┴────┴───┴────┴──┴────┴───┴────┴──┴──
-     * From: AP     all       AP      STA 1    AP     STA 2     AP      STA 3 AP
-     * STA 4 To: all    AP        all      AP     STA 2     AP     STA 3     AP
-     * STA 4     AP
-     */
     NS_TEST_EXPECT_MSG_GT_OR_EQ(m_txPsdus.size(), 34,
                                 "Expected at least 34 packets");
 
-    // A first STA sends a Block Ack a SIFS after the reception of the DL MU
-    // PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[27].psduMap.size() == 1 &&
          m_txPsdus[27].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAck()),
@@ -1527,16 +1258,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "First Block Ack sent too late");
     Time baNavEnd =
         m_txPsdus[27].endTx + m_txPsdus[27].psduMap[SU_STA_ID]->GetDuration();
-    // The NAV of the first BlockAck, being a response to a QoS Data frame,
-    // matches the NAV set by the MU-RTS TF. navEnd <= baNavEnd < navEnd +
-    // tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(
         navEnd, baNavEnd, "Duration/ID in 1st BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
                           "Duration/ID in 1st BlockAck is too long");
 
-    // the AP transmits a Block Ack Request an IFS after the reception of the
-    // Block Ack
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[28].psduMap.size() == 1 &&
          m_txPsdus[28].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAckReq()),
@@ -1547,22 +1273,15 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "First Block Ack Request sent too early");
     NS_TEST_EXPECT_MSG_LT(tStart, tEnd + sifs + tolerance,
                           "First Block Ack Request sent too late");
-    // under single protection setting (TXOP limit equal to zero), the NAV of
-    // the BlockAckReq only covers the following BlockAck response; under
-    // multiple protection setting, the NAV of the BlockAckReq matches the NAV
-    // set by the MU-RTS TF
     Time barNavEnd =
         m_txPsdus[28].endTx + m_txPsdus[28].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= barNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, barNavEnd,
                                   "Duration/ID in BlockAckReq is too short");
       NS_TEST_EXPECT_MSG_LT(barNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAckReq is too long");
     }
 
-    // A second STA sends a Block Ack a SIFS after the reception of the Block
-    // Ack Request
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[29].psduMap.size() == 1 &&
          m_txPsdus[29].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAck()),
@@ -1576,13 +1295,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
     baNavEnd =
         m_txPsdus[29].endTx + m_txPsdus[29].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= baNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAck is too long");
     } else {
-      // barNavEnd <= baNavEnd < barNavEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(barNavEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, barNavEnd + tolerance,
@@ -1591,8 +1308,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // the AP transmits a Block Ack Request an IFS after the reception of the
-    // Block Ack
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[30].psduMap.size() == 1 &&
          m_txPsdus[30].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAckReq()),
@@ -1603,22 +1318,15 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Second Block Ack Request sent too early");
     NS_TEST_EXPECT_MSG_LT(tStart, tEnd + sifs + tolerance,
                           "Second Block Ack Request sent too late");
-    // under single protection setting (TXOP limit equal to zero), the NAV of
-    // the BlockAckReq only covers the following BlockAck response; under
-    // multiple protection setting, the NAV of the BlockAckReq matches the NAV
-    // set by the MU-RTS TF
     barNavEnd =
         m_txPsdus[30].endTx + m_txPsdus[30].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= barNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, barNavEnd,
                                   "Duration/ID in BlockAckReq is too short");
       NS_TEST_EXPECT_MSG_LT(barNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAckReq is too long");
     }
 
-    // A third STA sends a Block Ack a SIFS after the reception of the Block Ack
-    // Request
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[31].psduMap.size() == 1 &&
          m_txPsdus[31].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAck()),
@@ -1632,13 +1340,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
     baNavEnd =
         m_txPsdus[31].endTx + m_txPsdus[31].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= baNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAck is too long");
     } else {
-      // barNavEnd <= baNavEnd < barNavEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(barNavEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, barNavEnd + tolerance,
@@ -1647,8 +1353,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // the AP transmits a Block Ack Request an IFS after the reception of the
-    // Block Ack
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[32].psduMap.size() == 1 &&
          m_txPsdus[32].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAckReq()),
@@ -1659,22 +1363,15 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Third Block Ack Request sent too early");
     NS_TEST_EXPECT_MSG_LT(tStart, tEnd + sifs + tolerance,
                           "Third Block Ack Request sent too late");
-    // under single protection setting (TXOP limit equal to zero), the NAV of
-    // the BlockAckReq only covers the following BlockAck response; under
-    // multiple protection setting, the NAV of the BlockAckReq matches the NAV
-    // set by the MU-RTS TF
     barNavEnd =
         m_txPsdus[32].endTx + m_txPsdus[32].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= barNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, barNavEnd,
                                   "Duration/ID in BlockAckReq is too short");
       NS_TEST_EXPECT_MSG_LT(barNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAckReq is too long");
     }
 
-    // A fourth STA sends a Block Ack a SIFS after the reception of the Block
-    // Ack Request
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[33].psduMap.size() == 1 &&
          m_txPsdus[33].psduMap[SU_STA_ID]->GetHeader(0).IsBlockAck()),
@@ -1688,13 +1385,11 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
     baNavEnd =
         m_txPsdus[33].endTx + m_txPsdus[33].psduMap[SU_STA_ID]->GetDuration();
     if (m_txopLimit > 0) {
-      // navEnd <= baNavEnd < navEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
                             "Duration/ID in BlockAck is too long");
     } else {
-      // barNavEnd <= baNavEnd < barNavEnd + tolerance
       NS_TEST_EXPECT_MSG_LT_OR_EQ(barNavEnd, baNavEnd,
                                   "Duration/ID in BlockAck is too short");
       NS_TEST_EXPECT_MSG_LT(baNavEnd, barNavEnd + tolerance,
@@ -1705,28 +1400,9 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
 
     nTxPsdus = 34;
   } else if (m_dlMuAckType == WifiAcknowledgment::DL_MU_TF_MU_BAR) {
-    /*
-     *          |---------------------NAV------------------------>|
-     *                   |-------------------NAV----------------->|
-     *                               |---------------NAV--------->|
-     *                                            |------NAV----->|
-     *      ┌───┐    ┌───┐    ┌──────┐    ┌───────┐    ┌──────────┐
-     *      │   │    │   │    │PSDU 1│    │       │    │BlockAck 1│
-     *      │   │    │   │    ├──────┤    │MU-BAR │    ├──────────┤
-     *      │MU-│    │CTS│    │PSDU 2│    │Trigger│    │BlockAck 2│
-     *      │RTS│SIFS│   │SIFS├──────┤SIFS│ Frame │SIFS├──────────┤
-     *      │TF │    │x4 │    │PSDU 3│    │       │    │BlockAck 3│
-     *      │   │    │   │    ├──────┤    │       │    ├──────────┤
-     *      │   │    │   │    │PSDU 4│    │       │    │BlockAck 4│
-     * -----┴───┴────┴───┴────┴──────┴────┴───────┴────┴──────────┴───
-     * From: AP       all        AP          AP            all
-     *   To: all      AP         all         all           AP
-     */
     NS_TEST_EXPECT_MSG_GT_OR_EQ(m_txPsdus.size(), 32,
                                 "Expected at least 32 packets");
 
-    // the AP transmits a MU-BAR Trigger Frame a SIFS after the transmission of
-    // the DL MU PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[27].psduMap.size() == 1 &&
          m_txPsdus[27].psduMap[SU_STA_ID]->GetHeader(0).IsTrigger()),
@@ -1737,15 +1413,12 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "MU-BAR Trigger Frame sent at wrong time");
     auto muBarNavEnd =
         m_txPsdus[27].endTx + m_txPsdus[27].psduMap[SU_STA_ID]->GetDuration();
-    // navEnd <= muBarNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(
         navEnd, muBarNavEnd,
         "Duration/ID in MU-BAR Trigger Frame is too short");
     NS_TEST_EXPECT_MSG_LT(muBarNavEnd, navEnd + tolerance,
                           "Duration/ID in MU-BAR Trigger Frame is too long");
 
-    // A first STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the MU-BAR
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[28].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[28].psduMap.size() == 1 &&
@@ -1759,7 +1432,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     Time baNavEnd = m_txPsdus[28].endTx +
                     m_txPsdus[28].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1769,8 +1441,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A second STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the MU-BAR
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[29].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[29].psduMap.size() == 1 &&
@@ -1783,7 +1453,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[29].endTx +
                m_txPsdus[29].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1793,8 +1462,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A third STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the MU-BAR
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[30].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[30].psduMap.size() == 1 &&
@@ -1807,7 +1474,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[30].endTx +
                m_txPsdus[30].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1817,8 +1483,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A fourth STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the MU-BAR
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[31].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[31].psduMap.size() == 1 &&
@@ -1831,7 +1495,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[31].endTx +
                m_txPsdus[31].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1843,34 +1506,15 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
 
     nTxPsdus = 32;
   } else if (m_dlMuAckType == WifiAcknowledgment::DL_MU_AGGREGATE_TF) {
-    /*
-     *          |---------------------NAV----------------------->|
-     *                   |-------------------NAV---------------->|
-     *                                           |------NAV----->|
-     *      ┌───┐    ┌───┐    ┌──────┬───────────┐    ┌──────────┐
-     *      │   │    │   │    │PSDU 1│MU-BAR TF 1│    │BlockAck 1│
-     *      │   │    │   │    ├──────┼───────────┤    ├──────────┤
-     *      │MU-│    │CTS│    │PSDU 2│MU-BAR TF 2│    │BlockAck 2│
-     *      │RTS│SIFS│   │SIFS├──────┼───────────┤SIFS├──────────┤
-     *      │TF │    │x4 │    │PSDU 3│MU-BAR TF 3│    │BlockAck 3│
-     *      │   │    │   │    ├──────┼───────────┤    ├──────────┤
-     *      │   │    │   │    │PSDU 4│MU-BAR TF 4│    │BlockAck 4│
-     * -----┴───┴────┴───┴────┴──────┴───────────┴────┴──────────┴───
-     * From: AP       all            AP                    all
-     *   To: all      AP             all                   AP
-     */
     NS_TEST_ASSERT_MSG_GT_OR_EQ(m_txPsdus.size(), 31,
                                 "Expected at least 31 packets");
 
-    // The last MPDU in each PSDU is a MU-BAR Trigger Frame
     for (auto &psdu : m_txPsdus[26].psduMap) {
       NS_TEST_EXPECT_MSG_EQ(
           (*std::prev(psdu.second->end()))->GetHeader().IsTrigger(), true,
           "Expected an aggregated MU-BAR Trigger Frame");
     }
 
-    // A first STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the DL MU PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[27].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[27].psduMap.size() == 1 &&
@@ -1884,7 +1528,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     Time baNavEnd = m_txPsdus[27].endTx +
                     m_txPsdus[27].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1894,8 +1537,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A second STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the DL MU PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[28].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[28].psduMap.size() == 1 &&
@@ -1908,7 +1549,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[28].endTx +
                m_txPsdus[28].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1918,8 +1558,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A third STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the DL MU PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[29].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[29].psduMap.size() == 1 &&
@@ -1932,7 +1570,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[29].endTx +
                m_txPsdus[29].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1942,8 +1579,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                             "Expected null Duration/ID for BlockAck");
     }
 
-    // A fourth STA sends a Block Ack in a TB PPDU a SIFS after the reception of
-    // the DL MU PPDU
     NS_TEST_EXPECT_MSG_EQ(
         (m_txPsdus[30].txVector.GetPreambleType() == m_tbPreamble &&
          m_txPsdus[30].psduMap.size() == 1 &&
@@ -1956,7 +1591,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                           "Block Ack in HE TB PPDU sent too late");
     baNavEnd = m_txPsdus[30].endTx +
                m_txPsdus[30].psduMap.begin()->second->GetDuration();
-    // navEnd <= baNavEnd < navEnd + tolerance
     NS_TEST_EXPECT_MSG_LT_OR_EQ(navEnd, baNavEnd,
                                 "Duration/ID in BlockAck frame is too short");
     NS_TEST_EXPECT_MSG_LT(baNavEnd, navEnd + tolerance,
@@ -1973,9 +1607,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
                         "Not all DL packets have been received");
 
   if (m_muEdcaParameterSet.muTimer > 0 && m_muEdcaParameterSet.muAifsn == 0) {
-    // EDCA disabled, find the first PSDU transmitted by a station not in an
-    // HE TB PPDU and check that it was not transmitted before the MU EDCA
-    // timer expired
     for (std::size_t i = nTxPsdus; i < m_txPsdus.size(); ++i) {
       if (m_txPsdus[i].psduMap.size() == 1 &&
           !m_txPsdus[i].psduMap.begin()->second->GetHeader(0).IsCts() &&
@@ -1992,7 +1623,6 @@ void OfdmaAckSequenceTest::CheckResults(Time sifs, Time slotTime,
     }
   } else if (m_muEdcaParameterSet.muTimer > 0 &&
              m_muEdcaParameterSet.muAifsn > 0) {
-    // stations used worse access parameters after successful UL MU transmission
     for (const auto &cwValue : m_cwValues) {
       NS_TEST_EXPECT_MSG_EQ(
           (cwValue == 2 || cwValue >= m_muEdcaParameterSet.muCwMin), true,
@@ -2091,8 +1721,6 @@ void OfdmaAckSequenceTest::DoRun() {
       "ns3::HeConfiguration::VoMuEdcaTimer",
       TimeValue(MicroSeconds(8192 * m_muEdcaParameterSet.muTimer)));
 
-  // increase MSDU lifetime so that it does not expire before the MU EDCA timer
-  // ends
   Config::SetDefault("ns3::WifiMacQueue::MaxDelay", TimeValue(Seconds(2)));
 
   WifiHelper wifi;
@@ -2106,7 +1734,6 @@ void OfdmaAckSequenceTest::DoRun() {
       UintegerValue(m_muEdcaParameterSet.muCwMin), "MuBeCwMax",
       UintegerValue(m_muEdcaParameterSet.muCwMax), "BeMuEdcaTimer",
       TimeValue(MicroSeconds(m_muTimerRes * m_muEdcaParameterSet.muTimer)),
-      // MU EDCA timers must be either all null or all non-null
       "BkMuEdcaTimer",
       TimeValue(MicroSeconds(m_muTimerRes * m_muEdcaParameterSet.muTimer)),
       "ViMuEdcaTimer",
@@ -2119,16 +1746,12 @@ void OfdmaAckSequenceTest::DoRun() {
   mac.SetType(
       "ns3::StaWifiMac", "Ssid", SsidValue(ssid), "BE_MaxAmsduSize",
       UintegerValue(0), "BE_MaxAmpduSize", UintegerValue(m_maxAmpduSize),
-      /* setting blockack threshold for sta's BE queue */
       "BE_BlockAckThreshold", UintegerValue(2), "BK_MaxAmsduSize",
       UintegerValue(0), "BK_MaxAmpduSize", UintegerValue(m_maxAmpduSize),
-      /* setting blockack threshold for sta's BK queue */
       "BK_BlockAckThreshold", UintegerValue(2), "VI_MaxAmsduSize",
       UintegerValue(0), "VI_MaxAmpduSize", UintegerValue(m_maxAmpduSize),
-      /* setting blockack threshold for sta's VI queue */
       "VI_BlockAckThreshold", UintegerValue(2), "VO_MaxAmsduSize",
       UintegerValue(0), "VO_MaxAmpduSize", UintegerValue(m_maxAmpduSize),
-      /* setting blockack threshold for sta's VO queue */
       "VO_BlockAckThreshold", UintegerValue(2), "ActiveProbing",
       BooleanValue(false));
 
@@ -2139,7 +1762,6 @@ void OfdmaAckSequenceTest::DoRun() {
   m_staDevices =
       NetDeviceContainer(m_staDevices, wifi.Install(phy, mac, wifiNewStaNodes));
 
-  // create a listening VHT station
   wifi.SetStandard(WIFI_STANDARD_80211ac);
   wifi.Install(phy, mac, Create<Node>());
 
@@ -2151,7 +1773,6 @@ void OfdmaAckSequenceTest::DoRun() {
                             EnumValue(m_scenario == WifiOfdmaScenario::EHT
                                           ? WIFI_MOD_CLASS_EHT
                                           : WIFI_MOD_CLASS_HE),
-                            // request channel access at 1.5s
                             "AccessReqInterval", TimeValue(Seconds(1.5)),
                             "DelayAccessReqUponAccess", BooleanValue(false));
   mac.SetAckManager("ns3::WifiDefaultAckManager", "DlMuAckSequenceType",
@@ -2160,7 +1781,6 @@ void OfdmaAckSequenceTest::DoRun() {
   m_apDevice =
       DynamicCast<WifiNetDevice>(wifi.Install(phy, mac, wifiApNode).Get(0));
 
-  // Assign fixed streams to random variables in use
   streamNumber +=
       wifi.AssignStreams(NetDeviceContainer(m_apDevice), streamNumber);
   streamNumber += wifi.AssignStreams(m_staDevices, streamNumber);
@@ -2183,13 +1803,10 @@ void OfdmaAckSequenceTest::DoRun() {
   NetDeviceContainer allDevices(NetDeviceContainer(m_apDevice), m_staDevices);
   for (uint32_t i = 0; i < allDevices.GetN(); i++) {
     auto dev = DynamicCast<WifiNetDevice>(allDevices.Get(i));
-    // set the same TXOP limit on all ACs
     dev->GetMac()->GetQosTxop(AC_BE)->SetTxopLimit(MicroSeconds(m_txopLimit));
     dev->GetMac()->GetQosTxop(AC_BK)->SetTxopLimit(MicroSeconds(m_txopLimit));
     dev->GetMac()->GetQosTxop(AC_VI)->SetTxopLimit(MicroSeconds(m_txopLimit));
     dev->GetMac()->GetQosTxop(AC_VO)->SetTxopLimit(MicroSeconds(m_txopLimit));
-    // set the same AIFSN on all ACs (just to be able to check inter-frame
-    // spaces)
     dev->GetMac()->GetQosTxop(AC_BE)->SetAifsn(3);
     dev->GetMac()->GetQosTxop(AC_BK)->SetAifsn(3);
     dev->GetMac()->GetQosTxop(AC_VI)->SetAifsn(3);
@@ -2200,32 +1817,27 @@ void OfdmaAckSequenceTest::DoRun() {
   packetSocket.Install(wifiApNode);
   packetSocket.Install(wifiStaNodes);
 
-  // DL Traffic
   for (uint16_t i = 0; i < m_nStations; i++) {
     PacketSocketAddress socket;
     socket.SetSingleDevice(m_apDevice->GetIfIndex());
     socket.SetPhysicalAddress(m_staDevices.Get(i)->GetAddress());
     socket.SetProtocol(1);
 
-    // the first client application generates two packets in order
-    // to trigger the establishment of a Block Ack agreement
     Ptr<PacketSocketClient> client1 = CreateObject<PacketSocketClient>();
     client1->SetAttribute("PacketSize", UintegerValue(1400));
     client1->SetAttribute("MaxPackets", UintegerValue(2));
     client1->SetAttribute("Interval", TimeValue(MicroSeconds(0)));
-    client1->SetAttribute("Priority", UintegerValue(i * 2)); // 0, 2, 4 and 6
+    client1->SetAttribute("Priority", UintegerValue(i * 2));
     client1->SetRemote(socket);
     wifiApNode.Get(0)->AddApplication(client1);
     client1->SetStartTime(Seconds(1) + i * MilliSeconds(1));
     client1->SetStopTime(Seconds(2.0));
 
-    // the second client application generates the selected number of packets,
-    // which are sent in DL MU PPDUs.
     Ptr<PacketSocketClient> client2 = CreateObject<PacketSocketClient>();
     client2->SetAttribute("PacketSize", UintegerValue(1400 + i * 100));
     client2->SetAttribute("MaxPackets", UintegerValue(m_nPktsPerSta));
     client2->SetAttribute("Interval", TimeValue(MicroSeconds(0)));
-    client2->SetAttribute("Priority", UintegerValue(i * 2)); // 0, 2, 4 and 6
+    client2->SetAttribute("Priority", UintegerValue(i * 2));
     client2->SetRemote(socket);
     wifiApNode.Get(0)->AddApplication(client2);
     client2->SetStartTime(Seconds(1.5003));
@@ -2238,26 +1850,20 @@ void OfdmaAckSequenceTest::DoRun() {
     server->SetStopTime(Seconds(3.0));
   }
 
-  // UL Traffic
   for (uint16_t i = 0; i < m_nStations; i++) {
     m_sockets[i].SetSingleDevice(m_staDevices.Get(i)->GetIfIndex());
     m_sockets[i].SetPhysicalAddress(m_apDevice->GetAddress());
     m_sockets[i].SetProtocol(1);
 
-    // the first client application generates two packets in order
-    // to trigger the establishment of a Block Ack agreement
     Ptr<PacketSocketClient> client1 = CreateObject<PacketSocketClient>();
     client1->SetAttribute("PacketSize", UintegerValue(1400));
     client1->SetAttribute("MaxPackets", UintegerValue(2));
     client1->SetAttribute("Interval", TimeValue(MicroSeconds(0)));
-    client1->SetAttribute("Priority", UintegerValue(i * 2)); // 0, 2, 4 and 6
+    client1->SetAttribute("Priority", UintegerValue(i * 2));
     client1->SetRemote(m_sockets[i]);
     wifiStaNodes.Get(i)->AddApplication(client1);
     client1->SetStartTime(Seconds(1.005) + i * MilliSeconds(1));
     client1->SetStopTime(Seconds(2.0));
-
-    // packets to be included in HE TB PPDUs are generated (by Transmit()) when
-    // the first Basic Trigger Frame is sent by the AP
 
     Ptr<PacketSocketServer> server = CreateObject<PacketSocketServer>();
     server->SetLocal(m_sockets[i]);
@@ -2268,7 +1874,6 @@ void OfdmaAckSequenceTest::DoRun() {
 
   Config::Connect("/NodeList/*/ApplicationList/0/$ns3::PacketSocketServer/Rx",
                   MakeCallback(&OfdmaAckSequenceTest::L7Receive, this));
-  // Trace PSDUs passed to the PHY on all devices
   Config::Connect(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxPsduBegin",
       MakeCallback(&OfdmaAckSequenceTest::Transmit, this));
@@ -2282,17 +1887,10 @@ void OfdmaAckSequenceTest::DoRun() {
 
   Simulator::Destroy();
 
-  // Restore the seed and run number that were in effect before this test
   Config::SetGlobal("RngSeed", UintegerValue(previousSeed));
   Config::SetGlobal("RngRun", UintegerValue(previousRun));
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief wifi MAC OFDMA Test Suite
- */
 class WifiMacOfdmaTestSuite : public TestSuite {
 public:
   WifiMacOfdmaTestSuite();
@@ -2304,9 +1902,7 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
       std::initializer_list<OfdmaAckSequenceTest::MuEdcaParameterSet>;
 
   for (auto &muEdcaParameterSet :
-       MuEdcaParams{{0, 0, 0, 0} /* no MU EDCA */,
-                    {0, 127, 2047, 100} /* EDCA disabled */,
-                    {10, 127, 2047, 100} /* worse parameters */}) {
+       MuEdcaParams{{0, 0, 0, 0}, {0, 127, 2047, 100}, {10, 127, 2047, 100}}) {
     for (const auto scenario :
          {WifiOfdmaScenario::HE, WifiOfdmaScenario::HE_EHT,
           WifiOfdmaScenario::EHT}) {
@@ -2338,4 +1934,4 @@ WifiMacOfdmaTestSuite::WifiMacOfdmaTestSuite()
   }
 }
 
-static WifiMacOfdmaTestSuite g_wifiMacOfdmaTestSuite; ///< the test suite
+static WifiMacOfdmaTestSuite g_wifiMacOfdmaTestSuite;

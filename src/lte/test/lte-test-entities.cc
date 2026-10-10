@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "lte-test-entities.h"
 
@@ -29,8 +11,6 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LteTestEntities");
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId LteTestRrc::GetTypeId() {
   static TypeId tid = TypeId("ns3::LteTestRrc")
@@ -51,7 +31,6 @@ LteTestRrc::LteTestRrc() {
   m_rxLastTime = Time(0);
 
   m_pdcpSapUser = new LtePdcpSpecificLtePdcpSapUser<LteTestRrc>(this);
-  //   Simulator::ScheduleNow (&LteTestRrc::Start, this);
 }
 
 LteTestRrc::~LteTestRrc() { NS_LOG_FUNCTION(this); }
@@ -74,7 +53,6 @@ std::string LteTestRrc::GetDataReceived() {
   return m_receivedData;
 }
 
-// Stats
 uint32_t LteTestRrc::GetTxPdus() {
   NS_LOG_FUNCTION(this << m_txPdus);
   return m_txPdus;
@@ -115,20 +93,14 @@ void LteTestRrc::SetPduSize(uint32_t pduSize) {
   m_pduSize = pduSize;
 }
 
-/**
- * PDCP SAP
- */
-
 void LteTestRrc::DoReceivePdcpSdu(
     LtePdcpSapUser::ReceivePdcpSduParameters params) {
   NS_LOG_FUNCTION(this << params.pdcpSdu->GetSize());
   Ptr<Packet> p = params.pdcpSdu;
-  //   NS_LOG_LOGIC ("PDU received = " << (*p));
 
   uint32_t dataLen = p->GetSize();
   auto buf = new uint8_t[dataLen];
 
-  // Stats
   m_rxPdus++;
   m_rxBytes += dataLen;
   m_rxLastTime = Simulator::Now();
@@ -136,21 +108,14 @@ void LteTestRrc::DoReceivePdcpSdu(
   p->CopyData(buf, dataLen);
   m_receivedData = std::string((char *)buf, dataLen);
 
-  //   NS_LOG_LOGIC (m_receivedData);
-
   delete[] buf;
 }
-
-/**
- * START
- */
 
 void LteTestRrc::Start() {
   NS_LOG_FUNCTION(this);
   NS_ASSERT_MSG(m_arrivalTime != Time(0),
                 "Arrival time must be different from 0");
 
-  // Stats
   m_txPdus++;
   m_txBytes += m_pduSize;
   m_txLastTime = Simulator::Now();
@@ -178,7 +143,6 @@ void LteTestRrc::Start() {
   }
 
   m_nextPdu = Simulator::Schedule(m_arrivalTime, &LteTestRrc::Start, this);
-  //   Simulator::Run ();
 }
 
 void LteTestRrc::Stop() {
@@ -189,7 +153,6 @@ void LteTestRrc::Stop() {
 void LteTestRrc::SendData(Time at, std::string dataToSend) {
   NS_LOG_FUNCTION(this << at << dataToSend.length() << dataToSend);
 
-  // Stats
   m_txPdus++;
   m_txBytes += dataToSend.length();
 
@@ -204,8 +167,6 @@ void LteTestRrc::SendData(Time at, std::string dataToSend) {
   Simulator::Schedule(at, &LtePdcpSapProvider::TransmitPdcpSdu,
                       m_pdcpSapProvider, p);
 }
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId LteTestPdcp::GetTypeId() {
   static TypeId tid = TypeId("ns3::LteTestPdcp")
@@ -240,10 +201,6 @@ std::string LteTestPdcp::GetDataReceived() {
   return m_receivedData;
 }
 
-/**
- * RLC SAP
- */
-
 void LteTestPdcp::DoReceivePdcpPdu(Ptr<Packet> p) {
   NS_LOG_FUNCTION(this << p->GetSize());
   NS_LOG_LOGIC("Data = " << (*p));
@@ -257,10 +214,6 @@ void LteTestPdcp::DoReceivePdcpPdu(Ptr<Packet> p) {
 
   delete[] buf;
 }
-
-/**
- * START
- */
 
 void LteTestPdcp::Start() { NS_LOG_FUNCTION(this); }
 
@@ -278,8 +231,6 @@ void LteTestPdcp::SendData(Time time, std::string dataToSend) {
   Simulator::Schedule(time, &LteRlcSapProvider::TransmitPdcpPdu,
                       m_rlcSapProvider, p);
 }
-
-/////////////////////////////////////////////////////////////////////
 
 TypeId LteTestMac::GetTypeId() {
   static TypeId tid = TypeId("ns3::LteTestMac")
@@ -305,11 +256,6 @@ LteTestMac::LteTestMac() {
   m_txBytes = 0;
   m_rxPdus = 0;
   m_rxBytes = 0;
-
-  //   m_cmacSapProvider = new EnbMacMemberLteEnbCmacSapProvider (this);
-  //   m_schedSapUser = new EnbMacMemberFfMacSchedSapUser (this);
-  //   m_cschedSapUser = new EnbMacMemberFfMacCschedSapUser (this);
-  //   m_enbPhySapUser = new EnbMacMemberLteEnbPhySapUser (this);
 }
 
 LteTestMac::~LteTestMac() { NS_LOG_FUNCTION(this); }
@@ -317,10 +263,6 @@ LteTestMac::~LteTestMac() { NS_LOG_FUNCTION(this); }
 void LteTestMac::DoDispose() {
   NS_LOG_FUNCTION(this);
   delete m_macSapProvider;
-  //   delete m_cmacSapProvider;
-  //   delete m_schedSapUser;
-  //   delete m_cschedSapUser;
-  //   delete m_enbPhySapUser;
 
   m_device = nullptr;
 }
@@ -340,7 +282,6 @@ std::string LteTestMac::GetDataReceived() {
   return m_receivedData;
 }
 
-// Stats
 uint32_t LteTestMac::GetTxPdus() {
   NS_LOG_FUNCTION(this << m_txPdus);
   return m_txPdus;
@@ -427,10 +368,6 @@ void LteTestMac::SetTxOppSize(uint32_t txOppSize) {
   m_txOppSize = txOppSize;
 }
 
-/**
- * MAC SAP
- */
-
 void LteTestMac::DoTransmitPdu(
     LteMacSapProvider::TransmitPduParameters params) {
   NS_LOG_FUNCTION(this << params.pdu->GetSize());
@@ -452,25 +389,20 @@ void LteTestMac::DoTransmitPdu(
     LtePdcpHeader pdcpHeader;
 
     if (m_rlcHeaderType == AM_RLC_HEADER) {
-      // Remove AM RLC header
       LteRlcAmHeader rlcAmHeader;
       params.pdu->RemoveHeader(rlcAmHeader);
       NS_LOG_LOGIC("AM RLC header: " << rlcAmHeader);
-    } else // if (m_rlcHeaderType == UM_RLC_HEADER)
-    {
-      // Remove UM RLC header
+    } else {
       LteRlcHeader rlcHeader;
       params.pdu->RemoveHeader(rlcHeader);
       NS_LOG_LOGIC("UM RLC header: " << rlcHeader);
     }
 
-    // Remove PDCP header, if present
     if (m_pdcpHeaderPresent) {
       params.pdu->RemoveHeader(pdcpHeader);
       NS_LOG_LOGIC("PDCP header: " << pdcpHeader);
     }
 
-    // Copy data to a string
     uint32_t dataLen = params.pdu->GetSize();
     auto buf = new uint8_t[dataLen];
     params.pdu->CopyData(buf, dataLen);
@@ -487,7 +419,6 @@ void LteTestMac::DoReportBufferStatus(
                        << params.statusPduSize);
 
   if (m_txOpportunityMode == AUTOMATIC_MODE) {
-    // cancel all previously scheduled TxOpps
     for (auto it = m_nextTxOppList.begin(); it != m_nextTxOppList.end(); ++it) {
       it->Cancel();
     }

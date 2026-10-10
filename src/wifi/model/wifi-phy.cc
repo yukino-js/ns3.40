@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "wifi-phy.h"
 
@@ -32,7 +13,7 @@
 
 #include "ns3/channel.h"
 #include "ns3/dsss-phy.h"
-#include "ns3/eht-phy.h" //also includes OFDM, HT, VHT and HE
+#include "ns3/eht-phy.h"
 #include "ns3/erp-ofdm-phy.h"
 #include "ns3/error-model.h"
 #include "ns3/ht-configuration.h"
@@ -50,10 +31,6 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("WifiPhy");
-
-/****************************************************************
- *       The actual WifiPhy class
- ****************************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(WifiPhy);
 
@@ -307,7 +284,7 @@ TypeId WifiPhy::GetTypeId() {
               "PowerDensityLimit",
               "The mean equivalent isotropically radiated power density"
               "limit (in dBm/MHz) set by regulators.",
-              DoubleValue(100.0), // set to a high value so as to have no effect
+              DoubleValue(100.0),
               MakeDoubleAccessor(&WifiPhy::m_powerDensityLimit),
               MakeDoubleChecker<double>())
           .AddTraceSource("PhyTxBegin",
@@ -388,13 +365,6 @@ WifiPhy::~WifiPhy() { NS_LOG_FUNCTION(this); }
 
 void WifiPhy::DoInitialize() {
   NS_LOG_FUNCTION(this);
-
-  // This method ensures that the local mobility model pointer holds
-  // a pointer to the Node's aggregated mobility model (if one exists)
-  // in the case that the user has not directly called SetMobility()
-  // on this WifiPhy during simulation setup.  If the mobility model
-  // needs to be added or changed during simulation runtime, users must
-  // call SetMobility() on this object.
 
   if (!m_mobility) {
     NS_ABORT_MSG_UNLESS(
@@ -630,13 +600,9 @@ WifiPhy::GetPhyEntityForPpdu(const Ptr<const WifiPpdu> ppdu) const {
   NS_ABORT_IF(!ppdu);
   const auto modulation = ppdu->GetModulation();
   if (modulation > m_phyEntities.rbegin()->first) {
-    // unsupported modulation: start reception process with latest PHY entity
     return GetLatestPhyEntity();
   }
   if (modulation < WIFI_MOD_CLASS_HT) {
-    // for non-HT (duplicate), call the latest PHY entity since some extra
-    // processing can be done in PHYs implemented in HT and later (e.g. channel
-    // width selection for non-HT duplicates)
     return GetLatestPhyEntity();
   }
   return GetPhyEntity(modulation);
@@ -688,12 +654,9 @@ void WifiPhy::Configure80211a() {
   NS_LOG_FUNCTION(this);
   AddPhyEntity(WIFI_MOD_CLASS_OFDM, Create<OfdmPhy>());
 
-  // See Table 17-21 "OFDM PHY characteristics" of 802.11-2016
   SetSifs(MicroSeconds(16));
   SetSlot(MicroSeconds(9));
   SetPifs(GetSifs() + GetSlot());
-  // See Table 10-5 "Determination of the EstimatedAckTxTime based on properties
-  // of the PPDU causing the EIFS" of 802.11-2016
   m_ackTxTime = MicroSeconds(44);
 }
 
@@ -701,25 +664,16 @@ void WifiPhy::Configure80211b() {
   NS_LOG_FUNCTION(this);
   Ptr<DsssPhy> phyEntity = Create<DsssPhy>();
   AddPhyEntity(WIFI_MOD_CLASS_HR_DSSS, phyEntity);
-  AddPhyEntity(WIFI_MOD_CLASS_DSSS,
-               phyEntity); // when plain DSSS modes are used
+  AddPhyEntity(WIFI_MOD_CLASS_DSSS, phyEntity);
 
-  // See Table 16-4 "HR/DSSS PHY characteristics" of 802.11-2016
   SetSifs(MicroSeconds(10));
   SetSlot(MicroSeconds(20));
   SetPifs(GetSifs() + GetSlot());
-  // See Table 10-5 "Determination of the EstimatedAckTxTime based on properties
-  // of the PPDU causing the EIFS" of 802.11-2016
   m_ackTxTime = MicroSeconds(304);
 }
 
 void WifiPhy::Configure80211g() {
   NS_LOG_FUNCTION(this);
-  // See Table 18-5 "ERP characteristics" of 802.11-2016
-  // Slot time defaults to the "long slot time" of 20 us in the standard
-  // according to mixed 802.11b/g deployments.  Short slot time is enabled
-  // if the user sets the ShortSlotTimeSupported flag to true and when the BSS
-  // consists of only ERP STAs capable of supporting this option.
   Configure80211b();
   AddPhyEntity(WIFI_MOD_CLASS_ERP_OFDM, Create<ErpOfdmPhy>());
 }
@@ -729,7 +683,6 @@ void WifiPhy::Configure80211p() {
   if (GetChannelWidth() == 10) {
     AddPhyEntity(WIFI_MOD_CLASS_OFDM, Create<OfdmPhy>(OFDM_PHY_10_MHZ));
 
-    // See Table 17-21 "OFDM PHY characteristics" of 802.11-2016
     SetSifs(MicroSeconds(32));
     SetSlot(MicroSeconds(13));
     SetPifs(GetSifs() + GetSlot());
@@ -737,7 +690,6 @@ void WifiPhy::Configure80211p() {
   } else if (GetChannelWidth() == 5) {
     AddPhyEntity(WIFI_MOD_CLASS_OFDM, Create<OfdmPhy>(OFDM_PHY_5_MHZ));
 
-    // See Table 17-21 "OFDM PHY characteristics" of 802.11-2016
     SetSifs(MicroSeconds(64));
     SetSlot(MicroSeconds(21));
     SetPifs(GetSifs() + GetSlot());
@@ -756,8 +708,6 @@ void WifiPhy::Configure80211n() {
   }
   AddPhyEntity(WIFI_MOD_CLASS_HT, Create<HtPhy>(m_txSpatialStreams));
 
-  // See Table 10-5 "Determination of the EstimatedAckTxTime based on properties
-  // of the PPDU causing the EIFS" of 802.11-2016
   m_blockAckTxTime = MicroSeconds(68);
 }
 
@@ -795,12 +745,9 @@ void WifiPhy::ConfigureStandard(WifiStandard standard) {
   if (!m_operatingChannel.IsSet()) {
     NS_LOG_DEBUG("Setting the operating channel first");
     SetOperatingChannel(m_channelSettings);
-    // return because we are called back by SetOperatingChannel
     return;
   }
 
-  // this function is called when changing PHY band, hence we have to delete
-  // the previous PHY entities
   m_phyEntities.clear();
 
   switch (standard) {
@@ -884,7 +831,6 @@ void WifiPhy::SetOperatingChannel(const WifiPhyOperatingChannel &channel) {
 }
 
 void WifiPhy::SetOperatingChannel(const ChannelTuple &channelTuple) {
-  // the generic operator<< for tuples does not give a pretty result
   NS_LOG_FUNCTION(this << +std::get<0>(channelTuple)
                        << std::get<1>(channelTuple)
                        << static_cast<WifiPhyBand>(std::get<2>(channelTuple))
@@ -905,17 +851,14 @@ void WifiPhy::SetOperatingChannel(const ChannelTuple &channelTuple) {
   }
 
   if (delay.IsStrictlyNegative()) {
-    // switching channel is not possible now
     return;
   }
   if (delay.IsStrictlyPositive()) {
-    // switching channel has been postponed
     void (WifiPhy::*fp)(const ChannelTuple &) = &WifiPhy::SetOperatingChannel;
     Simulator::Schedule(delay, fp, this, channelTuple);
     return;
   }
 
-  // channel can be switched now.
   DoChannelSwitch();
 }
 
@@ -925,7 +868,6 @@ Time WifiPhy::GetDelayUntilChannelSwitch() {
   m_currentEvent = nullptr;
   m_currentPreambleEvents.clear();
   if (!IsInitialized()) {
-    // this is not channel switch, this is initialization
     NS_LOG_DEBUG("Before initialization, nothing to do");
     return Seconds(0);
   }
@@ -952,7 +894,7 @@ Time WifiPhy::GetDelayUntilChannelSwitch() {
     break;
   case WifiPhyState::SLEEP:
     NS_LOG_DEBUG("channel switching ignored in sleep mode");
-    delay = Seconds(-1); // negative value to indicate switching not possible
+    delay = Seconds(-1);
     break;
   default:
     NS_ASSERT(false);
@@ -965,7 +907,6 @@ Time WifiPhy::GetDelayUntilChannelSwitch() {
 void WifiPhy::DoChannelSwitch() {
   NS_LOG_FUNCTION(this);
 
-  // Update unspecified parameters with default values
   {
     auto &[number, width, band, primary20] = m_channelSettings;
     if (band == static_cast<int>(WIFI_PHY_BAND_UNSPECIFIED)) {
@@ -981,10 +922,6 @@ void WifiPhy::DoChannelSwitch() {
     }
   }
 
-  // We need to call SetStandard if this is the first time we set a channel or
-  // we are changing PHY band. Checking if the new PHY band is different than
-  // the previous one covers both cases because initially the PHY band is
-  // unspecified
   bool changingPhyBand =
       (static_cast<WifiPhyBand>(std::get<2>(m_channelSettings)) != m_band);
 
@@ -993,7 +930,6 @@ void WifiPhy::DoChannelSwitch() {
 
   m_band = static_cast<WifiPhyBand>(std::get<2>(m_channelSettings));
 
-  // check that the channel width is supported
   uint16_t chWidth = std::get<1>(m_channelSettings);
 
   if (m_device) {
@@ -1025,15 +961,7 @@ void WifiPhy::DoChannelSwitch() {
   }
 
   if (IsInitialized()) {
-    // notify channel switching
     m_state->SwitchToChannelSwitching(GetChannelSwitchDelay());
-    /*
-     * Needed here to be able to correctly sensed the medium for the first
-     * time after the switching. The actual switching is not performed until
-     * after m_channelSwitchDelay. Packets received during the switching
-     * state are added to the event list and are employed later to figure
-     * out the state of the medium after the switching.
-     */
   }
 }
 
@@ -1058,9 +986,7 @@ void WifiPhy::SetMaxSupportedTxSpatialStreams(uint8_t streams) {
     if (phyEntity != m_phyEntities.end()) {
       Ptr<HtPhy> htPhy = DynamicCast<HtPhy>(phyEntity->second);
       if (htPhy) {
-        htPhy->SetMaxSupportedNss(
-            m_txSpatialStreams); // this is essential to have the right MCSs
-                                 // configured
+        htPhy->SetMaxSupportedNss(m_txSpatialStreams);
       }
 
       if (!m_capabilitiesChangedCallback.IsNull()) {
@@ -1310,7 +1236,6 @@ void WifiPhy::NotifyMonitorSniffRx(Ptr<const WifiPsdu> psdu,
                                    uint16_t staId) {
   MpduInfo aMpdu;
   if (psdu->IsAggregate()) {
-    // Expand A-MPDU
     NS_ASSERT_MSG(
         txVector.IsAggregation(),
         "TxVector with aggregate flag expected here according to PSDU");
@@ -1321,9 +1246,7 @@ void WifiPhy::NotifyMonitorSniffRx(Ptr<const WifiPsdu> psdu,
     if (!m_phyMonitorSniffRxTrace.IsEmpty()) {
       aMpdu.type = (psdu->IsSingle()) ? SINGLE_MPDU : FIRST_MPDU_IN_AGGREGATE;
       for (size_t i = 0; i < nMpdus;) {
-        if (statusPerMpdu.at(
-                i)) // packet received without error, hand over to sniffer
-        {
+        if (statusPerMpdu.at(i)) {
           m_phyMonitorSniffRxTrace(psdu->GetAmpduSubframe(i), channelFreqMhz,
                                    txVector, aMpdu, signalNoise, staId);
         }
@@ -1348,7 +1271,6 @@ void WifiPhy::NotifyMonitorSniffTx(Ptr<const WifiPsdu> psdu,
                                    WifiTxVector txVector, uint16_t staId) {
   MpduInfo aMpdu;
   if (psdu->IsAggregate()) {
-    // Expand A-MPDU
     NS_ASSERT_MSG(
         txVector.IsAggregation(),
         "TxVector with aggregate flag expected here according to PSDU");
@@ -1386,12 +1308,6 @@ void WifiPhy::Send(Ptr<const WifiPsdu> psdu, const WifiTxVector &txVector) {
 
 void WifiPhy::Send(WifiConstPsduMap psdus, const WifiTxVector &txVector) {
   NS_LOG_FUNCTION(this << psdus << txVector);
-  /* Transmission can happen if:
-   *  - we are syncing on a packet. It is the responsibility of the
-   *    MAC layer to avoid doing this but the PHY does nothing to
-   *    prevent it.
-   *  - we are idle
-   */
   NS_ASSERT(!m_state->IsStateTx() && !m_state->IsStateSwitching());
   NS_ASSERT(m_endTxEvent.IsExpired());
 
@@ -1401,7 +1317,6 @@ void WifiPhy::Send(WifiConstPsduMap psdus, const WifiTxVector &txVector) {
 
   uint8_t nss = 0;
   if (txVector.IsMu()) {
-    // We do not support mixed OFDMA and MU-MIMO
     if (txVector.IsDlMuMimo()) {
       nss = txVector.GetNssTotal();
     } else {
@@ -1454,8 +1369,7 @@ void WifiPhy::Send(WifiConstPsduMap psdus, const WifiTxVector &txVector) {
 
   Ptr<WifiPpdu> ppdu = GetPhyEntity(txVector.GetModulationClass())
                            ->BuildPpdu(psdus, txVector, txDuration);
-  m_previouslyRxPpduUid =
-      UINT64_MAX; // reset (after creation of PPDU) to use it only once
+  m_previouslyRxPpduUid = UINT64_MAX;
 
   double txPowerW = DbmToW(GetTxPowerForTransmission(ppdu) + GetTxGain());
   NotifyTxBegin(psdus, txPowerW);
@@ -1473,8 +1387,8 @@ void WifiPhy::Send(WifiConstPsduMap psdus, const WifiTxVector &txVector) {
     ppdu->SetTruncatedTx();
   }
 
-  m_endTxEvent = Simulator::Schedule(txDuration, &WifiPhy::NotifyTxEnd, this,
-                                     psdus); // TODO: fix for MU
+  m_endTxEvent =
+      Simulator::Schedule(txDuration, &WifiPhy::NotifyTxEnd, this, psdus);
 
   StartTx(ppdu);
   ppdu->ResetTxVector();
@@ -1513,8 +1427,6 @@ void WifiPhy::StartReceivePreamble(Ptr<const WifiPpdu> ppdu,
   if (it != m_phyEntities.end()) {
     it->second->StartReceivePreamble(ppdu, rxPowersW, rxDuration);
   } else {
-    // TODO find a fallback PHY for receiving the PPDU (e.g. 11a for 11ax due to
-    // preamble structure)
     NS_LOG_DEBUG("Unsupported modulation received (" << modulation
                                                      << "), consider as noise");
     m_interference->Add(ppdu, rxDuration, rxPowersW);
@@ -1544,8 +1456,6 @@ bool WifiPhy::IsModeSupported(WifiMode mode) const {
 }
 
 WifiMode WifiPhy::GetDefaultMode() const {
-  // Start from oldest standards and move up (guaranteed by fact that
-  // WifModulationClass is ordered)
   for (const auto &phyEntity : m_phyEntities) {
     for (const auto &mode : *(phyEntity.second)) {
       return mode;
@@ -1567,8 +1477,7 @@ bool WifiPhy::IsMcsSupported(WifiModulationClass modulation,
 std::list<WifiMode> WifiPhy::GetModeList() const {
   std::list<WifiMode> list;
   for (const auto &phyEntity : m_phyEntities) {
-    if (!phyEntity.second->HandlesMcsModes()) // to exclude MCSs from search
-    {
+    if (!phyEntity.second->HandlesMcsModes()) {
       for (const auto &mode : *(phyEntity.second)) {
         list.emplace_back(mode);
       }
@@ -1581,8 +1490,7 @@ std::list<WifiMode> WifiPhy::GetModeList(WifiModulationClass modulation) const {
   std::list<WifiMode> list;
   const auto phyEntity = m_phyEntities.find(modulation);
   if (phyEntity != m_phyEntities.end()) {
-    if (!phyEntity->second->HandlesMcsModes()) // to exclude MCSs from search
-    {
+    if (!phyEntity->second->HandlesMcsModes()) {
       for (const auto &mode : *(phyEntity->second)) {
         list.emplace_back(mode);
       }
@@ -1594,9 +1502,7 @@ std::list<WifiMode> WifiPhy::GetModeList(WifiModulationClass modulation) const {
 uint16_t WifiPhy::GetNMcs() const {
   uint16_t numMcs = 0;
   for (const auto &phyEntity : m_phyEntities) {
-    if (phyEntity.second
-            ->HandlesMcsModes()) // to exclude non-MCS modes from search
-    {
+    if (phyEntity.second->HandlesMcsModes()) {
       numMcs += phyEntity.second->GetNumModes();
     }
   }
@@ -1606,9 +1512,7 @@ uint16_t WifiPhy::GetNMcs() const {
 std::list<WifiMode> WifiPhy::GetMcsList() const {
   std::list<WifiMode> list;
   for (const auto &phyEntity : m_phyEntities) {
-    if (phyEntity.second
-            ->HandlesMcsModes()) // to exclude non-MCS modes from search
-    {
+    if (phyEntity.second->HandlesMcsModes()) {
       for (const auto &mode : *(phyEntity.second)) {
         list.emplace_back(mode);
       }
@@ -1621,9 +1525,7 @@ std::list<WifiMode> WifiPhy::GetMcsList(WifiModulationClass modulation) const {
   std::list<WifiMode> list;
   auto phyEntity = m_phyEntities.find(modulation);
   if (phyEntity != m_phyEntities.end()) {
-    if (phyEntity->second
-            ->HandlesMcsModes()) // to exclude non-MCS modes from search
-    {
+    if (phyEntity->second->HandlesMcsModes()) {
       for (const auto &mode : *(phyEntity->second)) {
         list.emplace_back(mode);
       }
@@ -1671,9 +1573,7 @@ void WifiPhy::NotifyCcaBusy(const Ptr<const WifiPpdu> ppdu, Time duration) {
 
 void WifiPhy::AbortCurrentReception(WifiPhyRxfailureReason reason) {
   NS_LOG_FUNCTION(this << reason);
-  if (reason != OBSS_PD_CCA_RESET ||
-      m_currentEvent) // Otherwise abort has already been called previously
-  {
+  if (reason != OBSS_PD_CCA_RESET || m_currentEvent) {
     for (auto &phyEntity : m_phyEntities) {
       phyEntity.second->CancelAllEvents();
     }
@@ -1702,11 +1602,6 @@ void WifiPhy::AbortCurrentReception(WifiPhyRxfailureReason reason) {
 void WifiPhy::ResetCca(bool powerRestricted, double txPowerMaxSiso,
                        double txPowerMaxMimo) {
   NS_LOG_FUNCTION(this << powerRestricted << txPowerMaxSiso << txPowerMaxMimo);
-  // This method might be called multiple times when receiving TB PPDUs with a
-  // BSS color different than the one of the receiver. The first time this
-  // method is called, the call to AbortCurrentReception sets m_currentEvent to
-  // 0. Therefore, we need to check whether m_currentEvent is not 0 before
-  // executing the instructions below.
   if (m_currentEvent) {
     m_powerRestricted = powerRestricted;
     m_txPowerMaxSiso = txPowerMaxSiso;
@@ -1715,14 +1610,13 @@ void WifiPhy::ResetCca(bool powerRestricted, double txPowerMaxSiso,
     Simulator::Schedule(m_currentEvent->GetEndTime() - Simulator::Now(),
                         &WifiPhy::EndReceiveInterBss, this);
     Simulator::ScheduleNow(&WifiPhy::AbortCurrentReception, this,
-                           OBSS_PD_CCA_RESET); // finish processing field first
+                           OBSS_PD_CCA_RESET);
   }
 }
 
 double WifiPhy::GetTxPowerForTransmission(Ptr<const WifiPpdu> ppdu) const {
   NS_LOG_FUNCTION(this << m_powerRestricted << ppdu);
   const auto &txVector = ppdu->GetTxVector();
-  // Get transmit power before antenna gain
   double txPowerDbm;
   if (!m_powerRestricted) {
     txPowerDbm = GetPowerDbm(txVector.GetTxPowerLevel());
@@ -1736,18 +1630,15 @@ double WifiPhy::GetTxPowerForTransmission(Ptr<const WifiPpdu> ppdu) const {
     }
   }
 
-  // Apply power density constraint on EIRP
   uint16_t channelWidth = ppdu->GetTxChannelWidth();
   double txPowerDbmPerMhz =
-      (txPowerDbm + GetTxGain()) -
-      RatioToDb(channelWidth); // account for antenna gain since EIRP
+      (txPowerDbm + GetTxGain()) - RatioToDb(channelWidth);
   NS_LOG_INFO("txPowerDbm=" << txPowerDbm
                             << " with txPowerDbmPerMhz=" << txPowerDbmPerMhz
                             << " over " << channelWidth << " MHz");
   txPowerDbm =
       std::min(txPowerDbmPerMhz, m_powerDensityLimit) + RatioToDb(channelWidth);
-  txPowerDbm -=
-      GetTxGain(); // remove antenna gain since will be added right afterwards
+  txPowerDbm -= GetTxGain();
   NS_LOG_INFO("txPowerDbm=" << txPowerDbm
                             << " after applying m_powerDensityLimit="
                             << m_powerDensityLimit);
@@ -1756,7 +1647,6 @@ double WifiPhy::GetTxPowerForTransmission(Ptr<const WifiPpdu> ppdu) const {
 
 Ptr<const WifiPsdu>
 WifiPhy::GetAddressedPsduInPpdu(Ptr<const WifiPpdu> ppdu) const {
-  // TODO: wrapper. See if still needed
   return GetPhyEntityForPpdu(ppdu)->GetAddressedPsduInPpdu(ppdu);
 }
 

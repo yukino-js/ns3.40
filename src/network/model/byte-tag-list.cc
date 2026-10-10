@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "byte-tag-list.h"
 
 #include "ns3/atomic-counter.h"
@@ -36,39 +18,24 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("ByteTagList");
 
-/**
- * \ingroup packet
- *
- * \brief Internal representation of the byte tags stored in a packet.
- *
- * This structure is only used by ByteTagList and should not be accessed
- * directly.
- */
 struct ByteTagListData {
-  uint32_t size; //!< size of the data
+  uint32_t size;
 #ifdef NS3_MTP
   AtomicCounter count;
 #else
-  uint32_t count; //!< use counter (for smart deallocation)
+  uint32_t count;
 #endif
-  uint32_t dirty;  //!< number of bytes actually in use
-  uint8_t data[4]; //!< data
+  uint32_t dirty;
+  uint8_t data[4];
 };
 
 #ifdef USE_FREE_LIST
-/**
- * \ingroup packet
- *
- * \brief Container class for struct ByteTagListData
- *
- * Internal use only.
- */
 static class ByteTagListDataFreeList : public std::vector<ByteTagListData *> {
 public:
   ~ByteTagListDataFreeList();
-} g_freeList; //!< Container for struct ByteTagListData
+} g_freeList;
 
-static uint32_t g_maxSize = 0; //!< maximum data size (used for allocation)
+static uint32_t g_maxSize = 0;
 
 ByteTagListDataFreeList::~ByteTagListDataFreeList() {
   NS_LOG_FUNCTION(this);
@@ -77,7 +44,7 @@ ByteTagListDataFreeList::~ByteTagListDataFreeList() {
     delete[] buffer;
   }
 }
-#endif /* USE_FREE_LIST */
+#endif
 
 ByteTagList::Iterator::Item::Item(TagBuffer buf_) : buf(buf_) {
   NS_LOG_FUNCTION(this << &buf_);
@@ -224,8 +191,6 @@ void ByteTagList::RemoveAll() {
 
 ByteTagList::Iterator ByteTagList::BeginAll() const {
   NS_LOG_FUNCTION(this);
-  // I am not totally sure but I might need to use
-  // INT32_MIN instead of zero below.
   return Begin(0, OFFSET_MAX);
 }
 
@@ -333,7 +298,7 @@ void ByteTagList::Deallocate(ByteTagListData *data) {
   }
 }
 
-#else /* USE_FREE_LIST */
+#else
 
 ByteTagListData *ByteTagList::Allocate(uint32_t size) {
   NS_LOG_FUNCTION(this << size);
@@ -359,27 +324,24 @@ void ByteTagList::Deallocate(ByteTagListData *data) {
   }
 }
 
-#endif /* USE_FREE_LIST */
+#endif
 
 uint32_t ByteTagList::GetSerializedSize() const {
   NS_LOG_FUNCTION_NOARGS();
 
   uint32_t size = 0;
 
-  // Number of tags in list
-  size += 4; // numberOfTags
+  size += 4;
 
   ByteTagList::Iterator i = BeginAll();
   while (i.HasNext()) {
     ByteTagList::Iterator::Item item = i.Next();
 
-    // TypeId hash; ensure size is multiple of 4 bytes
     uint32_t hashSize = (sizeof(TypeId::hash_t) + 3) & (~3);
     size += hashSize;
 
-    size += 3 * 4; // size, start, end
+    size += 3 * 4;
 
-    // tag data; ensure size is multiple of 4 bytes
     uint32_t tagWordSize = (item.size + 3) & (~3);
     size += tagWordSize;
   }
@@ -409,7 +371,6 @@ uint32_t ByteTagList::Serialize(uint32_t *buffer, uint32_t maxSize) const {
 
     NS_LOG_INFO("Serializing " << item.tid);
 
-    // ensure size is multiple of 4 bytes for 4 byte boundaries
     uint32_t hashSize = (sizeof(TypeId::hash_t) + 3) & (~3);
     if (size + hashSize <= maxSize) {
       TypeId::hash_t tid = item.tid.GetHash();
@@ -441,7 +402,6 @@ uint32_t ByteTagList::Serialize(uint32_t *buffer, uint32_t maxSize) const {
       return 0;
     }
 
-    // ensure size is multiple of 4 bytes for 4 byte boundaries
     uint32_t tagWordSize = (item.size + 3) & (~3);
 
     if (size + tagWordSize <= maxSize) {
@@ -455,7 +415,6 @@ uint32_t ByteTagList::Serialize(uint32_t *buffer, uint32_t maxSize) const {
     (*numberOfTags)++;
   }
 
-  // Serialized successfully
   return 1;
 }
 
@@ -496,7 +455,6 @@ uint32_t ByteTagList::Deserialize(const uint32_t *buffer, uint32_t size) {
     TagBuffer buf = Add(tid, bufferSize, start, end);
     buf.Write(reinterpret_cast<const uint8_t *>(p), bufferSize);
 
-    // ensure 4 byte boundary
     uint32_t tagSizeBytes = (bufferSize + 3) & (~3);
     sizeCheck -= tagSizeBytes;
     p += tagSizeBytes / 4;
@@ -504,8 +462,6 @@ uint32_t ByteTagList::Deserialize(const uint32_t *buffer, uint32_t size) {
 
   NS_ASSERT(sizeCheck == 0);
 
-  // return zero if buffer did not
-  // contain a complete message
   return (sizeCheck != 0) ? 0 : 1;
 }
 

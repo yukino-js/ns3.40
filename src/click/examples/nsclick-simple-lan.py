@@ -1,35 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation;
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Authors: Lalith Suresh <suresh.lalith@gmail.com>
-# Modified by: Gabriel Ferreira <gabrielcarvfer@gmail.com>
-#
-
 import os.path
 
 from ns import ns
@@ -42,17 +10,14 @@ clickConfigFolder = os.path.dirname(__file__)
 csmaNodes = ns.NodeContainer()
 csmaNodes.Create(2)
 
-# Setup CSMA channel between the nodes
 csma = ns.CsmaHelper()
 csma.SetChannelAttribute("DataRate", ns.DataRateValue(ns.DataRate(5000000)))
 csma.SetChannelAttribute("Delay", ns.TimeValue(ns.MilliSeconds(2)))
 csmaDevices = csma.Install(csmaNodes)
 
-# Install normal internet stack on node B
 internet = ns.InternetStackHelper()
 internet.Install(csmaNodes.Get(1))
 
-# Install Click on node A
 clickinternet = ns.ClickInternetStackHelper()
 clickinternet.SetClickFile(
     csmaNodes.Get(0), clickConfigFolder + "/nsclick-lan-single-interface.click"
@@ -60,12 +25,10 @@ clickinternet.SetClickFile(
 clickinternet.SetRoutingTableElement(csmaNodes.Get(0), "rt")
 clickinternet.Install(csmaNodes.Get(0))
 
-# Configure IP addresses for the nodes
 ipv4 = ns.Ipv4AddressHelper()
 ipv4.SetBase("172.16.1.0", "255.255.255.0")
 ipv4.Assign(csmaDevices)
 
-# Configure traffic application and sockets
 LocalAddress = ns.InetSocketAddress(ns.Ipv4Address.GetAny(), 50000).ConvertTo()
 packetSinkHelper = ns.PacketSinkHelper("ns3::TcpSocketFactory", LocalAddress)
 recvapp = packetSinkHelper.Install(csmaNodes.Get(1))
@@ -89,7 +52,6 @@ appcont.Add(onOffHelper.Install(csmaNodes.Get(0)))
 appcont.Start(ns.Seconds(5.0))
 appcont.Stop(ns.Seconds(10.0))
 
-# For tracing
 csma.EnablePcap("nsclick-simple-lan", csmaDevices, False)
 
 ns.Simulator.Stop(ns.Seconds(20.0))

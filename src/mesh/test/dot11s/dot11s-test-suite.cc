@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pavel Boyko <boyko@iitp.ru>
- */
 #include "ns3/dot11s-mac-header.h"
 #include "ns3/hwmp-rtable.h"
 #include "ns3/ie-dot11s-peer-management.h"
@@ -28,16 +10,6 @@
 using namespace ns3;
 using namespace dot11s;
 
-/**
- * \ingroup mesh-test
- * \defgroup dot11s-test dot11s sub-module tests
- */
-
-/**
- * \ingroup dot11s-test
- *
- * \brief Built-in self test for MeshHeader
- */
 struct MeshHeaderTest : public TestCase {
   MeshHeaderTest() : TestCase("Dot11sMeshHeader roundtrip serialization") {}
 
@@ -89,39 +61,29 @@ void MeshHeaderTest::DoRun() {
   }
 }
 
-/**
- * \ingroup mesh-test
- *
- * \brief Unit test for HwmpRtable
- */
 class HwmpRtableTest : public TestCase {
 public:
   HwmpRtableTest();
   void DoRun() override;
 
 private:
-  /// Test Add apth and lookup path;
   void TestLookup();
 
-  /// Test add path and try to lookup after entry has expired
   void TestAddPath();
-  /// Test add path and try to lookup after entry has expired
   void TestExpire();
 
-  /// Test add precursors and find precursor list in rtable
   void TestPrecursorAdd();
-  /// Test add precursors and find precursor list in rtable
   void TestPrecursorFind();
 
 private:
-  Mac48Address dst;                     ///< destination address
-  Mac48Address hop;                     ///< hop address
-  uint32_t iface;                       ///< interface
-  uint32_t metric;                      ///< metric
-  uint32_t seqnum;                      ///< sequence number
-  Time expire;                          ///< expiration time
-  Ptr<HwmpRtable> table;                ///< tab;e
-  std::vector<Mac48Address> precursors; ///< precursors
+  Mac48Address dst;
+  Mac48Address hop;
+  uint32_t iface;
+  uint32_t metric;
+  uint32_t seqnum;
+  Time expire;
+  Ptr<HwmpRtable> table;
+  std::vector<Mac48Address> precursors;
 };
 
 HwmpRtableTest::HwmpRtableTest()
@@ -136,7 +98,6 @@ HwmpRtableTest::HwmpRtableTest()
 void HwmpRtableTest::TestLookup() {
   HwmpRtable::LookupResult correct(hop, iface, metric, seqnum);
 
-  // Reactive path
   table->AddReactivePath(dst, hop, iface, metric, expire, seqnum);
   NS_TEST_EXPECT_MSG_EQ((table->LookupReactive(dst) == correct), true,
                         "Reactive lookup works");
@@ -144,7 +105,6 @@ void HwmpRtableTest::TestLookup() {
   NS_TEST_EXPECT_MSG_EQ(table->LookupReactive(dst).IsValid(), false,
                         "Reactive lookup works");
 
-  // Proactive
   table->AddProactivePath(metric, dst, hop, iface, expire, seqnum);
   NS_TEST_EXPECT_MSG_EQ((table->LookupProactive() == correct), true,
                         "Proactive lookup works");
@@ -159,7 +119,6 @@ void HwmpRtableTest::TestAddPath() {
 }
 
 void HwmpRtableTest::TestExpire() {
-  // this is assumed to be called when path records are already expired
   HwmpRtable::LookupResult correct(hop, iface, metric, seqnum);
   NS_TEST_EXPECT_MSG_EQ((table->LookupReactiveExpired(dst) == correct), true,
                         "Reactive expiration works");
@@ -175,7 +134,6 @@ void HwmpRtableTest::TestExpire() {
 void HwmpRtableTest::TestPrecursorAdd() {
   for (auto i = precursors.begin(); i != precursors.end(); i++) {
     table->AddPrecursor(dst, iface, *i, Seconds(100));
-    // Check that duplicates are filtered
     table->AddPrecursor(dst, iface, *i, Seconds(100));
   }
 }
@@ -206,8 +164,6 @@ void HwmpRtableTest::DoRun() {
   Simulator::Destroy();
 }
 
-//-----------------------------------------------------------------------------
-/// Built-in self test for PeerLinkFrameStart
 struct PeerLinkFrameStartTest : public TestCase {
   PeerLinkFrameStartTest()
       : TestCase("PeerLinkFrames (open, confirm, close) unit tests") {}
@@ -253,11 +209,6 @@ void PeerLinkFrameStartTest::DoRun() {
   }
 }
 
-/**
- * \ingroup mesh-test
- *
- * \brief Dot11s Test Suite
- */
 class Dot11sTestSuite : public TestSuite {
 public:
   Dot11sTestSuite();
@@ -269,4 +220,4 @@ Dot11sTestSuite::Dot11sTestSuite() : TestSuite("devices-mesh-dot11s", UNIT) {
   AddTestCase(new PeerLinkFrameStartTest, TestCase::QUICK);
 }
 
-static Dot11sTestSuite g_dot11sTestSuite; ///< the test suite
+static Dot11sTestSuite g_dot11sTestSuite;

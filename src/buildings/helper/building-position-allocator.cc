@@ -1,24 +1,3 @@
-/*
- * Copyright (C)  2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- *         Michele Polese <michele.polese@gmail.com> for the
- * OutdoorPositionAllocator class
- */
 #include "building-position-allocator.h"
 
 #include "buildings-helper.h"
@@ -164,7 +143,6 @@ Vector OutdoorPositionAllocator::GetNext() const {
   Vector position = Vector(0, 0, 0);
 
   while (!outdoor && attempts < m_maxAttempts) {
-    // get a random position
     double x = m_x->GetValue();
     double y = m_y->GetValue();
     double z = m_z->GetValue();
@@ -297,8 +275,6 @@ SameRoomPositionAllocator::SameRoomPositionAllocator(NodeContainer c)
     : m_nodes(c) {
   m_rand = CreateObject<UniformRandomVariable>();
   m_nodeIt = m_nodes.Begin();
-  // this is needed to make sure the building models associated with c have been
-  // initialized
   for (auto it = m_nodes.Begin(); it != m_nodes.End(); ++it) {
     Ptr<MobilityModel> mm = (*it)->GetObject<MobilityModel>();
     NS_ASSERT_MSG(mm, "no mobility model aggregated to this node");

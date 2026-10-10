@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-test-interference.h"
 
@@ -52,20 +33,8 @@ void LteTestUlSchedulingCallback(LteInterferenceTestCase *testcase,
   testcase->UlScheduling(frameNo, subframeNo, rnti, mcs, sizeTb);
 }
 
-/**
- * TestSuite
- */
-
 LteInterferenceTestSuite::LteInterferenceTestSuite()
     : TestSuite("lte-interference", SYSTEM) {
-  // these two first test cases have a spectral efficiency that corresponds to
-  // CQI=0 (out of range)
-  // TODO: update the test conditions to handle out-of-range correctly
-  // AddTestCase (new LteInterferenceTestCase ("d1=50,
-  // d2=10",  50.000000, 10.000000,  0.040000, 0.040000,  0.010399, 0.010399, 0,
-  // 0), TestCase::QUICK); AddTestCase (new LteInterferenceTestCase ("d1=50,
-  // d2=20",  50.000000, 20.000000,  0.160000, 0.159998, 0.041154, 0.041153, 0,
-  // 0), TestCase::QUICK);
 
   AddTestCase(new LteInterferenceTestCase("d1=3000, d2=6000", 3000.000000,
                                           6000.000000, 3.844681, 1.714583,
@@ -113,15 +82,7 @@ LteInterferenceTestSuite::LteInterferenceTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteInterferenceTestSuite lteLinkAdaptationWithInterferenceTestSuite;
-
-/**
- * TestCase
- */
 
 LteInterferenceTestCase::LteInterferenceTestCase(std::string name, double d1,
                                                  double d2, double dlSinr,
@@ -150,11 +111,9 @@ void LteInterferenceTestCase::DoRun() {
   lteHelper->SetAttribute("UseIdealRrc", BooleanValue(false));
   lteHelper->SetAttribute("UsePdschForCqiGeneration", BooleanValue(true));
 
-  // Disable Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(false));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -163,26 +122,17 @@ void LteInterferenceTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  // the topology is the following:
-  //         d2
-  //  UE1-----------eNB2
-  //   |             |
-  // d1|             |d1
-  //   |     d2      |
-  //  eNB1----------UE2
-  //
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));   // eNB1
-  positionAlloc->Add(Vector(m_d2, m_d1, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, m_d1, 0.0));  // UE1
-  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));  // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(m_d2, m_d1, 0.0));
+  positionAlloc->Add(Vector(0.0, m_d1, 0.0));
+  positionAlloc->Add(Vector(m_d2, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -196,15 +146,10 @@ void LteInterferenceTestCase::DoRun() {
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate an EPS bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
-
-  // Use testing chunk processor in the PHY layer
-  // It will be used to test that the SNR is as intended
-  // we plug in two instances, one for DL and one for UL
 
   Ptr<LtePhy> ue1Phy = ueDevs1.Get(0)
                            ->GetObject<LteUeNetDevice>()
@@ -234,8 +179,6 @@ void LteInterferenceTestCase::DoRun() {
       "/NodeList/0/DeviceList/0/ComponentCarrierMap/*/LteEnbMac/UlScheduling",
       MakeBoundCallback(&LteTestUlSchedulingCallback, this));
 
-  // same as above for eNB2 and UE2
-
   Ptr<LtePhy> ue2Phy = ueDevs2.Get(0)
                            ->GetObject<LteUeNetDevice>()
                            ->GetPhy()
@@ -264,7 +207,6 @@ void LteInterferenceTestCase::DoRun() {
       "/NodeList/1/DeviceList/0/ComponentCarrierMap/*/LteEnbMac/UlScheduling",
       MakeBoundCallback(&LteTestUlSchedulingCallback, this));
 
-  // need to allow for RRC connection establishment + SRS
   Simulator::Stop(Seconds(0.100));
   Simulator::Run();
 
@@ -298,8 +240,6 @@ void LteInterferenceTestCase::DlScheduling(DlSchedulingCallbackInfo dlInfo) {
   NS_LOG_FUNCTION(dlInfo.frameNo << dlInfo.subframeNo << dlInfo.rnti
                                  << (uint32_t)dlInfo.mcsTb1 << dlInfo.sizeTb1
                                  << (uint32_t)dlInfo.mcsTb2 << dlInfo.sizeTb2);
-  // need to allow for RRC connection establishment + CQI feedback reception +
-  // persistent data transmission
   if (Simulator::Now() > MilliSeconds(65)) {
     NS_TEST_ASSERT_MSG_EQ((uint32_t)dlInfo.mcsTb1, (uint32_t)m_dlMcs,
                           "Wrong DL MCS ");
@@ -310,7 +250,6 @@ void LteInterferenceTestCase::UlScheduling(uint32_t frameNo,
                                            uint32_t subframeNo, uint16_t rnti,
                                            uint8_t mcs, uint16_t sizeTb) {
   NS_LOG_FUNCTION(frameNo << subframeNo << rnti << (uint32_t)mcs << sizeTb);
-  // need to allow for RRC connection establishment + SRS transmission
   if (Simulator::Now() > MilliSeconds(50)) {
     NS_TEST_ASSERT_MSG_EQ((uint32_t)mcs, (uint32_t)m_ulMcs, "Wrong UL MCS");
   }

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include <ns3/log.h>
 #include <ns3/lr-wpan-module.h>
@@ -31,28 +13,17 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("lr-wpan-collision-test");
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan Collision Test
- */
 class LrWpanCollisionTestCase : public TestCase {
 public:
   LrWpanCollisionTestCase();
   ~LrWpanCollisionTestCase() override;
 
-  /**
-   * \brief Function called when DataIndication is hit.
-   * \param params The MCPS params.
-   * \param p The packet.
-   */
   void DataIndication(McpsDataIndicationParams params, Ptr<Packet> p);
 
 private:
   void DoRun() override;
 
-  uint8_t m_rxPackets; //!< Rx packets counter.
+  uint8_t m_rxPackets;
 };
 
 LrWpanCollisionTestCase::LrWpanCollisionTestCase()
@@ -68,7 +39,6 @@ void LrWpanCollisionTestCase::DataIndication(McpsDataIndicationParams params,
 }
 
 void LrWpanCollisionTestCase::DoRun() {
-  // Create 3 nodes, and a NetDevice for each one
   Ptr<Node> n0 = CreateObject<Node>();
   Ptr<Node> n1 = CreateObject<Node>();
   Ptr<Node> n2 = CreateObject<Node>();
@@ -81,7 +51,6 @@ void LrWpanCollisionTestCase::DoRun() {
   dev1->SetAddress(Mac16Address("00:02"));
   dev2->SetAddress(Mac16Address("00:03"));
 
-  // Each device must be attached to the same channel
   Ptr<SingleModelSpectrumChannel> channel =
       CreateObject<SingleModelSpectrumChannel>();
   Ptr<LogDistancePropagationLossModel> propModel =
@@ -95,7 +64,6 @@ void LrWpanCollisionTestCase::DoRun() {
   dev1->SetChannel(channel);
   dev2->SetChannel(channel);
 
-  // To complete configuration, a LrWpanNetDevice must be added to a node
   n0->AddDevice(dev0);
   n1->AddDevice(dev1);
   n2->AddDevice(dev2);
@@ -108,14 +76,12 @@ void LrWpanCollisionTestCase::DoRun() {
 
   Ptr<ConstantPositionMobilityModel> sender1Mobility =
       CreateObject<ConstantPositionMobilityModel>();
-  // Configure position 10 m distance
   sender1Mobility->SetPosition(Vector(0, 1, 0));
   dev1->GetPhy()->SetMobility(sender1Mobility);
   n1->AggregateObject(sender1Mobility);
 
   Ptr<ConstantPositionMobilityModel> sender2Mobility =
       CreateObject<ConstantPositionMobilityModel>();
-  // Configure position 10 m distance
   sender2Mobility->SetPosition(Vector(30, 0, 0));
   dev2->GetPhy()->SetMobility(sender2Mobility);
   n2->AggregateObject(sender2Mobility);
@@ -123,7 +89,6 @@ void LrWpanCollisionTestCase::DoRun() {
   dev0->GetMac()->SetMcpsDataIndicationCallback(
       MakeCallback(&LrWpanCollisionTestCase::DataIndication, this));
 
-  // Disable first backoff
   dev0->GetCsmaCa()->SetMacMinBE(0);
   dev1->GetCsmaCa()->SetMacMinBE(0);
   dev2->GetCsmaCa()->SetMacMinBE(0);
@@ -137,9 +102,7 @@ void LrWpanCollisionTestCase::DoRun() {
   params.m_dstAddrMode = SHORT_ADDR;
   params.m_dstPanId = 0;
   params.m_msduHandle = 0;
-  // params.m_txOptions = TX_OPTION_ACK;
 
-  // First case: concurrent tx and no ACKs
   std::cout << "*** First test " << std::endl;
   m_rxPackets = 0;
   params.m_dstAddr = Mac16Address("00:02");
@@ -154,7 +117,6 @@ void LrWpanCollisionTestCase::DoRun() {
 
   NS_TEST_EXPECT_MSG_EQ(m_rxPackets, 0, "Not received a packet (as expected)");
 
-  // Second case: concurrent tx and ACKs
   std::cout << "*** Second test " << std::endl;
   m_rxPackets = 0;
   params.m_txOptions = TX_OPTION_ACK;
@@ -171,14 +133,9 @@ void LrWpanCollisionTestCase::DoRun() {
 
   NS_TEST_EXPECT_MSG_EQ(m_rxPackets, 1, "Received a packet (as expected)");
 
-  // Third case: two concurrent tx and no ACKs
   std::cout << "*** Third test " << std::endl;
   m_rxPackets = 0;
   params.m_txOptions = 0;
-
-  //  LogComponentEnable("LrWpanMac",LOG_LEVEL_ALL);
-  //  LogComponentEnable("LrWpanPhy",LOG_LEVEL_ALL);
-  //  LogComponentEnableAll (LOG_PREFIX_TIME);
 
   params.m_dstAddr = Mac16Address("00:01");
   Simulator::Schedule(Seconds(0.0001), &LrWpanMac::McpsDataRequest,
@@ -193,7 +150,6 @@ void LrWpanCollisionTestCase::DoRun() {
   std::cout << "m_rxPackets = " << int(m_rxPackets) << std::endl;
   NS_TEST_EXPECT_MSG_EQ(m_rxPackets, 1, "Received a packet (as expected)");
 
-  // Fourth case: two concurrent tx and ACKs
   std::cout << "*** Fourth test " << std::endl;
   m_rxPackets = 0;
   params.m_txOptions = TX_OPTION_ACK;
@@ -214,12 +170,6 @@ void LrWpanCollisionTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup lr-wpan-test
- * \ingroup tests
- *
- * \brief LrWpan Collision TestSuite
- */
 class LrWpanCollisionTestSuite : public TestSuite {
 public:
   LrWpanCollisionTestSuite();
@@ -230,5 +180,4 @@ LrWpanCollisionTestSuite::LrWpanCollisionTestSuite()
   AddTestCase(new LrWpanCollisionTestCase, TestCase::QUICK);
 }
 
-static LrWpanCollisionTestSuite
-    g_lrWpanCollisionTestSuite; //!< Static variable for test initialization
+static LrWpanCollisionTestSuite g_lrWpanCollisionTestSuite;

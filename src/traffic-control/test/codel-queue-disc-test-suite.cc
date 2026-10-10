@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2014 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N Nguyen <trucanh524@gmail.com>
- * Modified by:   Pasquale Imputato <p.imputato@gmail.com>
- *
- */
 
 #include "ns3/codel-queue-disc.h"
 #include "ns3/double.h"
@@ -30,10 +10,7 @@
 
 using namespace ns3;
 
-// The following code borrowed from Linux codel.h, for unit testing
 #define REC_INV_SQRT_BITS_ns3 (8 * sizeof(uint16_t))
-/* or sizeof_in_bits(rec_inv_sqrt) */
-/* needed shift to get a Q0.32 number from rec_inv_sqrt */
 #define REC_INV_SQRT_SHIFT_ns3 (32 - REC_INV_SQRT_BITS_ns3)
 
 static uint16_t _codel_Newton_step(uint16_t rec_inv_sqrt, uint32_t count) {
@@ -41,7 +18,7 @@ static uint16_t _codel_Newton_step(uint16_t rec_inv_sqrt, uint32_t count) {
   uint32_t invsqrt2 = ((uint64_t)invsqrt * invsqrt) >> 32;
   uint64_t val = (3LL << 32) - ((uint64_t)count * invsqrt2);
 
-  val >>= 2; /* avoid overflow in following multiply */
+  val >>= 2;
   val = (val * invsqrt) >> (32 - 2 + 1);
   return static_cast<uint16_t>(val >> REC_INV_SQRT_SHIFT_ns3);
 }
@@ -50,27 +27,11 @@ static uint32_t _reciprocal_scale(uint32_t val, uint32_t ep_ro) {
   return (uint32_t)(((uint64_t)val * ep_ro) >> 32);
 }
 
-// End Linux borrow
-
-/**
- * \ingroup traffic-control-test
- *
- * \brief Codel Queue Disc Test Item
- */
 class CodelQueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p packet
-   * \param addr address
-   * \param ecnCapable ECN capable
-   */
   CodelQueueDiscTestItem(Ptr<Packet> p, const Address &addr, bool ecnCapable);
   ~CodelQueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   CodelQueueDiscTestItem() = delete;
   CodelQueueDiscTestItem(const CodelQueueDiscTestItem &) = delete;
   CodelQueueDiscTestItem &operator=(const CodelQueueDiscTestItem &) = delete;
@@ -79,7 +40,7 @@ public:
   bool Mark() override;
 
 private:
-  bool m_ecnCapablePacket; ///< ECN capable packet?
+  bool m_ecnCapablePacket;
 };
 
 CodelQueueDiscTestItem::CodelQueueDiscTestItem(Ptr<Packet> p,
@@ -93,23 +54,13 @@ void CodelQueueDiscTestItem::AddHeader() {}
 
 bool CodelQueueDiscTestItem::Mark() { return m_ecnCapablePacket; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 1: simple enqueue/dequeue with no drops
- */
 class CoDelQueueDiscBasicEnqueueDequeue : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CoDelQueueDiscBasicEnqueueDequeue(QueueSizeUnit mode);
   void DoRun() override;
 
 private:
-  QueueSizeUnit m_mode; ///< mode
+  QueueSizeUnit m_mode;
 };
 
 CoDelQueueDiscBasicEnqueueDequeue::CoDelQueueDiscBasicEnqueueDequeue(
@@ -238,30 +189,14 @@ void CoDelQueueDiscBasicEnqueueDequeue::DoRun() {
       0, "There should be no packet drops according to CoDel algorithm");
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 2: enqueue with drops due to queue overflow
- */
 class CoDelQueueDiscBasicOverflow : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CoDelQueueDiscBasicOverflow(QueueSizeUnit mode);
   void DoRun() override;
 
 private:
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<CoDelQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  QueueSizeUnit m_mode; ///< mode
+  QueueSizeUnit m_mode;
 };
 
 CoDelQueueDiscBasicOverflow::CoDelQueueDiscBasicOverflow(QueueSizeUnit mode)
@@ -320,12 +255,6 @@ void CoDelQueueDiscBasicOverflow::Enqueue(Ptr<CoDelQueueDisc> queue,
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 3: NewtonStep unit test - test against explicit port of Linux
- * implementation
- */
 class CoDelQueueDiscNewtonStepTest : public TestCase {
 public:
   CoDelQueueDiscNewtonStepTest();
@@ -338,13 +267,10 @@ CoDelQueueDiscNewtonStepTest::CoDelQueueDiscNewtonStepTest()
 void CoDelQueueDiscNewtonStepTest::DoRun() {
   Ptr<CoDelQueueDisc> queue = CreateObject<CoDelQueueDisc>();
 
-  // Spot check a few points in the expected operational range of
-  // CoDelQueueDisc's m_count and m_recInvSqrt variables
   uint16_t result;
   for (uint16_t recInvSqrt = 0xff; recInvSqrt > 0; recInvSqrt /= 2) {
     for (uint32_t count = 1; count < 0xff; count *= 2) {
       result = queue->NewtonStep(recInvSqrt, count);
-      // Test that ns-3 value is exactly the same as the Linux value
       NS_TEST_ASSERT_MSG_EQ(
           _codel_Newton_step(recInvSqrt, count), result,
           "ns-3 NewtonStep() fails to match Linux equivalent");
@@ -352,23 +278,10 @@ void CoDelQueueDiscNewtonStepTest::DoRun() {
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 4: ControlLaw unit test - test against explicit port of Linux
- * implementation
- */
 class CoDelQueueDiscControlLawTest : public TestCase {
 public:
   CoDelQueueDiscControlLawTest();
   void DoRun() override;
-  /**
-   * Codel control law function
-   * \param t
-   * \param interval
-   * \param recInvSqrt
-   * \returns the codel control law
-   */
   uint32_t _codel_control_law(uint32_t t, uint32_t interval,
                               uint32_t recInvSqrt);
 };
@@ -376,20 +289,15 @@ public:
 CoDelQueueDiscControlLawTest::CoDelQueueDiscControlLawTest()
     : TestCase("ControlLaw arithmetic unit test") {}
 
-// The following code borrowed from Linux codel.h,
-// except the addition of queue parameter
 uint32_t CoDelQueueDiscControlLawTest::_codel_control_law(uint32_t t,
                                                           uint32_t interval,
                                                           uint32_t recInvSqrt) {
   return t + _reciprocal_scale(interval, recInvSqrt << REC_INV_SQRT_SHIFT_ns3);
 }
 
-// End Linux borrow
-
 void CoDelQueueDiscControlLawTest::DoRun() {
   Ptr<CoDelQueueDisc> queue = CreateObject<CoDelQueueDisc>();
 
-  // Check a few points within the operational range of ControlLaw
   uint32_t interval = queue->Time2CoDel(MilliSeconds(100));
 
   uint32_t codelTimeVal;
@@ -408,43 +316,17 @@ void CoDelQueueDiscControlLawTest::DoRun() {
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 5: enqueue/dequeue with drops according to CoDel algorithm
- */
 class CoDelQueueDiscBasicDrop : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CoDelQueueDiscBasicDrop(QueueSizeUnit mode);
   void DoRun() override;
 
 private:
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<CoDelQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /** Dequeue function
-   * \param queue the queue disc
-   * \param modeSize the mode size
-   */
   void Dequeue(Ptr<CoDelQueueDisc> queue, uint32_t modeSize);
-  /**
-   * Drop next tracer function
-   * \param oldVal the old value
-   * \param newVal the new value
-   */
   void DropNextTracer(uint32_t oldVal, uint32_t newVal);
-  QueueSizeUnit m_mode; ///< mode
-  uint32_t
-      m_dropNextCount; ///< count the number of times m_dropNext is recalculated
+  QueueSizeUnit m_mode;
+  uint32_t m_dropNextCount;
 };
 
 CoDelQueueDiscBasicDrop::CoDelQueueDiscBasicDrop(QueueSizeUnit mode)
@@ -453,8 +335,7 @@ CoDelQueueDiscBasicDrop::CoDelQueueDiscBasicDrop(QueueSizeUnit mode)
   m_dropNextCount = 0;
 }
 
-void CoDelQueueDiscBasicDrop::DropNextTracer(uint32_t /* oldVal */,
-                                             uint32_t /* newVal */) {
+void CoDelQueueDiscBasicDrop::DropNextTracer(uint32_t, uint32_t) {
   m_dropNextCount++;
 }
 
@@ -480,25 +361,18 @@ void CoDelQueueDiscBasicDrop::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // the dequeue should be successful in this interval
   Time waitUntilFirstDequeue = 2 * queue->GetTarget();
   Simulator::Schedule(waitUntilFirstDequeue, &CoDelQueueDiscBasicDrop::Dequeue,
                       this, queue, modeSize);
 
-  // This dequeue should cause a drop
   Time waitUntilSecondDequeue =
       waitUntilFirstDequeue + 2 * queue->GetInterval();
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicDrop::Dequeue,
                       this, queue, modeSize);
 
-  // Although we are in dropping state, it's not time for next drop
-  // the dequeue should not cause a drop
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicDrop::Dequeue,
                       this, queue, modeSize);
 
-  // In dropping time and it's time for next drop
-  // the dequeue should cause additional packet drops
   Simulator::Schedule(waitUntilSecondDequeue * 2,
                       &CoDelQueueDiscBasicDrop::Dequeue, this, queue, modeSize);
 
@@ -557,7 +431,7 @@ void CoDelQueueDiscBasicDrop::Dequeue(Ptr<CoDelQueueDisc> queue,
         NS_TEST_EXPECT_MSG_EQ(currentDropCount, 1,
                               "There should be 1 packet drop");
       }
-    } else if (initialDropCount > 0) { // In dropping state
+    } else if (initialDropCount > 0) {
       if (currentTime.GetMicroSeconds() < initialDropNext) {
         currentDropCount = queue->GetStats().GetNDroppedPackets(
             CoDelQueueDisc::TARGET_EXCEEDED_DROP);
@@ -590,50 +464,20 @@ void CoDelQueueDiscBasicDrop::Dequeue(Ptr<CoDelQueueDisc> queue,
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test 6: enqueue/dequeue with marks according to CoDel algorithm
- */
 class CoDelQueueDiscBasicMark : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param mode the mode
-   */
   CoDelQueueDiscBasicMark(QueueSizeUnit mode);
   void DoRun() override;
 
 private:
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   * \param ecnCapable ECN capable traffic
-   */
   void Enqueue(Ptr<CoDelQueueDisc> queue, uint32_t size, uint32_t nPkt,
                bool ecnCapable);
-  /** Dequeue function
-   * \param queue the queue disc
-   * \param modeSize the mode size
-   * \param testCase the test case number
-   */
   void Dequeue(Ptr<CoDelQueueDisc> queue, uint32_t modeSize, uint32_t testCase);
-  /**
-   * Drop next tracer function
-   * \param oldVal the old value
-   * \param newVal the new value
-   */
   void DropNextTracer(uint32_t oldVal, uint32_t newVal);
-  QueueSizeUnit m_mode; ///< mode
-  uint32_t
-      m_dropNextCount; ///< count the number of times m_dropNext is recalculated
-  uint32_t nPacketsBeforeFirstDrop; ///< Number of packets in the queue before
-                                    ///< first drop
-  uint32_t nPacketsBeforeFirstMark; ///< Number of packets in the queue before
-                                    ///< first mark
+  QueueSizeUnit m_mode;
+  uint32_t m_dropNextCount;
+  uint32_t nPacketsBeforeFirstDrop;
+  uint32_t nPacketsBeforeFirstMark;
 };
 
 CoDelQueueDiscBasicMark::CoDelQueueDiscBasicMark(QueueSizeUnit mode)
@@ -642,19 +486,12 @@ CoDelQueueDiscBasicMark::CoDelQueueDiscBasicMark(QueueSizeUnit mode)
   m_dropNextCount = 0;
 }
 
-void CoDelQueueDiscBasicMark::DropNextTracer(uint32_t /* oldVal */,
-                                             uint32_t /* newVal */) {
+void CoDelQueueDiscBasicMark::DropNextTracer(uint32_t, uint32_t) {
   m_dropNextCount++;
 }
 
 void CoDelQueueDiscBasicMark::DoRun() {
-  // Test is divided into 4 sub test cases:
-  // 1) Packets are not ECN capable.
-  // 2) Packets are ECN capable but marking due to exceeding CE threshold
-  // disabled 3) Some packets are ECN capable, with CE threshold set to 2ms. 4)
-  // Packets are ECN capable and CE threshold set to 2ms
 
-  // Test case 1
   Ptr<CoDelQueueDisc> queue = CreateObject<CoDelQueueDisc>();
   uint32_t pktSize = 1000;
   uint32_t modeSize = 0;
@@ -677,18 +514,14 @@ void CoDelQueueDiscBasicMark::DoRun() {
 
   queue->Initialize();
 
-  // Not-ECT traffic to induce packet drop
   Enqueue(queue, pktSize, 20, false);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any dropped packets in this interval
   Time waitUntilFirstDequeue = 2 * queue->GetTarget();
   Simulator::Schedule(waitUntilFirstDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 1);
 
-  // This dequeue should cause a packet to be dropped
   Time waitUntilSecondDequeue =
       waitUntilFirstDequeue + 2 * queue->GetInterval();
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
@@ -697,8 +530,6 @@ void CoDelQueueDiscBasicMark::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Test case 2, queue with ECN capable traffic for marking of packets instead
-  // of dropping
   queue = CreateObject<CoDelQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe(
@@ -710,28 +541,19 @@ void CoDelQueueDiscBasicMark::DoRun() {
 
   queue->Initialize();
 
-  // ECN capable traffic to induce packets to be marked
   Enqueue(queue, pktSize, 20, true);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any target exceeded marked packets in this interval
   Simulator::Schedule(waitUntilFirstDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 2);
 
-  // This dequeue should cause a packet to be marked
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 2);
 
-  // Although we are in dropping state, it's not time for next packet to be
-  // target exceeded marked the dequeue should not cause a packet to be target
-  // exceeded marked
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 2);
 
-  // In dropping time and it's time for next packet to be target exceeded marked
-  // the dequeue should cause additional packet to be target exceeded marked
   Simulator::Schedule(waitUntilSecondDequeue * 2,
                       &CoDelQueueDiscBasicMark::Dequeue, this, queue, modeSize,
                       2);
@@ -739,7 +561,6 @@ void CoDelQueueDiscBasicMark::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Test case 3, some packets are ECN capable, with CE threshold set to 2ms
   queue = CreateObject<CoDelQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe(
@@ -754,30 +575,20 @@ void CoDelQueueDiscBasicMark::DoRun() {
 
   queue->Initialize();
 
-  // First 3 packets in the queue are ecnCapable
   Enqueue(queue, pktSize, 3, true);
-  // Rest of the packet are not ecnCapable
   Enqueue(queue, pktSize, 17, false);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // Although the first dequeue occurs with a sojourn time above target
-  // there should not be any target exceeded marked packets in this interval
   Simulator::Schedule(waitUntilFirstDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 3);
 
-  // This dequeue should cause a packet to be marked
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 3);
 
-  // Although we are in dropping state, it's not time for next packet to be
-  // target exceeded marked the dequeue should not cause a packet to be target
-  // exceeded marked
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 3);
 
-  // In dropping time and it's time for next packet to be dropped as packets are
-  // not ECN capable the dequeue should cause packet to be dropped
   Simulator::Schedule(waitUntilSecondDequeue * 2,
                       &CoDelQueueDiscBasicMark::Dequeue, this, queue, modeSize,
                       3);
@@ -785,8 +596,6 @@ void CoDelQueueDiscBasicMark::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Test case 4, queue with ECN capable traffic and CeThreshold set for marking
-  // of packets instead of dropping
   queue = CreateObject<CoDelQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe(
@@ -801,27 +610,19 @@ void CoDelQueueDiscBasicMark::DoRun() {
 
   queue->Initialize();
 
-  // ECN capable traffic to induce packets to be marked
   Enqueue(queue, pktSize, 20, true);
   NS_TEST_ASSERT_MSG_EQ(queue->GetCurrentSize().GetValue(), 20 * modeSize,
                         "There should be 20 packets in queue.");
 
-  // The first dequeue occurs with a sojourn time below CE threshold
-  // there should not any be CE threshold exceeded marked packets
   Simulator::Schedule(MilliSeconds(1), &CoDelQueueDiscBasicMark::Dequeue, this,
                       queue, modeSize, 4);
 
-  // Sojourn time above CE threshold so this dequeue should cause a packet to be
-  // CE thershold exceeded marked
   Simulator::Schedule(MilliSeconds(3), &CoDelQueueDiscBasicMark::Dequeue, this,
                       queue, modeSize, 4);
 
-  // the dequeue should cause a packet to be CE threshold exceeded marked
   Simulator::Schedule(waitUntilFirstDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 4);
 
-  // In dropping time and it's time for next packet to be dropped but because of
-  // using ECN, packet should be marked
   Simulator::Schedule(waitUntilSecondDequeue, &CoDelQueueDiscBasicMark::Dequeue,
                       this, queue, modeSize, 4);
 
@@ -911,7 +712,7 @@ void CoDelQueueDiscBasicMark::Dequeue(Ptr<CoDelQueueDisc> queue,
               currentCeThreshMarkCount, 0,
               "There should not be any CE threshold exceeded marked packet");
         }
-      } else if (initialTargetMarkCount > 0) { // In dropping state
+      } else if (initialTargetMarkCount > 0) {
         if (currentTime.GetMicroSeconds() < initialDropNext) {
           currentDropCount = queue->GetStats().GetNDroppedPackets(
               CoDelQueueDisc::TARGET_EXCEEDED_DROP);
@@ -1005,7 +806,7 @@ void CoDelQueueDiscBasicMark::Dequeue(Ptr<CoDelQueueDisc> queue,
               currentCeThreshMarkCount, 1,
               "There should be 1 CE threshold exceeded marked packets");
         }
-      } else if (initialTargetMarkCount > 0) { // In dropping state
+      } else if (initialTargetMarkCount > 0) {
         if (currentTime.GetMicroSeconds() < initialDropNext) {
           currentDropCount = queue->GetStats().GetNDroppedPackets(
               CoDelQueueDisc::TARGET_EXCEEDED_DROP);
@@ -1101,7 +902,7 @@ void CoDelQueueDiscBasicMark::Dequeue(Ptr<CoDelQueueDisc> queue,
           NS_TEST_ASSERT_MSG_EQ(
               currentCeThreshMarkCount, 2,
               "There should be 2 CE threshold exceeded marked packets");
-        } else { // In dropping state
+        } else {
           currentDropCount = queue->GetStats().GetNDroppedPackets(
               CoDelQueueDisc::TARGET_EXCEEDED_DROP);
           currentCeThreshMarkCount = queue->GetStats().GetNMarkedPackets(
@@ -1120,37 +921,26 @@ void CoDelQueueDiscBasicMark::Dequeue(Ptr<CoDelQueueDisc> queue,
   }
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief CoDel Queue Disc Test Suite
- */
 static class CoDelQueueDiscTestSuite : public TestSuite {
 public:
   CoDelQueueDiscTestSuite() : TestSuite("codel-queue-disc", UNIT) {
-    // Test 1: simple enqueue/dequeue with no drops
     AddTestCase(new CoDelQueueDiscBasicEnqueueDequeue(QueueSizeUnit::PACKETS),
                 TestCase::QUICK);
     AddTestCase(new CoDelQueueDiscBasicEnqueueDequeue(QueueSizeUnit::BYTES),
                 TestCase::QUICK);
-    // Test 2: enqueue with drops due to queue overflow
     AddTestCase(new CoDelQueueDiscBasicOverflow(QueueSizeUnit::PACKETS),
                 TestCase::QUICK);
     AddTestCase(new CoDelQueueDiscBasicOverflow(QueueSizeUnit::BYTES),
                 TestCase::QUICK);
-    // Test 3: test NewtonStep() against explicit port of Linux implementation
     AddTestCase(new CoDelQueueDiscNewtonStepTest(), TestCase::QUICK);
-    // Test 4: test ControlLaw() against explicit port of Linux implementation
     AddTestCase(new CoDelQueueDiscControlLawTest(), TestCase::QUICK);
-    // Test 5: enqueue/dequeue with drops according to CoDel algorithm
     AddTestCase(new CoDelQueueDiscBasicDrop(QueueSizeUnit::PACKETS),
                 TestCase::QUICK);
     AddTestCase(new CoDelQueueDiscBasicDrop(QueueSizeUnit::BYTES),
                 TestCase::QUICK);
-    // Test 6: enqueue/dequeue with marks according to CoDel algorithm
     AddTestCase(new CoDelQueueDiscBasicMark(QueueSizeUnit::PACKETS),
                 TestCase::QUICK);
     AddTestCase(new CoDelQueueDiscBasicMark(QueueSizeUnit::BYTES),
                 TestCase::QUICK);
   }
-} g_coDelQueueTestSuite; ///< the test suite
+} g_coDelQueueTestSuite;

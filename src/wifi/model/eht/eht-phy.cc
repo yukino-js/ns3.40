@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 DERONNE SOFTWARE ENGINEERING
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "eht-phy.h"
 
@@ -30,31 +12,25 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("EhtPhy");
 
-/*******************************************************
- *       EHT PHY (P802.11be/D1.5)
- *******************************************************/
-
 // clang-format off
 
 const PhyEntity::PpduFormats EhtPhy::m_ehtPpduFormats {
-    { WIFI_PREAMBLE_EHT_MU, { WIFI_PPDU_FIELD_PREAMBLE,      // L-STF + L-LTF
-                              WIFI_PPDU_FIELD_NON_HT_HEADER, // L-SIG + RL-SIG
-                              WIFI_PPDU_FIELD_U_SIG,         // U-SIG
-                              WIFI_PPDU_FIELD_EHT_SIG,       // EHT-SIG
-                              WIFI_PPDU_FIELD_TRAINING,      // EHT-STF + EHT-LTFs
+    { WIFI_PREAMBLE_EHT_MU, { WIFI_PPDU_FIELD_PREAMBLE,
+                              WIFI_PPDU_FIELD_NON_HT_HEADER,
+                              WIFI_PPDU_FIELD_U_SIG,
+                              WIFI_PPDU_FIELD_EHT_SIG,
+                              WIFI_PPDU_FIELD_TRAINING,
                               WIFI_PPDU_FIELD_DATA } },
-    { WIFI_PREAMBLE_EHT_TB, { WIFI_PPDU_FIELD_PREAMBLE,      // L-STF + L-LTF
-                              WIFI_PPDU_FIELD_NON_HT_HEADER, // L-SIG + RL-SIG
-                              WIFI_PPDU_FIELD_U_SIG,         // U-SIG
-                              WIFI_PPDU_FIELD_TRAINING,      // EHT-STF + EHT-LTFs
+    { WIFI_PREAMBLE_EHT_TB, { WIFI_PPDU_FIELD_PREAMBLE,
+                              WIFI_PPDU_FIELD_NON_HT_HEADER,
+                              WIFI_PPDU_FIELD_U_SIG,
+                              WIFI_PPDU_FIELD_TRAINING,
                               WIFI_PPDU_FIELD_DATA } }
 };
 
 // clang-format on
 
-EhtPhy::EhtPhy(bool buildModeList /* = true */)
-    : HePhy(false) // don't add HE modes to list
-{
+EhtPhy::EhtPhy(bool buildModeList) : HePhy(false) {
   NS_LOG_FUNCTION(this << buildModeList);
   m_bssMembershipSelector = EHT_PHY;
   m_maxMcsIndexPerSs = 13;
@@ -80,9 +56,9 @@ WifiMode EhtPhy::GetSigMode(WifiPpduField field,
                             const WifiTxVector &txVector) const {
   switch (field) {
   case WIFI_PPDU_FIELD_U_SIG:
-    return GetSigAMode(); // U-SIG is similar to SIG-A
+    return GetSigAMode();
   case WIFI_PPDU_FIELD_EHT_SIG:
-    return GetSigBMode(txVector); // EHT-SIG is similar to SIG-B
+    return GetSigBMode(txVector);
   default:
     return HePhy::GetSigMode(field, txVector);
   }
@@ -92,8 +68,6 @@ WifiMode EhtPhy::GetSigBMode(const WifiTxVector &txVector) const {
   if (txVector.IsDlMu()) {
     return HePhy::GetSigBMode(txVector);
   }
-  // we get here in case of EHT SU transmission
-  // TODO fix the MCS used for EHT-SIG
   auto smallestMcs = std::min<uint8_t>(5, txVector.GetMode().GetMcsValue());
   return VhtPhy::GetVhtMcs(smallestMcs);
 }
@@ -102,10 +76,9 @@ Time EhtPhy::GetDuration(WifiPpduField field,
                          const WifiTxVector &txVector) const {
   switch (field) {
   case WIFI_PPDU_FIELD_U_SIG:
-    return GetSigADuration(
-        txVector.GetPreambleType()); // U-SIG is similar to SIG-A
+    return GetSigADuration(txVector.GetPreambleType());
   case WIFI_PPDU_FIELD_EHT_SIG:
-    return GetSigBDuration(txVector); // EHT-SIG is similar to SIG-B
+    return GetSigBDuration(txVector);
   case WIFI_PPDU_FIELD_SIG_A:
     [[fallthrough]];
   case WIFI_PPDU_FIELD_SIG_B:
@@ -178,9 +151,9 @@ PhyEntity::PhyFieldRxStatus EhtPhy::ProcessSig(Ptr<Event> event,
   NS_LOG_FUNCTION(this << *event << status << field);
   switch (field) {
   case WIFI_PPDU_FIELD_U_SIG:
-    return ProcessSigA(event, status); // U-SIG is similar to SIG-A
+    return ProcessSigA(event, status);
   case WIFI_PPDU_FIELD_EHT_SIG:
-    return ProcessSigB(event, status); // EHT-SIG is similar to SIG-B
+    return ProcessSigB(event, status);
   default:
     return HePhy::ProcessSig(event, status, field);
   }
@@ -295,7 +268,7 @@ uint64_t EhtPhy::GetPhyRate(uint8_t mcsValue, uint16_t channelWidth,
 }
 
 uint64_t EhtPhy::GetPhyRateFromTxVector(const WifiTxVector &txVector,
-                                        uint16_t staId /* = SU_STA_ID */) {
+                                        uint16_t staId) {
   uint16_t bw = txVector.GetChannelWidth();
   if (txVector.IsMu()) {
     bw = HeRu::GetBandwidth(txVector.GetRu(staId).GetRuType());
@@ -306,7 +279,7 @@ uint64_t EhtPhy::GetPhyRateFromTxVector(const WifiTxVector &txVector,
 }
 
 uint64_t EhtPhy::GetDataRateFromTxVector(const WifiTxVector &txVector,
-                                         uint16_t staId /* = SU_STA_ID */) {
+                                         uint16_t staId) {
   uint16_t bw = txVector.GetChannelWidth();
   if (txVector.IsMu()) {
     bw = HeRu::GetBandwidth(txVector.GetRu(staId).GetRuType());
@@ -357,9 +330,6 @@ uint64_t EhtPhy::CalculateNonHtReferenceRate(WifiCodeRate codeRate,
 
 namespace {
 
-/**
- * Constructor class for EHT modes
- */
 class ConstructorEht {
 public:
   ConstructorEht() {
@@ -367,6 +337,6 @@ public:
     ns3::WifiPhy::AddStaticPhyEntity(ns3::WIFI_MOD_CLASS_EHT,
                                      ns3::Create<ns3::EhtPhy>());
   }
-} g_constructor_eht; ///< the constructor for EHT modes
+} g_constructor_eht;
 
 } // namespace

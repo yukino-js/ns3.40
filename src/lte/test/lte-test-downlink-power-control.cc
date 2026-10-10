@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-test-downlink-power-control.h"
 
@@ -48,18 +29,10 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteDownlinkPowerControlTest");
 
-/**
- * TestSuite
- */
-
 LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
     : TestSuite("lte-downlink-power-control", SYSTEM) {
-  //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  //  LOG_LEVEL_DEBUG); LogComponentEnable ("LteDownlinkPowerControlTest",
-  //  logLevel);
   NS_LOG_INFO("Creating LteDownlinkPowerControlTestSuite");
 
-  // Spectrum helper test
   {
     std::vector<int> activeRbs_txpowdB30nrb6run1earfcn500(4);
     activeRbs_txpowdB30nrb6run1earfcn500[0] = 0;
@@ -106,7 +79,6 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                 TestCase::QUICK);
   }
   {
-    // if power for RB not present, but RB is active, use powerTx
     std::vector<int> activeRbs_txpowdB30nrb6run1earfcn500(4);
     activeRbs_txpowdB30nrb6run1earfcn500[0] = 0;
     activeRbs_txpowdB30nrb6run1earfcn500[1] = 2;
@@ -252,7 +224,6 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                 TestCase::QUICK);
   }
   {
-    // if power for RB not present, but RB is active, use powerTx
     std::vector<int> activeRbs_txpowdB30nrb25run1earfcn500(15);
     activeRbs_txpowdB30nrb25run1earfcn500[0] = 0;
     activeRbs_txpowdB30nrb25run1earfcn500[1] = 1;
@@ -342,7 +313,6 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                 TestCase::QUICK);
   }
 
-  // Downlink DATA and CONTROL channels power comparison
   AddTestCase(new LteDownlinkPowerControlTestCase(
                   false, LteRrcSap::PdschConfigDedicated::dB0,
                   "DataCtrlPowerDifference_noChange"),
@@ -380,7 +350,6 @@ LteDownlinkPowerControlTestSuite::LteDownlinkPowerControlTestSuite()
                   "DataCtrlPowerDifference_dB3"),
               TestCase::QUICK);
 
-  // RrcConnectionReconfiguration test
   AddTestCase(new LteDownlinkPowerControlRrcConnectionReconfigurationTestCase(
                   false, "RrcConnReconf-IdealRrc"),
               TestCase::QUICK);
@@ -399,15 +368,7 @@ double LteDownlinkPowerControlTestSuite::CalculateRbTxPower(double txPower,
   return rbTxpower;
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteDownlinkPowerControlTestSuite lteDownlinkPowerControlTestSuite;
-
-/**
- * TestCase Data
- */
 
 LteDownlinkPowerControlSpectrumValueTestCase::
     LteDownlinkPowerControlSpectrumValueTestCase(
@@ -449,33 +410,25 @@ void LteDownlinkPowerControlTestCase::DoRun() {
   Config::Reset();
   Config::SetDefault("ns3::LteHelper::UseIdealRrc", BooleanValue(false));
 
-  /**
-   * Simulation Topology
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   lteHelper->SetFfrAlgorithmType("ns3::LteFfrSimple");
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
   PointerValue tmp;
@@ -485,13 +438,9 @@ void LteDownlinkPowerControlTestCase::DoRun() {
   simpleFfrAlgorithm->ChangePdschConfigDedicated(m_changePdschConfigDedicated);
   simpleFfrAlgorithm->SetPdschConfigDedicated(m_pdschConfigDedicated);
 
-  // Activate the default EPS bearer
   EpsBearer::Qci q = EpsBearer::NGBR_VIDEO_TCP_DEFAULT;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
-
-  // Use testing chunk processor in the PHY layer
-  // It will be used to calculate data and ctrl power in downlink
 
   Ptr<LtePhy> ue1Phy =
       ueDevs.Get(0)->GetObject<LteUeNetDevice>()->GetPhy()->GetObject<LtePhy>();
@@ -589,33 +538,25 @@ void LteDownlinkPowerControlRrcConnectionReconfigurationTestCase::DoRun() {
   Config::SetDefault("ns3::LteHelper::UseIdealRrc",
                      BooleanValue(m_useIdealRrc));
 
-  /**
-   * Simulation Topology
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   lteHelper->SetFfrAlgorithmType("ns3::LteFfrSimple");
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
   PointerValue tmp;
@@ -627,7 +568,6 @@ void LteDownlinkPowerControlRrcConnectionReconfigurationTestCase::DoRun() {
   simpleFfrAlgorithm->ChangePdschConfigDedicated(true);
   simpleFfrAlgorithm->SetPdschConfigDedicated(pdschConfigDedicated);
 
-  // Activate the default EPS bearer
   EpsBearer::Qci q = EpsBearer::NGBR_VIDEO_TCP_DEFAULT;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);

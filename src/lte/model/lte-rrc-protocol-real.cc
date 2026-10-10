@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Nicola Baldo <nbaldo@cttc.es>
- *          Lluis Parcerisa <lparcerisa@cttc.cat>
- */
 
 #include "lte-rrc-protocol-real.h"
 
@@ -37,7 +18,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LteRrcProtocolReal");
 
-/// RRC real message delay
 const Time RRC_REAL_MSG_DELAY = MilliSeconds(0);
 
 NS_OBJECT_ENSURE_REGISTERED(LteUeRrcProtocolReal);
@@ -89,8 +69,6 @@ void LteUeRrcProtocolReal::DoSetup(LteUeRrcSapUser::SetupParameters params) {
 
 void LteUeRrcProtocolReal::DoSendRrcConnectionRequest(
     LteRrcSap::RrcConnectionRequest msg) {
-  // initialize the RNTI and get the EnbLteRrcSapProvider for the
-  // eNB we are currently attached to
   m_rnti = m_rrc->GetRnti();
   SetEnbRrcSapProvider();
 
@@ -131,8 +109,6 @@ void LteUeRrcProtocolReal::DoSendRrcConnectionSetupCompleted(
 
 void LteUeRrcProtocolReal::DoSendRrcConnectionReconfigurationCompleted(
     LteRrcSap::RrcConnectionReconfigurationCompleted msg) {
-  // re-initialize the RNTI and get the EnbLteRrcSapProvider for the
-  // eNB we are currently attached to
   m_rnti = m_rrc->GetRnti();
   SetEnbRrcSapProvider();
 
@@ -154,8 +130,6 @@ void LteUeRrcProtocolReal::DoSendRrcConnectionReconfigurationCompleted(
 
 void LteUeRrcProtocolReal::DoSendMeasurementReport(
     LteRrcSap::MeasurementReport msg) {
-  // re-initialize the RNTI and get the EnbLteRrcSapProvider for the
-  // eNB we are currently attached to
   m_rnti = m_rrc->GetRnti();
   SetEnbRrcSapProvider();
 
@@ -177,9 +151,6 @@ void LteUeRrcProtocolReal::DoSendMeasurementReport(
 void LteUeRrcProtocolReal::DoSendIdealUeContextRemoveRequest(uint16_t rnti) {
   NS_LOG_FUNCTION(this << rnti);
   uint16_t cellId = m_rrc->GetCellId();
-  // re-initialize the RNTI and get the EnbLteRrcSapProvider for the
-  // eNB we are currently attached to or attempting random access to
-  // a target eNB
   m_rnti = m_rrc->GetRnti();
 
   NS_LOG_DEBUG("RNTI " << rnti
@@ -187,9 +158,7 @@ void LteUeRrcProtocolReal::DoSendIdealUeContextRemoveRequest(uint16_t rnti) {
                        << cellId);
   NS_ABORT_MSG_IF(m_rnti != rnti, "RNTI mismatch");
 
-  SetEnbRrcSapProvider(); // the provider has to be reset since the cell might
-                          //  have changed due to handover
-  // ideally informing eNB
+  SetEnbRrcSapProvider();
   Simulator::Schedule(RRC_REAL_MSG_DELAY,
                       &LteEnbRrcSapProvider::RecvIdealUeContextRemoveRequest,
                       m_enbRrcSapProvider, rnti);
@@ -238,7 +207,6 @@ void LteUeRrcProtocolReal::SetEnbRrcSapProvider() {
 
   NS_LOG_DEBUG("RNTI " << m_rnti << " connected to cell " << cellId);
 
-  // walk list of all nodes to get the peer eNB
   Ptr<LteEnbNetDevice> enbDev;
   auto listEnd = NodeList::End();
   bool found = false;
@@ -265,28 +233,23 @@ void LteUeRrcProtocolReal::SetEnbRrcSapProvider() {
 }
 
 void LteUeRrcProtocolReal::DoReceivePdcpPdu(Ptr<Packet> p) {
-  // Get type of message received
   RrcDlCcchMessage rrcDlCcchMessage;
   p->PeekHeader(rrcDlCcchMessage);
 
-  // Declare possible headers to receive
   RrcConnectionReestablishmentHeader rrcConnectionReestablishmentHeader;
   RrcConnectionReestablishmentRejectHeader
       rrcConnectionReestablishmentRejectHeader;
   RrcConnectionSetupHeader rrcConnectionSetupHeader;
   RrcConnectionRejectHeader rrcConnectionRejectHeader;
 
-  // Declare possible messages
   LteRrcSap::RrcConnectionReestablishment rrcConnectionReestablishmentMsg;
   LteRrcSap::RrcConnectionReestablishmentReject
       rrcConnectionReestablishmentRejectMsg;
   LteRrcSap::RrcConnectionSetup rrcConnectionSetupMsg;
   LteRrcSap::RrcConnectionReject rrcConnectionRejectMsg;
 
-  // Deserialize packet and call member recv function with appropriate structure
   switch (rrcDlCcchMessage.GetMessageType()) {
   case 0:
-    // RrcConnectionReestablishment
     p->RemoveHeader(rrcConnectionReestablishmentHeader);
     rrcConnectionReestablishmentMsg =
         rrcConnectionReestablishmentHeader.GetMessage();
@@ -294,21 +257,16 @@ void LteUeRrcProtocolReal::DoReceivePdcpPdu(Ptr<Packet> p) {
         rrcConnectionReestablishmentMsg);
     break;
   case 1:
-    // RrcConnectionReestablishmentReject
     p->RemoveHeader(rrcConnectionReestablishmentRejectHeader);
     rrcConnectionReestablishmentRejectMsg =
         rrcConnectionReestablishmentRejectHeader.GetMessage();
-    // m_ueRrcSapProvider->RecvRrcConnectionReestablishmentReject
-    // (rrcConnectionReestablishmentRejectMsg);
     break;
   case 2:
-    // RrcConnectionReject
     p->RemoveHeader(rrcConnectionRejectHeader);
     rrcConnectionRejectMsg = rrcConnectionRejectHeader.GetMessage();
     m_ueRrcSapProvider->RecvRrcConnectionReject(rrcConnectionRejectMsg);
     break;
   case 3:
-    // RrcConnectionSetup
     p->RemoveHeader(rrcConnectionSetupHeader);
     rrcConnectionSetupMsg = rrcConnectionSetupHeader.GetMessage();
     m_ueRrcSapProvider->RecvRrcConnectionSetup(rrcConnectionSetupMsg);
@@ -318,19 +276,15 @@ void LteUeRrcProtocolReal::DoReceivePdcpPdu(Ptr<Packet> p) {
 
 void LteUeRrcProtocolReal::DoReceivePdcpSdu(
     LtePdcpSapUser::ReceivePdcpSduParameters params) {
-  // Get type of message received
   RrcDlDcchMessage rrcDlDcchMessage;
   params.pdcpSdu->PeekHeader(rrcDlDcchMessage);
 
-  // Declare possible headers to receive
   RrcConnectionReconfigurationHeader rrcConnectionReconfigurationHeader;
   RrcConnectionReleaseHeader rrcConnectionReleaseHeader;
 
-  // Declare possible messages to receive
   LteRrcSap::RrcConnectionReconfiguration rrcConnectionReconfigurationMsg;
   LteRrcSap::RrcConnectionRelease rrcConnectionReleaseMsg;
 
-  // Deserialize packet and call member recv function with appropriate structure
   switch (rrcDlDcchMessage.GetMessageType()) {
   case 4:
     params.pdcpSdu->RemoveHeader(rrcConnectionReconfigurationHeader);
@@ -342,7 +296,6 @@ void LteUeRrcProtocolReal::DoReceivePdcpSdu(
   case 5:
     params.pdcpSdu->RemoveHeader(rrcConnectionReleaseHeader);
     rrcConnectionReleaseMsg = rrcConnectionReleaseHeader.GetMessage();
-    // m_ueRrcSapProvider->RecvRrcConnectionRelease (rrcConnectionReleaseMsg);
     break;
   }
 }
@@ -395,7 +348,6 @@ LteUeRrcSapProvider *LteEnbRrcProtocolReal::GetUeRrcSapProvider(uint16_t rnti) {
 void LteEnbRrcProtocolReal::SetUeRrcSapProvider(uint16_t rnti,
                                                 LteUeRrcSapProvider *p) {
   auto it = m_enbRrcSapProviderMap.find(rnti);
-  // assign UE RRC only if the RNTI is found at eNB
   if (it != m_enbRrcSapProviderMap.end()) {
     it->second = p;
   }
@@ -405,56 +357,18 @@ void LteEnbRrcProtocolReal::DoSetupUe(
     uint16_t rnti, LteEnbRrcSapUser::SetupUeParameters params) {
   NS_LOG_FUNCTION(this << rnti);
 
-  // // walk list of all nodes to get the peer UE RRC SAP Provider
-  // Ptr<LteUeRrc> ueRrc;
-  // NodeList::Iterator listEnd = NodeList::End ();
-  // bool found = false;
-  // for (NodeList::Iterator i = NodeList::Begin (); (i != listEnd) && (found ==
-  // false); i++)
-  //   {
-  //     Ptr<Node> node = *i;
-  //     int nDevs = node->GetNDevices ();
-  //     for (int j = 0; j < nDevs; j++)
-  //       {
-  //         Ptr<LteUeNetDevice> ueDev = node->GetDevice (j)->GetObject
-  //         <LteUeNetDevice> (); if (!ueDev)
-  //           {
-  //             continue;
-  //           }
-  //         else
-  //           {
-  //             ueRrc = ueDev->GetRrc ();
-  //             if ((ueRrc->GetRnti () == rnti) && (ueRrc->GetCellId () ==
-  //             m_cellId))
-  //               {
-  //              found = true;
-  //              break;
-  //               }
-  //           }
-  //       }
-  //   }
-  // NS_ASSERT_MSG (found , " Unable to find UE with RNTI=" << rnti << "
-  // cellId=" << m_cellId); m_enbRrcSapProviderMap[rnti] =
-  // ueRrc->GetLteUeRrcSapProvider ();
-
-  // just create empty entry, the UeRrcSapProvider will be set by the
-  // ue upon connection request or connection reconfiguration
-  // completed
   m_enbRrcSapProviderMap[rnti] = nullptr;
 
-  // Store SetupUeParameters
   m_setupUeParametersMap[rnti] = params;
 
   LteEnbRrcSapProvider::CompleteSetupUeParameters completeSetupUeParameters;
   auto csupIt = m_completeSetupUeParametersMap.find(rnti);
   if (csupIt == m_completeSetupUeParametersMap.end()) {
-    // Create LteRlcSapUser, LtePdcpSapUser
     LteRlcSapUser *srb0SapUser = new RealProtocolRlcSapUser(this, rnti);
     LtePdcpSapUser *srb1SapUser =
         new LtePdcpSpecificLtePdcpSapUser<LteEnbRrcProtocolReal>(this);
     completeSetupUeParameters.srb0SapUser = srb0SapUser;
     completeSetupUeParameters.srb1SapUser = srb1SapUser;
-    // Store LteRlcSapUser, LtePdcpSapUser
     m_completeSetupUeParametersMap[rnti] = completeSetupUeParameters;
   } else {
     completeSetupUeParameters = csupIt->second;
@@ -476,7 +390,6 @@ void LteEnbRrcProtocolReal::DoRemoveUe(uint16_t rnti) {
 void LteEnbRrcProtocolReal::DoSendSystemInformation(
     uint16_t cellId, LteRrcSap::SystemInformation msg) {
   NS_LOG_FUNCTION(this << cellId);
-  // walk list of all nodes to get UEs with this cellId
   Ptr<LteUeRrc> ueRrc;
   for (auto i = NodeList::Begin(); i != NodeList::End(); ++i) {
     Ptr<Node> node = *i;
@@ -595,33 +508,6 @@ void LteEnbRrcProtocolReal::DoSendRrcConnectionReestablishmentReject(
 
 void LteEnbRrcProtocolReal::DoSendRrcConnectionRelease(
     uint16_t rnti, LteRrcSap::RrcConnectionRelease msg) {
-  // The code below is commented so RRC connection release can be sent in an
-  // ideal way
-  /*
-  Ptr<Packet> packet = Create<Packet> ();
-
-  RrcConnectionReleaseHeader rrcConnectionReleaseHeader;
-  rrcConnectionReleaseHeader.SetMessage (msg);
-
-  packet->AddHeader (rrcConnectionReleaseHeader);
-
-  LtePdcpSapProvider::TransmitPdcpSduParameters transmitPdcpSduParameters;
-  transmitPdcpSduParameters.pdcpSdu = packet;
-  transmitPdcpSduParameters.rnti = rnti;
-  transmitPdcpSduParameters.lcid = 1;
-
-  m_setupUeParametersMap[rnti].srb1SapProvider->TransmitPdcpSdu
-  (transmitPdcpSduParameters);
-  */
-  /**
-   * Send RRC connection release in an idle way to ensure UE goes
-   * to idle mode during handover failure and connection setup timeout.
-   * Implemented to avoid unnecessary triggering of assert msgs due to reception
-   * of msgs (SRS CQI reports) from UE after UE context is deleted at eNodeB.
-   * TODO: Detection of handover failure and connection setup timeout at UE,
-   * so that the RRC connection release can be sent through the physical channel
-   * again.
-   */
   NS_LOG_FUNCTION(this << rnti);
   Simulator::Schedule(RRC_REAL_MSG_DELAY,
                       &LteUeRrcSapProvider::RecvRrcConnectionRelease,
@@ -629,16 +515,13 @@ void LteEnbRrcProtocolReal::DoSendRrcConnectionRelease(
 }
 
 void LteEnbRrcProtocolReal::DoReceivePdcpPdu(uint16_t rnti, Ptr<Packet> p) {
-  // Get type of message received
   RrcUlCcchMessage rrcUlCcchMessage;
   p->PeekHeader(rrcUlCcchMessage);
 
-  // Declare possible headers to receive
   RrcConnectionReestablishmentRequestHeader
       rrcConnectionReestablishmentRequestHeader;
   RrcConnectionRequestHeader rrcConnectionRequestHeader;
 
-  // Deserialize packet and call member recv function with appropriate structure
   switch (rrcUlCcchMessage.GetMessageType()) {
   case 0:
     p->RemoveHeader(rrcConnectionReestablishmentRequestHeader);
@@ -661,11 +544,9 @@ void LteEnbRrcProtocolReal::DoReceivePdcpPdu(uint16_t rnti, Ptr<Packet> p) {
 
 void LteEnbRrcProtocolReal::DoReceivePdcpSdu(
     LtePdcpSapUser::ReceivePdcpSduParameters params) {
-  // Get type of message received
   RrcUlDcchMessage rrcUlDcchMessage;
   params.pdcpSdu->PeekHeader(rrcUlDcchMessage);
 
-  // Declare possible headers to receive
   MeasurementReportHeader measurementReportHeader;
   RrcConnectionReconfigurationCompleteHeader
       rrcConnectionReconfigurationCompleteHeader;
@@ -673,7 +554,6 @@ void LteEnbRrcProtocolReal::DoReceivePdcpSdu(
       rrcConnectionReestablishmentCompleteHeader;
   RrcConnectionSetupCompleteHeader rrcConnectionSetupCompleteHeader;
 
-  // Declare possible messages to receive
   LteRrcSap::MeasurementReport measurementReportMsg;
   LteRrcSap::RrcConnectionReconfigurationCompleted
       rrcConnectionReconfigurationCompleteMsg;
@@ -681,7 +561,6 @@ void LteEnbRrcProtocolReal::DoReceivePdcpSdu(
       rrcConnectionReestablishmentCompleteMsg;
   LteRrcSap::RrcConnectionSetupCompleted rrcConnectionSetupCompletedMsg;
 
-  // Deserialize packet and call member recv function with appropriate structure
   switch (rrcUlDcchMessage.GetMessageType()) {
   case 1:
     params.pdcpSdu->RemoveHeader(measurementReportHeader);
@@ -747,8 +626,6 @@ LteEnbRrcProtocolReal::DoDecodeHandoverCommand(Ptr<Packet> p) {
   LteRrcSap::RrcConnectionReconfiguration msg = h.GetMessage();
   return msg;
 }
-
-//////////////////////////////////////////////////////
 
 RealProtocolRlcSapUser::RealProtocolRlcSapUser(LteEnbRrcProtocolReal *pdcp,
                                                uint16_t rnti)

@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Ghada Badawy <gbadawy@gmail.com>
- *         Stefano Avallone <stavallo@unina.it>
- */
 
 #include "mpdu-aggregator.h"
 
@@ -80,10 +61,8 @@ void MpduAggregator::Aggregate(Ptr<const WifiMpdu> mpdu, Ptr<Packet> ampdu,
                                bool isSingle) {
   NS_LOG_FUNCTION(mpdu << ampdu << isSingle);
   NS_ASSERT(ampdu);
-  // if isSingle is true, then ampdu must be empty
   NS_ASSERT(!isSingle || ampdu->GetSize() == 0);
 
-  // pad the previous A-MPDU subframe if the A-MPDU is not empty
   if (ampdu->GetSize() > 0) {
     uint8_t padding = CalculatePadding(ampdu->GetSize());
 
@@ -93,12 +72,10 @@ void MpduAggregator::Aggregate(Ptr<const WifiMpdu> mpdu, Ptr<Packet> ampdu,
     }
   }
 
-  // add MPDU header and trailer
   Ptr<Packet> tmp = mpdu->GetPacket()->Copy();
   tmp->AddHeader(mpdu->GetHeader());
   AddWifiMacTrailer(tmp);
 
-  // add A-MPDU subframe header and MPDU to the A-MPDU
   AmpduSubframeHeader hdr =
       GetAmpduSubframeHeader(static_cast<uint16_t>(tmp->GetSize()), isSingle);
 
@@ -119,7 +96,6 @@ uint32_t MpduAggregator::GetMaxAmpduSize(Mac48Address recipient, uint8_t tid,
 
   AcIndex ac = QosUtilsMapTidToAc(tid);
 
-  // Find the A-MPDU max size configured on this device
   uint32_t maxAmpduSize = m_mac->GetMaxAmpduSize(ac);
 
   if (maxAmpduSize == 0) {
@@ -132,7 +108,6 @@ uint32_t MpduAggregator::GetMaxAmpduSize(Mac48Address recipient, uint8_t tid,
       m_mac->GetWifiRemoteStationManager(m_linkId);
   NS_ASSERT(stationManager);
 
-  // Retrieve the Capabilities elements advertised by the recipient
   Ptr<const HeCapabilities> heCapabilities =
       stationManager->GetStationHeCapabilities(recipient);
   Ptr<const VhtCapabilities> vhtCapabilities =
@@ -140,8 +115,6 @@ uint32_t MpduAggregator::GetMaxAmpduSize(Mac48Address recipient, uint8_t tid,
   Ptr<const HtCapabilities> htCapabilities =
       stationManager->GetStationHtCapabilities(recipient);
 
-  // Determine the constraint imposed by the recipient based on the PPDU
-  // format used to transmit the A-MPDU
   if (modulation >= WIFI_MOD_CLASS_HE) {
     NS_ABORT_MSG_IF(!heCapabilities, "HE Capabilities element not received");
 
@@ -154,8 +127,7 @@ uint32_t MpduAggregator::GetMaxAmpduSize(Mac48Address recipient, uint8_t tid,
     NS_ABORT_MSG_IF(!htCapabilities, "HT Capabilities element not received");
 
     maxAmpduSize = std::min(maxAmpduSize, htCapabilities->GetMaxAmpduLength());
-  } else // non-HT PPDU
-  {
+  } else {
     NS_LOG_DEBUG("A-MPDU aggregation is not available for non-HT PHYs");
 
     maxAmpduSize = 0;
@@ -193,16 +165,12 @@ MpduAggregator::GetNextAmpdu(Ptr<WifiMpdu> mpdu, WifiTxParameters &txParams,
   Ptr<QosTxop> qosTxop = m_mac->GetQosTxop(tid);
   NS_ASSERT(qosTxop);
 
-  // Have to make sure that the block ack agreement is established and A-MPDU is
-  // enabled
   if (m_mac->GetBaAgreementEstablishedAsOriginator(recipient, tid) &&
       GetMaxAmpduSize(recipient, tid,
                       txParams.m_txVector.GetModulationClass()) > 0) {
-    /* here is performed MPDU aggregation */
     Ptr<WifiMpdu> nextMpdu = mpdu;
 
     while (nextMpdu) {
-      // if we are here, nextMpdu can be aggregated to the A-MPDU.
       NS_LOG_DEBUG("Adding packet with sequence number "
                    << nextMpdu->GetHeader().GetSequenceNumber()
                    << " to A-MPDU, packet size = " << nextMpdu->GetSize()
@@ -210,22 +178,16 @@ MpduAggregator::GetNextAmpdu(Ptr<WifiMpdu> mpdu, WifiTxParameters &txParams,
 
       mpduList.push_back(nextMpdu);
 
-      // If allowed by the BA agreement, get the next MPDU
       auto peekedMpdu = qosTxop->PeekNextMpdu(m_linkId, tid, origRecipient,
                                               nextMpdu->GetOriginal());
       nextMpdu = nullptr;
 
       if (peekedMpdu) {
-        // PeekNextMpdu() does not return an MPDU that is beyond the transmit
-        // window
         NS_ASSERT(IsInWindow(peekedMpdu->GetHeader().GetSequenceNumber(),
                              qosTxop->GetBaStartingSequence(origRecipient, tid),
                              qosTxop->GetBaBufferSize(origRecipient, tid)));
 
         peekedMpdu = m_htFem->CreateAliasIfNeeded(peekedMpdu);
-        // get the next MPDU to aggregate, provided that the constraints on size
-        // and duration limit are met. Note that the returned MPDU differs from
-        // the peeked MPDU if A-MSDU aggregation is enabled.
         NS_LOG_DEBUG("Trying to aggregate another MPDU");
         nextMpdu = qosTxop->GetNextMpdu(m_linkId, peekedMpdu, txParams,
                                         availableTime, false);
@@ -233,8 +195,6 @@ MpduAggregator::GetNextAmpdu(Ptr<WifiMpdu> mpdu, WifiTxParameters &txParams,
     }
 
     if (mpduList.size() == 1) {
-      // return an empty vector if it was not possible to aggregate at least two
-      // MPDUs
       mpduList.clear();
     }
   }

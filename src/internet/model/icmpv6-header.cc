@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- *         Mehdi Benamor <benamor.mehdi@ensi.rnu.tn>
- *         David Gross <gdavid.devel@gmail.com>
- */
 
 #include "icmpv6-header.h"
 
@@ -100,7 +80,7 @@ uint32_t Icmpv6Header::Deserialize(Buffer::Iterator start) {
   m_code = i.ReadU8();
   m_checksum = i.ReadNtohU16();
 #if 0
-  i.ReadU32 (); /* padding */
+  i.ReadU32 ();
 #endif
   return GetSerializedSize();
 }
@@ -113,7 +93,7 @@ void Icmpv6Header::Serialize(Buffer::Iterator start) const {
   i.WriteU8(m_code);
   i.WriteU16(0);
 #if 0
-  i.WriteU32 (0); /* padding */
+  i.WriteU32 (0);
 #endif
 
   if (m_calcChecksum) {
@@ -140,15 +120,15 @@ void Icmpv6Header::CalculatePseudoHeaderChecksum(Ipv6Address src,
   it = buf.Begin();
 
   src.Serialize(tmp);
-  it.Write(tmp, 16); /* source IPv6 address */
+  it.Write(tmp, 16);
   dst.Serialize(tmp);
-  it.Write(tmp, 16);         /* destination IPv6 address */
-  it.WriteU16(0);            /* length */
-  it.WriteU8(length >> 8);   /* length */
-  it.WriteU8(length & 0xff); /* length */
-  it.WriteU16(0);            /* zero */
-  it.WriteU8(0);             /* zero */
-  it.WriteU8(protocol);      /* next header */
+  it.Write(tmp, 16);
+  it.WriteU16(0);
+  it.WriteU8(length >> 8);
+  it.WriteU8(length & 0xff);
+  it.WriteU16(0);
+  it.WriteU8(0);
+  it.WriteU8(protocol);
 
   it = buf.Begin();
   m_checksum = ~(it.CalculateIpChecksum(40));
@@ -184,11 +164,6 @@ Icmpv6NS::Icmpv6NS(Ipv6Address target) {
   SetReserved(0);
   SetIpv6Target(target);
   m_checksum = 0;
-
-  /* test */
-  /*
-     m_reserved = 0xdeadbeef;
-     */
 }
 
 Icmpv6NS::~Icmpv6NS() { NS_LOG_FUNCTION(this); }
@@ -933,9 +908,6 @@ void Icmpv6DestinationUnreachable::Print(std::ostream &os) const {
 
 uint32_t Icmpv6DestinationUnreachable::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  // The real size of the header is 8 + m_packet->GetSize ()
-  // HOWEVER we just serialize the first 8 bytes, as the rest is serialized
-  // separately.
   return 8;
 }
 
@@ -1028,9 +1000,6 @@ void Icmpv6TooBig::Print(std::ostream &os) const {
 
 uint32_t Icmpv6TooBig::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  // The real size of the header is 8 + m_packet->GetSize ()
-  // HOWEVER we just serialize the first 8 bytes, as the rest is serialized
-  // separately.
   return 8;
 }
 
@@ -1112,9 +1081,6 @@ void Icmpv6TimeExceeded::Print(std::ostream &os) const {
 
 uint32_t Icmpv6TimeExceeded::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  // The real size of the header is 8 + m_packet->GetSize ()
-  // HOWEVER we just serialize the first 8 bytes, as the rest is serialized
-  // separately.
   return 8;
 }
 
@@ -1207,9 +1173,6 @@ void Icmpv6ParameterError::Print(std::ostream &os) const {
 
 uint32_t Icmpv6ParameterError::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  // The real size of the header is 8 + m_packet->GetSize ()
-  // HOWEVER we just serialize the first 8 bytes, as the rest is serialized
-  // separately.
   return 8;
 }
 
@@ -1271,7 +1234,6 @@ TypeId Icmpv6OptionHeader::GetInstanceTypeId() const {
 
 Icmpv6OptionHeader::Icmpv6OptionHeader() {
   NS_LOG_FUNCTION(this);
-  /** \todo */
   m_type = 0;
   m_len = 0;
 }
@@ -1377,7 +1339,7 @@ void Icmpv6OptionMtu::Print(std::ostream &os) const {
 
 uint32_t Icmpv6OptionMtu::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  return 8; /* m_len = 1 so the real size is multiple by 8 */
+  return 8;
 }
 
 void Icmpv6OptionMtu::Serialize(Buffer::Iterator start) const {
@@ -1643,7 +1605,6 @@ uint32_t Icmpv6OptionLinkLayerAddress::Deserialize(Buffer::Iterator start) {
 
   SetType(i.ReadU8());
   SetLength(i.ReadU8());
-  // -fstrict-overflow sensitive, see bug 1868
   NS_ASSERT(GetLength() * 8 <= 32 + 2);
   i.Read(mac, (GetLength() * 8) - 2);
 
@@ -1701,7 +1662,6 @@ void Icmpv6OptionRedirected::Serialize(Buffer::Iterator start) const {
 
   i.WriteU8(GetType());
   i.WriteU8(GetLength());
-  // Reserved
   i.WriteU16(0);
   i.WriteU32(0);
 
@@ -1731,4 +1691,4 @@ uint32_t Icmpv6OptionRedirected::Deserialize(Buffer::Iterator start) {
   return GetSerializedSize();
 }
 
-} /* namespace ns3 */
+} // namespace ns3

@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2019 Ritsumeikan University, Shiga, Japan
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alberto Gallegos Ramonet
- *
- * Traceroute uses ICMPV4 echo messages to trace all the middle hops to a given
- * destination. It also shows the delay time it takes for a round trip to
- * complete for each set probe (default 3).
- *
- */
 
 #include "v4traceroute.h"
 
@@ -196,13 +173,9 @@ void V4TraceRoute::Receive(Ptr<Socket> socket) {
       Icmpv4TimeExceeded timeoutResp;
       p->RemoveHeader(timeoutResp);
 
-      // GetData () gets 64 bits of data, but the received packet
-      // only contains 32 bits of data.
       uint8_t data[8];
       timeoutResp.GetData(data);
 
-      // Get the 7th and 8th Octet to obtain the Sequence number from
-      // the original packet.
       uint16_t recvSeq;
       recvSeq = (uint16_t)data[7] << 0;
       recvSeq |= (uint16_t)data[6] << 8;
@@ -244,11 +217,6 @@ void V4TraceRoute::Receive(Ptr<Socket> socket) {
       }
     } else if (icmp.GetType() == Icmpv4Header::ICMPV4_ECHO_REPLY &&
                m_remote == realFrom.GetIpv4()) {
-      // When UDP is used, TraceRoute should stop until ICMPV4_DEST_UNREACH
-      // (with code (3) PORT_UNREACH) is received, however, the current
-      // ns-3 implementation does not include the UDP version of traceroute.
-      // The traceroute ICMP version (the current version) stops until max_ttl
-      // is reached or until an ICMP ECHO REPLY is received m_maxProbes times.
 
       Icmpv4Echo echo;
       p->RemoveHeader(echo);
@@ -313,12 +281,6 @@ void V4TraceRoute::Send() {
   m_seq++;
   echo.SetIdentifier(0);
 
-  //
-  // We must write quantities out in some form of network order.  Since there
-  // isn't an htonl to work with we just follow the convention in pcap traces
-  // (where any difference would show up anyway) and borrow that code.  Don't
-  // be too surprised when you see that this is a little endian convention.
-  //
   NS_ASSERT(m_size >= 16);
 
   Ptr<Packet> dataPacket = Create<Packet>(m_size);

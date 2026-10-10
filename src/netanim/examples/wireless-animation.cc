@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Vikas Pushkar (Adapted from third.cc)
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/basic-energy-source.h"
@@ -103,8 +74,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer csmaDevices;
   csmaDevices = csma.Install(csmaNodes);
 
-  // Mobility
-
   MobilityHelper mobility;
   mobility.SetPositionAllocator(
       "ns3::GridPositionAllocator", "MinX", DoubleValue(10.0), "MinY",
@@ -125,15 +94,10 @@ int main(int argc, char *argv[]) {
   energyModel->SetEnergySource(energySource);
   energySource->AppendDeviceEnergyModel(energyModel);
 
-  // aggregate energy source to node
   wifiApNode.Get(0)->AggregateObject(energySource);
-
-  // Install internet stack
 
   InternetStackHelper stack;
   stack.Install(allNodes);
-
-  // Install Ipv4 addresses
 
   Ipv4AddressHelper address;
   address.SetBase("10.1.1.0", "255.255.255.0");
@@ -147,8 +111,6 @@ int main(int argc, char *argv[]) {
   staInterfaces = address.Assign(staDevices);
   Ipv4InterfaceContainer apInterface;
   apInterface = address.Assign(apDevices);
-
-  // Install applications
 
   UdpEchoServerHelper echoServer(9);
   ApplicationContainer serverApps = echoServer.Install(csmaNodes.Get(1));
@@ -165,26 +127,25 @@ int main(int argc, char *argv[]) {
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
   Simulator::Stop(Seconds(15.0));
 
-  AnimationInterface anim("wireless-animation.xml"); // Mandatory
+  AnimationInterface anim("wireless-animation.xml");
   for (uint32_t i = 0; i < wifiStaNodes.GetN(); ++i) {
-    anim.UpdateNodeDescription(wifiStaNodes.Get(i), "STA"); // Optional
-    anim.UpdateNodeColor(wifiStaNodes.Get(i), 255, 0, 0);   // Optional
+    anim.UpdateNodeDescription(wifiStaNodes.Get(i), "STA");
+    anim.UpdateNodeColor(wifiStaNodes.Get(i), 255, 0, 0);
   }
   for (uint32_t i = 0; i < wifiApNode.GetN(); ++i) {
-    anim.UpdateNodeDescription(wifiApNode.Get(i), "AP"); // Optional
-    anim.UpdateNodeColor(wifiApNode.Get(i), 0, 255, 0);  // Optional
+    anim.UpdateNodeDescription(wifiApNode.Get(i), "AP");
+    anim.UpdateNodeColor(wifiApNode.Get(i), 0, 255, 0);
   }
   for (uint32_t i = 0; i < csmaNodes.GetN(); ++i) {
-    anim.UpdateNodeDescription(csmaNodes.Get(i), "CSMA"); // Optional
-    anim.UpdateNodeColor(csmaNodes.Get(i), 0, 0, 255);    // Optional
+    anim.UpdateNodeDescription(csmaNodes.Get(i), "CSMA");
+    anim.UpdateNodeColor(csmaNodes.Get(i), 0, 0, 255);
   }
 
-  anim.EnablePacketMetadata(); // Optional
+  anim.EnablePacketMetadata();
   anim.EnableIpv4RouteTracking("routingtable-wireless.xml", Seconds(0),
-                               Seconds(5),
-                               Seconds(0.25));         // Optional
-  anim.EnableWifiMacCounters(Seconds(0), Seconds(10)); // Optional
-  anim.EnableWifiPhyCounters(Seconds(0), Seconds(10)); // Optional
+                               Seconds(5), Seconds(0.25));
+  anim.EnableWifiMacCounters(Seconds(0), Seconds(10));
+  anim.EnableWifiPhyCounters(Seconds(0), Seconds(10));
   Simulator::Run();
   Simulator::Destroy();
   return 0;

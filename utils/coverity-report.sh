@@ -1,29 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2013 Lawrence Livermore National Laboratory
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation;
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
-
-#
-#  Do a coverity build and submit report
-#
-
 me=$(basename $0)
-
-# echo commands and output to a log file
 
 logf=coverity/coverity-build.log
 echo | tee $logf
@@ -61,7 +38,6 @@ useremail=$(hg showconfig ui.username |
 
 repoversion="$(basename $(dirname $PWD))@$(hg id -i)"
 
-# curl complains if this contains white space
 description="Coverity-mods"
 
 doo curl \

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- */
 
 #include "ipv6-extension-header.h"
 
@@ -146,7 +128,7 @@ void OptionField::AddOption(const Ipv6OptionHeader &option) {
   NS_LOG_LOGIC("need " << pad << " bytes padding");
   switch (pad) {
   case 0:
-    break; // no padding needed
+    break;
   case 1:
     AddOption(Ipv6OptionPad1Header());
     break;
@@ -284,7 +266,6 @@ Ipv6ExtensionFragmentHeader::Ipv6ExtensionFragmentHeader()
 Ipv6ExtensionFragmentHeader::~Ipv6ExtensionFragmentHeader() {}
 
 void Ipv6ExtensionFragmentHeader::SetOffset(uint16_t offset) {
-  // Clear the offset, and save the MF bit
   m_offset &= 1;
   m_offset |= offset & (~7);
 }
@@ -323,7 +304,6 @@ void Ipv6ExtensionFragmentHeader::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
 
   i.WriteU8(GetNextHeader());
-  // Fragment header does not carry an extension length
   i.WriteU8(0);
   i.WriteHtonU16(m_offset);
   i.WriteHtonU32(m_identification);
@@ -333,7 +313,6 @@ uint32_t Ipv6ExtensionFragmentHeader::Deserialize(Buffer::Iterator start) {
   Buffer::Iterator i = start;
 
   SetNextHeader(i.ReadU8());
-  // Fragment header does not carry an extension length
   i.ReadU8();
   m_offset = i.ReadNtohU16();
   m_identification = i.ReadNtohU32();
@@ -520,19 +499,13 @@ Ipv6ExtensionESPHeader::Ipv6ExtensionESPHeader() {}
 
 Ipv6ExtensionESPHeader::~Ipv6ExtensionESPHeader() {}
 
-void Ipv6ExtensionESPHeader::Print(std::ostream &os) const { /** \todo */ }
+void Ipv6ExtensionESPHeader::Print(std::ostream &os) const {}
 
-uint32_t Ipv6ExtensionESPHeader::GetSerializedSize() const {
-  /** \todo */
-  return 0;
-}
+uint32_t Ipv6ExtensionESPHeader::GetSerializedSize() const { return 0; }
 
-void Ipv6ExtensionESPHeader::Serialize(Buffer::Iterator start) const {
-  /** \todo */
-}
+void Ipv6ExtensionESPHeader::Serialize(Buffer::Iterator start) const {}
 
 uint32_t Ipv6ExtensionESPHeader::Deserialize(Buffer::Iterator start) {
-  /** \todo */
   return 0;
 }
 
@@ -552,20 +525,14 @@ Ipv6ExtensionAHHeader::Ipv6ExtensionAHHeader() {}
 
 Ipv6ExtensionAHHeader::~Ipv6ExtensionAHHeader() {}
 
-void Ipv6ExtensionAHHeader::Print(std::ostream &os) const { /** \todo */ }
+void Ipv6ExtensionAHHeader::Print(std::ostream &os) const {}
 
-uint32_t Ipv6ExtensionAHHeader::GetSerializedSize() const {
-  /** \todo */
-  return 0;
-}
+uint32_t Ipv6ExtensionAHHeader::GetSerializedSize() const { return 0; }
 
-void Ipv6ExtensionAHHeader::Serialize(Buffer::Iterator start) const {
-  /** \todo */
-}
+void Ipv6ExtensionAHHeader::Serialize(Buffer::Iterator start) const {}
 
 uint32_t Ipv6ExtensionAHHeader::Deserialize(Buffer::Iterator start) {
-  /** \todo */
   return 0;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "multi-link-element.h"
 
@@ -26,12 +8,7 @@
 
 namespace ns3 {
 
-/**
- * CommonInfoBasicMle
- */
-
 uint16_t CommonInfoBasicMle::GetPresenceBitmap() const {
-  // see Sec. 9.4.2.312.2.1 of 802.11be D1.5
   return (m_linkIdInfo.has_value() ? 0x0001 : 0x0) |
          (m_bssParamsChangeCount.has_value() ? 0x0002 : 0x0) |
          (m_mediumSyncDelayInfo.has_value() ? 0x0004 : 0x0) |
@@ -40,7 +17,7 @@ uint16_t CommonInfoBasicMle::GetPresenceBitmap() const {
 }
 
 uint8_t CommonInfoBasicMle::GetSize() const {
-  uint8_t ret = 7; // Common Info Length (1) + MLD MAC Address (6)
+  uint8_t ret = 7;
   ret += (m_linkIdInfo.has_value() ? 1 : 0);
   ret += (m_bssParamsChangeCount.has_value() ? 1 : 0);
   ret += (m_mediumSyncDelayInfo.has_value() ? 2 : 0);
@@ -50,7 +27,7 @@ uint8_t CommonInfoBasicMle::GetSize() const {
 }
 
 void CommonInfoBasicMle::Serialize(Buffer::Iterator &start) const {
-  start.WriteU8(GetSize()); // Common Info Length
+  start.WriteU8(GetSize());
   WriteTo(start, m_mldMacAddress);
   if (m_linkIdInfo.has_value()) {
     start.WriteU8(*m_linkIdInfo & 0x0f);
@@ -187,13 +164,9 @@ Time CommonInfoBasicMle::DecodeEmlsrTransitionDelay(uint8_t value) {
   return MicroSeconds(1 << (3 + value));
 }
 
-/**
- * MultiLinkElement
- */
 MultiLinkElement::MultiLinkElement(ContainingFrame frame)
     : m_containingFrame(frame),
-      m_commonInfo(std::in_place_type<std::monostate>) // initialize as UNSET
-{}
+      m_commonInfo(std::in_place_type<std::monostate>) {}
 
 MultiLinkElement::MultiLinkElement(Variant variant, ContainingFrame frame)
     : MultiLinkElement(frame) {
@@ -428,7 +401,6 @@ MultiLinkElement::PerStaProfileSubelement::PerStaProfileSubelement(
     : m_variant(perStaProfile.m_variant),
       m_staControl(perStaProfile.m_staControl),
       m_staMacAddress(perStaProfile.m_staMacAddress) {
-  // deep copy of the STA Profile field
   auto staProfileCopy = [&](auto &&frame) {
     using Ptr = std::decay_t<decltype(frame)>;
     if constexpr (std::is_same_v<Ptr, std::monostate>) {
@@ -444,7 +416,6 @@ MultiLinkElement::PerStaProfileSubelement::PerStaProfileSubelement(
 MultiLinkElement::PerStaProfileSubelement &
 MultiLinkElement::PerStaProfileSubelement::operator=(
     const PerStaProfileSubelement &perStaProfile) {
-  // check for self-assignment
   if (&perStaProfile == this) {
     return *this;
   }
@@ -453,7 +424,6 @@ MultiLinkElement::PerStaProfileSubelement::operator=(
   m_staControl = perStaProfile.m_staControl;
   m_staMacAddress = perStaProfile.m_staMacAddress;
 
-  // deep copy of the STA Profile field
   auto staProfileCopy = [&](auto &&frame) {
     using Ptr = std::decay_t<decltype(frame)>;
     if constexpr (std::is_same_v<Ptr, std::monostate>) {
@@ -469,7 +439,7 @@ MultiLinkElement::PerStaProfileSubelement::operator=(
 }
 
 void MultiLinkElement::PerStaProfileSubelement::SetLinkId(uint8_t linkId) {
-  m_staControl &= 0xfff0; // reset Link ID subfield in the STA Control field
+  m_staControl &= 0xfff0;
   m_staControl |= (linkId & 0x0f);
 }
 
@@ -562,12 +532,11 @@ MultiLinkElement::PerStaProfileSubelement::GetAssocResponse() const {
 }
 
 uint8_t MultiLinkElement::PerStaProfileSubelement::GetStaInfoLength() const {
-  uint8_t ret = 1; // STA Info Length
+  uint8_t ret = 1;
 
   if (HasStaMacAddress()) {
     ret += 6;
   }
-  // TODO add other subfields of the STA Info field
   return ret;
 }
 
@@ -578,7 +547,7 @@ MultiLinkElement::PerStaProfileSubelement::ElementId() const {
 
 uint16_t
 MultiLinkElement::PerStaProfileSubelement::GetInformationFieldSize() const {
-  uint16_t ret = 2; // STA Control field
+  uint16_t ret = 2;
 
   ret += GetStaInfoLength();
 
@@ -612,7 +581,6 @@ void MultiLinkElement::PerStaProfileSubelement::SerializeInformationField(
   if (HasStaMacAddress()) {
     WriteTo(start, m_staMacAddress);
   }
-  // TODO add other subfields of the STA Info field
   auto staProfileSerialize = [&](auto &&frame) {
     using T = std::decay_t<decltype(frame)>;
     if constexpr (std::is_same_v<T, std::monostate>) {
@@ -638,13 +606,12 @@ uint16_t MultiLinkElement::PerStaProfileSubelement::DeserializeInformationField(
   Buffer::Iterator i = start;
 
   m_staControl = i.ReadLsbtohU16();
-  i.ReadU8(); // STA Info Length
+  i.ReadU8();
 
   if (HasStaMacAddress()) {
     ReadFrom(i, m_staMacAddress);
   }
 
-  // TODO add other subfields of the STA Info field
   uint16_t count = i.GetDistanceFrom(start);
 
   NS_ASSERT_MSG(count <= length, "Bytes read (" << count
@@ -691,10 +658,8 @@ MultiLinkElement::GetPerStaProfile(std::size_t i) const {
 }
 
 uint16_t MultiLinkElement::GetInformationFieldSize() const {
-  uint16_t ret = 3; // ElementIdExt (1) + Multi-Link Control (2)
+  uint16_t ret = 3;
 
-  // add the Common Info field size (dependent on the Multi-Link Element
-  // variant)
   ret += std::visit(
       [](auto &&arg) -> uint8_t {
         using T = std::decay_t<decltype(arg)>;
@@ -716,7 +681,6 @@ uint16_t MultiLinkElement::GetInformationFieldSize() const {
 }
 
 void MultiLinkElement::SerializeInformationField(Buffer::Iterator start) const {
-  // serialize the Multi-Link Control and Common Info fields
   std::visit(
       [this, &start](auto &&arg) {
         using T = std::decay_t<decltype(arg)>;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-raw-socket-impl.h"
 
@@ -218,8 +200,7 @@ int Ipv6RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
     hdr.SetDestination(dst);
     SocketErrno err = ERROR_NOTERROR;
     Ptr<Ipv6Route> route = nullptr;
-    Ptr<NetDevice> oif =
-        m_boundnetdevice; // specify non-zero if bound to a specific device
+    Ptr<NetDevice> oif = m_boundnetdevice;
 
     if (!m_src.IsAny()) {
       int32_t index = ipv6->GetInterfaceForAddress(m_src);
@@ -232,9 +213,6 @@ int Ipv6RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
     if (route) {
       NS_LOG_LOGIC("Route exists");
       if (m_protocol == Icmpv6L4Protocol::GetStaticProtocolNumber()) {
-        /* calculate checksum here for ICMPv6 echo request (sent by ping6)
-         * as we cannot determine source IPv6 address at application level
-         */
         uint8_t type;
         p->CopyData(&type, sizeof(type));
         if (type == Icmpv6Header::ICMPV6_ECHO_REQUEST) {
@@ -253,7 +231,6 @@ int Ipv6RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
       } else {
         ipv6->Send(p, m_src, dst, m_protocol, route);
       }
-      // Return only payload size (as Linux does).
       NotifyDataSent(pktSize);
       NotifySend(GetTxAvailable());
       return pktSize;
@@ -278,7 +255,6 @@ Ptr<Packet> Ipv6RawSocketImpl::RecvFrom(uint32_t maxSize, uint32_t flags,
     return nullptr;
   }
 
-  /* get packet */
   Data data = m_data.front();
   m_data.pop_front();
   fromAddress = Inet6SocketAddress(data.fromIp, data.fromProtocol);
@@ -299,7 +275,6 @@ void Ipv6RawSocketImpl::Ipv6JoinGroup(
     std::vector<Ipv6Address> sourceAddresses) {
   NS_LOG_FUNCTION(this << address << &filterMode << &sourceAddresses);
 
-  // We can join only one multicast group (or change its params)
   NS_ASSERT_MSG((m_ipv6MulticastGroupAddress == address ||
                  m_ipv6MulticastGroupAddress.IsAny()),
                 "Can join only one IPv6 multicast group.");
@@ -309,7 +284,6 @@ void Ipv6RawSocketImpl::Ipv6JoinGroup(
   Ptr<Ipv6L3Protocol> ipv6l3 = m_node->GetObject<Ipv6L3Protocol>();
   if (ipv6l3) {
     if (filterMode == INCLUDE && sourceAddresses.empty()) {
-      // it is a leave
       if (m_boundnetdevice) {
         int32_t index = ipv6l3->GetInterfaceForDevice(m_boundnetdevice);
         NS_ASSERT_MSG(index >= 0, "Interface without a valid index");
@@ -318,7 +292,6 @@ void Ipv6RawSocketImpl::Ipv6JoinGroup(
         ipv6l3->RemoveMulticastAddress(address);
       }
     } else {
-      // it is a join or a modification
       if (m_boundnetdevice) {
         int32_t index = ipv6l3->GetInterfaceForDevice(m_boundnetdevice);
         NS_ASSERT_MSG(index >= 0, "Interface without a valid index");
@@ -367,18 +340,15 @@ bool Ipv6RawSocketImpl::ForwardUp(Ptr<const Packet> p, Ipv6Header hdr,
     Ptr<Packet> copy = p->Copy();
 
     if (m_protocol == Icmpv6L4Protocol::GetStaticProtocolNumber()) {
-      /* filter */
       Icmpv6Header icmpHeader;
       copy->PeekHeader(icmpHeader);
       uint8_t type = icmpHeader.GetType();
 
       if (Icmpv6FilterWillBlock(type)) {
-        /* packet filtered */
         return false;
       }
     }
 
-    // Should check via getsockopt ().
     if (IsRecvPktInfo()) {
       Ipv6PacketInfoTag tag;
       copy->RemovePacketTag(tag);
@@ -389,7 +359,6 @@ bool Ipv6RawSocketImpl::ForwardUp(Ptr<const Packet> p, Ipv6Header hdr,
       copy->AddPacketTag(tag);
     }
 
-    // Check only version 6 options
     if (IsIpv6RecvTclass()) {
       SocketIpv6TclassTag ipTclassTag;
       ipTclassTag.SetTclass(hdr.GetTrafficClass());
@@ -446,4 +415,4 @@ bool Ipv6RawSocketImpl::Icmpv6FilterWillBlock(uint8_t type) {
            (uint32_t(1) << ((type) & 31))) == 0);
 }
 
-} /* namespace ns3 */
+} // namespace ns3

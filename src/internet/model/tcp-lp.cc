@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Charitha Sangaraju <charitha29193@gmail.com>
- *          Nandita G <gm.nandita@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "tcp-lp.h"
 
@@ -92,7 +71,6 @@ void TcpLp::RttSample(Ptr<TcpSocketState> tcb) {
     return;
   }
 
-  /* record the next minimum owd */
   if (mowd < m_owdMin) {
     m_owdMin = mowd;
   }
@@ -110,12 +88,11 @@ void TcpLp::RttSample(Ptr<TcpSocketState> tcb) {
     }
   }
 
-  /* Calculation for Smoothed Owd */
   if (m_sOwd != 0) {
     mowd -= m_sOwd >> 3;
-    m_sOwd += mowd; /* owd = 7/8 owd + 1/8 new owd */
+    m_sOwd += mowd;
   } else {
-    m_sOwd = mowd << 3; /* owd = 1/8 new owd */
+    m_sOwd = mowd << 3;
   }
 }
 
@@ -128,19 +105,16 @@ void TcpLp::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
   }
 
   Time timestamp = Simulator::Now();
-  /* Calculation of inference time */
   if (timestamp.GetMilliSeconds() > tcb->m_rcvTimestampEchoReply) {
     m_inference = 3 * (timestamp - MilliSeconds(tcb->m_rcvTimestampEchoReply));
   }
 
-  /* Test if within inference */
   if (!m_lastDrop.IsZero() && (timestamp - m_lastDrop < m_inference)) {
     m_flag |= LP_WITHIN_INF;
   } else {
     m_flag &= ~LP_WITHIN_INF;
   }
 
-  /* Test if within threshold */
   if (m_sOwd >> 3 <= m_owdMin + 15 * (m_owdMax - m_owdMin) / 100) {
     m_flag |= LP_WITHIN_THR;
   } else {
@@ -155,19 +129,14 @@ void TcpLp::PktsAcked(Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
   m_owdMax = m_sOwd >> 2;
   m_owdMaxRsv = m_sOwd >> 2;
 
-  /* happened within inference
-   * drop congestion window to 1 */
   if (m_flag & LP_WITHIN_INF) {
     tcb->m_cWnd = 1U * tcb->m_segmentSize;
   }
 
-  /* happened after inference
-   * cut congestion window to half */
   else {
     tcb->m_cWnd = std::max(tcb->m_cWnd.Get() >> 1U, 1U * tcb->m_segmentSize);
   }
 
-  /* record this time of reduction of cwnd */
   m_lastDrop = timestamp;
 }
 

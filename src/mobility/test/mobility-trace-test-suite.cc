@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mitch Watrous (watrous@u.washington.edu)
- */
 
 #include "ns3/ascii-test.h"
 #include "ns3/double.h"
@@ -33,12 +15,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup mobility-test
- *
- * \brief Mobility Trace Test Case
- */
-
 class MobilityTraceTestCase : public TestCase {
 public:
   MobilityTraceTestCase();
@@ -54,9 +30,6 @@ MobilityTraceTestCase::MobilityTraceTestCase()
 MobilityTraceTestCase::~MobilityTraceTestCase() {}
 
 void MobilityTraceTestCase::DoRun() {
-  //***************************************************************************
-  // Create the new mobility trace.
-  //***************************************************************************
 
   NodeContainer sta;
   sta.Create(4);
@@ -71,7 +44,6 @@ void MobilityTraceTestCase::DoRun() {
       StringValue("ns3::ConstantRandomVariable[Constant=1.0]"), "Bounds",
       RectangleValue(Rectangle(0.0, 20.0, 0.0, 20.0)));
   mobility.Install(sta);
-  // Set mobility random number streams to fixed values
   mobility.AssignStreams(sta, 0);
 
   SetDataDir(NS_TEST_SOURCEDIR);
@@ -86,18 +58,8 @@ void MobilityTraceTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  //***************************************************************************
-  // Test the new mobility trace against the reference mobility trace.
-  //***************************************************************************
-
   NS_ASCII_TEST_EXPECT_EQ(testMobilityFilePath, referenceMobilityFilePath);
 }
-
-/**
- * \ingroup mobility-test
- *
- * \brief Mobility Trace Test Suite
- */
 
 class MobilityTraceTestSuite : public TestSuite {
 public:
@@ -109,8 +71,4 @@ MobilityTraceTestSuite::MobilityTraceTestSuite()
   AddTestCase(new MobilityTraceTestCase, TestCase::QUICK);
 }
 
-/**
- * \ingroup mobility-test
- * Static variable for test initialization
- */
 static MobilityTraceTestSuite mobilityTraceTestSuite;

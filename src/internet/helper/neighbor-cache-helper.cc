@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 ZHIHENG DONG
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Zhiheng Dong <dzh2077@gmail.com>
- */
 
 #include "neighbor-cache-helper.h"
 
@@ -254,7 +236,6 @@ void NeighborCacheHelper::PopulateNeighborEntriesIpv4(
           neighborDeviceInterface->GetAddress(m);
       if (netDeviceIfAddr.IsInSameSubnet(neighborDeviceIfAddr.GetLocal())) {
         Ptr<NetDevice> neighborDevice = neighborDeviceInterface->GetDevice();
-        // Add Arp entry of neighbor interface to current interface's Arp cache
         AddEntry(ipv4Interface, neighborDeviceIfAddr.GetAddress(),
                  neighborDevice->GetAddress());
       }
@@ -277,8 +258,6 @@ void NeighborCacheHelper::PopulateNeighborEntriesIpv6(
   }
   for (uint32_t n = 0; n < netDeviceAddresses; ++n) {
     Ipv6InterfaceAddress netDeviceIfAddr = ipv6Interface->GetAddress(n);
-    // Ignore if it is a linklocal address, which will be added along with the
-    // global address
     if (netDeviceIfAddr.GetScope() == Ipv6InterfaceAddress::LINKLOCAL ||
         netDeviceIfAddr.GetScope() == Ipv6InterfaceAddress::HOST) {
       NS_LOG_LOGIC("Skip the LINKLOCAL or LOCALHOST interface "
@@ -286,8 +265,6 @@ void NeighborCacheHelper::PopulateNeighborEntriesIpv6(
       continue;
     }
     for (uint32_t m = 0; m < neighborDeviceAddresses; ++m) {
-      // Ignore if it is a linklocal address, which will be added along with the
-      // global address
       Ipv6InterfaceAddress neighborDeviceIfAddr =
           neighborDeviceInterface->GetAddress(m);
       if (neighborDeviceIfAddr.GetScope() == Ipv6InterfaceAddress::LINKLOCAL ||
@@ -298,8 +275,6 @@ void NeighborCacheHelper::PopulateNeighborEntriesIpv6(
       }
       if (netDeviceIfAddr.IsInSameSubnet(neighborDeviceIfAddr.GetAddress())) {
         Ptr<NetDevice> neighborDevice = neighborDeviceInterface->GetDevice();
-        // Add neighbor's Ndisc entries of global address and linklocal address
-        // to current interface's Ndisc cache
         AddEntry(ipv6Interface, neighborDeviceIfAddr.GetAddress(),
                  neighborDevice->GetAddress());
         Ipv6InterfaceAddress neighborlinkLocalAddr =
@@ -431,7 +406,6 @@ void NeighborCacheHelper::UpdateCacheByIpv4AddressAdded(
           Ipv4InterfaceAddress neighborDeviceIfAddr =
               neighborInterface->GetAddress(m);
           if (ifAddr.IsInSameSubnet(neighborDeviceIfAddr.GetLocal())) {
-            // Add Arp entity of current interface to its neighbor's Arp cache
             AddEntry(neighborInterface, ifAddr.GetAddress(),
                      netDevice->GetAddress());
           }
@@ -491,7 +465,6 @@ void NeighborCacheHelper::UpdateCacheByIpv6AddressAdded(
           Ipv6InterfaceAddress neighborDeviceIfAddr =
               neighborInterface->GetAddress(m);
           if (ifAddr.IsInSameSubnet(neighborDeviceIfAddr.GetAddress())) {
-            // Add Arp entity of current interface to its neighbor's Arp cache
             AddEntry(neighborInterface, ifAddr.GetAddress(),
                      netDevice->GetAddress());
           }

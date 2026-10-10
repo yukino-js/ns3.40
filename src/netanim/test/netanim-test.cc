@@ -1,35 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: John Abraham <john.abraham@gatech.edu>
- * Contributions: Eugene Kalishenko <ydginster@gmail.com> (Open Source and Linux
- * Laboratory http://dev.osll.ru/)
- */
 
 #include "unistd.h"
 
@@ -47,46 +16,25 @@
 
 using namespace ns3;
 
-/**
- * \ingroup netanim
- * \ingroup tests
- * \defgroup netanim-test animation module tests
- */
-
-/**
- * \ingroup netanim-test
- *
- * \brief Abstract Animation Interface Test Case
- */
 class AbstractAnimationInterfaceTestCase : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param name testcase name
-   */
   AbstractAnimationInterfaceTestCase(std::string name);
-  /**
-   * \brief Destructor.
-   */
 
   ~AbstractAnimationInterfaceTestCase() override;
   void DoRun() override;
 
 protected:
-  NodeContainer m_nodes;      ///< the nodes
-  AnimationInterface *m_anim; ///< animation
+  NodeContainer m_nodes;
+  AnimationInterface *m_anim;
 
 private:
-  /// Prepare network function
   virtual void PrepareNetwork() = 0;
 
-  /// Check logic function
   virtual void CheckLogic() = 0;
 
-  /// Check file existence
   virtual void CheckFileExistence();
 
-  const char *m_traceFileName; ///< trace file name
+  const char *m_traceFileName;
 };
 
 AbstractAnimationInterfaceTestCase::AbstractAnimationInterfaceTestCase(
@@ -115,16 +63,8 @@ void AbstractAnimationInterfaceTestCase::CheckFileExistence() {
   unlink(m_traceFileName);
 }
 
-/**
- * \ingroup netanim-test
- *
- * \brief Animation Interface Test Case
- */
 class AnimationInterfaceTestCase : public AbstractAnimationInterfaceTestCase {
 public:
-  /**
-   * \brief Constructor.
-   */
   AnimationInterfaceTestCase();
 
 private:
@@ -177,17 +117,9 @@ void AnimationInterfaceTestCase::CheckLogic() {
                         "Expected 16 packets traced");
 }
 
-/**
- * \ingroup netanim-test
- *
- * \brief Animation Remaining Energy Test Case
- */
 class AnimationRemainingEnergyTestCase
     : public AbstractAnimationInterfaceTestCase {
 public:
-  /**
-   * \brief Constructor.
-   */
   AnimationRemainingEnergyTestCase();
 
 private:
@@ -195,9 +127,9 @@ private:
 
   void CheckLogic() override;
 
-  Ptr<BasicEnergySource> m_energySource;      ///< energy source
-  Ptr<SimpleDeviceEnergyModel> m_energyModel; ///< energy model
-  const double m_initialEnergy;               ///< initial energy
+  Ptr<BasicEnergySource> m_energySource;
+  Ptr<SimpleDeviceEnergyModel> m_energyModel;
+  const double m_initialEnergy;
 };
 
 AnimationRemainingEnergyTestCase::AnimationRemainingEnergyTestCase()
@@ -216,9 +148,7 @@ void AnimationRemainingEnergyTestCase::PrepareNetwork() {
   m_nodes.Create(1);
   AnimationInterface::SetConstantPosition(m_nodes.Get(0), 0, 10);
 
-  // aggregate energy source to node
   m_nodes.Get(0)->AggregateObject(m_energySource);
-  // once node's energy will be depleted according to the model
   Simulator::Stop(Seconds(1));
 }
 
@@ -232,15 +162,10 @@ void AnimationRemainingEnergyTestCase::CheckLogic() {
                             "Wrong remaining energy value was traced");
 }
 
-/**
- * \ingroup netanim-test
- *
- * \brief Animation Interface Test Suite
- */
 static class AnimationInterfaceTestSuite : public TestSuite {
 public:
   AnimationInterfaceTestSuite() : TestSuite("animation-interface", UNIT) {
     AddTestCase(new AnimationInterfaceTestCase(), TestCase::QUICK);
     AddTestCase(new AnimationRemainingEnergyTestCase(), TestCase::QUICK);
   }
-} g_animationInterfaceTestSuite; ///< the test suite
+} g_animationInterfaceTestSuite;

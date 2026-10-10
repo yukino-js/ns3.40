@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "mobility-model.h"
 
@@ -39,12 +21,11 @@ TypeId MobilityModel::GetTypeId() {
                         MakeVectorAccessor(&MobilityModel::SetPosition,
                                            &MobilityModel::GetPosition),
                         MakeVectorChecker())
-          .AddAttribute(
-              "Velocity", "The current velocity of the mobility model.",
-              TypeId::ATTR_GET,
-              VectorValue(Vector(0.0, 0.0, 0.0)), // ignored initial value.
-              MakeVectorAccessor(&MobilityModel::GetVelocity),
-              MakeVectorChecker())
+          .AddAttribute("Velocity",
+                        "The current velocity of the mobility model.",
+                        TypeId::ATTR_GET, VectorValue(Vector(0.0, 0.0, 0.0)),
+                        MakeVectorAccessor(&MobilityModel::GetVelocity),
+                        MakeVectorChecker())
           .AddTraceSource(
               "CourseChange",
               "The value of the position and/or velocity vector changed",
@@ -64,7 +45,6 @@ MobilityModel::GetPositionWithReference(const Vector &referencePosition) const {
   return DoGetPositionWithReference(referencePosition);
 }
 
-// Default implementation ignores referencePosition
 Vector MobilityModel::DoGetPositionWithReference(
     const Vector &referencePosition) const {
   return DoGetPosition();
@@ -92,7 +72,6 @@ int64_t MobilityModel::AssignStreams(int64_t start) {
   return DoAssignStreams(start);
 }
 
-// Default implementation does nothing
 int64_t MobilityModel::DoAssignStreams(int64_t start) { return 0; }
 
 } // namespace ns3

@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/brite-module.h"
 #include "ns3/core-module.h"
@@ -45,14 +17,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup brite-tests
- *
- * \brief BRITE topology structure Test
- *
- * Test that two brite topologies created with same seed value
- * produce same graph (not an exact test)
- */
 class BriteTopologyStructureTestCase : public TestCase {
 public:
   BriteTopologyStructureTestCase();
@@ -90,7 +54,6 @@ void BriteTopologyStructureTestCase::DoRun() {
   int numAsA = bthA.GetNAs();
   int numAsB = bthB.GetNAs();
 
-  // numAs should be 2 for the conf file in /src/brite/test/test.conf
   NS_TEST_ASSERT_MSG_EQ(numAsA, 2, "Number of AS for this topology must be 2");
   NS_TEST_ASSERT_MSG_EQ(numAsA, numAsB,
                         "Number of AS should be same for both test topologies");
@@ -108,13 +71,6 @@ void BriteTopologyStructureTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup brite-tests
- *
- * \brief BRITE topology function Test
- *
- * Test that packets can be send across a BRITE topology using UDP
- */
 class BriteTopologyFunctionTestCase : public TestCase {
 public:
   BriteTopologyFunctionTestCase();
@@ -149,14 +105,12 @@ void BriteTopologyFunctionTestCase::DoRun() {
   source.Create(1);
   stack.Install(source);
 
-  // install source node on last leaf node of AS 0
   int numNodesInAsZero = bth.GetNNodesForAs(0);
   source.Add(bth.GetNodeForAs(0, numNodesInAsZero - 1));
 
   sink.Create(1);
   stack.Install(sink);
 
-  // install sink node on last leaf node on AS 1
   int numNodesInAsOne = bth.GetNNodesForAs(1);
   sink.Add(bth.GetNodeForAs(1, numNodesInAsOne - 1));
 
@@ -207,17 +161,10 @@ void BriteTopologyFunctionTestCase::DoRun() {
   Simulator::Run();
 
   Ptr<PacketSink> sink1 = DynamicCast<PacketSink>(apps.Get(0));
-  // NS_TEST_ASSERT_MSG_EQ (sink1->GetTotalRx (), 6656, "Not all packets
-  // received from source");
 
   Simulator::Destroy();
 }
 
-/**
- * \ingroup brite-tests
- *
- * \brief BRITE TestSuite
- */
 class BriteTestSuite : public TestSuite {
 public:
   BriteTestSuite() : TestSuite("brite-testing", UNIT) {
@@ -226,5 +173,4 @@ public:
   }
 };
 
-/// Static variable for test initialization
 static BriteTestSuite g_briteTestSuite;

@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:
- *  Mathieu Lacage <mathieu.lacage@sophia.inria.fr>,
- */
 
 #include "node-list.h"
 
@@ -32,76 +13,32 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("NodeList");
 
-/**
- * \ingroup network
- * \brief private implementation detail of the NodeList API.
- */
 class NodeListPriv : public Object {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   NodeListPriv();
   ~NodeListPriv() override;
 
-  /**
-   * \param node node to add
-   * \returns index of node in list.
-   *
-   * This method is called automatically from Node::Node so
-   * the user has little reason to call it himself.
-   */
   uint32_t Add(Ptr<Node> node);
 
-  /**
-   * \returns a C++ iterator located at the beginning of this
-   *          list.
-   */
   NodeList::Iterator Begin() const;
 
-  /**
-   * \returns a C++ iterator located at the end of this
-   *          list.
-   */
   NodeList::Iterator End() const;
 
-  /**
-   * \param n index of requested node.
-   * \returns the Node associated to index n.
-   */
   Ptr<Node> GetNode(uint32_t n);
 
-  /**
-   * \returns the number of nodes currently in the list.
-   */
   uint32_t GetNNodes();
 
-  /**
-   * \brief Get the node list object
-   * \returns the node list
-   */
   static Ptr<NodeListPriv> Get();
 
 private:
-  /**
-   * \brief Get the node list object
-   * \returns the node list
-   */
   static Ptr<NodeListPriv> *DoGet();
 
-  /**
-   * \brief Delete the nodes list object
-   */
   static void Delete();
 
-  /**
-   * \brief Dispose the nodes in the list
-   */
   void DoDispose() override;
 
-  std::vector<Ptr<Node>> m_nodes; //!< node objects container
+  std::vector<Ptr<Node>> m_nodes;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(NodeListPriv);
@@ -189,11 +126,6 @@ Ptr<Node> NodeListPriv::GetNode(uint32_t n) {
 
 } // namespace ns3
 
-/**
- * The implementation of the public static-based API
- * which calls into the private implementation through
- * the simulation singleton.
- */
 namespace ns3 {
 
 uint32_t NodeList::Add(Ptr<Node> node) {

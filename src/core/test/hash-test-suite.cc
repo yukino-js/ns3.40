@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
 #include "ns3/hash.h"
 #include "ns3/test.h"
@@ -23,68 +5,27 @@
 #include <iomanip>
 #include <string>
 
-/**
- * \file
- * \ingroup core-tests
- * \ingroup hash
- * \ingroup hash-tests
- * Hash test suite
- */
-
-/**
- * \ingroup core-tests
- * \ingroup hash
- * \defgroup hash-tests Hash test suite
- */
-
 namespace ns3 {
 
 namespace tests {
 
-/**
- * \ingroup hash-tests
- *  Base class for hash tests
- */
 class HashTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param [in] name reference name
-   */
   HashTestCase(const std::string name);
-  /** Destructor. */
   ~HashTestCase() override;
 
 protected:
-  /**
-   * Check function
-   * \param [in] hashName the name of the hash
-   * \param [in] hash the hash value
-   */
   void Check(const std::string hashName, const uint32_t hash);
-  /**
-   * Check function
-   * \param [in] hashName the name of the hash
-   * \param [in] hash the hash value
-   */
   void Check(const std::string hashName, const uint64_t hash);
 
-  std::string key;          //!< The reference value to hash.
-  uint32_t hash32Reference; //!< The 32-bit hash of the reference.
-  uint64_t hash64Reference; //!< The 64-bit hash of the reference.
+  std::string key;
+  uint32_t hash32Reference;
+  uint64_t hash64Reference;
 
 private:
-  /**
-   * Check function
-   * \param [in] hashName the name of the hash
-   * \param [in] bits the number of bits
-   * \param [in] hash the hash value
-   */
   void Check(const std::string hashName, const int bits, const uint64_t hash);
   void DoRun() override;
-
-}; // class HashTestCase
+};
 
 HashTestCase::HashTestCase(const std::string name)
     : TestCase(name), key("The quick brown fox jumped over the lazy dogs.") {}
@@ -127,15 +68,9 @@ void HashTestCase::Check(std::string hashName, int bits, uint64_t hash) {
 
 void HashTestCase::DoRun() {}
 
-/**
- * \ingroup hash-tests
- * Test default hash on fixed string
- */
 class DefaultHashTestCase : public HashTestCase {
 public:
-  /** Constructor. */
   DefaultHashTestCase();
-  /** Destructor. */
   ~DefaultHashTestCase() override;
 
 private:
@@ -149,22 +84,16 @@ DefaultHashTestCase::~DefaultHashTestCase() {}
 void DefaultHashTestCase::DoRun() {
   std::cout << GetName() << "checking with key: \"" << key << "\"" << std::endl;
 
-  hash32Reference = 0x463d70e2; // murmur3(key)
+  hash32Reference = 0x463d70e2;
   Check("default", Hash32(key));
 
   hash64Reference = 0xa750412079d53e04ULL;
   Check("default", Hash64(key));
 }
 
-/**
- * \ingroup hash-tests
- * FNV hash on fixed string
- */
 class Fnv1aTestCase : public HashTestCase {
 public:
-  /** Constructor. */
   Fnv1aTestCase();
-  /** Destructor. */
   ~Fnv1aTestCase() override;
 
 private:
@@ -177,22 +106,16 @@ Fnv1aTestCase::~Fnv1aTestCase() {}
 
 void Fnv1aTestCase::DoRun() {
   Hasher hasher = Hasher(Create<Hash::Function::Fnv1a>());
-  hash32Reference = 0xa3fc0d6d; // Fnv1a(key)
+  hash32Reference = 0xa3fc0d6d;
   Check("FNV1a", hasher.clear().GetHash32(key));
 
   hash64Reference = 0x88f6cdbe0a31098dULL;
   Check("FNV1a", hasher.clear().GetHash64(key));
 }
 
-/**
- * \ingroup hash-tests
- * Test Murmur3 hash on fixed string
- */
 class Murmur3TestCase : public HashTestCase {
 public:
-  /** Constructor. */
   Murmur3TestCase();
-  /** Destructor. */
   ~Murmur3TestCase() override;
 
 private:
@@ -205,68 +128,39 @@ Murmur3TestCase::~Murmur3TestCase() {}
 
 void Murmur3TestCase::DoRun() {
   Hasher hasher = Hasher(Create<Hash::Function::Murmur3>());
-  hash32Reference = 0x463d70e2; // Murmur3(key)
+  hash32Reference = 0x463d70e2;
   Check("murmur3", hasher.clear().GetHash32(key));
 
   hash64Reference = 0xa750412079d53e04ULL;
   Check("murmur3", hasher.clear().GetHash64(key));
 }
 
-/**
- * \ingroup hash-tests
- * Simple hash function based on the GNU sum program.
- *
- * 16-bit checksum algorithm.  See
- * http://svnweb.freebsd.org/base/stable/9/usr.bin/cksum/sum1.c?view=markup
- *
- * Used to test Hash32Function_ptr/Hash64Function_ptr
- *
- * \param [in,out] buffer The data to hash.
- * \param [in] size The buffer size.
- * \returns The checksum of the buffer contents.
- */
 uint16_t gnu_sum(const char *buffer, const std::size_t size) {
   const char *p = buffer;
   const char *const pend = p + size;
 
-  uint16_t checksum = 0; /* The checksum mod 2^16. */
+  uint16_t checksum = 0;
 
   while (p != pend) {
-    checksum = (checksum >> 1) + ((checksum & 1) << 15); // barrel shift
+    checksum = (checksum >> 1) + ((checksum & 1) << 15);
     checksum += *p++;
   }
   return checksum;
 }
 
-/**
- * \ingroup hash-tests
- * A 32-bit hash function, based on gnu_sum().
- * \copydetails gnu_sum()
- */
 uint32_t gnu_sum32(const char *buffer, const std::size_t size) {
   uint32_t h = gnu_sum(buffer, size);
   return (uint32_t)((h << 16) + h);
 }
 
-/**
- * \ingroup hash-tests
- * A 64-bit hash function, base on gnu_sum().
- * \copydetails gnu_sum()
- */
 uint64_t gnu_sum64(const char *buffer, const std::size_t size) {
   uint64_t h = gnu_sum32(buffer, size);
   return (uint64_t)((h << 32) + h);
 }
 
-/**
- * \ingroup hash-tests
- * Test 32-bit function pointer
- */
 class Hash32FunctionPtrTestCase : public HashTestCase {
 public:
-  /** Constructor. */
   Hash32FunctionPtrTestCase();
-  /** Destructor. */
   ~Hash32FunctionPtrTestCase() override;
 
 private:
@@ -280,19 +174,13 @@ Hash32FunctionPtrTestCase::~Hash32FunctionPtrTestCase() {}
 
 void Hash32FunctionPtrTestCase::DoRun() {
   Hasher hasher = Hasher(Create<Hash::Function::Hash32>(&gnu_sum32));
-  hash32Reference = 0x41264126; // Hash32FunctionPtr(key)
+  hash32Reference = 0x41264126;
   Check("gnu_sum32", hasher.clear().GetHash32(key));
 }
 
-/**
- * \ingroup hash-tests
- * Test 64-bit function pointer
- */
 class Hash64FunctionPtrTestCase : public HashTestCase {
 public:
-  /** Constructor. */
   Hash64FunctionPtrTestCase();
-  /** Destructor. */
   ~Hash64FunctionPtrTestCase() override;
 
 private:
@@ -306,32 +194,21 @@ Hash64FunctionPtrTestCase::~Hash64FunctionPtrTestCase() {}
 
 void Hash64FunctionPtrTestCase::DoRun() {
   Hasher hasher = Hasher(Create<Hash::Function::Hash64>(&gnu_sum64));
-  hash64Reference = 0x4126412641264126ULL; // Hash64FunctionPtr(key)
+  hash64Reference = 0x4126412641264126ULL;
   Check("gnu_sum64", hasher.clear().GetHash64(key));
 }
 
-/**
- * \ingroup hash-tests
- * Test incremental hashing
- */
 class IncrementalTestCase : public HashTestCase {
 public:
-  /** Constructor. */
   IncrementalTestCase();
-  /** Destructor. */
   ~IncrementalTestCase() override;
 
 private:
   void DoRun() override;
-  /**
-   * Complute the hash test function
-   * \param name the hash name
-   * \param hasher the hash function
-   */
   void DoHash(const std::string name, Hasher hasher);
-  std::string key1;  //!< test string
-  std::string key2;  //!< test string
-  std::string key12; //!< test string
+  std::string key1;
+  std::string key2;
+  std::string key12;
 };
 
 IncrementalTestCase::IncrementalTestCase() : HashTestCase("Incremental: ") {}
@@ -364,13 +241,8 @@ void IncrementalTestCase::DoRun() {
   DoHash("FNV1a", Hasher(Create<Hash::Function::Fnv1a>()));
 }
 
-/**
- * \ingroup hash-tests
- * Hash functions test suite
- */
 class HashTestSuite : public TestSuite {
 public:
-  /** Constructor. */
   HashTestSuite();
 };
 
@@ -383,10 +255,6 @@ HashTestSuite::HashTestSuite() : TestSuite("hash") {
   AddTestCase(new Hash64FunctionPtrTestCase);
 }
 
-/**
- * \ingroup hash-tests
- * HashTestSuite instance variable.
- */
 static HashTestSuite g_hashTestSuite;
 
 } // namespace tests

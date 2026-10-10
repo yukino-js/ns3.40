@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Shefali Gupta <shefaligups11@ogmail.com>
- *         Jendaipou Palmei <jendaipoupalmei@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -32,19 +12,12 @@
 #include <fstream>
 #include <string>
 
-// Dumbbell topology with 7 senders and 1 receiver
-// is used for this example. On successful completion,
-// the Congestion window and Queue size traces get stored
-// in MixTraffic/ directory, inside cwndTraces and
-// queueTraces sub-directories, respectively.
-
 using namespace ns3;
 
 std::string dir = "MixTraffic/";
 
 void CheckQueueSize(Ptr<QueueDisc> queue, std::string queue_disc_type) {
   double qSize = queue->GetCurrentSize().GetValue();
-  // check queue size every 1/10 of a second
   Simulator::Schedule(Seconds(0.1), &CheckQueueSize, queue, queue_disc_type);
 
   std::ofstream fPlotQueue(dir + queue_disc_type + "/queueTraces/queue.plotme",
@@ -73,7 +46,6 @@ static void TraceCwnd(std::string queue_disc_type) {
 }
 
 void experiment(std::string queue_disc_type) {
-  // Set the simulation stop time in seconds
   double stopTime = 101;
   std::string queue_disc = std::string("ns3::") + queue_disc_type;
 
@@ -83,18 +55,15 @@ void experiment(std::string queue_disc_type) {
   std::string accessBandwidth = "10Mbps";
   std::string accessDelay = "5ms";
 
-  // Create sender
   NodeContainer tcpSender;
   tcpSender.Create(5);
 
   NodeContainer udpSender;
   udpSender.Create(2);
 
-  // Create gateway
   NodeContainer gateway;
   gateway.Create(2);
 
-  // Create sink
   NodeContainer sink;
   sink.Create(1);
 
@@ -124,8 +93,6 @@ void experiment(std::string queue_disc_type) {
   accessLink.SetDeviceAttribute("DataRate", StringValue(accessBandwidth));
   accessLink.SetChannelAttribute("Delay", StringValue(accessDelay));
 
-  // Configure the senders and sinks net devices
-  // and the channels between the senders/sinks and the gateways
   NetDeviceContainer devices[5];
   for (uint8_t i = 0; i < 5; i++) {
     devices[i] = accessLink.Install(tcpSender.Get(i), gateway.Get(0));
@@ -143,7 +110,6 @@ void experiment(std::string queue_disc_type) {
 
   NetDeviceContainer devices_gateway;
   devices_gateway = bottleneckLink.Install(gateway.Get(0), gateway.Get(1));
-  // Install QueueDisc at gateway
   QueueDiscContainer queueDiscs = tch.Install(devices_gateway);
 
   Ipv4AddressHelper address;

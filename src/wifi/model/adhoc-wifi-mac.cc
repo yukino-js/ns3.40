@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2006, 2009 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "adhoc-wifi-mac.h"
 
@@ -46,7 +26,6 @@ TypeId AdhocWifiMac::GetTypeId() {
 
 AdhocWifiMac::AdhocWifiMac() {
   NS_LOG_FUNCTION(this);
-  // Let the lower layers know that we are acting in an IBSS
   SetTypeOfStation(ADHOC_STA);
 }
 
@@ -57,8 +36,6 @@ bool AdhocWifiMac::CanForwardPacketsTo(Mac48Address to) const { return true; }
 void AdhocWifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to) {
   NS_LOG_FUNCTION(this << packet << to);
   if (GetWifiRemoteStationManager()->IsBrandNew(to)) {
-    // In ad hoc mode, we assume that every destination supports all the rates
-    // we support.
     if (GetHtSupported()) {
       GetWifiRemoteStationManager()->AddAllSupportedMcs(to);
       GetWifiRemoteStationManager()->AddStationHtCapabilities(
@@ -82,30 +59,16 @@ void AdhocWifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to) {
 
   WifiMacHeader hdr;
 
-  // If we are not a QoS STA then we definitely want to use AC_BE to
-  // transmit the packet. A TID of zero will map to AC_BE (through \c
-  // QosUtilsMapTidToAc()), so we use that as our default here.
   uint8_t tid = 0;
 
-  // For now, a STA that supports QoS does not support non-QoS
-  // associations, and vice versa. In future the STA model should fall
-  // back to non-QoS if talking to a peer that is also non-QoS. At
-  // that point there will need to be per-station QoS state maintained
-  // by the association state machine, and consulted here.
   if (GetQosSupported()) {
     hdr.SetType(WIFI_MAC_QOSDATA);
     hdr.SetQosAckPolicy(WifiMacHeader::NORMAL_ACK);
     hdr.SetQosNoEosp();
     hdr.SetQosNoAmsdu();
-    // Transmission of multiple frames in the same TXOP is not
-    // supported for now
     hdr.SetQosTxopLimit(0);
 
-    // Fill in the QoS control field in the MAC header
     tid = QosUtilsGetTidForPacket(packet);
-    // Any value greater than 7 is invalid and likely indicates that
-    // the packet had no QoS tag, so we revert to zero, which will
-    // mean that AC_BE is used.
     if (tid > 7) {
       tid = 0;
     }
@@ -115,9 +78,7 @@ void AdhocWifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to) {
   }
 
   if (GetHtSupported()) {
-    hdr.SetNoOrder(); // explicitly set to 0 for the time being since HT control
-                      // field is not yet implemented (set it to 1 when
-                      // implemented)
+    hdr.SetNoOrder();
   }
   hdr.SetAddr1(to);
   hdr.SetAddr2(GetAddress());
@@ -126,7 +87,6 @@ void AdhocWifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to) {
   hdr.SetDsNotTo();
 
   if (GetQosSupported()) {
-    // Sanity check that the TID is valid
     NS_ASSERT(tid < 8);
     GetQosTxop(tid)->Queue(packet, hdr);
   } else {
@@ -138,9 +98,6 @@ void AdhocWifiMac::SetLinkUpCallback(Callback<void> linkUp) {
   NS_LOG_FUNCTION(this << &linkUp);
   WifiMac::SetLinkUpCallback(linkUp);
 
-  // The approach taken here is that, from the point of view of a STA
-  // in IBSS mode, the link is always up, so we immediately invoke the
-  // callback if one is set
   linkUp();
 }
 
@@ -151,8 +108,6 @@ void AdhocWifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
   Mac48Address from = hdr->GetAddr2();
   Mac48Address to = hdr->GetAddr1();
   if (GetWifiRemoteStationManager()->IsBrandNew(from)) {
-    // In ad hoc mode, we assume that every destination supports all the rates
-    // we support.
     if (GetHtSupported()) {
       GetWifiRemoteStationManager()->AddAllSupportedMcs(from);
       GetWifiRemoteStationManager()->AddStationHtCapabilities(
@@ -183,9 +138,6 @@ void AdhocWifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
     return;
   }
 
-  // Invoke the receive handler of our parent class to deal with any
-  // other frames. Specifically, this will handle Block Ack-related
-  // Management Action frames.
   WifiMac::Receive(mpdu, linkId);
 }
 

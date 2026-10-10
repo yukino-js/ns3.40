@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include <ns3/command-line.h>
 #include <ns3/core-module.h>
@@ -37,23 +19,14 @@ NS_LOG_COMPONENT_DEFINE("ThreeGppTwoRayChannelCalibration");
 
 using namespace ns3;
 
-// Calibration results actually show a weak dependence with respect to the
-// carrier frequency
 constexpr double FC_STEP = 5e9;
 
-// 500 MHz, as to provide a fit for the whole frequency range supported by the
-// TR 38.901 model
 constexpr double MIN_FC = 500e6;
 
-// 100 GHz, as to provide a fit for the whole frequency range supported by the
-// TR 38.901 model
 constexpr double MAX_FC = 100e9;
 
-// Results are independent from this
 constexpr double BW = 200e6;
 
-// Results are independent from this, it dictate sonly the resolution of the
-// PSD. This value corresponds to numerology index 2 of the 5G NR specifications
 constexpr double RB_WIDTH = 60e3;
 
 const std::vector<std::string> LOS_CONDITIONS{
@@ -83,8 +56,8 @@ Ptr<SpectrumValue> CreateTxPowerSpectralDensity(double fc) {
   double f = fc - (numRbs * RB_WIDTH / 2.0);
   double powerTx = 0.0;
 
-  Bands rbs;              // A vector representing each resource block
-  std::vector<int> rbsId; // A vector representing the resource block IDs
+  Bands rbs;
+  std::vector<int> rbsId;
   rbsId.reserve(numRbs);
 
   for (uint32_t numrb = 0; numrb < numRbs; ++numrb) {
@@ -115,7 +88,6 @@ double ComputeEndToEndGain(std::string cond, std::string scen, double fc,
                            Ptr<Node> a, Ptr<Node> b,
                            Ptr<PhasedArrayModel> aArray,
                            Ptr<PhasedArrayModel> bArray) {
-  // Fix the LOS condition
   Ptr<ChannelConditionModel> channelConditionModel;
   if (cond == "LOS") {
     channelConditionModel = CreateObject<AlwaysLosChannelConditionModel>();
@@ -125,52 +97,40 @@ double ComputeEndToEndGain(std::string cond, std::string scen, double fc,
     NS_ABORT_MSG("Unsupported channel condition");
   }
 
-  // Create the needed objects. These must be created anew each loop, otherwise
-  // the channel is stored and never re-computed.
   Ptr<ThreeGppSpectrumPropagationLossModel> threeGppSpectrumLossModel =
       CreateObject<ThreeGppSpectrumPropagationLossModel>();
   Ptr<ThreeGppChannelModel> threeGppChannelModel =
       CreateObject<ThreeGppChannelModel>();
 
-  // Pass the needed pointers between the various spectrum instances
   threeGppSpectrumLossModel->SetAttribute("ChannelModel",
                                           PointerValue(threeGppChannelModel));
   threeGppChannelModel->SetAttribute("ChannelConditionModel",
                                      PointerValue(channelConditionModel));
 
-  // Create the TX PSD
   Ptr<SpectrumValue> txPsd = CreateTxPowerSpectralDensity(fc);
   double txPower = ComputePowerSpectralDensityOverallPower(txPsd);
 
-  // Create TX signal parameters
   Ptr<SpectrumSignalParameters> signalParams =
       Create<SpectrumSignalParameters>();
   signalParams->psd = txPsd;
 
-  // Set the carrier frequency
   threeGppChannelModel->SetAttribute("Frequency", DoubleValue(fc));
 
-  // Set the scenario
   threeGppChannelModel->SetAttribute("Scenario", StringValue(scen));
 
-  // Disable all possible sources of variance apart from the multipath fading
   threeGppChannelModel->SetAttribute("Blockage", BooleanValue(false));
 
-  // Retrieve the mobility models and the position of the TX and RX nodes
   Ptr<MobilityModel> aMob = a->GetObject<MobilityModel>();
   Ptr<MobilityModel> bMob = b->GetObject<MobilityModel>();
   Vector aPos = aMob->GetPosition();
   Vector bPos = bMob->GetPosition();
 
-  // Compute the relative azimuth and the elevation angles
   Angles angleBtoA(bPos, aPos);
   Angles angleAtoB(aPos, bPos);
 
-  // Create the BF vectors
   aArray->SetBeamformingVector(aArray->GetBeamformingVector(angleBtoA));
   bArray->SetBeamformingVector(bArray->GetBeamformingVector(angleAtoB));
 
-  // Compute the received power due to multipath fading
   auto rxPsd = threeGppSpectrumLossModel->DoCalcRxPowerSpectralDensity(
       signalParams, aMob, bMob, aArray, bArray);
   double rxPower = ComputePowerSpectralDensityOverallPower(rxPsd);
@@ -179,9 +139,8 @@ double ComputeEndToEndGain(std::string cond, std::string scen, double fc,
 }
 
 int main(int argc, char *argv[]) {
-  uint32_t numRealizations =
-      5000;                  // The number of different channel realizations
-  bool enableOutput = false; // Whether to log the results of the example
+  uint32_t numRealizations = 5000;
+  bool enableOutput = false;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("enableOutput", "Logs the results of the example", enableOutput);
@@ -189,16 +148,13 @@ int main(int argc, char *argv[]) {
                numRealizations);
   cmd.Parse(argc, argv);
 
-  // Log trace structure
   if (enableOutput) {
     *g_outStream->GetStream() << "cond\tscen\tfc\tseed\tgain\n";
   }
 
-  // Aggregate them to the corresponding nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // Create the mobility models for the TX and RX nodes
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -210,7 +166,6 @@ int main(int argc, char *argv[]) {
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(nodes);
 
-  // Create the TX and RX phased arrays
   Ptr<PhasedArrayModel> aPhasedArray =
       CreateObjectWithAttributes<UniformPlanarArray>(
           "NumColumns", UintegerValue(1), "NumRows", UintegerValue(1));
@@ -222,7 +177,6 @@ int main(int argc, char *argv[]) {
   bPhasedArray->SetAntennaElement(
       PointerValue(CreateObject<IsotropicAntennaModel>()));
 
-  // Loop over predetermined set of scenarios, LOS conditions and frequencies
   for (const auto &cond : LOS_CONDITIONS) {
     for (const auto &scen : THREE_GPP_SCENARIOS) {
       for (double fc = MIN_FC; fc < MAX_FC; fc += FC_STEP) {

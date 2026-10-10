@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- * modified by: Marco Miozzo <mmiozzo@cttc.es>
- *        Convert MacStatsCalculator in PhyTxStatsCalculator
- */
 
 #include "phy-tx-stats-calculator.h"
 
@@ -107,8 +87,6 @@ void PhyTxStatsCalculator::DlPhyTransmission(
   m_dlTxOutFile << (uint32_t)params.m_cellId << "\t";
   m_dlTxOutFile << params.m_imsi << "\t";
   m_dlTxOutFile << params.m_rnti << "\t";
-  // m_dlTxOutFile << (uint32_t) params.m_txMode << "\t"; // txMode is not
-  // available at dl tx side
   m_dlTxOutFile << (uint32_t)params.m_layer << "\t";
   m_dlTxOutFile << (uint32_t)params.m_mcs << "\t";
   m_dlTxOutFile << params.m_size << "\t";
@@ -131,8 +109,6 @@ void PhyTxStatsCalculator::UlPhyTransmission(
       return;
     }
     m_ulTxFirstWrite = false;
-    // m_ulTxOutFile << "%
-    // time\tcellId\tIMSI\tRNTI\ttxMode\tlayer\tmcs\tsize\trv\tndi";
     m_ulTxOutFile
         << "% time\tcellId\tIMSI\tRNTI\tlayer\tmcs\tsize\trv\tndi\tccId";
     m_ulTxOutFile << "\n";
@@ -142,7 +118,6 @@ void PhyTxStatsCalculator::UlPhyTransmission(
   m_ulTxOutFile << (uint32_t)params.m_cellId << "\t";
   m_ulTxOutFile << params.m_imsi << "\t";
   m_ulTxOutFile << params.m_rnti << "\t";
-  // m_ulTxOutFile << (uint32_t) params.m_txMode << "\t";
   m_ulTxOutFile << (uint32_t)params.m_layer << "\t";
   m_ulTxOutFile << (uint32_t)params.m_mcs << "\t";
   m_ulTxOutFile << params.m_size << "\t";

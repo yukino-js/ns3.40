@@ -1,28 +1,4 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Shravya Ks <shravya.ks0@gmail.com>
- *          Smriti Murali <m.smriti.95@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
-/*
- * PORT NOTE: This code was ported from ns-2.36rc1 (queue/pie.cc).
- * Most of the comments are also ported from the same.
- */
 
 #include "pie-queue-disc.h"
 
@@ -162,8 +138,6 @@ bool PieQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   NS_LOG_FUNCTION(this << item);
 
   QueueSize nQueued = GetCurrentSize();
-  // If L4S is enabled, then check if the packet is ECT1, and if it is then set
-  // isEct true
   bool isEct1 = false;
   if (item && m_useL4s) {
     uint8_t tosByte = 0;
@@ -181,27 +155,20 @@ bool PieQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
   }
 
   if (nQueued + item > GetMaxSize()) {
-    // Drops due to queue limit: reactive
     DropBeforeEnqueue(item, FORCED_DROP);
     m_accuProb = 0;
     return false;
-  }
-  // isEct1 will be true only if L4S enabled as well as the packet is ECT1.
-  // If L4S is enabled and packet is ECT1 then directly enqueue the packet.
-  else if ((m_activeThreshold == Time::Max() || m_active) && !isEct1 &&
-           DropEarly(item, nQueued.GetValue())) {
+  } else if ((m_activeThreshold == Time::Max() || m_active) && !isEct1 &&
+             DropEarly(item, nQueued.GetValue())) {
     if (!m_useEcn || m_dropProb >= m_markEcnTh || !Mark(item, UNFORCED_MARK)) {
-      // Early probability drop: proactive
       DropBeforeEnqueue(item, UNFORCED_DROP);
       m_accuProb = 0;
       return false;
     }
   }
 
-  // No drop
   bool retval = GetInternalQueue(0)->Enqueue(item);
 
-  // If the queue is over a certain threshold, Turn ON PIE
   if (m_activeThreshold != Time::Max() && !m_active &&
       m_qDelay >= m_activeThreshold) {
     m_active = true;
@@ -215,17 +182,11 @@ bool PieQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
     m_dqStart = Now();
   }
 
-  // If queue has been Idle for a while, Turn OFF PIE
-  // Reset Counters when accessing the queue after some idle period if PIE was
-  // active before
   if (m_activeThreshold != Time::Max() && m_dropProb == 0 &&
       m_qDelayOld.GetMilliSeconds() == 0 && m_qDelay.GetMilliSeconds() == 0) {
     m_active = false;
     m_inMeasurement = false;
   }
-
-  // If Queue::Enqueue fails, QueueDisc::DropBeforeEnqueue is called by the
-  // internal queue because QueueDisc::AddInternalQueue sets the trace callback
 
   NS_LOG_LOGIC("\t bytesInQueue  " << GetInternalQueue(0)->GetNBytes());
   NS_LOG_LOGIC("\t packetsInQueue  " << GetInternalQueue(0)->GetNPackets());
@@ -234,8 +195,6 @@ bool PieQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
 }
 
 void PieQueueDisc::InitializeParams() {
-  // Initially queue is empty so variables are initialize to zero except
-  // m_dqCount
   m_inMeasurement = false;
   m_dqCount = DQCOUNT_INVALID;
   m_dropProb = 0;
@@ -250,7 +209,6 @@ void PieQueueDisc::InitializeParams() {
 bool PieQueueDisc::DropEarly(Ptr<QueueDiscItem> item, uint32_t qSize) {
   NS_LOG_FUNCTION(this << item << qSize);
   if (m_burstAllowance.GetSeconds() > 0) {
-    // If there is still burst_allowance left, skip random early drop.
     return false;
   }
 
@@ -267,7 +225,6 @@ bool PieQueueDisc::DropEarly(Ptr<QueueDiscItem> item, uint32_t qSize) {
     p = p * packetSize / m_meanPktSize;
   }
 
-  // Safeguard PIE to be work conserving (Section 4.1 of RFC 8033)
   if ((m_qDelayOld.GetSeconds() < (0.5 * m_qDelayRef.GetSeconds())) &&
       (m_dropProb < 0.2)) {
     return false;
@@ -332,12 +289,8 @@ void PieQueueDisc::CalculateP() {
     } else if (m_dropProb < 0.1) {
       p /= 2;
     } else {
-      // The pseudocode in Section 4.2 of RFC 8033 suggests to use this for
-      // assignment of p, but this assignment causes build failure on Mac OS
-      // p = p;
     }
 
-    // Cap Drop Adjustment (Section 5.5 of RFC 8033)
     if (m_isCapDropAdjustment && (m_dropProb >= 0.1) && (p > 0.02)) {
       p = 0.02;
     }
@@ -345,13 +298,10 @@ void PieQueueDisc::CalculateP() {
 
   p += m_dropProb;
 
-  // For non-linear drop in prob
-  // Decay the drop probability exponentially (Section 4.2 of RFC 8033)
   if (qDelay.GetSeconds() == 0 && m_qDelayOld.GetSeconds() == 0) {
     p *= 0.98;
   }
 
-  // bound the drop probability (Section 4.2 of RFC 8033)
   if (p < 0) {
     m_dropProb = 0;
   } else if (p > 1) {
@@ -360,7 +310,6 @@ void PieQueueDisc::CalculateP() {
     m_dropProb = p;
   }
 
-  // Section 4.4 #2
   if (m_burstAllowance < m_tUpdate) {
     m_burstAllowance = Seconds(0);
   } else {
@@ -407,9 +356,6 @@ Ptr<QueueDiscItem> PieQueueDisc::DoDequeue() {
   Ptr<QueueDiscItem> item = GetInternalQueue(0)->Dequeue();
   NS_ASSERT_MSG(item, "Dequeue null, but internal queue not empty");
 
-  // If L4S is enabled and packet is ECT1, then check if delay is greater
-  // than CE threshold and if it is then mark the packet,
-  // skip PIE steps, and return the item.
   if (m_useL4s) {
     uint8_t tosByte = 0;
     if (item->GetUint8Value(QueueItem::IP_DSFIELD, tosByte) &&
@@ -428,8 +374,6 @@ Ptr<QueueDiscItem> PieQueueDisc::DoDequeue() {
     }
   }
 
-  // if not in a measurement cycle and the queue has built up to dq_threshold,
-  // start the measurement cycle
   if (m_useDqRateEstimator) {
     if ((GetInternalQueue(0)->GetNBytes() >= m_dqThreshold) &&
         (!m_inMeasurement)) {
@@ -441,7 +385,6 @@ Ptr<QueueDiscItem> PieQueueDisc::DoDequeue() {
     if (m_inMeasurement) {
       m_dqCount += item->GetSize();
 
-      // done with a measurement cycle
       if (m_dqCount >= m_dqThreshold) {
         Time dqTime = Now() - m_dqStart;
         if (dqTime > Seconds(0)) {
@@ -454,7 +397,6 @@ Ptr<QueueDiscItem> PieQueueDisc::DoDequeue() {
         }
         NS_LOG_DEBUG("Average Dequeue Rate after Dequeue: " << m_avgDqRate);
 
-        // restart a measurement cycle if there is enough data
         if (GetInternalQueue(0)->GetNBytes() > m_dqThreshold) {
           m_dqStart = Now();
           m_dqCount = 0;
@@ -488,7 +430,6 @@ bool PieQueueDisc::CheckConfig() {
   }
 
   if (GetNInternalQueues() == 0) {
-    // add  a DropTail queue
     AddInternalQueue(CreateObjectWithAttributes<DropTailQueue<QueueDiscItem>>(
         "MaxSize", QueueSizeValue(GetMaxSize())));
   }

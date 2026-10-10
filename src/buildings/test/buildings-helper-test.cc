@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2011, 2012 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "ns3/log.h"
 #include "ns3/test.h"
@@ -31,80 +12,47 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("BuildingsHelperTest");
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * \brief Struct representing a position in a building
- */
 struct PositionInBuilding {
   PositionInBuilding();
-  Vector pos;   //!< coordinates of the mobility model instance
-  bool indoor;  //!< true if indoor, false otherwise
-  uint32_t bid; //!< building id
-  uint16_t rx;  //!< room x
-  uint16_t ry;  //!< room y
-  uint16_t fn;  //!< floor number
+  Vector pos;
+  bool indoor;
+  uint32_t bid;
+  uint16_t rx;
+  uint16_t ry;
+  uint16_t fn;
 };
 
 PositionInBuilding::PositionInBuilding()
     : pos(0, 0, 0), indoor(false), bid(0xffffffff), rx(0), ry(0), fn(0) {}
 
-/**
- * \ingroup building-test
- * \ingroup tests
-
- * Data to construct a Building object. We don't want to pass Building
- * objects to the TestCase constructor because otherwise BuildingList
- * would contain all of them (even if only one is meant to be in the
- * test case).
- *
- */
 struct BuildingData {
   BuildingData();
-  double xmin;  //!< X min coordinate
-  double xmax;  //!< X max coordinate
-  double ymin;  //!< Y min coordinate
-  double ymax;  //!< Y max coordinate
-  double zmin;  //!< Z min coordinate
-  double zmax;  //!< Z max coordinate
-  uint16_t nrx; //!< Number of rooms (X coord)
-  uint16_t nry; //!< Number of rooms (Y coord)
-  uint16_t nf;  //!< Number of floors
+  double xmin;
+  double xmax;
+  double ymin;
+  double ymax;
+  double zmin;
+  double zmax;
+  uint16_t nrx;
+  uint16_t nry;
+  uint16_t nf;
 };
 
 BuildingData::BuildingData()
     : xmin(0), xmax(0), ymin(0), ymax(0), zmin(0), zmax(0), nrx(0), nry(0),
       nf(0) {}
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * \brief BuildingsHelper test
- */
 class BuildingsHelperOneTestCase : public TestCase {
 public:
-  /**
-   * Build the testcase name
-   * \param pib Position in building
-   * \param bd Building data
-   * \return the TestCase name
-   */
   static std::string BuildNameString(PositionInBuilding pib, BuildingData bd);
 
-  /**
-   * Constructor
-   * \param pib Position in building
-   * \param bd Building data
-   */
   BuildingsHelperOneTestCase(PositionInBuilding pib, BuildingData bd);
 
 private:
   void DoRun() override;
 
-  PositionInBuilding m_pib; //!< Position in the building
-  BuildingData m_bd;        //!< Building data
+  PositionInBuilding m_pib;
+  BuildingData m_bd;
 };
 
 std::string BuildingsHelperOneTestCase::BuildNameString(PositionInBuilding pib,
@@ -146,8 +94,7 @@ void BuildingsHelperOneTestCase::DoRun() {
   b->SetNRoomsY(m_bd.nry);
   Ptr<MobilityBuildingInfo> buildingInfo =
       CreateObject<MobilityBuildingInfo>(b);
-  bmm->AggregateObject(
-      buildingInfo); // operation usually done by BuildingsHelper::Install
+  bmm->AggregateObject(buildingInfo);
 
   NS_TEST_ASSERT_MSG_EQ(buildingInfo->IsIndoor(), m_pib.indoor,
                         "indoor/outdoor mismatch");
@@ -157,7 +104,6 @@ void BuildingsHelperOneTestCase::DoRun() {
                  << ", f=" << (uint32_t)buildingInfo->GetFloorNumber()
                  << ", rx=" << (uint32_t)buildingInfo->GetRoomNumberX()
                  << ", roomY=" << (uint32_t)buildingInfo->GetRoomNumberY());
-    // only one building in this test, so Id will be 0
     NS_TEST_ASSERT_MSG_EQ(buildingInfo->GetBuilding()->GetId(), 0,
                           "Building ID mismatch");
     NS_TEST_ASSERT_MSG_EQ((uint32_t)buildingInfo->GetFloorNumber(), m_pib.fn,
@@ -171,12 +117,6 @@ void BuildingsHelperOneTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * \brief BuildingsHelper TestSuite
- */
 class BuildingsHelperTestSuite : public TestSuite {
 public:
   BuildingsHelperTestSuite();
@@ -321,5 +261,4 @@ BuildingsHelperTestSuite::BuildingsHelperTestSuite()
   AddTestCase(new BuildingsHelperOneTestCase(q7, b2), TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static BuildingsHelperTestSuite buildingsHelperAntennaTestSuiteInstance;

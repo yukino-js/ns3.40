@@ -1,56 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Marcos Talau <talau@users.sourceforge.net>
- *          Duy Nguyen <duy@soe.ucsc.edu>
- * Modified by:   Pasquale Imputato <p.imputato@gmail.com>
- *
- */
-
-/**
- * These validation tests are detailed in
- * http://icir.org/floyd/papers/redsims.ps
- *
- * In this code the tests 1, 3, 4 and 5 refer to the tests corresponding to
- * Figure 1, 3, 4, and 5 respectively from the document mentioned above.
- */
-
-/** Network topology
- *
- *    10Mb/s, 2ms                            10Mb/s, 4ms
- * n0--------------|                    |---------------n4
- *                 |   1.5Mbps/s, 20ms  |
- *                 n2------------------n3
- *    10Mb/s, 3ms  |                    |    10Mb/s, 5ms
- * n1--------------|                    |---------------n5
- *
- *
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -64,44 +12,37 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("RedTests");
 
-uint32_t checkTimes; //!< Number of times the queues have been checked.
-double avgQueueSize; //!< Average Queue size.
+uint32_t checkTimes;
+double avgQueueSize;
 
-// The times
-double global_start_time; //!< Global start time
-double global_stop_time;  //!< Global stop time.
-double sink_start_time;   //!< Sink start time.
-double sink_stop_time;    //!< Sink stop time.
-double client_start_time; //!< Client start time.
-double client_stop_time;  //!< Client stop time.
+double global_start_time;
+double global_stop_time;
+double sink_start_time;
+double sink_stop_time;
+double client_start_time;
+double client_stop_time;
 
-NodeContainer n0n2; //!< Nodecontainer n0 + n2.
-NodeContainer n1n2; //!< Nodecontainer n1 + n2.
-NodeContainer n2n3; //!< Nodecontainer n2 + n3.
-NodeContainer n3n4; //!< Nodecontainer n3 + n4.
-NodeContainer n3n5; //!< Nodecontainer n3 + n5.
+NodeContainer n0n2;
+NodeContainer n1n2;
+NodeContainer n2n3;
+NodeContainer n3n4;
+NodeContainer n3n5;
 
-Ipv4InterfaceContainer i0i2; //!< IPv4 interface container i0 + i2.
-Ipv4InterfaceContainer i1i2; //!< IPv4 interface container i1 + i2.
-Ipv4InterfaceContainer i2i3; //!< IPv4 interface container i2 + i3.
-Ipv4InterfaceContainer i3i4; //!< IPv4 interface container i3 + i4.
-Ipv4InterfaceContainer i3i5; //!< IPv4 interface container i3 + i5.
+Ipv4InterfaceContainer i0i2;
+Ipv4InterfaceContainer i1i2;
+Ipv4InterfaceContainer i2i3;
+Ipv4InterfaceContainer i3i4;
+Ipv4InterfaceContainer i3i5;
 
-std::stringstream filePlotQueue;    //!< Output file name for queue size.
-std::stringstream filePlotQueueAvg; //!< Output file name for queue average.
+std::stringstream filePlotQueue;
+std::stringstream filePlotQueueAvg;
 
-/**
- * Check the queue size and write its stats to the output files.
- *
- * \param queue The queue to check.
- */
 void CheckQueueSize(Ptr<QueueDisc> queue) {
   uint32_t qSize = queue->GetCurrentSize().GetValue();
 
   avgQueueSize += qSize;
   checkTimes++;
 
-  // check queue size every 1/100 of a second
   Simulator::Schedule(Seconds(0.01), &CheckQueueSize, queue);
 
   std::ofstream fPlotQueue(filePlotQueue.str(), std::ios::out | std::ios::app);
@@ -115,14 +56,8 @@ void CheckQueueSize(Ptr<QueueDisc> queue) {
   fPlotQueueAvg.close();
 }
 
-/**
- * Setup the apps.
- *
- * \param test The test number.
- */
 void BuildAppsTest(uint32_t test) {
   if ((test == 1) || (test == 3)) {
-    // SINK is in the right side
     uint16_t port = 50000;
     Address sinkLocalAddress(InetSocketAddress(Ipv4Address::GetAny(), port));
     PacketSinkHelper sinkHelper("ns3::TcpSocketFactory", sinkLocalAddress);
@@ -130,12 +65,6 @@ void BuildAppsTest(uint32_t test) {
     sinkApp.Start(Seconds(sink_start_time));
     sinkApp.Stop(Seconds(sink_stop_time));
 
-    // Connection one
-    // Clients are in left side
-    /*
-     * Create the OnOff applications to send TCP to the server
-     * onoffhelper is a client that send data to TCP destination
-     */
     OnOffHelper clientHelper1("ns3::TcpSocketFactory", Address());
     clientHelper1.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -151,7 +80,6 @@ void BuildAppsTest(uint32_t test) {
     clientApps1.Start(Seconds(client_start_time));
     clientApps1.Stop(Seconds(client_stop_time));
 
-    // Connection two
     OnOffHelper clientHelper2("ns3::TcpSocketFactory", Address());
     clientHelper2.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -165,31 +93,25 @@ void BuildAppsTest(uint32_t test) {
     clientApps2.Add(clientHelper2.Install(n1n2.Get(0)));
     clientApps2.Start(Seconds(3.0));
     clientApps2.Stop(Seconds(client_stop_time));
-  } else // 4 or 5
-  {
-    // SINKs
-    // #1
+  } else {
     uint16_t port1 = 50001;
     Address sinkLocalAddress1(InetSocketAddress(Ipv4Address::GetAny(), port1));
     PacketSinkHelper sinkHelper1("ns3::TcpSocketFactory", sinkLocalAddress1);
     ApplicationContainer sinkApp1 = sinkHelper1.Install(n3n4.Get(1));
     sinkApp1.Start(Seconds(sink_start_time));
     sinkApp1.Stop(Seconds(sink_stop_time));
-    // #2
     uint16_t port2 = 50002;
     Address sinkLocalAddress2(InetSocketAddress(Ipv4Address::GetAny(), port2));
     PacketSinkHelper sinkHelper2("ns3::TcpSocketFactory", sinkLocalAddress2);
     ApplicationContainer sinkApp2 = sinkHelper2.Install(n3n5.Get(1));
     sinkApp2.Start(Seconds(sink_start_time));
     sinkApp2.Stop(Seconds(sink_stop_time));
-    // #3
     uint16_t port3 = 50003;
     Address sinkLocalAddress3(InetSocketAddress(Ipv4Address::GetAny(), port3));
     PacketSinkHelper sinkHelper3("ns3::TcpSocketFactory", sinkLocalAddress3);
     ApplicationContainer sinkApp3 = sinkHelper3.Install(n0n2.Get(0));
     sinkApp3.Start(Seconds(sink_start_time));
     sinkApp3.Stop(Seconds(sink_stop_time));
-    // #4
     uint16_t port4 = 50004;
     Address sinkLocalAddress4(InetSocketAddress(Ipv4Address::GetAny(), port4));
     PacketSinkHelper sinkHelper4("ns3::TcpSocketFactory", sinkLocalAddress4);
@@ -197,11 +119,6 @@ void BuildAppsTest(uint32_t test) {
     sinkApp4.Start(Seconds(sink_start_time));
     sinkApp4.Stop(Seconds(sink_stop_time));
 
-    // Connection #1
-    /*
-     * Create the OnOff applications to send TCP to the server
-     * onoffhelper is a client that send data to TCP destination
-     */
     OnOffHelper clientHelper1("ns3::TcpSocketFactory", Address());
     clientHelper1.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -217,7 +134,6 @@ void BuildAppsTest(uint32_t test) {
     clientApps1.Start(Seconds(client_start_time));
     clientApps1.Stop(Seconds(client_stop_time));
 
-    // Connection #2
     OnOffHelper clientHelper2("ns3::TcpSocketFactory", Address());
     clientHelper2.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -233,7 +149,6 @@ void BuildAppsTest(uint32_t test) {
     clientApps2.Start(Seconds(2.0));
     clientApps2.Stop(Seconds(client_stop_time));
 
-    // Connection #3
     OnOffHelper clientHelper3("ns3::TcpSocketFactory", Address());
     clientHelper3.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
@@ -249,14 +164,13 @@ void BuildAppsTest(uint32_t test) {
     clientApps3.Start(Seconds(3.5));
     clientApps3.Stop(Seconds(client_stop_time));
 
-    // Connection #4
     OnOffHelper clientHelper4("ns3::TcpSocketFactory", Address());
     clientHelper4.SetAttribute(
         "OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
     clientHelper4.SetAttribute(
         "OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
     clientHelper4.SetAttribute("DataRate", DataRateValue(DataRate("40b/s")));
-    clientHelper4.SetAttribute("PacketSize", UintegerValue(5 * 8)); // telnet
+    clientHelper4.SetAttribute("PacketSize", UintegerValue(5 * 8));
 
     ApplicationContainer clientApps4;
     AddressValue remoteAddress4(InetSocketAddress(i1i2.GetAddress(0), port4));
@@ -288,10 +202,8 @@ int main(int argc, char *argv[]) {
   client_start_time = sink_start_time + 0.2;
   client_stop_time = global_stop_time - 2.0;
 
-  // Configuration and command line parameter parsing
   redTest = 1;
-  // Will only save in the directory if enable opts below
-  pathOut = "."; // Current directory
+  pathOut = ".";
   CommandLine cmd(__FILE__);
   cmd.AddValue("testNumber", "Run test 1, 3, 4 or 5", redTest);
   cmd.AddValue(
@@ -326,14 +238,12 @@ int main(int argc, char *argv[]) {
 
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      StringValue("ns3::TcpNewReno"));
-  // 42 = headers size
   Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1000 - 42));
   Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(1));
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(false));
 
   uint32_t meanPktSize = 500;
 
-  // RED params
   NS_LOG_INFO("Set RED params");
   Config::SetDefault("ns3::RedQueueDisc::MaxSize", StringValue("1000p"));
   Config::SetDefault("ns3::RedQueueDisc::MeanPktSize",
@@ -344,12 +254,10 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::RedQueueDisc::MinTh", DoubleValue(5));
   Config::SetDefault("ns3::RedQueueDisc::MaxTh", DoubleValue(15));
 
-  if (redTest == 3) // test like 1, but with bad params
-  {
+  if (redTest == 3) {
     Config::SetDefault("ns3::RedQueueDisc::MaxTh", DoubleValue(10));
     Config::SetDefault("ns3::RedQueueDisc::QW", DoubleValue(0.003));
-  } else if (redTest == 5) // test 5, same of test 4, but in byte mode
-  {
+  } else if (redTest == 5) {
     Config::SetDefault(
         "ns3::RedQueueDisc::MaxSize",
         QueueSizeValue(QueueSize(QueueSizeUnit::BYTES, 1000 * meanPktSize)));
@@ -393,7 +301,6 @@ int main(int argc, char *argv[]) {
   p2p.SetDeviceAttribute("DataRate", StringValue(redLinkDataRate));
   p2p.SetChannelAttribute("Delay", StringValue(redLinkDelay));
   NetDeviceContainer devn2n3 = p2p.Install(n2n3);
-  // only backbone link has RED queue disc
   QueueDiscContainer queueDiscs = tchRed.Install(devn2n3);
 
   p2p.SetQueue("ns3::DropTailQueue");
@@ -426,11 +333,9 @@ int main(int argc, char *argv[]) {
   ipv4.SetBase("10.1.5.0", "255.255.255.0");
   i3i5 = ipv4.Assign(devn3n5);
 
-  // Set up the routing
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
   if (redTest == 5) {
-    // like in ns2 test, r2 -> r1, have a queue in packet mode
     Ptr<QueueDisc> queue = queueDiscs.Get(1);
 
     queue->SetMaxSize(QueueSize("1000p"));

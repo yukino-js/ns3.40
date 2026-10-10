@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello, <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-bic.h"
@@ -26,22 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpBicTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the congestion avoidance increment on TcpBic
- */
 class TcpBicIncrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param ssThresh Slow Start Threshold.
-   * \param segmentsAcked Number of segments acked.
-   * \param lastMaxCwnd Last max Cwnd.
-   * \param name Test description.
-   */
   TcpBicIncrementTest(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                       uint32_t segmentsAcked, uint32_t lastMaxCwnd,
                       const std::string &name);
@@ -49,24 +18,16 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * \brief Update the TCP socket state.
-   * \param tcb The TCP socket state.
-   * \returns The ack counter.
-   */
   uint32_t Update(Ptr<TcpSocketState> tcb);
 
-  /**
-   * \brief Execute the test.
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;             //!< Congestion window.
-  uint32_t m_segmentSize;      //!< Segment size.
-  uint32_t m_ssThresh;         //!< Slow Start Threshold.
-  uint32_t m_segmentsAcked;    //!< Number of segments acked.
-  uint32_t m_lastMaxCwnd;      //!< Last max Cwnd.
-  Ptr<TcpSocketState> m_state; //!< TCP socket state.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_ssThresh;
+  uint32_t m_segmentsAcked;
+  uint32_t m_lastMaxCwnd;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpBicIncrementTest::TcpBicIncrementTest(uint32_t cWnd, uint32_t segmentSize,
@@ -99,8 +60,6 @@ void TcpBicIncrementTest::ExecuteTest() {
     NS_TEST_ASSERT_MSG_EQ(m_state->m_cWnd.Get(),
                           segCwnd * m_segmentSize + m_segmentSize,
                           "Bic has not increment cWnd");
-    /*  NS_TEST_ASSERT_MSG_EQ (m_state->m_cWnd.Get (), 27000,
-                             "Bic has not increment cWnd");*/
   } else {
     NS_TEST_ASSERT_MSG_EQ(m_state->m_cWnd.Get(), segCwnd * m_segmentSize,
                           "Bic has modified cWnd");
@@ -131,44 +90,26 @@ uint32_t TcpBicIncrementTest::Update(Ptr<TcpSocketState> tcb) {
   if (segCwnd < m_lastMaxCwnd) {
     double midPt = (m_lastMaxCwnd - segCwnd) / bsCoeff.Get();
     if (midPt > wMax.Get()) {
-      // Linear increase
       ackCnt = segCwnd / wMax.Get();
     } else if (midPt <= 1) {
       ackCnt = (segCwnd * smoothPart.Get()) / bsCoeff.Get();
     } else {
-      // Binary search increase
       ackCnt = segCwnd / midPt;
     }
   } else {
     if (segCwnd < m_lastMaxCwnd + bsCoeff.Get()) {
-      /* slow start AMD linear increase */
       ackCnt = (segCwnd * smoothPart.Get()) / bsCoeff.Get();
     } else if (segCwnd < m_lastMaxCwnd + wMax.Get() * (bsCoeff.Get() - 1)) {
-      /* slow start */
       ackCnt = (segCwnd * (bsCoeff.Get() - 1)) / (segCwnd - m_lastMaxCwnd);
     } else {
-      /* linear increase */
       ackCnt = segCwnd / wMax.Get();
     }
   }
   return ackCnt;
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the congestion avoidance decrement on TcpBic
- */
 class TcpBicDecrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param segmentSize Segment size.
-   * \param fastConvergence Fast convergence.
-   * \param lastMaxCwnd Last max Cwnd.
-   * \param name Test description.
-   */
   TcpBicDecrementTest(uint32_t cWnd, uint32_t segmentSize,
                       BooleanValue fastConvergence, uint32_t lastMaxCwnd,
                       const std::string &name);
@@ -176,16 +117,13 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * \brief Execute the test.
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;                //!< Congestion window.
-  uint32_t m_segmentSize;         //!< Segment size.
-  BooleanValue m_fastConvergence; //!< Fast convergence.
-  uint32_t m_lastMaxCwnd;         //!< Last max Cwnd.
-  Ptr<TcpSocketState> m_state;    //!< TCP socket state.
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  BooleanValue m_fastConvergence;
+  uint32_t m_lastMaxCwnd;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpBicDecrementTest::TcpBicDecrementTest(uint32_t cWnd, uint32_t segmentSize,
@@ -248,11 +186,6 @@ void TcpBicDecrementTest::ExecuteTest() {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Bic TestSuite
- */
 class TcpBicTestSuite : public TestSuite {
 public:
   TcpBicTestSuite() : TestSuite("tcp-bic-test", UNIT) {
@@ -312,5 +245,4 @@ public:
   }
 };
 
-static TcpBicTestSuite
-    g_tcpBicTest; //!< Static variable for test initialization
+static TcpBicTestSuite g_tcpBicTest;

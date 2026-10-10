@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-test-entities.h"
 
@@ -43,58 +25,30 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("EpcTestS1uDownlink");
 
-/**
- * \ingroup lte-test
- *
- * \brief Custom structure for testing UE downlink data
- */
 struct UeDlTestData {
-  /**
-   * Constructor
-   *
-   * \param n number of packets
-   * \param s packet size
-   */
   UeDlTestData(uint32_t n, uint32_t s);
 
-  uint32_t numPkts; ///< number of packets
-  uint32_t pktSize; ///< packet size
+  uint32_t numPkts;
+  uint32_t pktSize;
 
-  Ptr<PacketSink> serverApp;  ///< Server application
-  Ptr<Application> clientApp; ///< Client application
+  Ptr<PacketSink> serverApp;
+  Ptr<Application> clientApp;
 };
 
 UeDlTestData::UeDlTestData(uint32_t n, uint32_t s) : numPkts(n), pktSize(s) {}
 
-/**
- * \ingroup lte-test
- *
- * \brief Custom structure for testing eNodeB downlink data, contains
- * the list of data structures for UEs
- */
 struct EnbDlTestData {
-  std::vector<UeDlTestData> ues; ///< list of data structure for different UEs
+  std::vector<UeDlTestData> ues;
 };
 
-/**
- * \ingroup lte-test
- *
- * \brief EpcS1uDlTestCase class
- */
 class EpcS1uDlTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param name the name of the test case instance
-   * \param v list of eNodeB downlink test data information
-   */
   EpcS1uDlTestCase(std::string name, std::vector<EnbDlTestData> v);
   ~EpcS1uDlTestCase() override;
 
 private:
   void DoRun() override;
-  std::vector<EnbDlTestData> m_enbDlTestData; ///< ENB DL test data
+  std::vector<EnbDlTestData> m_enbDlTestData;
 };
 
 EpcS1uDlTestCase::EpcS1uDlTestCase(std::string name,
@@ -107,19 +61,16 @@ void EpcS1uDlTestCase::DoRun() {
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // allow jumbo packets
   Config::SetDefault("ns3::CsmaNetDevice::Mtu", UintegerValue(30000));
   Config::SetDefault("ns3::PointToPointNetDevice::Mtu", UintegerValue(30000));
   epcHelper->SetAttribute("S1uLinkMtu", UintegerValue(30000));
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
@@ -127,12 +78,10 @@ void EpcS1uDlTestCase::DoRun() {
   ipv4h.SetBase("1.0.0.0", "255.0.0.0");
   ipv4h.Assign(internetDevices);
 
-  // setup default gateway for the remote hosts
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
       ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
 
-  // hardcoded UE addresses for now
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.255.255.0"), 1);
 
@@ -144,10 +93,6 @@ void EpcS1uDlTestCase::DoRun() {
        ++enbit) {
     Ptr<Node> enb = CreateObject<Node>();
     enbs.Add(enb);
-
-    // we test EPC without LTE, hence we use:
-    // 1) a CSMA network to simulate the cell
-    // 2) a raw socket opened on the CSMA device to simulate the LTE socket
 
     uint16_t cellId = ++cellIdCounter;
 
@@ -161,15 +106,12 @@ void EpcS1uDlTestCase::DoRun() {
     CsmaHelper csmaCell;
     NetDeviceContainer cellDevices = csmaCell.Install(cell);
 
-    // the eNB's CSMA NetDevice acting as an LTE NetDevice.
     Ptr<NetDevice> enbDevice = cellDevices.Get(cellDevices.GetN() - 1);
 
-    // Note that the EpcEnbApplication won't care of the actual NetDevice type
     std::vector<uint16_t> cellIds;
     cellIds.push_back(cellId);
     epcHelper->AddEnb(enb, enbDevice, cellIds);
 
-    // Plug test RRC entity
     Ptr<EpcEnbApplication> enbApp =
         enb->GetApplication(0)->GetObject<EpcEnbApplication>();
     NS_ASSERT_MSG(enbApp, "cannot retrieve EpcEnbApplication");
@@ -178,11 +120,9 @@ void EpcS1uDlTestCase::DoRun() {
     rrc->SetS1SapProvider(enbApp->GetS1SapProvider());
     enbApp->SetS1SapUser(rrc->GetS1SapUser());
 
-    // we install the IP stack on UEs only
     InternetStackHelper internet;
     internet.Install(ues);
 
-    // assign IP address to UEs, and install applications
     for (uint32_t u = 0; u < ues.GetN(); ++u) {
       Ptr<NetDevice> ueLteDevice = cellDevices.Get(u);
       Ipv4InterfaceContainer ueIpIface =
@@ -190,9 +130,6 @@ void EpcS1uDlTestCase::DoRun() {
 
       Ptr<Node> ue = ues.Get(u);
 
-      // disable IP Forwarding on the UE. This is because we use
-      // CSMA broadcast MAC addresses for this test. The problem
-      // won't happen with a LteUeNetDevice.
       ue->GetObject<Ipv4>()->SetAttribute("IpForward", BooleanValue(false));
 
       uint16_t port = 1234;
@@ -239,9 +176,6 @@ void EpcS1uDlTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * Test that the S1-U interface implementation works correctly
- */
 class EpcS1uDlTestSuite : public TestSuite {
 public:
   EpcS1uDlTestSuite();

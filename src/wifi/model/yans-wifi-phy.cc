@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Ghada Badawy <gbadawy@gmail.com>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "yans-wifi-phy.h"
 
@@ -44,7 +24,6 @@ YansWifiPhy::YansWifiPhy() { NS_LOG_FUNCTION(this); }
 
 void YansWifiPhy::SetInterferenceHelper(const Ptr<InterferenceHelper> helper) {
   WifiPhy::SetInterferenceHelper(helper);
-  // add dummy band for Yans
   m_interference->AddBand({{0, 0}, {0, 0}});
 }
 
@@ -82,8 +61,7 @@ YansWifiPhy::GetTxMaskRejectionParams() const {
   return std::make_tuple(0.0, 0.0, 0.0);
 }
 
-WifiSpectrumBandInfo YansWifiPhy::GetBand(uint16_t /*bandWidth*/,
-                                          uint8_t /*bandIndex*/) {
+WifiSpectrumBandInfo YansWifiPhy::GetBand(uint16_t, uint8_t) {
   return {{0, 0}, {0, 0}};
 }
 
@@ -92,7 +70,7 @@ FrequencyRange YansWifiPhy::GetCurrentFrequencyRange() const {
 }
 
 WifiSpectrumBandFrequencies YansWifiPhy::ConvertIndicesToFrequencies(
-    const WifiSpectrumBandIndices & /*indices*/) const {
+    const WifiSpectrumBandIndices &) const {
   return {0, 0};
 }
 

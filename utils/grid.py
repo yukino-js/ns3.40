@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 
 import cairo
@@ -20,14 +7,7 @@ import re
 import gtk
 
 
-## DataRange class
 class DataRange:
-    ## @var start
-    #  start
-    ## @var end
-    #  end
-    ## @var value
-    #  value
     def __init__(self, start=0, end=0, value=""):
         """! Initializer
         @param self this object
@@ -40,12 +20,7 @@ class DataRange:
         self.value = value
 
 
-## EventString class
 class EventString:
-    ## @var at
-    #  at
-    ## @var value
-    #  value
     def __init__(self, at=0, value=""):
         """! Initializer
         @param self this object
@@ -56,12 +31,7 @@ class EventString:
         self.value = value
 
 
-## EventFloat class
 class EventFloat:
-    ## @var at
-    #  at
-    ## @var value
-    #  value
     def __init__(self, at=0, value=0.0):
         """! Initializer
         @param self this object
@@ -72,12 +42,7 @@ class EventFloat:
         self.value = value
 
 
-## EventInt class
 class EventInt:
-    ## @var at
-    #  at
-    ## @var value
-    #  value
     def __init__(self, at=0, value=0.0):
         """! Initializer
         @param self this object
@@ -108,12 +73,7 @@ def events_cmp(a, b):
         return 0
 
 
-## TimelineDataRange
 class TimelineDataRange:
-    ## @var name
-    #  name
-    ## @var ranges
-    #  ranges
     def __init__(self, name=""):
         """! Initializer
         @param self this object
@@ -138,7 +98,6 @@ class TimelineDataRange:
             elif key < self.ranges[i].start:
                 u = i - 1
             else:
-                # key > self.ranges[i].end
                 l = i + 1
         return -1
 
@@ -213,12 +172,7 @@ class TimelineDataRange:
             return (0, 0)
 
 
-## TimelineEvent class
 class TimelineEvent:
-    ## @var name
-    #  name
-    ## @var events
-    #  events
     def __init__(self, name=""):
         """! Get ranges bounds
         @param self this object
@@ -242,7 +196,6 @@ class TimelineEvent:
             elif key < self.events[i].at:
                 u = i - 1
             else:
-                # key > self.events[i].at
                 l = i + 1
         return l
 
@@ -296,16 +249,7 @@ class TimelineEvent:
             return (0, 0)
 
 
-## Timeline class
 class Timeline:
-    ## @var name
-    #  name
-    ## @var ranges
-    #  ranges
-    ## @var event_str
-    #  event string
-    ## @var event_int
-    #  event int
     def __init__(self, name=""):
         """! Initializer
         @param self this object
@@ -416,10 +360,7 @@ class Timeline:
         return (lo, hi)
 
 
-## Timelines class
 class Timelines:
-    ## @var timelines
-    #  timelines
     def __init__(self):
         """Initializer
         @param self: this object
@@ -482,14 +423,7 @@ class Timelines:
         return range_values.keys()
 
 
-## Color class
 class Color:
-    ## @var r
-    #  red
-    ## @var g
-    #  green
-    ## @var b
-    #  blue
     def __init__(self, r=0.0, g=0.0, b=0.0):
         """! Initializer
         @param self: this object
@@ -514,13 +448,7 @@ class Color:
         self.b = b
 
 
-## Colors class
 class Colors:
-    ## @var __colors
-    #  colors
-    ## @var default_colors
-    #  default colors
-    ## XXX add more
     default_colors = [
         Color(1, 0, 0),
         Color(0, 1, 0),
@@ -556,18 +484,7 @@ class Colors:
         return self.__colors.get(name)
 
 
-## TopLegendRenderer class
 class TopLegendRenderer:
-    ## @var __padding
-    #  padding
-    ## @var __legends
-    #  legends
-    ## @var __colors
-    #  colors
-    ## @var __width
-    #  width
-    ## @var __height
-    #  height
     def __init__(self):
         """! Initializer
         @param self this object
@@ -662,30 +579,7 @@ class TopLegendRenderer:
             i += 1
 
 
-## TimelinesRenderer class
 class TimelinesRenderer:
-    ## @var padding
-    #  padding
-    ## @var timelines
-    #  timelines
-    ## @var colors
-    #  colors
-    ## @var start
-    #  start
-    ## @var end
-    #  end
-    ## @var left_width
-    #  left width
-    ## @var right_width
-    #  right width
-    ## @var max_text_height
-    #  maximum text height
-    ## @var width
-    #  width
-    ## @var height
-    #  height
-    ## @var grey_background
-    #  grey background
     def __init__(self):
         """! Initializer
         @param self this object
@@ -957,22 +851,7 @@ class TimelinesRenderer:
         self.draw_line(ctx, right_x_end + self.padding / 2, 0, 0, bot_y)
 
 
-## ScaleRenderer class
 class ScaleRenderer:
-    ## @var __top
-    #  top
-    ## @var __lo
-    #  lo
-    ## @var __hi
-    #  hi
-    ## @var __delta
-    #  delta
-    ## @var __width
-    #  width
-    ## @var __height
-    #  height
-    ## @var max_text_height
-    #  maximum text height
     def __init__(self):
         """! Initializer
         @param self this object
@@ -1022,7 +901,6 @@ class ScaleRenderer:
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 1, 1)
         ctx = cairo.Context(surface)
 
-        # calculate scale delta
         data_delta = self.__hi - self.__lo
         closest = 1
         while (closest * 10) < data_delta:
@@ -1039,7 +917,6 @@ class ScaleRenderer:
         self.__delta = delta
         self.__width = width
 
-        # calculate text height
         max_text_height = ctx.text_extents(
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcedefghijklmnopqrstuvwxyz0123456789"
         )[3]
@@ -1068,7 +945,6 @@ class ScaleRenderer:
             s = -1
         else:
             s = 1
-        # print scale points
         ctx.set_source_rgb(0, 0, 0)
         ctx.set_line_width(1.0)
         ticks = range(int(start), int(end + delta), int(delta))
@@ -1085,7 +961,6 @@ class ScaleRenderer:
                 text_delta = -t_y_bearing
             ctx.move_to(real_x - t_width / 2, (5 + 5 + text_delta) * s)
             ctx.show_text(str(x))
-        # draw subticks
         delta /= 10
         if delta > 0:
             start = self.__lo - (self.__lo % delta) + delta
@@ -1098,30 +973,7 @@ class ScaleRenderer:
                 ctx.stroke()
 
 
-## GraphicRenderer class
 class GraphicRenderer:
-    ## @var __start
-    #  start
-    ## @var __end
-    #  end
-    ## @var __mid_scale
-    #  mid scale
-    ## @var __bot_scale
-    #  bottom scale
-    ## @var __width
-    #  width
-    ## @var __height
-    #  height
-    ## @var __r_start
-    #  start
-    ## @var __r_end
-    #  end
-    ## @var __data
-    #  data
-    ## @var __mid_scale
-    #  mid scale
-    ## @var __top_legend
-    #  top legend
     def __init__(self, start, end):
         """! Initializer
         @param self this object
@@ -1152,7 +1004,6 @@ class GraphicRenderer:
         """
         return self.__height
 
-    # return x, y, width, height
     def get_data_rectangle(self):
         """! Get Data Rectangle
         @param self this object
@@ -1172,7 +1023,6 @@ class GraphicRenderer:
         x_scaled = x / (self.__width - x_start) * (self.__r_end - self.__r_start)
         return x_scaled
 
-    # return x, y, width, height
     def get_selection_rectangle(self):
         """! Get Selection Rectangle
         @param self this object
@@ -1270,20 +1120,17 @@ class GraphicRenderer:
         @param ctx ctx
         @return none
         """
-        # default background is white
         ctx.save()
         ctx.set_source_rgb(1, 1, 1)
         ctx.set_operator(cairo.OPERATOR_SOURCE)
         ctx.rectangle(0, 0, self.__width, self.__height)
         ctx.fill()
 
-        # top legend
         ctx.save()
         self.__top_legend.draw(ctx)
         top_legend_height = self.__top_legend.get_height()
         ctx.restore()
 
-        # separation line
         ctx.move_to(0, top_legend_height)
         ctx.line_to(self.__width, top_legend_height)
         ctx.close_path()
@@ -1291,13 +1138,11 @@ class GraphicRenderer:
         ctx.set_source_rgb(0, 0, 0)
         ctx.stroke()
 
-        # data
         ctx.save()
         ctx.translate(0, top_legend_height)
         self.__data.draw(ctx)
         ctx.restore()
 
-        # scale below data
         ctx.save()
         ctx.translate(
             self.__data.get_data_x_start(),
@@ -1312,7 +1157,6 @@ class GraphicRenderer:
             top_legend_height + self.__data.get_height() + self.__mid_scale.get_height()
         )
 
-        # separation between scale and left pane
         ctx.move_to(self.__data.get_data_x_start(), height_used)
         ctx.rel_line_to(0, -self.__mid_scale.get_height())
         ctx.close_path()
@@ -1320,7 +1164,6 @@ class GraphicRenderer:
         ctx.set_line_width(2)
         ctx.stroke()
 
-        # separation below scale
         ctx.move_to(0, height_used)
         ctx.line_to(self.__width, height_used)
         ctx.close_path()
@@ -1331,7 +1174,6 @@ class GraphicRenderer:
         select_start = self.__bot_scale.get_position(self.__r_start)
         select_end = self.__bot_scale.get_position(self.__r_end)
 
-        # left connection between top scale and bottom scale
         ctx.move_to(0, height_used)
         ctx.line_to(self.__data.get_data_x_start(), height_used)
         ctx.line_to(select_start, height_used + 20)
@@ -1343,7 +1185,6 @@ class GraphicRenderer:
         ctx.set_source_rgb(0.9, 0.9, 0.9)
         ctx.fill()
 
-        # right connection between top scale and bottom scale
         ctx.move_to(self.__width, height_used)
         ctx.line_to(self.__width, height_used + 20)
         ctx.line_to(select_end, height_used + 20)
@@ -1356,7 +1197,6 @@ class GraphicRenderer:
 
         height_used += 20
 
-        # unused area background
         unused_start = self.__bot_scale.get_position(self.__r_start)
         unused_end = self.__bot_scale.get_position(self.__r_end)
         unused_height = self.__bot_scale.get_height() + 20
@@ -1365,7 +1205,6 @@ class GraphicRenderer:
         ctx.set_source_rgb(0.9, 0.9, 0.9)
         ctx.fill()
 
-        # border line around bottom scale
         ctx.move_to(unused_end, height_used)
         ctx.line_to(self.__width, height_used)
         ctx.line_to(self.__width, height_used + unused_height)
@@ -1383,7 +1222,6 @@ class GraphicRenderer:
         ctx.set_source_rgb(0.9, 0.9, 0.9)
         ctx.stroke()
 
-        # unused area dot borders
         ctx.save()
         ctx.move_to(max(unused_start, 2), height_used)
         ctx.rel_line_to(0, unused_height)
@@ -1395,45 +1233,13 @@ class GraphicRenderer:
         ctx.stroke()
         ctx.restore()
 
-        # bottom scale
         ctx.save()
         ctx.translate(0, height_used)
         self.__bot_scale.draw(ctx)
         ctx.restore()
 
 
-## GtkGraphicRenderer class
 class GtkGraphicRenderer(gtk.DrawingArea):
-    ## @var __data
-    #  data
-    ## @var __moving_left
-    #  moving left
-    ## @var __moving_right
-    #  moving right
-    ## @var __moving_both
-    #  moving both
-    ## @var __moving_top
-    #  moving top
-    ## @var __force_full_redraw
-    #  full redraw
-    ## @var __moving_left_cur
-    #  moving left cur
-    ## @var __moving_right_cur
-    #  moving right cur
-    ## @var __moving_both_start
-    #  moving both start
-    ## @var __moving_both_cur
-    #  moving both cur
-    ## @var __moving_top_cur
-    #  moving top cur
-    ## @var __moving_top_start
-    #  moving top start
-    ## @var __width
-    #  width
-    ## @var __height
-    #  height
-    ## @var __buffer_surface
-    #  buffer surface
     def __init__(self, data):
         """! Initializer
         @param self this object
@@ -1679,14 +1485,7 @@ class GtkGraphicRenderer(gtk.DrawingArea):
         return False
 
 
-## MainWindow class
 class MainWindow:
-    ## @var __window
-    #  window
-    ## @var __render
-    #  render
-    ## @var __dialog
-    #  dialog
     def __init__(self):
         """! Initializer
         @param self this object
@@ -1720,7 +1519,6 @@ class MainWindow:
         hbox.pack_start(output_png)
         window.connect("destroy", gtk.main_quit)
         window.show_all()
-        # gtk.bindings_activate(gtk.main_quit, 'q', 0)
         gtk.main()
 
     def __set_smaller_cb(self, widget):
@@ -1766,7 +1564,6 @@ class MainWindow:
             widget.hide()
 
 
-## read_data function
 def read_data(filename):
     timelines = Timelines()
     colors = Colors()
@@ -1838,7 +1635,6 @@ def main():
     data.set_timelines(timelines, colors)
     graphic.set_data(data)
 
-    # default range
     range_mid = (upper_bound - lower_bound) / 2
     range_width = (upper_bound - lower_bound) / 10
     range_lo = range_mid - range_width / 2

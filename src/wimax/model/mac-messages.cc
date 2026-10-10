@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "mac-messages.h"
 
@@ -73,8 +53,6 @@ uint32_t ManagementMessageType::Deserialize(Buffer::Iterator start) {
   m_type = i.ReadU8();
   return i.GetDistanceFrom(start);
 }
-
-// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(RngReq);
 
@@ -146,8 +124,6 @@ uint32_t RngReq::Deserialize(Buffer::Iterator start) {
 
   return i.GetDistanceFrom(start);
 }
-
-// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(RngRsp);
 
@@ -301,8 +277,7 @@ uint32_t RngRsp::Deserialize(Buffer::Iterator start) {
   m_dlFreqOverride = i.ReadU32();
   m_ulChnlIdOverride = i.ReadU8();
   m_dlOperBurstProfile = i.ReadU16();
-  ReadFrom(i, m_macAddress); // length (6) shall also be written in packet
-                             // instead of hard coded, see ARP example
+  ReadFrom(i, m_macAddress);
   m_basicCid = i.ReadU16();
   m_primaryCid = i.ReadU16();
   m_aasBdcastPermission = i.ReadU8();
@@ -312,8 +287,6 @@ uint32_t RngRsp::Deserialize(Buffer::Iterator start) {
 
   return i.GetDistanceFrom(start);
 }
-
-// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(DsaReq);
 
@@ -384,8 +357,6 @@ uint32_t DsaReq::Deserialize(Buffer::Iterator start) {
 ServiceFlow DsaReq::GetServiceFlow() const { return m_serviceFlow; }
 
 void DsaReq::SetServiceFlow(ServiceFlow sf) { m_serviceFlow = sf; }
-
-// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(DsaRsp);
 
@@ -458,8 +429,6 @@ uint32_t DsaRsp::Deserialize(Buffer::Iterator start) {
   m_serviceFlow = ServiceFlow(tlv);
   return size + 3;
 }
-
-// ---------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(DsaAck);
 

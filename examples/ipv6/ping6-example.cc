@@ -1,32 +1,4 @@
-/*
- * Copyright (c) 2008-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
-// Network topology
-//
-//       n0    n1
-//       |     |
-//       =================
-//              LAN
-//
-// - ICMPv6 echo request flows from n0 to n1 and back with ICMPv6 echo reply
-// - DropTail queues
-// - Tracing of queues and packet receptions to file "ping6.tr"
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -66,7 +38,6 @@ int main(int argc, char **argv) {
   NodeContainer n;
   n.Create(4);
 
-  /* Install IPv4/IPv6 stack */
   InternetStackHelper internetv6;
   internetv6.SetIpv4StackInstall(false);
   internetv6.Install(n);
@@ -83,7 +54,6 @@ int main(int argc, char **argv) {
 
   NS_LOG_INFO("Create Applications.");
 
-  // Create a Ping application to send ICMPv6 echo request from node zero
   uint32_t packetSize = 1024;
   uint32_t maxPacketCount = 5;
 

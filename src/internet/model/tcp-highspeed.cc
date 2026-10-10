@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2014 Natale Patriciello, <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-highspeed.h"
 
@@ -50,38 +33,6 @@ Ptr<TcpCongestionOps> TcpHighSpeed::Fork() {
   return CopyObject<TcpHighSpeed>(this);
 }
 
-/**
- * \brief Congestion avoidance of TcpHighSpeed
- *
- * As implementation choice, we increment cWnd only by MSS, when the right
- * number of ACK has been received. At this point, the important question is:
- * what is the "right number of ACK" ?
- *
- * As you can recall from RFC, Highspeed works this way:
- *
- *               w = w + a(w)/w
- *
- * Let's start when a(w) is 1 (so it is classical NewReno). The formula then is
- * the classical text-book version for NewReno:
- *
- *               w = w + 1 / w
- *
- * So, for each segment acked, we increase the window by the quantity 1/w. Or,
- * instead of adding the 1/w quantity for each segment acked, we can track the
- * number of segments acked (m_ackCnt) and increment by 1 MSS when m_ackCnt
- * reaches w.
- *
- * When a(w) > 1, it means that each segment acked has a different "weight".
- * For instance, when it is equal to 2, we need to increase the window by the
- * quantity 2/w. But, this means that one segment acked is equivalent (from
- * the point of view of incrementing cWnd) to two segments acked in NewReno
- * (1/w + 1/w). That a coefficient is, in other word, the weight of each segment
- * acked. More weight, less ACK are necessary to increment cWnd, which is
- * exactly the Highspeed principle.
- *
- * \param tcb internal congestion state
- * \param segmentsAcked count of segments acked
- */
 void TcpHighSpeed::CongestionAvoidance(Ptr<TcpSocketState> tcb,
                                        uint32_t segmentsAcked) {
   NS_LOG_FUNCTION(this << tcb << segmentsAcked);
@@ -108,14 +59,6 @@ void TcpHighSpeed::CongestionAvoidance(Ptr<TcpSocketState> tcb,
 
 std::string TcpHighSpeed::GetName() const { return "TcpHighSpeed"; }
 
-/**
- * \brief Get slow start threshold following HighSpeed principles
- *
- * \param tcb internal congestion state
- * \param bytesInFlight Bytes in flight
- *
- * \return the slow start threshold value
- */
 uint32_t TcpHighSpeed::GetSsThresh(Ptr<const TcpSocketState> tcb,
                                    uint32_t bytesInFlight) {
   NS_LOG_FUNCTION(this << tcb << bytesInFlight);

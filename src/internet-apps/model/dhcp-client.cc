@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2011 UPB
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Radu Lupu <rlupu@elcom.pub.ro>
- *         Ankit Deepak <adadeepak8@gmail.com>
- *         Deepti Rajagopal <deeptir96@gmail.com>
- *
- *
- */
 
 #include "dhcp-client.h"
 
@@ -116,7 +93,6 @@ void DhcpClient::DoDispose() {
 
   m_device = nullptr;
 
-  // Stop all the timers
   m_refreshEvent.Cancel();
   m_requestEvent.Cancel();
   m_discoverEvent.Cancel();
@@ -143,8 +119,6 @@ void DhcpClient::StartApplication() {
   Ptr<Ipv4> ipv4 = GetNode()->GetObject<Ipv4>();
   uint32_t ifIndex = ipv4->GetInterfaceForDevice(m_device);
 
-  // We need to cleanup the type from the stored chaddr, or later we'll fail to
-  // compare it. Moreover, the length is always 16, because chaddr is 16 bytes.
   Address myAddress = m_device->GetAddress();
   NS_LOG_INFO("My address is " << myAddress);
   uint8_t addr[Address::MAX_SIZE];
@@ -186,7 +160,6 @@ void DhcpClient::StartApplication() {
 void DhcpClient::StopApplication() {
   NS_LOG_FUNCTION(this);
 
-  // Stop all the timers
   m_refreshEvent.Cancel();
   m_requestEvent.Cancel();
   m_discoverEvent.Cancel();
@@ -217,10 +190,8 @@ void DhcpClient::LinkStateHandler() {
     m_socket->SetRecvCallback(MakeCallback(&DhcpClient::NetHandler, this));
     StartApplication();
   } else {
-    NS_LOG_INFO("Link down at "
-                << Simulator::Now().As(Time::S)); // reinitialization
+    NS_LOG_INFO("Link down at " << Simulator::Now().As(Time::S));
 
-    // Stop all the timers
     m_refreshEvent.Cancel();
     m_requestEvent.Cancel();
     m_discoverEvent.Cancel();
@@ -229,9 +200,7 @@ void DhcpClient::LinkStateHandler() {
     m_timeout.Cancel();
     m_collectEvent.Cancel();
 
-    m_socket->SetRecvCallback(
-        MakeNullCallback<void,
-                         Ptr<Socket>>()); // stop receiving on this socket !!!
+    m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
 
     Ptr<Ipv4> ipv4MN = GetNode()->GetObject<Ipv4>();
     int32_t ifIndex = ipv4MN->GetInterfaceForDevice(m_device);
@@ -473,4 +442,4 @@ void DhcpClient::RemoveAndStart() {
   StartApplication();
 }
 
-} // Namespace ns3
+} // namespace ns3

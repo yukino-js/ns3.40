@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
 #include "ns3/tag.h"
@@ -25,16 +7,8 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network
- * A simple example of an Tag implementation
- */
 class MyTag : public Tag {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   uint32_t GetSerializedSize() const override;
@@ -42,20 +16,11 @@ public:
   void Deserialize(TagBuffer i) override;
   void Print(std::ostream &os) const override;
 
-  // these are our accessors to our tag structure
-  /**
-   * Set the tag value
-   * \param value The tag value.
-   */
   void SetSimpleValue(uint8_t value);
-  /**
-   * Get the tag value
-   * \return the tag value.
-   */
   uint8_t GetSimpleValue() const;
 
 private:
-  uint8_t m_simpleValue; //!< tag value
+  uint8_t m_simpleValue;
 };
 
 TypeId MyTag::GetTypeId() {
@@ -86,22 +51,17 @@ void MyTag::SetSimpleValue(uint8_t value) { m_simpleValue = value; }
 uint8_t MyTag::GetSimpleValue() const { return m_simpleValue; }
 
 int main(int argc, char *argv[]) {
-  // create a tag.
   MyTag tag;
   tag.SetSimpleValue(0x56);
 
-  // store the tag in a packet.
   Ptr<Packet> p = Create<Packet>(100);
   p->AddPacketTag(tag);
 
-  // create a copy of the packet
   Ptr<Packet> aCopy = p->Copy();
 
-  // read the tag from the packet copy
   MyTag tagCopy;
   p->PeekPacketTag(tagCopy);
 
-  // the copy and the original are the same !
   NS_ASSERT(tagCopy.GetSimpleValue() == tag.GetSimpleValue());
 
   aCopy->PrintPacketTags(std::cout);

@@ -1,26 +1,3 @@
-/*
- * Copyright (c) 2018 Fraunhofer ESK
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Vignesh Babu <ns3-dev@esk.fraunhofer.de>
- *
- * Modified by:
- *          Zoraze Ali <zoraze.ali@cttc.es> (included both RRC protocol, two
- *                                           eNB scenario and UE jump away
- *                                           logic)
- */
 
 #include "lte-test-radio-link-failure.h"
 
@@ -44,9 +21,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteRadioLinkFailureTest");
 
-/*
- * Test Suite
- */
 LteRadioLinkFailureTestSuite::LteRadioLinkFailureTestSuite()
     : TestSuite("lte-radio-link-failure", SYSTEM) {
   std::vector<Vector> uePositionList;
@@ -57,29 +31,19 @@ LteRadioLinkFailureTestSuite::LteRadioLinkFailureTestSuite()
   uePositionList.emplace_back(10, 0, 0);
   enbPositionList.emplace_back(0, 0, 0);
   ueJumpAwayPosition = Vector(7000.0, 0.0, 0.0);
-  // check before jumping
   checkConnectedList.push_back(Seconds(0.3));
-  // check connection after jumping but before T310 timer expiration.
-  // This is to make sure that UE stays in connected mode
-  // before the expiration of T310 timer.
   checkConnectedList.push_back(Seconds(1));
 
-  // One eNB: Ideal RRC PROTOCOL
-  //
   AddTestCase(new LteRadioLinkFailureTestCase(
                   1, 1, Seconds(2), true, uePositionList, enbPositionList,
                   ueJumpAwayPosition, checkConnectedList),
               TestCase::QUICK);
 
-  // One eNB: Real RRC PROTOCOL
   AddTestCase(new LteRadioLinkFailureTestCase(
                   1, 1, Seconds(2), false, uePositionList, enbPositionList,
                   ueJumpAwayPosition, checkConnectedList),
               TestCase::QUICK);
 
-  // Two eNBs: Ideal RRC PROTOCOL
-
-  // We place the second eNB close to the position where the UE will jump
   enbPositionList.emplace_back(7020, 0, 0);
 
   AddTestCase(new LteRadioLinkFailureTestCase(
@@ -87,23 +51,13 @@ LteRadioLinkFailureTestSuite::LteRadioLinkFailureTestSuite()
                   ueJumpAwayPosition, checkConnectedList),
               TestCase::QUICK);
 
-  // Two eNBs: Ideal RRC PROTOCOL
   AddTestCase(new LteRadioLinkFailureTestCase(
                   2, 1, Seconds(2), false, uePositionList, enbPositionList,
                   ueJumpAwayPosition, checkConnectedList),
               TestCase::QUICK);
+}
 
-} // end of LteRadioLinkFailureTestSuite::LteRadioLinkFailureTestSuite ()
-
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteRadioLinkFailureTestSuite g_lteRadioLinkFailureTestSuite;
-
-/*
- * Test Case
- */
 
 std::string LteRadioLinkFailureTestCase::BuildNameString(uint32_t numEnbs,
                                                          uint32_t numUes,
@@ -142,10 +96,6 @@ LteRadioLinkFailureTestCase::~LteRadioLinkFailureTestCase() {
 }
 
 void LteRadioLinkFailureTestCase::DoRun() {
-  // LogLevel logLevel = (LogLevel) (LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  // LOG_LEVEL_ALL); LogComponentEnable ("LteUeRrc", logLevel);
-  // LogComponentEnable ("LteEnbRrc", logLevel);
-  // LogComponentEnable ("LteRadioLinkFailureTest", logLevel);
 
   Config::SetDefault("ns3::MacStatsCalculator::DlOutputFilename",
                      StringValue(CreateTempDirFilename("DlMacStats.txt")));
@@ -189,12 +139,9 @@ void LteRadioLinkFailureTestCase::DoRun() {
   lteHelper->SetPathlossModelType(
       TypeId::LookupByName("ns3::LogDistancePropagationLossModel"));
   lteHelper->SetPathlossModelAttribute("Exponent", DoubleValue(3.9));
-  lteHelper->SetPathlossModelAttribute(
-      "ReferenceLoss",
-      DoubleValue(38.57)); // ref. loss in dB at 1m for 2.025GHz
+  lteHelper->SetPathlossModelAttribute("ReferenceLoss", DoubleValue(38.57));
   lteHelper->SetPathlossModelAttribute("ReferenceDistance", DoubleValue(1));
 
-  //----power related (equal for all base stations)----
   Config::SetDefault("ns3::LteEnbPhy::TxPower", DoubleValue(eNodeB_txPower));
   Config::SetDefault("ns3::LteUePhy::TxPower", DoubleValue(23));
   Config::SetDefault("ns3::LteUePhy::NoiseFigure", DoubleValue(7));
@@ -205,26 +152,21 @@ void LteRadioLinkFailureTestCase::DoRun() {
   Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                      BooleanValue(true));
 
-  //----frequency related----
-  lteHelper->SetEnbDeviceAttribute("DlEarfcn", UintegerValue(100));   // 2120MHz
-  lteHelper->SetEnbDeviceAttribute("UlEarfcn", UintegerValue(18100)); // 1930MHz
-  lteHelper->SetEnbDeviceAttribute("DlBandwidth", UintegerValue(25)); // 5MHz
-  lteHelper->SetEnbDeviceAttribute("UlBandwidth", UintegerValue(25)); // 5MHz
+  lteHelper->SetEnbDeviceAttribute("DlEarfcn", UintegerValue(100));
+  lteHelper->SetEnbDeviceAttribute("UlEarfcn", UintegerValue(18100));
+  lteHelper->SetEnbDeviceAttribute("DlBandwidth", UintegerValue(25));
+  lteHelper->SetEnbDeviceAttribute("UlBandwidth", UintegerValue(25));
 
-  //----others----
   lteHelper->SetSchedulerType("ns3::PfFfMacScheduler");
   Config::SetDefault("ns3::LteAmc::AmcModel", EnumValue(LteAmc::PiroEW2010));
   Config::SetDefault("ns3::LteAmc::Ber", DoubleValue(0.01));
   Config::SetDefault("ns3::PfFfMacScheduler::HarqEnabled", BooleanValue(true));
 
-  // Radio link failure detection parameters
   Config::SetDefault("ns3::LteUeRrc::N310", UintegerValue(1));
   Config::SetDefault("ns3::LteUeRrc::N311", UintegerValue(1));
   Config::SetDefault("ns3::LteUeRrc::T310", TimeValue(Seconds(1)));
 
-  // Create the internet
   Ptr<Node> pgw = epcHelper->GetPgwNode();
-  // Create a single RemoteHost0x18ab460
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
@@ -245,13 +187,11 @@ void LteRadioLinkFailureTestCase::DoRun() {
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.0.0.0"), 1);
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(m_numEnbs);
   ueNodes.Create(m_numUes);
 
-  // Mobility
   Ptr<ListPositionAllocator> positionAllocEnb =
       CreateObject<ListPositionAllocator>();
 
@@ -277,7 +217,6 @@ void LteRadioLinkFailureTestCase::DoRun() {
   mobility.Install(ueNodes);
   m_ueMobility = ueNodes.Get(0)->GetObject<MobilityModel>();
 
-  // Install LTE Devices in eNB and UEs
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
 
@@ -287,21 +226,18 @@ void LteRadioLinkFailureTestCase::DoRun() {
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
   randomStream += lteHelper->AssignStreams(ueDevs, randomStream);
 
-  // Install the IP stack on the UEs
   internet.Install(ueNodes);
   Ipv4InterfaceContainer ueIpIfaces;
   ueIpIfaces = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueDevs));
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs);
 
-  // Install and start applications on UEs and remote host
   uint16_t dlPort = 10000;
   uint16_t ulPort = 20000;
 
   DataRateValue dataRateValue = DataRate("18.6Mbps");
   uint64_t bitRate = dataRateValue.Get().GetBitRate();
-  uint32_t packetSize = 1024; // bytes
+  uint32_t packetSize = 1024;
   NS_LOG_DEBUG("bit rate " << bitRate);
   double interPacketInterval = static_cast<double>(packetSize * 8) / bitRate;
   Time udpInterval = Seconds(interPacketInterval);
@@ -310,7 +246,6 @@ void LteRadioLinkFailureTestCase::DoRun() {
 
   for (uint32_t u = 0; u < m_numUes; ++u) {
     Ptr<Node> ue = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -363,8 +298,7 @@ void LteRadioLinkFailureTestCase::DoRun() {
       dlClientApps.Start(Seconds(0.27));
       ulServerApps.Start(Seconds(0.27));
       ulClientApps.Start(Seconds(0.27));
-
-    } // end for b
+    }
   }
 
   lteHelper->EnableTraces();
@@ -378,7 +312,6 @@ void LteRadioLinkFailureTestCase::DoRun() {
   Simulator::Schedule(Seconds(0.4), &LteRadioLinkFailureTestCase::JumpAway,
                       this, m_ueJumpAwayPosition);
 
-  // connect custom trace sinks
   Config::Connect(
       "/NodeList/*/DeviceList/*/LteEnbRrc/ConnectionEstablished",
       MakeCallback(
@@ -415,11 +348,10 @@ void LteRadioLinkFailureTestCase::DoRun() {
     CheckIdle(ueDevs.Get(u), enbDevs);
   }
   Simulator::Destroy();
-} // end of void LteRadioLinkFailureTestCase::DoRun ()
+}
 
 void LteRadioLinkFailureTestCase::JumpAway(Vector UeJumpAwayPosition) {
   NS_LOG_FUNCTION(this);
-  // move to a far away location so that transmission errors occur
 
   m_ueMobility->SetPosition(UeJumpAwayPosition);
 }
@@ -526,7 +458,6 @@ void LteRadioLinkFailureTestCase::CheckIdle(Ptr<NetDevice> ueDevice,
   bool ueManagerFound = false;
 
   switch (numEnbDevices) {
-  // 1 eNB
   case 1:
     NS_TEST_ASSERT_MSG_EQ(ueRrc->GetState(), LteUeRrc::IDLE_CELL_SEARCH,
                           "Wrong LteUeRrc state!");
@@ -535,7 +466,6 @@ void LteRadioLinkFailureTestCase::CheckIdle(Ptr<NetDevice> ueDevice,
                           "Unexpected RNTI with value " << rnti
                                                         << " found in eNB");
     break;
-  // 2 eNBs
   case 2:
     NS_TEST_ASSERT_MSG_EQ(ueRrc->GetState(), LteUeRrc::CONNECTED_NORMALLY,
                           "Wrong LteUeRrc state!");
@@ -607,14 +537,11 @@ void LteRadioLinkFailureTestCase::RadioLinkFailureCallback(std::string context,
   NS_LOG_FUNCTION(this << imsi << cellId << rnti);
   NS_LOG_DEBUG("RLF at " << Simulator::Now());
   m_radioLinkFailureDetected = true;
-  // The value of N310 is hard coded to the default value 1
   NS_TEST_ASSERT_MSG_EQ(m_numOfOutOfSyncIndications, 1,
                         "wrong number of out-of-sync indications detected, "
                         "check configured value for N310");
-  // The value of N311 is hard coded to the default value 1
   NS_TEST_ASSERT_MSG_LT(m_numOfInSyncIndications, 1,
                         "wrong number of out-of-sync indications detected, "
                         "check configured value for N311");
-  // Reset the counter for the next RRC connection establishment.
   m_numOfOutOfSyncIndications = 0;
 }

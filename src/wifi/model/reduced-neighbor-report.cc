@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "reduced-neighbor-report.h"
 
@@ -49,7 +31,6 @@ void ReducedNeighborReport::SetOperatingChannel(
   uint8_t operatingClass = 0;
   uint8_t channelNumber = channel.GetNumber();
 
-  // Information taken from Table E-4 of 802.11-2020
   switch (channel.GetPhyBand()) {
   case WIFI_PHY_BAND_2_4GHZ:
     if (channel.GetWidth() == 20) {
@@ -128,7 +109,6 @@ void ReducedNeighborReport::SetOperatingChannel(
                       << " MHz "
                       << "band " << channel.GetPhyBand());
 
-  // find the primary channel number
   uint16_t startingFreq = 0;
 
   switch (channel.GetPhyBand()) {
@@ -246,17 +226,11 @@ ReducedNeighborReport::GetOperatingChannel(std::size_t nbrApInfoId) const {
         std::get<4>(channel) == band &&
         primaryChannelCenterFrequency > std::get<1>(channel) - width / 2 &&
         primaryChannelCenterFrequency < std::get<1>(channel) + width / 2) {
-      // the center frequency of the primary channel falls into the frequency
-      // range of this channel
       bool found = false;
 
       if (band != WIFI_PHY_BAND_2_4GHZ) {
         found = true;
       } else {
-        // frequency channels overlap in the 2.4 GHz band, hence we have to
-        // check that the given primary channel center frequency can be the
-        // center frequency of the primary20 channel of the channel under
-        // consideration
         switch (width) {
         case 20:
           if (std::get<1>(channel) == primaryChannelCenterFrequency) {
@@ -311,7 +285,7 @@ void ReducedNeighborReport::WriteTbttInformationLength(
     std::size_t nbrApInfoId) const {
   NS_ASSERT(nbrApInfoId < m_nbrApInfoFields.size());
 
-  uint8_t length = 0; // reserved value
+  uint8_t length = 0;
 
   auto it = std::next(m_nbrApInfoFields.begin(), nbrApInfoId);
 
@@ -325,7 +299,6 @@ void ReducedNeighborReport::WriteTbttInformationLength(
     NS_ABORT_MSG("Unsupported TBTT Information field contents");
   }
 
-  // set the TBTT Information Length field
   it->tbttInfoHdr.tbttInfoLength = length;
 }
 
@@ -521,7 +494,6 @@ void ReducedNeighborReport::WriteTbttInformationCount(
   NS_ASSERT(nbrApInfoId < m_nbrApInfoFields.size());
   NS_ASSERT(!m_nbrApInfoFields.at(nbrApInfoId).tbttInformationSet.empty());
 
-  // set the TBTT Information Count field
   m_nbrApInfoFields.at(nbrApInfoId).tbttInfoHdr.tbttInfoCount =
       m_nbrApInfoFields.at(nbrApInfoId).tbttInformationSet.size() - 1;
 }
@@ -569,7 +541,6 @@ void ReducedNeighborReport::SerializeInformationField(
   }
 
   for (auto &neighborApInfo : m_nbrApInfoFields) {
-    // serialize the TBTT Information Header
     uint16_t tbttInfoHdr = 0;
     tbttInfoHdr |= neighborApInfo.tbttInfoHdr.type;
     tbttInfoHdr |= (neighborApInfo.tbttInfoHdr.filtered << 2);

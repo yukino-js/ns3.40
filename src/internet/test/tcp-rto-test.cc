@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
@@ -28,25 +11,8 @@ NS_LOG_COMPONENT_DEFINE("TcpRtoTest");
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the moments after an RTO expiration
- *
- * The scope of this test is to be sure that, after an RTO expiration,
- * the TCP implementation set the correct state in the ACK state machine,
- * and marks the lost segment as lost; then, after the retransmission, the
- * state is fully recovered. This is the base check, where only one segment
- * (the first) is lost and retransmitted.
- *
- */
 class TcpRtoTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param congControl Congestion control type.
-   * \param msg Test description.
-   */
   TcpRtoTest(const TypeId &congControl, const std::string &msg);
 
 protected:
@@ -62,8 +28,8 @@ protected:
   void ConfigureEnvironment() override;
 
 private:
-  bool m_afterRTOExpired; //!< True if RTO is expired.
-  bool m_segmentReceived; //!< True if segments have been received.
+  bool m_afterRTOExpired;
+  bool m_segmentReceived;
 };
 
 TcpRtoTest::TcpRtoTest(const TypeId &congControl, const std::string &desc)
@@ -82,8 +48,6 @@ void TcpRtoTest::ConfigureProperties() {
 }
 
 Ptr<TcpSocketMsgBase> TcpRtoTest::CreateSenderSocket(Ptr<Node> node) {
-  // Get a really low RTO, and let them fire as soon as possible since
-  // we are interested only in what happen after it expires
   Ptr<TcpSocketMsgBase> socket = TcpGeneralTest::CreateSenderSocket(node);
   socket->SetAttribute("MinRto", TimeValue(Seconds(0.5)));
 
@@ -92,9 +56,6 @@ Ptr<TcpSocketMsgBase> TcpRtoTest::CreateSenderSocket(Ptr<Node> node) {
 
 void TcpRtoTest::AfterRTOExpired(const Ptr<const TcpSocketState> tcb,
                                  SocketWho who) {
-  // In this test, the RTO fires for the first segment (and no more).
-  // This function is called after the management of the RTO expiration,
-  // and because of this we must check all the involved variables.
   NS_TEST_ASSERT_MSG_EQ(m_afterRTOExpired, false, "Second RTO expired");
   NS_TEST_ASSERT_MSG_EQ(tcb->m_congState.Get(), TcpSocketState::CA_LOSS,
                         "Ack state machine not in LOSS state after a loss");
@@ -104,11 +65,6 @@ void TcpRtoTest::AfterRTOExpired(const Ptr<const TcpSocketState> tcb,
 
 void TcpRtoTest::RcvAck(const Ptr<const TcpSocketState> tcb, const TcpHeader &h,
                         SocketWho who) {
-  // Called after the first ack is received (the lost segment has been
-  // successfully retransmitted. We must check on the sender that variables
-  // are in the same state as they where after AfterRTOExpired if it is the
-  // first ACK after the loss; in every other case, all must be OPEN and the
-  // counter set to 0.
 
   if (m_afterRTOExpired && who == SENDER) {
     NS_TEST_ASSERT_MSG_EQ(tcb->m_congState.Get(), TcpSocketState::CA_LOSS,
@@ -123,8 +79,6 @@ void TcpRtoTest::RcvAck(const Ptr<const TcpSocketState> tcb, const TcpHeader &h,
 
 void TcpRtoTest::ProcessedAck(const Ptr<const TcpSocketState> tcb,
                               const TcpHeader &h, SocketWho who) {
-  // Called after the ACK processing. Every time we should be in OPEN state,
-  // without any packet lost or marked as retransmitted, in both the sockets
 
   NS_TEST_ASSERT_MSG_EQ(tcb->m_congState.Get(), TcpSocketState::CA_OPEN,
                         "Ack state machine not in OPEN state after recovering "
@@ -137,31 +91,13 @@ void TcpRtoTest::ProcessedAck(const Ptr<const TcpSocketState> tcb,
 }
 
 void TcpRtoTest::FinalChecks() {
-  // At least one time we should process an ACK; otherwise, the segment
-  // has not been retransmitted, and this is bad
 
   NS_TEST_ASSERT_MSG_EQ(m_segmentReceived, true,
                         "Retransmission has not been done");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the ssthresh behavior after the RTO expires
- *
- * The scope of this test is to be sure that, after an RTO expiration,
- * the TCP implementation sets the correct ssthresh value
- *
- */
 class TcpSsThreshRtoTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param congControl congestion control type
-   * \param seqToDrop sequence number to drop
-   * \param minRto minimum RTO
-   * \param msg test description
-   */
   TcpSsThreshRtoTest(const TypeId &congControl, uint32_t seqToDrop, Time minRto,
                      const std::string &msg);
 
@@ -177,22 +113,15 @@ protected:
 
   void ConfigureEnvironment() override;
 
-  /**
-   * \brief Called when a packet has been dropped.
-   * \param ipH IPv4 header.
-   * \param tcpH TCP header.
-   * \param p The packet.
-   */
   void PktDropped(const Ipv4Header &ipH, const TcpHeader &tcpH,
                   Ptr<const Packet> p);
 
 private:
-  uint32_t m_bytesInFlight;          //!< Store the number of bytes in flight
-  uint32_t m_bytesInFlightBeforeRto; //!< Store the number of bytes in flight
-                                     //!< before the RTO expiration
-  uint32_t m_ssThreshSocket;         //!< the ssThresh as computed by the socket
-  uint32_t m_seqToDrop;              //!< the sequence number to drop
-  Time m_minRtoTime;                 //!< the minimum RTO time
+  uint32_t m_bytesInFlight;
+  uint32_t m_bytesInFlightBeforeRto;
+  uint32_t m_ssThreshSocket;
+  uint32_t m_seqToDrop;
+  Time m_minRtoTime;
 };
 
 TcpSsThreshRtoTest::TcpSsThreshRtoTest(const TypeId &congControl,
@@ -253,8 +182,6 @@ void TcpSsThreshRtoTest::BeforeRTOExpired(const Ptr<const TcpSocketState> tcb,
                                           SocketWho who) {
   NS_LOG_DEBUG("Before RTO for connection " << who);
 
-  // Get the bytesInFlight value before the expiration of the RTO
-
   if (who == SENDER) {
     m_bytesInFlightBeforeRto = m_bytesInFlight;
     NS_LOG_DEBUG("BytesInFlight before RTO Expired " << m_bytesInFlight);
@@ -266,7 +193,6 @@ void TcpSsThreshRtoTest::AfterRTOExpired(const Ptr<const TcpSocketState> tcb,
   NS_LOG_DEBUG("After RTO for " << who);
   Ptr<TcpSocketMsgBase> senderSocket = GetSenderSocket();
 
-  // compute the ssThresh according to RFC 5681, using the
   uint32_t ssThresh =
       std::max(m_bytesInFlightBeforeRto / 2, 2 * tcb->m_segmentSize);
 
@@ -277,20 +203,8 @@ void TcpSsThreshRtoTest::AfterRTOExpired(const Ptr<const TcpSocketState> tcb,
                         "Slow Start Threshold is incorrect");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing the timing of RTO
- *
- * Checking if RTO is doubled ONLY after a retransmission.
- */
 class TcpTimeRtoTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param congControl Congestion control type.
-   * \param msg Test description.
-   */
   TcpTimeRtoTest(const TypeId &congControl, const std::string &msg);
 
 protected:
@@ -305,19 +219,13 @@ protected:
 
   void ConfigureEnvironment() override;
 
-  /**
-   * \brief Called when a packet has been dropped.
-   * \param ipH IPv4 header.
-   * \param tcpH TCP header.
-   * \param p The packet.
-   */
   void PktDropped(const Ipv4Header &ipH, const TcpHeader &tcpH,
                   Ptr<const Packet> p);
 
 private:
-  uint32_t m_senderSentSegments; //!< Number of segments sent.
-  Time m_previousRTO;            //!< Previous RTO.
-  bool m_closed;                 //!< True if the connection is closed.
+  uint32_t m_senderSentSegments;
+  Time m_previousRTO;
+  bool m_closed;
 };
 
 TcpTimeRtoTest::TcpTimeRtoTest(const TypeId &congControl,
@@ -341,7 +249,6 @@ Ptr<TcpSocketMsgBase> TcpTimeRtoTest::CreateSenderSocket(Ptr<Node> node) {
 Ptr<ErrorModel> TcpTimeRtoTest::CreateReceiverErrorModel() {
   Ptr<TcpSeqErrorModel> errorModel = CreateObject<TcpSeqErrorModel>();
 
-  // Drop packet for 7 times. At the 7th, the connection should be dropped.
   for (uint32_t i = 0; i < 7; ++i) {
     errorModel->AddSeqToKill(SequenceNumber32(1));
   }
@@ -373,14 +280,7 @@ void TcpTimeRtoTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
       NS_TEST_ASSERT_MSG_EQ(h.GetSequenceNumber().GetValue(), 1,
                             "First packet was not correctly sent");
 
-      // Remember, from RFC:
-      // m_rto = Max (m_rtt->GetEstimate () +
-      //              Max (m_clockGranularity, m_rtt->GetVariation ()*4),
-      //              m_minRto);
-
-      if (m_senderSentSegments ==
-          2) { // ACK of SYN-ACK, rto set for the first time, since now we have
-        // an estimation of RTT
+      if (m_senderSentSegments == 2) {
 
         Ptr<RttEstimator> rttEstimator = GetRttEstimator(SENDER);
         Time clockGranularity = GetClockGranularity(SENDER);
@@ -396,8 +296,7 @@ void TcpTimeRtoTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
 
         NS_TEST_ASSERT_MSG_EQ_TOL(GetRto(SENDER), m_previousRTO, Seconds(0.01),
                                   "RTO value differs from calculation");
-      } else if (m_senderSentSegments ==
-                 3) { // First data packet. RTO should be the same as before
+      } else if (m_senderSentSegments == 3) {
 
         NS_TEST_ASSERT_MSG_EQ_TOL(GetRto(SENDER), m_previousRTO, Seconds(0.01),
                                   "RTO value has changed unexpectedly");
@@ -437,11 +336,6 @@ void TcpTimeRtoTest::FinalChecks() {
       "Socket has not been closed after retrying data retransmissions");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP RTO TestSuite
- */
 class TcpRtoTestSuite : public TestSuite {
 public:
   TcpRtoTestSuite() : TestSuite("tcp-rto-test", UNIT) {
@@ -455,13 +349,11 @@ public:
 
       constexpr uint32_t seqToDrop = 25001;
 
-      // With RTO of 0.5 seconds, BytesInFlight winds down to zero before RTO
       AddTestCase(new TcpSsThreshRtoTest(
                       t, seqToDrop, Seconds(0.5),
                       t.GetName() + " RTO ssthresh testing, set to 2*MSL"),
                   TestCase::QUICK);
 
-      // With RTO of 0.005 seconds, FlightSize/2 > 2*SMSS
       AddTestCase(
           new TcpSsThreshRtoTest(
               t, seqToDrop, Seconds(0.005),
@@ -475,5 +367,4 @@ public:
   }
 };
 
-static TcpRtoTestSuite
-    g_TcpRtoTestSuite; //!< Static variable for test initialization
+static TcpRtoTestSuite g_TcpRtoTestSuite;

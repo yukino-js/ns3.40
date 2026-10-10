@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2015 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "traffic-control-helper.h"
 
@@ -55,24 +37,19 @@ void QueueDiscFactory::SetChildQueueDisc(uint16_t classId, uint16_t handle) {
 
 Ptr<QueueDisc> QueueDiscFactory::CreateQueueDisc(
     const std::vector<Ptr<QueueDisc>> &queueDiscs) {
-  // create the queue disc
   Ptr<QueueDisc> qd = m_queueDiscFactory.Create<QueueDisc>();
 
-  // create and add the internal queues
   for (auto i = m_internalQueuesFactory.begin();
        i != m_internalQueuesFactory.end(); i++) {
     qd->AddInternalQueue(i->Create<QueueDisc::InternalQueue>());
   }
 
-  // create and add the packet filters
   for (auto i = m_packetFiltersFactory.begin();
        i != m_packetFiltersFactory.end(); i++) {
     qd->AddPacketFilter(i->Create<PacketFilter>());
   }
 
-  // create and add the queue disc classes
   for (std::size_t i = 0; i < m_queueDiscClassesFactory.size(); i++) {
-    // the class ID is given by the index i of the vector
     NS_ABORT_MSG_IF(
         m_classIdChildHandleMap.find(i) == m_classIdChildHandleMap.end(),
         "Cannot create a queue disc class with no attached queue disc");
@@ -179,30 +156,21 @@ TrafficControlHelper::HandleList TrafficControlHelper::DoAddChildQueueDiscs(
 QueueDiscContainer TrafficControlHelper::Install(Ptr<NetDevice> d) {
   QueueDiscContainer container;
 
-  // A TrafficControlLayer object is aggregated by the InternetStackHelper, but
-  // check anyway because a queue disc has no effect without a
-  // TrafficControlLayer object
   Ptr<TrafficControlLayer> tc = d->GetNode()->GetObject<TrafficControlLayer>();
   NS_ASSERT(tc);
 
-  // Start from an empty vector of queue discs
   m_queueDiscs.clear();
   m_queueDiscs.resize(m_queueDiscFactory.size());
 
-  // Create queue discs (from leaves to root)
   for (auto i = m_queueDiscFactory.size(); i-- > 0;) {
     m_queueDiscs[i] = m_queueDiscFactory[i].CreateQueueDisc(m_queueDiscs);
   }
 
-  // Set the root queue disc (if any has been created) on the device
   if (!m_queueDiscs.empty() && m_queueDiscs[0]) {
     tc->SetRootQueueDiscOnDevice(d, m_queueDiscs[0]);
     container.Add(m_queueDiscs[0]);
   }
 
-  // Queue limits objects can only be installed if a netdevice queue interface
-  // has been aggregated to the netdevice. This is normally the case if the
-  // netdevice has been created via helpers. Abort the simulation if not.
   if (m_queueLimitsFactory.GetTypeId().GetUid()) {
     Ptr<NetDeviceQueueInterface> ndqi = d->GetObject<NetDeviceQueueInterface>();
     NS_ABORT_MSG_IF(!ndqi, "A NetDeviceQueueInterface object has not been"
@@ -231,10 +199,7 @@ void TrafficControlHelper::Uninstall(Ptr<NetDevice> d) {
   NS_ASSERT(tc);
 
   tc->DeleteRootQueueDiscOnDevice(d);
-  // remove the queue limits objects installed on the device transmission queues
   Ptr<NetDeviceQueueInterface> ndqi = d->GetObject<NetDeviceQueueInterface>();
-  // if a queue disc has been installed on the device, a netdevice queue
-  // interface must have been aggregated to the device
   NS_ASSERT(ndqi);
   for (std::size_t i = 0; i < ndqi->GetNTxQueues(); i++) {
     ndqi->GetTxQueue(i)->SetQueueLimits(nullptr);

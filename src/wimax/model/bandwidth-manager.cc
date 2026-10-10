@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "bandwidth-manager.h"
 
@@ -60,8 +40,6 @@ BandwidthManager::CalculateAllocationSize(const SSRecord *ssRecord,
   Ptr<BaseStationNetDevice> bs = m_device->GetObject<BaseStationNetDevice>();
   uint32_t allocationSize = 0;
 
-  // if SS has a UGS flow then it must set poll-me bit in order to be polled for
-  // non-UGS flows
   if (serviceFlow->GetSchedulingType() != ServiceFlow::SF_TYPE_UGS &&
       ssRecord->GetHasServiceFlowUgs() && !ssRecord->GetPollMeBit()) {
     return 0;
@@ -84,16 +62,10 @@ BandwidthManager::CalculateAllocationSize(const SSRecord *ssRecord,
     }
   } break;
   case ServiceFlow::SF_TYPE_NRTPS: {
-    /* nrtPS shall be serviced only if sufficient bandwidth is available after
-     servicing UGS and rtPS scheduling types, hence no specific service interval
-     is used */
 
     allocationSize = bs->GetBwReqOppSize();
   } break;
   case ServiceFlow::SF_TYPE_BE: {
-    /* BE shall be serviced only if sufficient bandwidth is available after
-     servicing the rest of three scheduling types, hence no specific service
-     interval is used */
 
     allocationSize = bs->GetBwReqOppSize();
   } break;
@@ -119,7 +91,6 @@ ServiceFlow *BandwidthManager::SelectFlowForRequest(uint32_t &bytesToRequest) {
         serviceFlow->GetSchedulingType() == ServiceFlow::SF_TYPE_NRTPS ||
         serviceFlow->GetSchedulingType() == ServiceFlow::SF_TYPE_BE) {
       if (serviceFlow->HasPackets(MacHeaderType::HEADER_TYPE_GENERIC)) {
-        // bandwidth is requested for all packets
         bytesToRequest =
             serviceFlow->GetQueue()->GetQueueLengthWithMACOverhead();
         break;
@@ -142,9 +113,6 @@ void BandwidthManager::SendBandwidthRequest(uint8_t uiuc,
     return;
   }
   BandwidthRequestHeader bwRequestHdr;
-
-  // bytesToRequest is the queue length of Service Flow and so,
-  // the header type must be HEADER_TYPE_AGGREGATE!
 
   bwRequestHdr.SetType((uint8_t)BandwidthRequestHeader::HEADER_TYPE_AGGREGATE);
   bwRequestHdr.SetCid(serviceFlow->GetConnection()->GetCid());
@@ -176,19 +144,15 @@ void BandwidthManager::ProcessBandwidthRequest(
     bs->GetUplinkScheduler()->OnSetRequestedBandwidth(serviceFlow->GetRecord());
   }
   bs->GetUplinkScheduler()->ProcessBandwidthRequest(bwRequestHdr);
-  // update backlogged
   serviceFlow->GetRecord()->IncreaseBacklogged(bwRequestHdr.GetBr());
 }
 
 void BandwidthManager::SetSubframeRatio() {
-  // sets ratio of the DL and UL subframes
 
   Ptr<BaseStationNetDevice> bs = m_device->GetObject<BaseStationNetDevice>();
 
   uint32_t symbolsPerFrame = bs->GetPhy()->GetSymbolsPerFrame();
 
-  /* temporarily divided in half (360 symbols each), shall actually be
-   * determined based on UL and DL traffic*/
   bs->SetNrDlSymbols(symbolsPerFrame / 2);
   bs->SetNrUlSymbols(symbolsPerFrame / 2);
 }

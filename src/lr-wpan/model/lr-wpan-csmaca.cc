@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:
- *  kwong yin <kwong-sang.yin@boeing.com>
- *  Sascha Alexander Jopen <jopen@cs.uni-bonn.de>
- *  Alberto Gallegos Ramonet <ramonet@fc.ritsumei.ac.jp>
- */
 
 #include "lr-wpan-csmaca.h"
 
@@ -50,7 +29,6 @@ TypeId LrWpanCsmaCa::GetTypeId() {
 }
 
 LrWpanCsmaCa::LrWpanCsmaCa() {
-  // TODO-- make these into ns-3 attributes
 
   m_isSlotted = false;
   m_NB = 0;
@@ -139,22 +117,15 @@ uint8_t LrWpanCsmaCa::GetMacMaxCSMABackoffs() const {
 Time LrWpanCsmaCa::GetTimeToNextSlot() const {
   NS_LOG_FUNCTION(this);
 
-  // The reference for the beginning of the SUPERFRAME (the active period)
-  // changes depending on the data packet being sent from the
-  // Coordinator/outgoing frame (Tx beacon time reference) or other
-  // device/incoming frame (Rx beacon time reference ).
-
-  Time elapsedSuperframe; // (i.e  The beacon + the elapsed CAP)
+  Time elapsedSuperframe;
   Time currentTime = Simulator::Now();
   double symbolsToBoundary;
   Time nextBoundary;
   uint64_t elapsedSuperframeSymbols;
-  uint64_t symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(
-      false); // symbols per second
+  uint64_t symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(false);
   Time timeAtBoundary;
 
   if (m_coorDest) {
-    // Take the Incoming Frame Reference
     elapsedSuperframe = currentTime - m_mac->m_macBeaconRxTime;
 
     Time beaconTime [[maybe_unused]] =
@@ -164,11 +135,9 @@ Time LrWpanCsmaCa::GetTimeToNextSlot() const {
                  << (elapsedCap.GetSeconds() * symbolRate) << " ("
                  << elapsedCap.As(Time::S) << ")");
   } else {
-    // Take the Outgoing Frame Reference
     elapsedSuperframe = currentTime - m_mac->m_macBeaconTxTime;
   }
 
-  // get a close value to the the boundary in symbols
   elapsedSuperframeSymbols = elapsedSuperframe.GetSeconds() * symbolRate;
   symbolsToBoundary =
       lrwpan::aUnitBackoffPeriod -
@@ -177,7 +146,6 @@ Time LrWpanCsmaCa::GetTimeToNextSlot() const {
   timeAtBoundary = Seconds(
       (double)(elapsedSuperframeSymbols + symbolsToBoundary) / symbolRate);
 
-  // get the exact time boundary
   nextBoundary = timeAtBoundary - elapsedSuperframe;
 
   NS_LOG_DEBUG("Elapsed Superframe symbols: "
@@ -195,13 +163,6 @@ void LrWpanCsmaCa::Start() {
   NS_LOG_FUNCTION(this);
   m_NB = 0;
   if (IsSlottedCsmaCa()) {
-    // TODO: Check if the current PHY is using the Japanese band 950 Mhz:
-    //       (IEEE_802_15_4_950MHZ_BPSK and IEEE_802_15_4_950MHZ_2GFSK)
-    //       if in use, m_CW = 1.
-    //       Currently 950 Mhz band PHYs are not supported in ns-3.
-    //       To know the current used PHY, making the method for
-    //       GetPhy()->GetMyPhyOption() public is necessary. Alternatively, the
-    //       current PHY used can be known using phyCurrentPage variable.
 
     m_CW = 2;
 
@@ -211,11 +172,8 @@ void LrWpanCsmaCa::Start() {
       m_BE = m_macMinBE;
     }
 
-    // m_coorDest to decide between incoming and outgoing superframes times
     m_coorDest = m_mac->isCoordDest();
 
-    // Locate backoff period boundary. (i.e. a time delay to align with the next
-    // backoff period boundary)
     Time backoffBoundary = GetTimeToNextSlot();
     m_randomBackoffEvent = Simulator::Schedule(
         backoffBoundary, &LrWpanCsmaCa::RandomBackoffDelay, this);
@@ -241,12 +199,8 @@ void LrWpanCsmaCa::RandomBackoffDelay() {
   uint64_t symbolRate;
   Time timeLeftInCap;
 
-  symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(
-      false); // symbols per second
+  symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(false);
 
-  // We should not recalculate the random backoffPeriods if we are in a slotted
-  // CSMA-CA and the transmission was previously deferred
-  // (m_randomBackoffPeriods != 0)
   if (m_randomBackoffPeriodsLeft == 0 || IsUnSlottedCsmaCa()) {
     m_randomBackoffPeriodsLeft =
         (uint64_t)m_random->GetValue(0, upperBound + 1);
@@ -263,9 +217,6 @@ void LrWpanCsmaCa::RandomBackoffDelay() {
     m_requestCcaEvent =
         Simulator::Schedule(randomBackoff, &LrWpanCsmaCa::RequestCCA, this);
   } else {
-    // We must make sure there is enough time left in the CAP, otherwise we
-    // continue in the CAP of the next superframe after the
-    // transmission/reception of the beacon (and the IFS)
     timeLeftInCap = GetTimeLeftInCap();
 
     NS_LOG_DEBUG("Slotted CSMA-CA: proceeding after random backoff of "
@@ -303,18 +254,15 @@ Time LrWpanCsmaCa::GetTimeLeftInCap() {
   uint64_t symbolRate;
   Time rxBeaconTime;
 
-  // At this point, the currentTime should be aligned on a backoff period
-  // boundary
   currentTime = Simulator::Now();
-  symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(
-      false); // symbols per second
+  symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(false);
 
-  if (m_coorDest) { // Take Incoming frame reference
+  if (m_coorDest) {
     activeSlot = m_mac->m_incomingSuperframeDuration / 16;
     capSymbols = activeSlot * (m_mac->m_incomingFnlCapSlot + 1);
     endCapTime =
         m_mac->m_macBeaconRxTime + Seconds((double)capSymbols / symbolRate);
-  } else { // Take Outgoing frame reference
+  } else {
     activeSlot = m_mac->m_superframeDuration / 16;
     capSymbols = activeSlot * (m_mac->m_fnlCapSlot + 1);
     endCapTime =
@@ -338,23 +286,7 @@ void LrWpanCsmaCa::CanProceed() {
   symbolRate = (uint64_t)m_mac->GetPhy()->GetDataOrSymbolRate(false);
   timeLeftInCap = GetTimeLeftInCap();
 
-  // TODO: On the 950 Mhz Band (Japanese Band)
-  //       only a single CCA check is performed;
-  //       the CCA check duration time is:
-  //
-  //       CCA symbols = phyCCADuration * m_CW (1)
-  //       other PHYs:
-  //       CCA symbols = 8 * m_CW(2)
-  //
-  //       note: phyCCADuration & 950Mhz band PHYs are
-  //             not currently implemented in ns-3.
   ccaSymbols += 8 * m_CW;
-
-  // The MAC sublayer shall proceed if the remaining CSMA-CA algorithm steps
-  // can be completed before the end of the CAP.
-  // See IEEE 802.15.4-2011 (Sections 5.1.1.1 and 5.1.1.4)
-  // Transaction = 2 CCA + frame transmission (SHR+PHR+PPDU) + turnaroudtime*2
-  // (Rx->Tx & Tx->Rx) + IFS (LIFS or SIFS) and Ack time (if ack flag true)
 
   transactionSymbols = ccaSymbols + m_mac->GetTxPacketSymbols();
 
@@ -362,12 +294,10 @@ void LrWpanCsmaCa::CanProceed() {
     NS_LOG_DEBUG("ACK duration symbols: " << m_mac->GetMacAckWaitDuration());
     transactionSymbols += m_mac->GetMacAckWaitDuration();
   } else {
-    // time the PHY takes to switch from Rx to Tx and Tx to Rx
     transactionSymbols += (lrwpan::aTurnaroundTime * 2);
   }
   transactionSymbols += m_mac->GetIfsSize();
 
-  // Report the transaction cost
   if (!m_lrWpanMacTransCostCallback.IsNull()) {
     m_lrWpanMacTransCostCallback(transactionSymbols);
   }
@@ -407,27 +337,22 @@ void LrWpanCsmaCa::DeferCsmaTimeout() {
 void LrWpanCsmaCa::PlmeCcaConfirm(LrWpanPhyEnumeration status) {
   NS_LOG_FUNCTION(this << status);
 
-  // Only react on this event, if we are actually waiting for a CCA.
-  // If the CSMA algorithm was canceled, we could still receive this event from
-  // the PHY. In this case we ignore the event.
   if (m_ccaRequestRunning) {
     m_ccaRequestRunning = false;
     if (status == IEEE_802_15_4_PHY_IDLE) {
       if (IsSlottedCsmaCa()) {
         m_CW--;
         if (m_CW == 0) {
-          // inform MAC channel is idle
           if (!m_lrWpanMacStateCallback.IsNull()) {
             NS_LOG_LOGIC("Notifying MAC of idle channel");
             m_lrWpanMacStateCallback(CHANNEL_IDLE);
           }
         } else {
           NS_LOG_LOGIC("Perform CCA again, m_CW = " << m_CW);
-          m_requestCcaEvent = Simulator::ScheduleNow(&LrWpanCsmaCa::RequestCCA,
-                                                     this); // Perform CCA again
+          m_requestCcaEvent =
+              Simulator::ScheduleNow(&LrWpanCsmaCa::RequestCCA, this);
         }
       } else {
-        // inform MAC, channel is idle
         if (!m_lrWpanMacStateCallback.IsNull()) {
           NS_LOG_LOGIC("Notifying MAC of idle channel");
           m_lrWpanMacStateCallback(CHANNEL_IDLE);
@@ -441,7 +366,6 @@ void LrWpanCsmaCa::PlmeCcaConfirm(LrWpanPhyEnumeration status) {
                       static_cast<uint16_t>(m_macMaxBE));
       m_NB++;
       if (m_NB > m_macMaxCSMABackoffs) {
-        // no channel found so cannot send pkt
         NS_LOG_DEBUG("Channel access failure");
         if (!m_lrWpanMacStateCallback.IsNull()) {
           NS_LOG_LOGIC("Notifying MAC of Channel access failure");
@@ -452,8 +376,7 @@ void LrWpanCsmaCa::PlmeCcaConfirm(LrWpanPhyEnumeration status) {
         NS_LOG_DEBUG(
             "Perform another backoff; m_NB = " << static_cast<uint16_t>(m_NB));
         m_randomBackoffEvent =
-            Simulator::ScheduleNow(&LrWpanCsmaCa::RandomBackoffDelay,
-                                   this); // Perform another backoff (step 2)
+            Simulator::ScheduleNow(&LrWpanCsmaCa::RandomBackoffDelay, this);
       }
     }
   }

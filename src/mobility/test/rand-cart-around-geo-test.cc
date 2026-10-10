@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Benjamin Cizdziel <ben.cizdziel@gmail.com>
- */
 
 #include <ns3/geographic-positions.h>
 #include <ns3/log.h>
@@ -23,56 +5,16 @@
 
 #include <cmath>
 
-/**
- * This test verifies the accuracy of the
- * RandCartesianPointsAroundGeographicPoint() method in the GeographicPositions
- * class, which generates uniformly distributed random points (in ECEF Cartesian
- * coordinates) within a given altitude above earth's surface centered around a
- * given origin point (on earth's surface, in geographic/geodetic coordinates)
- * within a given distance radius (using arc length of earth's surface, not
- * pythagorean distance). Distance radius is measured as if all generated points
- * are on earth's surface (with altitude = 0). Assumes earth is a perfect
- * sphere. To verify the method, this test checks that the generated points are
- * within the given maximum distance radius from the origin. Since this is
- * testing the distance radius from the origin, all points generated in this
- * test are on earth's surface (altitude = 0), since the distance radius has
- * been defined as if all points are on earth's surface. The pythagorean
- * (straight-line) distance between each generated point and the origin is first
- * calculated, and then using this distance and the radius of the earth, the
- * distance radius to the origin (arc length) is calculated. This distance
- * radius is compared to the max distance radius to ensure that it is less than
- * the maximum.
- */
 NS_LOG_COMPONENT_DEFINE("RandCartAroundGeoTest");
 
 using namespace ns3;
 
-/**
- * 0.1 meter tolerance for testing, which is very small compared to the maximum
- * distances from origin being tested
- */
 const double TOLERANCE = 0.1;
 
-/// earth's radius in meters if modeled as a perfect sphere
 static const double EARTH_RADIUS = 6371e3;
 
-/**
- * \ingroup mobility-test
- *
- * \brief Rand Cart Around Geo Test Case
- */
 class RandCartAroundGeoTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param originLatitude origin latitude
-   * \param originLongitude origin longitude
-   * \param maxAltitude maximum altitude
-   * \param numPoints number of points
-   * \param maxDistFromOrigin maximum distance from origin
-   * \param uniRand random variable
-   */
   RandCartAroundGeoTestCase(double originLatitude, double originLongitude,
                             double maxAltitude, int numPoints,
                             double maxDistFromOrigin,
@@ -81,21 +23,14 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * name function
-   * \param originLatitude the origin latitude
-   * \param originLongitude the origin longitude
-   * \param maxDistFromOrigin the maximum distance from the origin
-   * \returns the name string
-   */
   static std::string Name(double originLatitude, double originLongitude,
                           double maxDistFromOrigin);
-  double m_originLatitude;              ///< origin latitude
-  double m_originLongitude;             ///< origin longitude
-  double m_maxAltitude;                 ///< maximum altitude
-  int m_numPoints;                      ///< number of points
-  double m_maxDistFromOrigin;           ///< maximum distance from origin
-  Ptr<UniformRandomVariable> m_uniRand; ///< random number
+  double m_originLatitude;
+  double m_originLongitude;
+  double m_maxAltitude;
+  int m_numPoints;
+  double m_maxDistFromOrigin;
+  Ptr<UniformRandomVariable> m_uniRand;
 };
 
 std::string RandCartAroundGeoTestCase::Name(double originLatitude,
@@ -131,13 +66,10 @@ void RandCartAroundGeoTestCase::DoRun() {
     randPoint = points.front();
     points.pop_front();
 
-    // pythagorean distance between random point and origin, not distance on
-    // surface of earth
     double straightDistFromOrigin =
         sqrt(pow(randPoint.x - origin.x, 2) + pow(randPoint.y - origin.y, 2) +
              pow(randPoint.z - origin.z, 2));
 
-    // arc length distance between random point and origin, on surface of earth
     double arcDistFromOrigin =
         2 * EARTH_RADIUS * asin(straightDistFromOrigin / (2 * EARTH_RADIUS));
 
@@ -149,11 +81,6 @@ void RandCartAroundGeoTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Rand Cart Around Geo Test Suite
- */
 class RandCartAroundGeoTestSuite : public TestSuite {
 public:
   RandCartAroundGeoTestSuite();
@@ -171,9 +98,7 @@ RandCartAroundGeoTestSuite::RandCartAroundGeoTestSuite()
       for (double maxDistFromOrigin = 1000; maxDistFromOrigin <= 1000000;
            maxDistFromOrigin *= 10) {
         AddTestCase(new RandCartAroundGeoTestCase(originLatitude,
-                                                  originLongitude,
-                                                  0,  // on earth's surface
-                                                  50, // 50 points generated
+                                                  originLongitude, 0, 50,
                                                   maxDistFromOrigin, uniRand),
                     TestCase::QUICK);
       }
@@ -181,8 +106,4 @@ RandCartAroundGeoTestSuite::RandCartAroundGeoTestSuite()
   }
 }
 
-/**
- * \ingroup mobility-test
- * Static variable for test initialization
- */
 static RandCartAroundGeoTestSuite g_RandCartAroundGeoTestSuite;

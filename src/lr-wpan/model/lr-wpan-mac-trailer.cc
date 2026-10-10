@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2011 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:
- *  kwong yin <kwong-sang.yin@boeing.com>
- *  Sascha Alexander Jopen <jopen@cs.uni-bonn.de>
- *  Erwan Livolant <erwan.livolant@inria.fr>
- */
 #include "lr-wpan-mac-trailer.h"
 
 #include <ns3/packet.h>
@@ -27,7 +6,6 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED(LrWpanMacTrailer);
 
-/// The length in octets of the IEEE 802.15.4 MAC FCS field
 constexpr uint16_t LR_WPAN_MAC_FCS_LENGTH = 2;
 
 LrWpanMacTrailer::LrWpanMacTrailer() : m_fcs(0), m_calcFcs(false) {}
@@ -76,8 +54,6 @@ void LrWpanMacTrailer::SetFcs(Ptr<const Packet> p) {
   }
 }
 
-/* Be sure to have removed the trailer and only the trailer
- * from the packet before to use CheckFcs */
 bool LrWpanMacTrailer::CheckFcs(Ptr<const Packet> p) {
   if (!m_calcFcs) {
     return true;

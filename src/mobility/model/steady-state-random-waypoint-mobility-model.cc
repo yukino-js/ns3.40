@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Denis Fakhriev <fakhriev@iitp.ru>
- */
 #include "steady-state-random-waypoint-mobility-model.h"
 
 #include "ns3/double.h"
@@ -103,7 +85,6 @@ void SteadyStateRandomWaypointMobilityModel::DoInitialize() {
 
 void SteadyStateRandomWaypointMobilityModel::DoInitializePrivate() {
   alreadyStarted = true;
-  // Configure random variables based on attributes
   NS_ASSERT(m_minSpeed >= 1e-6);
   NS_ASSERT(m_minSpeed <= m_maxSpeed);
   m_speed->SetAttribute("Min", DoubleValue(m_minSpeed));
@@ -127,7 +108,6 @@ void SteadyStateRandomWaypointMobilityModel::DoInitializePrivate() {
   m_helper.Update();
   m_helper.Pause();
 
-  // calculate the steady-state probability that a node is initially paused
   double expectedPauseTime = (m_minPause + m_maxPause) / 2;
   double a = m_maxX - m_minX;
   double b = m_maxY - m_minY;
@@ -150,8 +130,7 @@ void SteadyStateRandomWaypointMobilityModel::DoInitializePrivate() {
   NS_ASSERT(probabilityPaused >= 0 && probabilityPaused <= 1);
 
   double u = m_u_r->GetValue(0, 1);
-  if (u < probabilityPaused) // node initially paused
-  {
+  if (u < probabilityPaused) {
     m_helper.SetPosition(m_position->GetNext());
     u = m_u_r->GetValue(0, 1);
     Time pause;
@@ -159,21 +138,17 @@ void SteadyStateRandomWaypointMobilityModel::DoInitializePrivate() {
       if (u < (2 * m_minPause / (m_minPause + m_maxPause))) {
         pause = Seconds(u * (m_minPause + m_maxPause) / 2);
       } else {
-        // there is an error in equation 20 in the Tech. Report MCS-03-04
-        // this error is corrected in the TMC 2004 paper and below
         pause = Seconds(m_maxPause -
                         std::sqrt((1 - u) * (m_maxPause * m_maxPause -
                                              m_minPause * m_minPause)));
       }
-    } else // if pause is constant
-    {
+    } else {
       pause = Seconds(u * expectedPauseTime);
     }
     NS_ASSERT(!m_event.IsRunning());
     m_event = Simulator::Schedule(
         pause, &SteadyStateRandomWaypointMobilityModel::BeginWalk, this);
-  } else // node initially moving
-  {
+  } else {
     double x1;
     double x2;
     double y1;

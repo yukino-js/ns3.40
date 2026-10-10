@@ -95,29 +95,31 @@ and runs each against `TcpSwift`, `TcpNewReno`, `TcpCubic` and `TcpBbr`.
 The optional `--udp` flag adds an on/off UDP flow whose configured peak rate is
 64% of the bottleneck rate and whose nominal long-term offered load is 32%.
 Completed runs are skipped automatically using the seed-qualified filenames.
-New native results are isolated from legacy generated fixtures under `logs/real/`.
+New native results are isolated from legacy generated fixtures under `logs/`.
 
 ```bash
-node main.js sim --num-seeds 3             # pure TCP -> logs/real/comparison
-node main.js sim --udp --num-seeds 3       # UDP burst -> logs/real/comparison-udp
+node main.js sim --num-seeds 3             # pure TCP -> logs/comparison
+node main.js sim --udp --num-seeds 3       # UDP burst -> logs/comparison-udp
+node main.js sim --num-seeds 3 --jobs 4    # run 4 simulations in parallel
 node main.js sim --scenario wifi_ac        # single scenario
-node main.js draw                          # plots -> logs/real/plots*
-node main.js summary                       # CSV -> logs/real/summary
+node main.js draw                          # plots -> logs/plots*
+node main.js summary                       # CSV -> logs/summary
 ```
 
-Makefile shortcuts: `make tcp`, `make udp` (single quick run), `make gen`
-(draw + summary), `make kill` (stop stray ns-3 processes).
+Makefile shortcuts: `make tcp`, `make udp` (single quick run, add `JOBS=4` to
+parallelise), `make gen` (draw + summary), `make kill` (stop stray ns-3
+processes).
 
 ## Results Dashboard
 
-The [`lark/`](lark) app is a Vite + [@lark.js/mvc](https://github.com/hangtiancheng)
+The [`flowmonitor/`](flowmonitor) app is a Vite + [@yukino.js/lit-jsx](https://github.com/hangtiancheng)
 dashboard that renders the flowmonitor results (throughput, delay, jitter,
 loss, per-flow breakdowns) from `logs/`. It is deployed to GitHub Pages at
 <https://tianchenghang.github.io/ns3.40> via `.github/workflows/deploy.yml`.
 
 ```bash
 pnpm install
-pnpm --filter flowmonitor parse   # logs/*.flowmonitor -> lark/public/data
+pnpm --filter flowmonitor parse   # logs/*.flowmonitor -> flowmonitor/public/data
 pnpm --filter flowmonitor dev     # local dev server
 ```
 

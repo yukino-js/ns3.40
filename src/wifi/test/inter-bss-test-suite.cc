@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2018 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Sébastien Deronne <sebastien.deronne@gmail.com>
- *          Scott Carpenter <scarpenter44@windstream.net>
- */
 
 #include "ns3/config.h"
 #include "ns3/constant-obss-pd-algorithm.h"
@@ -46,177 +27,78 @@ static uint32_t ConvertContextToNodeId(std::string context) {
   return nodeId;
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Wifi Test
- *
- * This test case tests the transmission of inter-BSS cases
- * and verify behavior of 11ax OBSS_PD spatial reuse.
- *
- * The topology for this test case is made of three networks, each with one AP
- * and one STA:
- *
- *  AP  --d1--  STA1  --d2--  AP2  --d3-- STA2 --d4--  AP3  --d5-- STA3
- *  TX1         RX1           TX2         RX2          TX3         RX3
- *
- * Main parameters:
- *  OBSS_PD level = -72dbm
- *  Received Power by TX1 from TX2 = [-62dbm, -82dbm]
- *  Received SINR by RX1 from TX1 > 3dB (enough to pass MCS0 reception)
- *  Received SINR by RX2 from TX2 > 3dB (enough to pass MCS0 reception)
- *  Received SINR by RX3 from TX3 > 3dB (enough to pass MCS0 reception)
- *  TX1/RX1 BSS Color = 1
- *  TX2/RX2 transmission PPDU BSS Color = [2 0]
- *  TX3/RX3 BSS color = 3 (BSS 3 only used to test some corner cases)
- *  PHY = 11ax, MCS 0, 80MHz
- */
-
 class TestInterBssConstantObssPdAlgo : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param standard The standard to use for the test
-   */
   TestInterBssConstantObssPdAlgo(WifiStandard standard);
   ~TestInterBssConstantObssPdAlgo() override;
 
   void DoRun() override;
 
 private:
-  /**
-   * Send one packet function
-   * \param tx_dev the transmitting device
-   * \param rx_dev the receiving device
-   * \param payloadSize the payload size
-   */
   void SendOnePacket(Ptr<WifiNetDevice> tx_dev, Ptr<WifiNetDevice> rx_dev,
                      uint32_t payloadSize);
 
-  /**
-   * Allocate the node positions
-   * \param d1 distance d1 (in meters)
-   * \param d2 distance d2 (in meters)
-   * \param d3 distance d3 (in meters)
-   * \param d4 distance d4 (in meters)
-   * \param d5 distance d5 (in meters)
-   * \return the node positions
-   */
   Ptr<ListPositionAllocator> AllocatePositions(double d1, double d2, double d3,
                                                double d4, double d5);
 
-  /**
-   * Set the expected transmit power in dBm
-   * \param txPowerDbm the transmit power in dBm
-   */
   void SetExpectedTxPower(double txPowerDbm);
 
-  /**
-   * Setup the simulation
-   */
   void SetupSimulation();
 
-  /**
-   * Check the results
-   */
   void CheckResults();
 
-  /**
-   * Reset the results
-   */
   void ResetResults();
 
-  /**
-   * Clear the drop reasons
-   */
   void ClearDropReasons();
 
-  /**
-   * Run one function
-   */
   void RunOne();
 
-  /**
-   * Check if the Phy State for a device is an expected value
-   * \param device the device to check
-   * \param expectedState the expected PHY state
-   */
   void CheckPhyState(Ptr<WifiNetDevice> device, WifiPhyState expectedState);
 
-  /**
-   * Check if the Phy drop reasons for a device are as expected
-   * \param device the device to check
-   * \param expectedDropReasons the expected PHY drop reasons
-   */
   void
   CheckPhyDropReasons(Ptr<WifiNetDevice> device,
                       std::vector<WifiPhyRxfailureReason> expectedDropReasons);
 
-  /**
-   * Notify Phy transmit begin
-   * \param context the context
-   * \param p the packet
-   * \param txPowerW the tx power
-   */
   void NotifyPhyTxBegin(std::string context, Ptr<const Packet> p,
                         double txPowerW);
 
-  /**
-   * Notify Phy receive ends
-   * \param context the context
-   * \param p the packet
-   */
   void NotifyPhyRxEnd(std::string context, Ptr<const Packet> p);
 
-  /**
-   * Notify Phy receive drops
-   * \param context the context
-   * \param p the packet
-   * \param reason the reason why it was dropped
-   */
   void NotifyPhyRxDrop(std::string context, Ptr<const Packet> p,
                        WifiPhyRxfailureReason reason);
 
-  unsigned int m_numSta1PacketsSent; ///< number of sent packets from STA1
-  unsigned int m_numSta2PacketsSent; ///< number of sent packets from STA2
-  unsigned int m_numAp1PacketsSent;  ///< number of sent packets from AP1
-  unsigned int m_numAp2PacketsSent;  ///< number of sent packets from AP2
+  unsigned int m_numSta1PacketsSent;
+  unsigned int m_numSta2PacketsSent;
+  unsigned int m_numAp1PacketsSent;
+  unsigned int m_numAp2PacketsSent;
 
-  unsigned int
-      m_numSta1PacketsReceived; ///< number of received packets from STA1
-  unsigned int
-      m_numSta2PacketsReceived; ///< number of received packets from STA2
-  unsigned int m_numAp1PacketsReceived; ///< number of received packets from AP1
-  unsigned int m_numAp2PacketsReceived; ///< number of received packets from AP2
+  unsigned int m_numSta1PacketsReceived;
+  unsigned int m_numSta2PacketsReceived;
+  unsigned int m_numAp1PacketsReceived;
+  unsigned int m_numAp2PacketsReceived;
 
-  std::vector<WifiPhyRxfailureReason>
-      m_dropReasonsSta1; ///< drop reasons for STA1
-  std::vector<WifiPhyRxfailureReason>
-      m_dropReasonsSta2; ///< drop reasons for STA2
-  std::vector<WifiPhyRxfailureReason>
-      m_dropReasonsAp1; ///< drop reasons for AP1
-  std::vector<WifiPhyRxfailureReason>
-      m_dropReasonsAp2; ///< drop reasons for AP2
+  std::vector<WifiPhyRxfailureReason> m_dropReasonsSta1;
+  std::vector<WifiPhyRxfailureReason> m_dropReasonsSta2;
+  std::vector<WifiPhyRxfailureReason> m_dropReasonsAp1;
+  std::vector<WifiPhyRxfailureReason> m_dropReasonsAp2;
 
-  unsigned int m_payloadSize1; ///< size in bytes of packet payload in BSS 1
-  unsigned int m_payloadSize2; ///< size in bytes of packet payload in BSS 2
-  unsigned int m_payloadSize3; ///< size in bytes of packet payload in BSS 3
+  unsigned int m_payloadSize1;
+  unsigned int m_payloadSize2;
+  unsigned int m_payloadSize3;
 
-  NetDeviceContainer m_staDevices; ///< STA devices
-  NetDeviceContainer m_apDevices;  ///< AP devices
+  NetDeviceContainer m_staDevices;
+  NetDeviceContainer m_apDevices;
 
-  double m_txPowerDbm;         ///< configured transmit power in dBm
-  double m_obssPdLevelDbm;     ///< OBSS-PD level in dBm
-  double m_obssRxPowerDbm;     ///< forced RX power in dBm for OBSS
-  double m_expectedTxPowerDbm; ///< expected transmit power in dBm
+  double m_txPowerDbm;
+  double m_obssPdLevelDbm;
+  double m_obssRxPowerDbm;
+  double m_expectedTxPowerDbm;
 
-  uint8_t m_bssColor1; ///< color for BSS 1
-  uint8_t m_bssColor2; ///< color for BSS 2
-  uint8_t m_bssColor3; ///< color for BSS 3
+  uint8_t m_bssColor1;
+  uint8_t m_bssColor2;
+  uint8_t m_bssColor3;
 
-  WifiStandard m_standard; ///< the standard to use for the test
+  WifiStandard m_standard;
 };
 
 TestInterBssConstantObssPdAlgo::TestInterBssConstantObssPdAlgo(
@@ -238,12 +120,12 @@ Ptr<ListPositionAllocator> TestInterBssConstantObssPdAlgo::AllocatePositions(
     double d1, double d2, double d3, double d4, double d5) {
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));                    // AP1
-  positionAlloc->Add(Vector(d1 + d2, 0.0, 0.0));                // AP2
-  positionAlloc->Add(Vector(d1 + d2 + d3 + d4, 0.0, 0.0));      // AP3
-  positionAlloc->Add(Vector(d1, 0.0, 0.0));                     // STA1
-  positionAlloc->Add(Vector(d1 + d2 + d3, 0.0, 0.0));           // STA2
-  positionAlloc->Add(Vector(d1 + d2 + d3 + d4 + d5, 0.0, 0.0)); // STA3
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1 + d2, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1 + d2 + d3 + d4, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1 + d2 + d3, 0.0, 0.0));
+  positionAlloc->Add(Vector(d1 + d2 + d3 + d4 + d5, 0.0, 0.0));
   return positionAlloc;
 }
 
@@ -273,9 +155,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
     dropReasons.push_back(OBSS_PD_CCA_RESET);
   }
 
-  // In order to have all ADDBA handshakes established, each AP and STA sends a
-  // packet.
-
   Simulator::Schedule(Seconds(0.25),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       ap_device1, sta_device1, m_payloadSize1);
@@ -295,9 +174,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       sta_device3, ap_device3, m_payloadSize3);
 
-  // We test PHY state and verify whether a CCA reset did occur.
-
-  // AP2 sends a packet 0.5s later.
   Simulator::Schedule(Seconds(2.0),
                       &TestInterBssConstantObssPdAlgo::ClearDropReasons, this);
   Simulator::Schedule(Seconds(2.0),
@@ -306,7 +182,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(10),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       ap_device2, WifiPhyState::TX);
-  // All other PHYs should have stay idle until 4us (preamble detection time).
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(13),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       sta_device1, WifiPhyState::IDLE);
@@ -316,8 +191,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(13),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       ap_device1, WifiPhyState::IDLE);
-  // All PHYs should be receiving the PHY header (i.e. PHY state is CCA_BUSY) if
-  // preamble has been detected (always the case in this test).
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(14),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       sta_device1, WifiPhyState::CCA_BUSY);
@@ -327,8 +200,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(14),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       ap_device1, WifiPhyState::CCA_BUSY);
-  // PHYs of AP1 and STA1 should be idle after HE-SIG-A if they were reset by
-  // OBSS_PD SR, otherwise they should be CCA_busy until beginning of payload.
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(43),
                       &TestInterBssConstantObssPdAlgo::CheckPhyDropReasons,
                       this, sta_device1, dropReasons);
@@ -343,8 +214,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
       Seconds(2.0) + MicroSeconds(43),
       &TestInterBssConstantObssPdAlgo::CheckPhyState, this, ap_device1,
       expectPhyReset ? WifiPhyState::IDLE : WifiPhyState::CCA_BUSY);
-  // PHYs of AP1 and STA1 should be idle if they were reset by OBSS_PD SR,
-  // otherwise they should be CCA_busy/Rx (since filtered/not filtered, resp.).
   Simulator::Schedule(
       Seconds(2.0) + MicroSeconds(54),
       &TestInterBssConstantObssPdAlgo::CheckPhyState, this, sta_device1,
@@ -353,36 +222,25 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
       Seconds(2.0) + MicroSeconds(54),
       &TestInterBssConstantObssPdAlgo::CheckPhyState, this, ap_device1,
       expectPhyReset ? WifiPhyState::IDLE : stateDuringPayloadNeighboringBss);
-  // STA2 should be receiving
   Simulator::Schedule(Seconds(2.0) + MicroSeconds(54),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       sta_device2, WifiPhyState::RX);
 
-  // We test whether two networks can transmit simultaneously, and whether
-  // transmit power restrictions are applied.
-
-  // AP2 sends another packet 0.1s later.
   Simulator::Schedule(Seconds(2.1),
                       &TestInterBssConstantObssPdAlgo::ClearDropReasons, this);
   Simulator::Schedule(Seconds(2.1),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       ap_device2, sta_device2, m_payloadSize2);
-  // STA1 sends a packet 42us later (i.e. right after HE-SIG-A of AP2). Even
-  // though AP2 is still transmitting, STA1 can transmit simultaneously if it's
-  // PHY was reset by OBSS_PD SR.
   Simulator::Schedule(Seconds(2.1) + MicroSeconds(42),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       sta_device1, ap_device1, m_payloadSize1);
   if (expectPhyReset) {
-    // In this case, we check the TX power is restricted (and set the expected
-    // value slightly before transmission should occur)
     double expectedTxPower =
         std::min(m_txPowerDbm, 21 - (m_obssPdLevelDbm + 82));
     Simulator::Schedule(Seconds(2.1) + MicroSeconds(41),
                         &TestInterBssConstantObssPdAlgo::SetExpectedTxPower,
                         this, expectedTxPower);
   }
-  // Check simultaneous transmissions
   Simulator::Schedule(Seconds(2.1) + MicroSeconds(100),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       ap_device2, WifiPhyState::TX);
@@ -407,8 +265,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
       &TestInterBssConstantObssPdAlgo::CheckPhyState, this, ap_device1,
       expectPhyReset ? WifiPhyState::RX : stateDuringPayloadNeighboringBss);
 
-  // AP2 sends another packet 0.1s later, and STA1 wanting to send a packet
-  // during the payload of the former.
   Simulator::Schedule(Seconds(2.2),
                       &TestInterBssConstantObssPdAlgo::ClearDropReasons, this);
   Simulator::Schedule(Seconds(2.2),
@@ -417,22 +273,16 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
   Simulator::Schedule(Seconds(2.2),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       ap_device2, sta_device2, m_payloadSize2);
-  // STA1 sends a packet 90us later (i.e. during payload of AP2). Even though
-  // AP2 is still transmitting, STA1 can transmit simultaneously if it's PHY was
-  // reset by OBSS_PD SR.
   Simulator::Schedule(Seconds(2.2) + MicroSeconds(90),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       sta_device1, ap_device1, m_payloadSize1);
   if (expectPhyReset) {
-    // In this case, we check the TX power is restricted (and set the expected
-    // value slightly before transmission should occur)
     double expectedTxPower =
         std::min(m_txPowerDbm, 21 - (m_obssPdLevelDbm + 82));
     Simulator::Schedule(Seconds(2.2) + MicroSeconds(89),
                         &TestInterBssConstantObssPdAlgo::SetExpectedTxPower,
                         this, expectedTxPower);
   }
-  // Check simultaneous transmissions
   Simulator::Schedule(Seconds(2.2) + MicroSeconds(105),
                       &TestInterBssConstantObssPdAlgo::CheckPhyState, this,
                       ap_device2, WifiPhyState::TX);
@@ -457,32 +307,15 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
       &TestInterBssConstantObssPdAlgo::CheckPhyState, this, ap_device1,
       expectPhyReset ? WifiPhyState::RX : stateDuringPayloadNeighboringBss);
 
-  // Verify transmit power restrictions are not applied if access to the channel
-  // is requested after ignored OBSS transmissions.
-
   Simulator::Schedule(Seconds(2.3),
                       &TestInterBssConstantObssPdAlgo::SetExpectedTxPower, this,
                       m_txPowerDbm);
-  // AP2 sends another packet 0.1s later. Power restriction should not be
-  // applied.
   Simulator::Schedule(Seconds(2.3),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       ap_device2, sta_device2, m_payloadSize2);
-  // STA1 sends a packet 0.1s later. Power restriction should not be applied.
   Simulator::Schedule(Seconds(2.4),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       sta_device1, ap_device1, m_payloadSize1);
-
-  // Verify a scenario that involves 3 networks in order to verify corner cases
-  // for transmit power restrictions. First, there is a transmission on network
-  // 2 from STA to AP, followed by a response from AP to STA. During that time,
-  // the STA on network 1 has a packet to send and request access to the
-  // channel. If a CCA reset occurred, it starts deferring while transmissions
-  // are ongoing from network 2. Before its backoff expires, a transmission on
-  // network 3 occurs, also eventually triggering another CCA reset (depending
-  // on the scenario that is being run). This test checks whether this sequence
-  // preserves transmit power restrictions if CCA resets occurred, since STA 1
-  // has been deferring during ignored OBSS transmissions.
 
   Simulator::Schedule(Seconds(2.5),
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
@@ -497,8 +330,6 @@ void TestInterBssConstantObssPdAlgo::SetupSimulation() {
                       &TestInterBssConstantObssPdAlgo::SendOnePacket, this,
                       ap_device3, sta_device3, m_payloadSize3 / 10);
   if (expectPhyReset) {
-    // In this case, we check the TX power is restricted (and set the expected
-    // value slightly before transmission should occur)
     double expectedTxPower =
         std::min(m_txPowerDbm, 21 - (m_obssPdLevelDbm + 82));
     Simulator::Schedule(Seconds(2.5) + MicroSeconds(338),
@@ -654,19 +485,19 @@ void TestInterBssConstantObssPdAlgo::CheckPhyDropReasons(
   std::vector<WifiPhyRxfailureReason> currentDropReasons;
   uint32_t nodeId = device->GetNode()->GetId();
   switch (nodeId) {
-  case 0: // STA1
+  case 0:
     currentDropReasons = m_dropReasonsSta1;
     break;
-  case 1: // STA2
+  case 1:
     currentDropReasons = m_dropReasonsSta2;
     break;
-  case 3: // AP1
+  case 3:
     currentDropReasons = m_dropReasonsAp1;
     break;
-  case 4: // AP2
+  case 4:
     currentDropReasons = m_dropReasonsAp2;
     break;
-  default: // others, no attribute
+  default:
     return;
   }
   NS_TEST_ASSERT_MSG_EQ(
@@ -702,9 +533,7 @@ void TestInterBssConstantObssPdAlgo::RunOne() {
 
   Ptr<MatrixPropagationLossModel> lossModel =
       CreateObject<MatrixPropagationLossModel>();
-  lossModel->SetDefaultLoss(
-      m_txPowerDbm -
-      m_obssRxPowerDbm); // Force received RSSI to be equal to m_obssRxPowerDbm
+  lossModel->SetDefaultLoss(m_txPowerDbm - m_obssRxPowerDbm);
 
   SpectrumWifiPhyHelper phy;
   phy.DisablePreambleDetectionModel();
@@ -733,13 +562,11 @@ void TestInterBssConstantObssPdAlgo::RunOne() {
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
   m_staDevices = wifi.Install(phy, mac, wifiStaNodes);
 
-  // Assign fixed streams to random variables in use
   wifi.AssignStreams(m_staDevices, streamNumber);
 
   mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
   m_apDevices = wifi.Install(phy, mac, wifiApNodes);
 
-  // Assign fixed streams to random variables in use
   wifi.AssignStreams(m_apDevices, streamNumber);
 
   for (uint32_t i = 0; i < m_apDevices.GetN(); i++) {
@@ -756,9 +583,7 @@ void TestInterBssConstantObssPdAlgo::RunOne() {
 
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
-      AllocatePositions(10, 50, 10, 50,
-                        10); // distances do not really matter since we set RSSI
-                             // per TX-RX pair to have full control
+      AllocatePositions(10, 50, 10, 50, 10);
   mobility.SetPositionAllocator(positionAlloc);
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(wifiApNodes);
@@ -766,16 +591,13 @@ void TestInterBssConstantObssPdAlgo::RunOne() {
 
   lossModel->SetLoss(wifiStaNodes.Get(0)->GetObject<MobilityModel>(),
                      wifiApNodes.Get(0)->GetObject<MobilityModel>(),
-                     m_txPowerDbm +
-                         30); // Low attenuation for IBSS transmissions
+                     m_txPowerDbm + 30);
   lossModel->SetLoss(wifiStaNodes.Get(1)->GetObject<MobilityModel>(),
                      wifiApNodes.Get(1)->GetObject<MobilityModel>(),
-                     m_txPowerDbm +
-                         30); // Low attenuation for IBSS transmissions
+                     m_txPowerDbm + 30);
   lossModel->SetLoss(wifiStaNodes.Get(2)->GetObject<MobilityModel>(),
                      wifiApNodes.Get(2)->GetObject<MobilityModel>(),
-                     m_txPowerDbm +
-                         30); // Low attenuation for IBSS transmissions
+                     m_txPowerDbm + 30);
 
   Config::Connect(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin",
@@ -796,7 +618,6 @@ void TestInterBssConstantObssPdAlgo::RunOne() {
 }
 
 void TestInterBssConstantObssPdAlgo::DoRun() {
-  // Test case 1: CCA CS Threshold = m_obssRxPowerDbm < m_obssPdLevelDbm
   m_obssPdLevelDbm = -72;
   m_obssRxPowerDbm = -82;
   m_bssColor1 = 1;
@@ -804,7 +625,6 @@ void TestInterBssConstantObssPdAlgo::DoRun() {
   m_bssColor3 = 3;
   RunOne();
 
-  // Test case 2: CCA CS Threshold < m_obssPdLevelDbm < m_obssRxPowerDbm
   m_obssPdLevelDbm = -72;
   m_obssRxPowerDbm = -62;
   m_bssColor1 = 1;
@@ -812,7 +632,6 @@ void TestInterBssConstantObssPdAlgo::DoRun() {
   m_bssColor3 = 3;
   RunOne();
 
-  // Test case 3: CCA CS Threshold < m_obssPdLevelDbm = m_obssRxPowerDbm
   m_obssPdLevelDbm = -72;
   m_obssRxPowerDbm = -72;
   m_bssColor1 = 1;
@@ -820,8 +639,6 @@ void TestInterBssConstantObssPdAlgo::DoRun() {
   m_bssColor3 = 3;
   RunOne();
 
-  // Test case 4: CCA CS Threshold = m_obssRxPowerDbm < m_obssPdLevelDbm with
-  // BSS color 2 and 3 set to 0
   m_obssPdLevelDbm = -72;
   m_obssRxPowerDbm = -82;
   m_bssColor1 = 1;
@@ -829,8 +646,6 @@ void TestInterBssConstantObssPdAlgo::DoRun() {
   m_bssColor3 = 0;
   RunOne();
 
-  // Test case 5: CCA CS Threshold = m_obssRxPowerDbm < m_obssPdLevelDbm with
-  // BSS color 1 set to 0
   m_obssPdLevelDbm = -72;
   m_obssRxPowerDbm = -82;
   m_bssColor1 = 0;
@@ -838,13 +653,6 @@ void TestInterBssConstantObssPdAlgo::DoRun() {
   m_bssColor3 = 3;
   RunOne();
 }
-
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Inter BSS Test Suite
- */
 
 class InterBssTestSuite : public TestSuite {
 public:
@@ -858,5 +666,4 @@ InterBssTestSuite::InterBssTestSuite() : TestSuite("wifi-inter-bss", UNIT) {
               TestCase::QUICK);
 }
 
-// Do not forget to allocate an instance of this TestSuite
 static InterBssTestSuite interBssTestSuite;

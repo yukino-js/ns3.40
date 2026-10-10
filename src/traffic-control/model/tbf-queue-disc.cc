@@ -1,30 +1,3 @@
-/*
- * Copyright (c) 2017 Kungliga Tekniska Högskolan
- *               2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * TBF, The Token Bucket Filter Queueing discipline
- *
- * This implementation is based on linux kernel code by
- * Authors:     Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
- *              Dmitry Torokhov <dtor@mail.ru> - allow attaching inner qdiscs -
- *                                               original idea by Martin Devera
- *
- * Implemented in ns-3 by: Surya Seetharaman <suryaseetharaman.9@gmail.com>
- *                         Stefano Avallone <stavallo@unina.it>
- */
 
 #include "tbf-queue-disc.h"
 
@@ -156,9 +129,6 @@ bool TbfQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
 
   bool retval = GetQueueDiscClass(0)->GetQueueDisc()->Enqueue(item);
 
-  // If Queue::Enqueue fails, QueueDisc::Drop is called by the child queue
-  // disc because QueueDisc::AddQueueDiscClass sets the drop callback
-
   NS_LOG_LOGIC("Current queue size: " << GetNPackets() << " packets, "
                                       << GetNBytes() << " bytes");
 
@@ -201,8 +171,7 @@ Ptr<QueueDiscItem> TbfQueueDisc::DoDequeue() {
     NS_LOG_LOGIC("Required to dequeue next packet " << pktSize);
     btoks -= pktSize;
 
-    if ((btoks | ptoks) >= 0) // else packet blocked
-    {
+    if ((btoks | ptoks) >= 0) {
       Ptr<QueueDiscItem> item = GetQueueDiscClass(0)->GetQueueDisc()->Dequeue();
       if (!item) {
         NS_LOG_DEBUG(
@@ -222,10 +191,6 @@ Ptr<QueueDiscItem> TbfQueueDisc::DoDequeue() {
       return item;
     }
 
-    // the watchdog timer setup.
-    // A packet gets blocked if the above if() condition is not satisfied:
-    // either or both btoks and ptoks are negative.  In that case, we have
-    // to schedule the waking of queue when enough tokens are available.
     if (m_id.IsExpired()) {
       NS_ASSERT_MSG(m_rate.GetBitRate() > 0, "Rate must be positive");
       Time requiredDelayTime;
@@ -264,7 +229,6 @@ bool TbfQueueDisc::CheckConfig() {
   }
 
   if (GetNQueueDiscClasses() == 0) {
-    // create a FIFO queue disc
     ObjectFactory factory;
     factory.SetTypeId("ns3::FifoQueueDisc");
     Ptr<QueueDisc> qd = factory.Create<QueueDisc>();
@@ -286,14 +250,9 @@ bool TbfQueueDisc::CheckConfig() {
     return false;
   }
 
-  // This type of variable initialization would normally be done in
-  // InitializeParams (), but we want to use the value to subsequently
-  // check configuration of peak rate, so we move it forward here.
   if (m_mtu == 0) {
     Ptr<NetDeviceQueueInterface> ndqi = GetNetDeviceQueueInterface();
     Ptr<NetDevice> dev;
-    // if the NetDeviceQueueInterface object is aggregated to a
-    // NetDevice, get the MTU of such NetDevice
     if (ndqi && (dev = ndqi->GetObject<NetDevice>())) {
       m_mtu = dev->GetMtu();
     }
@@ -324,10 +283,8 @@ bool TbfQueueDisc::CheckConfig() {
 
 void TbfQueueDisc::InitializeParams() {
   NS_LOG_FUNCTION(this);
-  // Token Buckets are full at the beginning.
   m_btokens = m_burst;
   m_ptokens = m_mtu;
-  // Initialising other variables to 0.
   m_timeCheckPoint = Seconds(0);
   m_id = EventId();
 }

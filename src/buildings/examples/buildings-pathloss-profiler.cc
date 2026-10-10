@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- */
 
 #include "ns3/config-store.h"
 #include "ns3/core-module.h"
@@ -49,7 +31,6 @@ int main(int argc, char *argv[]) {
   ConfigStore inputConfig;
   inputConfig.ConfigureDefaults();
 
-  // parse again so you can override default values from the command line
   cmd.Parse(argc, argv);
 
   std::ofstream outFile;
@@ -69,28 +50,22 @@ int main(int argc, char *argv[]) {
 
   Ptr<MobilityBuildingInfo> buildingInfoEnb =
       CreateObject<MobilityBuildingInfo>();
-  mmEnb->AggregateObject(
-      buildingInfoEnb); // operation usually done by BuildingsHelper::Install
+  mmEnb->AggregateObject(buildingInfoEnb);
   buildingInfoEnb->MakeConsistent(mmEnb);
 
   Ptr<HybridBuildingsPropagationLossModel> propagationLossModel =
       CreateObject<HybridBuildingsPropagationLossModel>();
-  // cancel shadowing effect
   propagationLossModel->SetAttribute("ShadowSigmaOutdoor", DoubleValue(0.0));
   propagationLossModel->SetAttribute("ShadowSigmaIndoor", DoubleValue(0.0));
   propagationLossModel->SetAttribute("ShadowSigmaExtWalls", DoubleValue(0.0));
 
-  //   propagationLossModel->SetAttribute ("Los2NlosThr", DoubleValue (1550.0));
-
-  // for (uint8_t i = 0; i < 23; i++)
   for (uint32_t i = 1; i < 2300; i++) {
     Ptr<ConstantPositionMobilityModel> mmUe =
         CreateObject<ConstantPositionMobilityModel>();
     mmUe->SetPosition(Vector(i, 0.0, hUe));
     Ptr<MobilityBuildingInfo> buildingInfoUe =
         CreateObject<MobilityBuildingInfo>();
-    mmUe->AggregateObject(
-        buildingInfoUe); // operation usually done by BuildingsHelper::Install
+    mmUe->AggregateObject(buildingInfoUe);
     buildingInfoUe->MakeConsistent(mmUe);
     double loss = propagationLossModel->GetLoss(mmEnb, mmUe);
     outFile << i << "\t" << loss << std::endl;

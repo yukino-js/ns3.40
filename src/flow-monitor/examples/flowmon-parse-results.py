@@ -1,17 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import division
 import sys
 import os
@@ -28,21 +14,7 @@ def parse_time_ns(tm):
     raise ValueError(tm)
 
 
-## FiveTuple
 class FiveTuple(object):
-    ## class variables
-    ## @var sourceAddress
-    #  source address
-    ## @var destinationAddress
-    #  destination address
-    ## @var protocol
-    #  network protocol
-    ## @var sourcePort
-    #  source port
-    ## @var destinationPort
-    #  destination port
-    ## @var __slots_
-    #  class variable list
     __slots_ = [
         "sourceAddress",
         "destinationAddress",
@@ -63,13 +35,7 @@ class FiveTuple(object):
         self.protocol = int(el.get("protocol"))
 
 
-## Histogram
 class Histogram(object):
-    ## class variables
-    ## @var bins
-    #  histogram bins
-    ## @var __slots_
-    #  class variable list
     __slots_ = "bins", "nbins", "number_of_flows"
 
     def __init__(self, el=None):
@@ -79,7 +45,6 @@ class Histogram(object):
         """
         self.bins = []
         if el is not None:
-            # self.nbins = int(el.get('nBins'))
             for bin in el.findall("bin"):
                 self.bins.append(
                     (
@@ -90,31 +55,7 @@ class Histogram(object):
                 )
 
 
-## Flow
 class Flow(object):
-    ## class variables
-    ## @var flowId
-    #  delay ID
-    ## @var delayMean
-    #  mean delay
-    ## @var packetLossRatio
-    #  packet loss ratio
-    ## @var rxBitrate
-    #  receive bit rate
-    ## @var txBitrate
-    #  transmit bit rate
-    ## @var packetSizeMean
-    #  packet size mean
-    ## @var probe_stats_unsorted
-    #  unsirted probe stats
-    ## @var hopCount
-    #  hop count
-    ## @var flowInterruptionsHistogram
-    #  flow histogram
-    ## @var rx_duration
-    #  receive duration
-    ## @var __slots_
-    #  class variable list
     __slots_ = [
         "flowId",
         "delayMean",
@@ -167,7 +108,6 @@ class Flow(object):
         else:
             self.txBitrate = None
         lost = float(flow_el.get("lostPackets"))
-        # print "rxBytes: %s; txPackets: %s; rxPackets: %s; lostPackets: %s" % (flow_el.get('rxBytes'), txPackets, rxPackets, lost)
         if rxPackets == 0:
             self.packetLossRatio = None
         else:
@@ -180,23 +120,11 @@ class Flow(object):
             self.flowInterruptionsHistogram = Histogram(interrupt_hist_elem)
 
 
-## ProbeFlowStats
 class ProbeFlowStats(object):
-    ## class variables
-    ## @var packets
-    #  network packets
-    ## @var bytes
-    #  bytes
-    ## @var __slots_
-    #  class variable list
     __slots_ = ["probeId", "packets", "bytes", "delayFromFirstProbe"]
 
 
-## Simulation
 class Simulation(object):
-    ## class variables
-    ## @var flows
-    #  list of flows
     def __init__(self, simulation_el):
         """! The initializer.
         @param self The object pointer.
@@ -245,7 +173,7 @@ def main(argv):
                 if level == 0 and elem.tag == "FlowMonitor":
                     sim = Simulation(elem)
                     sim_list.append(sim)
-                    elem.clear()  # won't need this any more
+                    elem.clear()
                     sys.stdout.write(".")
                     sys.stdout.flush()
     print(" done.")

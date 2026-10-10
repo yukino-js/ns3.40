@@ -1,29 +1,9 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "mesh-information-element-vector.h"
 
 #include "ns3/hwmp-protocol.h"
 #include "ns3/packet.h"
 
-#include <algorithm>
-// All information elements:
 #include "ns3/ie-dot11s-beacon-timing.h"
 #include "ns3/ie-dot11s-configuration.h"
 #include "ns3/ie-dot11s-id.h"
@@ -34,6 +14,7 @@
 #include "ns3/ie-dot11s-prep.h"
 #include "ns3/ie-dot11s-preq.h"
 #include "ns3/ie-dot11s-rann.h"
+#include <algorithm>
 
 namespace ns3 {
 
@@ -190,13 +171,6 @@ bool MeshInformationElementVector::operator==(
     NS_ASSERT(false);
     return false;
   }
-  // In principle we could bypass some of the faffing about (and speed
-  // the comparison) by simply serialising each IE vector into a
-  // buffer and memcmp'ing the two.
-  //
-  // I'm leaving it like this, however, so that there is the option of
-  // having individual Information Elements implement slightly more
-  // flexible equality operators.
   auto j = a.m_elements.begin();
   for (auto i = m_elements.begin(); i != m_elements.end(); i++, j++) {
     if (!(*(*i) == *(*j))) {

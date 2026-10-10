@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "brite-topology-helper.h"
 
@@ -168,9 +140,6 @@ void BriteTopologyHelper::BuildBriteNodeInfoList() {
     m_briteNodeInfoList.push_back(nodeInfo);
   }
 
-  // Currently m_numAs stores the highest AS number.  We want m_numAs to store
-  // the number of AS created in the topology.  Since AS numbering starts at 0
-  // we add one to get the correct count
   m_numAs++;
 }
 
@@ -191,8 +160,6 @@ void BriteTopologyHelper::BuildBriteEdgeInfoList() {
       edgeInfo.delay =
           ((brite::RouterEdgeConf *)((*el)->GetConf()))->GetDelay();
       edgeInfo.bandwidth = (*el)->GetConf()->GetBW();
-      // If there is only one AS, BRITE will use -1 as AS Number.  We want it to
-      // be 0 instead.
       edgeInfo.asFrom =
           (((brite::RouterNodeConf *)((*el)->GetSrc()->GetNodeInfo()))
                ->GetASId() == -1)
@@ -208,7 +175,7 @@ void BriteTopologyHelper::BuildBriteEdgeInfoList() {
       break;
 
     case brite::EdgeConf::AS_EDGE:
-      edgeInfo.delay = -1; /* No delay for AS Edges */
+      edgeInfo.delay = -1;
       edgeInfo.bandwidth = (*el)->GetConf()->GetBW();
       edgeInfo.asFrom =
           ((brite::ASNodeConf *)((*el)->GetSrc()->GetNodeInfo()))->GetASId();
@@ -298,7 +265,6 @@ uint32_t BriteTopologyHelper::GetSystemNumberForAs(uint32_t asNum) const {
 void BriteTopologyHelper::GenerateBriteTopology() {
   NS_ASSERT_MSG(!m_topology, "Brite Topology Already Created");
 
-  // check to see if need to generate seed file
   bool generateSeedFile = m_seedFile.empty();
 
   if (generateSeedFile) {
@@ -306,15 +272,11 @@ void BriteTopologyHelper::GenerateBriteTopology() {
 
     std::ofstream seedFile;
 
-    // overwrite file if already there
     seedFile.open("briteSeedFile.txt",
                   std::ios_base::out | std::ios_base::trunc);
 
-    // verify open
     NS_ASSERT(!seedFile.fail());
 
-    // Generate seed file expected by BRITE
-    // need unsigned shorts 0-65535
     seedFile << "PLACES " << m_uv->GetInteger(0, 65535) << " "
              << m_uv->GetInteger(0, 65535) << " " << m_uv->GetInteger(0, 65535)
              << std::endl;
@@ -335,8 +297,6 @@ void BriteTopologyHelper::GenerateBriteTopology() {
              << std::endl;
     seedFile.close();
 
-    // if we're using NS3 generated seed files don't want brite to create a new
-    // seed file.
     m_seedFile = m_newSeedFile = "briteSeedFile.txt";
   }
 
@@ -345,8 +305,6 @@ void BriteTopologyHelper::GenerateBriteTopology() {
   BuildBriteNodeInfoList();
   BuildBriteEdgeInfoList();
 
-  // brite automatically spits out the seed values used to a separate file so no
-  // need to keep this anymore
   if (generateSeedFile) {
     remove("briteSeedFile.txt");
     remove("last_seed_file");
@@ -358,12 +316,10 @@ void BriteTopologyHelper::BuildBriteTopology(InternetStackHelper &stack) {
 
   GenerateBriteTopology();
 
-  // not using MPI so each AS is on system number 0
   for (uint32_t i = 0; i < m_numAs; ++i) {
     m_systemForAs.push_back(0);
   }
 
-  // create all nodes with system number 0
   m_nodes.Create(m_briteNodeInfoList.size());
 
   m_numNodes = m_briteNodeInfoList.size();
@@ -381,7 +337,6 @@ void BriteTopologyHelper::BuildBriteTopology(InternetStackHelper &stack,
 
   GenerateBriteTopology();
 
-  // determine as system number for each AS
   NS_LOG_LOGIC("Assigning << " << m_numAs << " AS to " << systemCount
                                << " MPI instances");
   for (uint32_t i = 0; i < m_numAs; ++i) {
@@ -390,7 +345,6 @@ void BriteTopologyHelper::BuildBriteTopology(InternetStackHelper &stack,
     NS_LOG_INFO("AS: " << i << " System: " << val);
   }
 
-  // create nodes
   for (auto it = m_briteNodeInfoList.begin(); it != m_briteNodeInfoList.end();
        ++it) {
     m_nodes.Add(CreateObject<Node>(GetSystemNumberForAs((*it).asId)));
@@ -406,7 +360,6 @@ void BriteTopologyHelper::BuildBriteTopology(InternetStackHelper &stack,
 
 void BriteTopologyHelper::AssignIpv4Addresses(Ipv4AddressHelper &address) {
   NS_LOG_FUNCTION(this);
-  // assign IPs
   for (std::size_t i = 0; i < m_netDevices.size(); ++i) {
     address.Assign(*m_netDevices[i]);
     address.NewNetwork();
@@ -424,7 +377,6 @@ void BriteTopologyHelper::AssignIpv6Addresses(Ipv6AddressHelper &address) {
 
 void BriteTopologyHelper::ConstructTopology() {
   NS_LOG_FUNCTION(this);
-  // create one node container to hold leaf nodes for attaching
   for (uint32_t i = 0; i < m_numAs; ++i) {
     m_asLeafNodes.push_back(new NodeContainer());
     m_nodesByAs.push_back(new NodeContainer());
@@ -432,12 +384,9 @@ void BriteTopologyHelper::ConstructTopology() {
 
   for (auto it = m_briteEdgeInfoList.begin(); it != m_briteEdgeInfoList.end();
        ++it) {
-    // Set the link delay
-    // The brite value for delay is given in milliseconds
     m_britePointToPointHelper.SetChannelAttribute(
         "Delay", TimeValue(Seconds((*it).delay / 1000.0)));
 
-    // The brite value for data rate is given in Mbps
     m_britePointToPointHelper.SetDeviceAttribute(
         "DataRate", DataRateValue(DataRate((*it).bandwidth * mbpsToBps)));
 
@@ -450,7 +399,6 @@ void BriteTopologyHelper::ConstructTopology() {
 
   NS_LOG_INFO("Created " << m_numEdges << " edges in BRITE topology");
 
-  // iterate through all nodes and add leaf nodes for each AS
   for (auto it = m_briteNodeInfoList.begin(); it != m_briteNodeInfoList.end();
        ++it) {
     m_nodesByAs[(*it).asId]->Add(m_nodes.Get((*it).nodeId));

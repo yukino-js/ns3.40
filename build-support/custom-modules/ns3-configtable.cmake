@@ -1,76 +1,9 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# cmake-format: off
-#
-# A sample of what Waf produced
 
-# ---- Summary of optional ns-3 features:
-# Build profile                 : debug
-# Build directory               :
-# BRITE Integration             : not enabled (BRITE not enabled (see option --with-brite))
-# DES Metrics event collection  : not enabled (defaults to disabled)
-# DPDK NetDevice                : not enabled (libdpdk not found, $RTE_SDK and/or $RTE_TARGET environment variable not set or incorrect)
-# Emulation FdNetDevice         : enabled
-# Examples                      : not enabled (defaults to disabled)
-# File descriptor NetDevice     : enabled
-# GNU Scientific Library (GSL)  : enabled
-# GtkConfigStore                : enabled
-# MPI Support                   : not enabled (option --enable-mpi not selected)
-# ns-3 Click Integration        : not enabled (nsclick not enabled (see option --with-nsclick))
-# ns-3 OpenFlow Integration     : not enabled (OpenFlow not enabled (see option --with-openflow))
-# Netmap emulation FdNetDevice  : not enabled (needs net/netmap_user.h)
-# PyViz visualizer              : not enabled (Missing python modules: pygraphviz, gi.repository.GooCanvas)
-# Python API Scanning Support   : not enabled (castxml too old)
-# Python Bindings               : enabled
-# Real Time Simulator           : enabled
-# SQLite stats support          : enabled
-# Tap Bridge                    : enabled
-# Tap FdNetDevice               : enabled
-# Tests                         : not enabled (defaults to disabled)
-# Use sudo to set suid bit      : not enabled (option --enable-sudo not selected)
-# XmlIo                         : enabled
-#
-#
-# And now a sample after build
-#
-# Modules built:
-# antenna                   aodv                      applications
-# bridge                    buildings                 config-store
-# core                      csma                      csma-layout
-# dsdv                      dsr                       energy
-# fd-net-device             flow-monitor              internet
-# internet-apps             lr-wpan                   lte
-# mesh                      mobility                  netanim
-# network                   nix-vector-routing        olsr
-# point-to-point            point-to-point-layout     propagation
-# sixlowpan                 spectrum                  stats
-# tap-bridge                test (no Python)          topology-read
-# traffic-control           uan                       virtual-net-device
-# wave                      wifi                      wimax
-#
-# Modules not built (see ns-3 tutorial for explanation):
-# brite                     click                     dpdk-net-device
-# mpi                       openflow                  visualizer
-#
-# cmake-format: on
 
-# Now the CMake part
 
 set(ON ON)
 macro(check_on_or_off user_config_switch confirmation_flag)
-  # Argument parsing
   if(${${user_config_switch}})
     if(${${confirmation_flag}})
       string(APPEND out "${Green}ON${ColourReset}\n")
@@ -91,46 +24,38 @@ endmacro()
 function(print_formatted_table_with_modules table_name modules output)
   set(temp)
   string(APPEND temp "${table_name}:\n")
-  set(count 0) # Variable to count number of columns
-  set(width 26) # Variable with column width
+  set(count 0)
+  set(width 26)
   string(REPLACE ";lib" ";" modules_to_print ";${modules}")
   string(SUBSTRING "${modules_to_print}" 1 -1 modules_to_print)
-  list(SORT modules_to_print) # Sort for nice output
+  list(SORT modules_to_print)
   set(modules_with_large_names)
   foreach(module ${modules_to_print})
-    # Get the size of the module string name
     string(LENGTH ${module} module_name_length)
 
-    # Skip modules with names wider than 26 characters
     if(${module_name_length} GREATER_EQUAL ${width})
       list(APPEND modules_with_large_names ${module})
       continue()
     endif()
 
-    # Calculate trailing spaces to fill the column
     math(EXPR num_trailing_spaces "${width} - ${module_name_length}")
 
-    # Get a string with spaces
     string(RANDOM LENGTH ${num_trailing_spaces} ALPHABET " " trailing_spaces)
 
-    # Append module name and spaces to output
     string(APPEND temp "${module}${trailing_spaces}")
-    math(EXPR count "${count} + 1") # Count number of column
+    math(EXPR count "${count} + 1")
 
-    # When counter hits the 3rd column, wrap to the nextline
     if(${count} EQUAL 3)
       string(APPEND temp "\n")
       set(count 0)
     endif()
   endforeach()
 
-  # Print modules with large names one by one
   foreach(module ${modules_with_large_names})
     string(APPEND temp "${module}\n")
   endforeach()
   string(APPEND temp "\n")
 
-  # Save the table outer scope out variable
   set(${output} ${${output}}${temp} PARENT_SCOPE)
 endfunction()
 
@@ -213,14 +138,11 @@ macro(write_configtable)
   string(APPEND out "Tests                         : ")
   check_on_or_off("ENABLE_TESTS" "ENABLE_TESTS")
 
-  # string(APPEND out "Use sudo to set suid bit      : not enabled (option
-  # --enable-sudo not selected) string(APPEND out "XmlIo : enabled
   string(APPEND out "\n\n")
 
   set(really-enabled-modules ${ns3-libs};${ns3-contrib-libs})
   if(${ENABLE_TESTS})
-    list(APPEND really-enabled-modules libtest) # test is an object library and
-                                                # is treated differently
+    list(APPEND really-enabled-modules libtest)
   endif()
   if(really-enabled-modules)
     print_formatted_table_with_modules(

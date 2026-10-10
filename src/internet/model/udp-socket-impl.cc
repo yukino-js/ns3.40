@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "udp-socket-impl.h"
 
@@ -47,13 +29,8 @@ NS_LOG_COMPONENT_DEFINE("UdpSocketImpl");
 
 NS_OBJECT_ENSURE_REGISTERED(UdpSocketImpl);
 
-// The correct maximum UDP message size is 65507, as determined by the following
-// formula: 0xffff - (sizeof(IP Header) + sizeof(UDP Header)) = 65535-(20+8) =
-// 65507 \todo MAX_IPV4_UDP_DATAGRAM_SIZE is correct only for IPv4
-static const uint32_t MAX_IPV4_UDP_DATAGRAM_SIZE =
-    65507; //!< Maximum UDP datagram size
+static const uint32_t MAX_IPV4_UDP_DATAGRAM_SIZE = 65507;
 
-// Add attributes generic to all UdpSockets to base class UdpSocket
 TypeId UdpSocketImpl::GetTypeId() {
   static TypeId tid =
       TypeId("ns3::UdpSocketImpl")
@@ -90,37 +67,15 @@ UdpSocketImpl::UdpSocketImpl()
 UdpSocketImpl::~UdpSocketImpl() {
   NS_LOG_FUNCTION(this);
 
-  /// \todo  leave any multicast groups that have been joined
   m_node = nullptr;
-  /**
-   * Note: actually this function is called AFTER
-   * UdpSocketImpl::Destroy or UdpSocketImpl::Destroy6
-   * so the code below is unnecessary in normal operations
-   */
   if (m_endPoint != nullptr) {
     NS_ASSERT(m_udp);
-    /**
-     * Note that this piece of code is a bit tricky:
-     * when DeAllocate is called, it will call into
-     * Ipv4EndPointDemux::Deallocate which triggers
-     * a delete of the associated endPoint which triggers
-     * in turn a call to the method UdpSocketImpl::Destroy below
-     * will will zero the m_endPoint field.
-     */
     NS_ASSERT(m_endPoint != nullptr);
     m_udp->DeAllocate(m_endPoint);
     NS_ASSERT(m_endPoint == nullptr);
   }
   if (m_endPoint6 != nullptr) {
     NS_ASSERT(m_udp);
-    /**
-     * Note that this piece of code is a bit tricky:
-     * when DeAllocate is called, it will call into
-     * Ipv4EndPointDemux::Deallocate which triggers
-     * a delete of the associated endPoint which triggers
-     * in turn a call to the method UdpSocketImpl::Destroy below
-     * will will zero the m_endPoint field.
-     */
     NS_ASSERT(m_endPoint6 != nullptr);
     m_udp->DeAllocate(m_endPoint6);
     NS_ASSERT(m_endPoint6 == nullptr);
@@ -168,7 +123,6 @@ void UdpSocketImpl::Destroy6() {
   m_endPoint6 = nullptr;
 }
 
-/* Deallocate the end point and cancel all the timers */
 void UdpSocketImpl::DeallocateEndPoint() {
   if (m_endPoint != nullptr) {
     m_udp->DeAllocate(m_endPoint);
@@ -426,7 +380,6 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv4Address dest, uint16_t port,
   if (tos) {
     SocketIpTosTag ipTosTag;
     ipTosTag.SetTos(tos);
-    // This packet may already have a SocketIpTosTag (see BUG 2440)
     p->ReplacePacketTag(ipTosTag);
     priority = IpTos2Priority(tos);
   }
@@ -439,14 +392,6 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv4Address dest, uint16_t port,
 
   Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
 
-  // Locally override the IP TTL for this socket
-  // We cannot directly modify the TTL at this stage, so we set a Packet tag
-  // The destination can be either multicast, unicast/anycast, or
-  // either all-hosts broadcast or limited (subnet-directed) broadcast.
-  // For the latter two broadcast types, the TTL will later be set to one
-  // irrespective of what is set in these socket options.  So, this tagging
-  // may end up setting the TTL of a limited broadcast packet to be
-  // the same as a unicast, but it will be fixed further down the stack
   if (m_ipMulticastTtl != 0 && dest.IsMulticast()) {
     SocketIpTtlTag tag;
     tag.SetTtl(m_ipMulticastTtl);
@@ -470,8 +415,6 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv4Address dest, uint16_t port,
     }
   }
 
-  // Note that some systems will only send limited broadcast packets
-  // out of the "default" interface; here we send it out all interfaces
   if (dest.IsBroadcast()) {
     if (!m_allowBroadcast) {
       m_errno = ERROR_OPNOTSUPP;
@@ -479,13 +422,11 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv4Address dest, uint16_t port,
     }
     NS_LOG_LOGIC("Limited broadcast start.");
     for (uint32_t i = 0; i < ipv4->GetNInterfaces(); i++) {
-      // Get the primary address
       Ipv4InterfaceAddress iaddr = ipv4->GetAddress(i, 0);
       Ipv4Address addri = iaddr.GetLocal();
       if (addri == Ipv4Address("127.0.0.1")) {
         continue;
       }
-      // Check if interface-bound socket
       if (m_boundnetdevice) {
         if (ipv4->GetNetDevice(i) != m_boundnetdevice) {
           continue;
@@ -510,14 +451,11 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv4Address dest, uint16_t port,
     header.SetProtocol(UdpL4Protocol::PROT_NUMBER);
     Socket::SocketErrno errno_;
     Ptr<Ipv4Route> route;
-    Ptr<NetDevice> oif =
-        m_boundnetdevice; // specify non-zero if bound to a specific device
-    // TBD-- we could cache the route and just check its validity
+    Ptr<NetDevice> oif = m_boundnetdevice;
     route = ipv4->GetRoutingProtocol()->RouteOutput(p, header, oif, errno_);
     if (route) {
       NS_LOG_LOGIC("Route exists");
       if (!m_allowBroadcast) {
-        // Here we try to route subnet-directed broadcasts
         uint32_t outputIfIndex =
             ipv4->GetInterfaceForDevice(route->GetOutputDevice());
         uint32_t ifNAddr = ipv4->GetNAddresses(outputIfIndex);
@@ -591,14 +529,6 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv6Address dest, uint16_t port) {
 
   Ptr<Ipv6> ipv6 = m_node->GetObject<Ipv6>();
 
-  // Locally override the IP TTL for this socket
-  // We cannot directly modify the TTL at this stage, so we set a Packet tag
-  // The destination can be either multicast, unicast/anycast, or
-  // either all-hosts broadcast or limited (subnet-directed) broadcast.
-  // For the latter two broadcast types, the TTL will later be set to one
-  // irrespective of what is set in these socket options.  So, this tagging
-  // may end up setting the TTL of a limited broadcast packet to be
-  // the same as a unicast, but it will be fixed further down the stack
   if (m_ipMulticastTtl != 0 && dest.IsMulticast()) {
     SocketIpv6HopLimitTag tag;
     tag.SetHopLimit(m_ipMulticastTtl);
@@ -609,11 +539,6 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv6Address dest, uint16_t port) {
     tag.SetHopLimit(GetIpv6HopLimit());
     p->AddPacketTag(tag);
   }
-  // There is no analogous to an IPv4 broadcast address in IPv6.
-  // Instead, we use a set of link-local, site-local, and global
-  // multicast addresses.  The Ipv6 routing layers should all
-  // provide an interface-specific route to these addresses such
-  // that we can treat these multicast addresses as "not broadcast"
 
   if (m_endPoint6->GetLocalAddress() != Ipv6Address::GetAny()) {
     m_udp->Send(p->Copy(), m_endPoint6->GetLocalAddress(), dest,
@@ -627,9 +552,7 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv6Address dest, uint16_t port) {
     header.SetNextHeader(UdpL4Protocol::PROT_NUMBER);
     Socket::SocketErrno errno_;
     Ptr<Ipv6Route> route;
-    Ptr<NetDevice> oif =
-        m_boundnetdevice; // specify non-zero if bound to a specific device
-    // TBD-- we could cache the route and just check its validity
+    Ptr<NetDevice> oif = m_boundnetdevice;
     route = ipv6->GetRoutingProtocol()->RouteOutput(p, header, oif, errno_);
     if (route) {
       NS_LOG_LOGIC("Route exists");
@@ -653,13 +576,8 @@ int UdpSocketImpl::DoSendTo(Ptr<Packet> p, Ipv6Address dest, uint16_t port) {
   return 0;
 }
 
-// maximum message size for UDP broadcast is limited by MTU
-// size of underlying link; we are not checking that now.
-// \todo Check MTU size of underlying link
 uint32_t UdpSocketImpl::GetTxAvailable() const {
   NS_LOG_FUNCTION(this);
-  // No finite send buffer is modelled, but we must respect
-  // the maximum size of an IP datagram (65535 bytes - headers).
   return MAX_IPV4_UDP_DATAGRAM_SIZE;
 }
 
@@ -683,8 +601,6 @@ int UdpSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
 
 uint32_t UdpSocketImpl::GetRxAvailable() const {
   NS_LOG_FUNCTION(this);
-  // We separately maintain this state to avoid walking the queue
-  // every time this might be called
   return m_rxAvailable;
 }
 
@@ -724,9 +640,7 @@ int UdpSocketImpl::GetSockName(Address &address) const {
   } else if (m_endPoint6 != nullptr) {
     address = Inet6SocketAddress(m_endPoint6->GetLocalAddress(),
                                  m_endPoint6->GetLocalPort());
-  } else { // It is possible to call this method on a socket without a name
-    // in which case, behavior is unspecified
-    // Should this return an InetSocketAddress or an Inet6SocketAddress?
+  } else {
     address = InetSocketAddress(Ipv4Address::GetZero(), 0);
   }
   return 0;
@@ -758,26 +672,12 @@ int UdpSocketImpl::GetPeerName(Address &address) const {
 int UdpSocketImpl::MulticastJoinGroup(uint32_t interface,
                                       const Address &groupAddress) {
   NS_LOG_FUNCTION(interface << groupAddress);
-  /*
-   1) sanity check interface
-   2) sanity check that it has not been called yet on this interface/group
-   3) determine address family of groupAddress
-   4) locally store a list of (interface, groupAddress)
-   5) call ipv4->MulticastJoinGroup () or Ipv6->MulticastJoinGroup ()
-  */
   return 0;
 }
 
 int UdpSocketImpl::MulticastLeaveGroup(uint32_t interface,
                                        const Address &groupAddress) {
   NS_LOG_FUNCTION(interface << groupAddress);
-  /*
-   1) sanity check interface
-   2) determine address family of groupAddress
-   3) delete from local list of (interface, groupAddress); raise a LOG_WARN
-      if not already present (but return 0)
-   5) call ipv4->MulticastLeaveGroup () or Ipv6->MulticastLeaveGroup ()
-  */
   return 0;
 }
 
@@ -786,7 +686,7 @@ void UdpSocketImpl::BindToNetDevice(Ptr<NetDevice> netdevice) {
 
   Ptr<NetDevice> oldBoundNetDevice = m_boundnetdevice;
 
-  Socket::BindToNetDevice(netdevice); // Includes sanity check
+  Socket::BindToNetDevice(netdevice);
   if (m_endPoint != nullptr) {
     m_endPoint->BindToNetDevice(netdevice);
   }
@@ -794,19 +694,15 @@ void UdpSocketImpl::BindToNetDevice(Ptr<NetDevice> netdevice) {
   if (m_endPoint6 != nullptr) {
     m_endPoint6->BindToNetDevice(netdevice);
 
-    // The following is to fix the multicast distribution inside the node
-    // and to upgrade it to the actual bound NetDevice.
     if (m_endPoint6->GetLocalAddress().IsMulticast()) {
       Ptr<Ipv6L3Protocol> ipv6l3 = m_node->GetObject<Ipv6L3Protocol>();
       if (ipv6l3) {
-        // Cleanup old one
         if (oldBoundNetDevice) {
           uint32_t index = ipv6l3->GetInterfaceForDevice(oldBoundNetDevice);
           ipv6l3->RemoveMulticastAddress(m_endPoint6->GetLocalAddress(), index);
         } else {
           ipv6l3->RemoveMulticastAddress(m_endPoint6->GetLocalAddress());
         }
-        // add new one
         if (netdevice) {
           uint32_t index = ipv6l3->GetInterfaceForDevice(netdevice);
           ipv6l3->AddMulticastAddress(m_endPoint6->GetLocalAddress(), index);
@@ -827,7 +723,6 @@ void UdpSocketImpl::ForwardUp(Ptr<Packet> packet, Ipv4Header header,
     return;
   }
 
-  // Should check via getsockopt ()..
   if (IsRecvPktInfo()) {
     Ipv4PacketInfoTag tag;
     packet->RemovePacketTag(tag);
@@ -837,7 +732,6 @@ void UdpSocketImpl::ForwardUp(Ptr<Packet> packet, Ipv4Header header,
     packet->AddPacketTag(tag);
   }
 
-  // Check only version 4 options
   if (IsIpRecvTos()) {
     SocketIpTosTag ipTosTag;
     ipTosTag.SetTos(header.GetTos());
@@ -850,7 +744,6 @@ void UdpSocketImpl::ForwardUp(Ptr<Packet> packet, Ipv4Header header,
     packet->AddPacketTag(ipTtlTag);
   }
 
-  // in case the packet still has a priority tag attached, remove it
   SocketPriorityTag priorityTag;
   packet->RemovePacketTag(priorityTag);
 
@@ -860,11 +753,6 @@ void UdpSocketImpl::ForwardUp(Ptr<Packet> packet, Ipv4Header header,
     m_rxAvailable += packet->GetSize();
     NotifyDataRecv();
   } else {
-    // In general, this case should not occur unless the
-    // receiving application reads data from this socket slowly
-    // in comparison to the arrival rate
-    //
-    // drop and trace packet
     NS_LOG_WARN("No receive buffer space available.  Drop.");
     m_dropTrace(packet);
   }
@@ -879,7 +767,6 @@ void UdpSocketImpl::ForwardUp6(Ptr<Packet> packet, Ipv6Header header,
     return;
   }
 
-  // Should check via getsockopt ().
   if (IsRecvPktInfo()) {
     Ipv6PacketInfoTag tag;
     packet->RemovePacketTag(tag);
@@ -890,7 +777,6 @@ void UdpSocketImpl::ForwardUp6(Ptr<Packet> packet, Ipv6Header header,
     packet->AddPacketTag(tag);
   }
 
-  // Check only version 6 options
   if (IsIpv6RecvTclass()) {
     SocketIpv6TclassTag ipTclassTag;
     ipTclassTag.SetTclass(header.GetTrafficClass());
@@ -903,7 +789,6 @@ void UdpSocketImpl::ForwardUp6(Ptr<Packet> packet, Ipv6Header header,
     packet->AddPacketTag(ipHopLimitTag);
   }
 
-  // in case the packet still has a priority tag attached, remove it
   SocketPriorityTag priorityTag;
   packet->RemovePacketTag(priorityTag);
 
@@ -913,11 +798,6 @@ void UdpSocketImpl::ForwardUp6(Ptr<Packet> packet, Ipv6Header header,
     m_rxAvailable += packet->GetSize();
     NotifyDataRecv();
   } else {
-    // In general, this case should not occur unless the
-    // receiving application reads data from this socket slowly
-    // in comparison to the arrival rate
-    //
-    // drop and trace packet
     NS_LOG_WARN("No receive buffer space available.  Drop.");
     m_dropTrace(packet);
   }
@@ -977,7 +857,6 @@ void UdpSocketImpl::Ipv6JoinGroup(Ipv6Address address,
                                   std::vector<Ipv6Address> sourceAddresses) {
   NS_LOG_FUNCTION(this << address << &filterMode << &sourceAddresses);
 
-  // We can join only one multicast group (or change its params)
   NS_ASSERT_MSG((m_ipv6MulticastGroupAddress == address ||
                  m_ipv6MulticastGroupAddress.IsAny()),
                 "Can join only one IPv6 multicast group.");
@@ -987,7 +866,6 @@ void UdpSocketImpl::Ipv6JoinGroup(Ipv6Address address,
   Ptr<Ipv6L3Protocol> ipv6l3 = m_node->GetObject<Ipv6L3Protocol>();
   if (ipv6l3) {
     if (filterMode == INCLUDE && sourceAddresses.empty()) {
-      // it is a leave
       if (m_boundnetdevice) {
         int32_t index = ipv6l3->GetInterfaceForDevice(m_boundnetdevice);
         NS_ASSERT_MSG(index >= 0, "Interface without a valid index");
@@ -996,7 +874,6 @@ void UdpSocketImpl::Ipv6JoinGroup(Ipv6Address address,
         ipv6l3->RemoveMulticastAddress(address);
       }
     } else {
-      // it is a join or a modification
       if (m_boundnetdevice) {
         int32_t index = ipv6l3->GetInterfaceForDevice(m_boundnetdevice);
         NS_ASSERT_MSG(index >= 0, "Interface without a valid index");

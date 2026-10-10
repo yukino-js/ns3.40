@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2021 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alexander Krotov <krotov@iitp.ru>
- */
 
 #include "thompson-sampling-wifi-manager.h"
 
@@ -33,31 +15,21 @@
 
 namespace ns3 {
 
-/**
- * A structure containing parameters of a single rate and its
- * statistics.
- */
 struct RateStats {
-  WifiMode mode;         ///< MCS
-  uint16_t channelWidth; ///< channel width in MHz
-  uint8_t nss;           ///< Number of spatial streams
+  WifiMode mode;
+  uint16_t channelWidth;
+  uint8_t nss;
 
-  double success{0.0}; ///< averaged number of successful transmissions
-  double fails{0.0};   ///< averaged number of failed transmissions
-  Time lastDecay{0};   ///< last time exponential decay was applied to this rate
+  double success{0.0};
+  double fails{0.0};
+  Time lastDecay{0};
 };
 
-/**
- * Holds station state and collected statistics.
- *
- * This struct extends from WifiRemoteStation to hold additional
- * information required by ThompsonSamplingWifiManager.
- */
 struct ThompsonSamplingWifiRemoteStation : public WifiRemoteStation {
-  size_t m_nextMode; //!< Mode to select for the next transmission
-  size_t m_lastMode; //!< Most recently used mode, used to write statistics
+  size_t m_nextMode;
+  size_t m_lastMode;
 
-  std::vector<RateStats> m_mcsStats; //!< Collected statistics
+  std::vector<RateStats> m_mcsStats;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(ThompsonSamplingWifiManager);
@@ -109,7 +81,6 @@ void ThompsonSamplingWifiManager::InitializeStation(
     return;
   }
 
-  // Add HT, VHT or HE MCSes
   for (const auto &mode : GetPhy()->GetMcsList()) {
     for (uint16_t j = 20; j <= GetPhy()->GetChannelWidth(); j *= 2) {
       WifiModulationClass modulationClass = WIFI_MOD_CLASS_HT;
@@ -136,7 +107,6 @@ void ThompsonSamplingWifiManager::InitializeStation(
   }
 
   if (station->m_mcsStats.empty()) {
-    // Add legacy non-HT modes.
     for (uint8_t i = 0; i < GetNSupported(station); i++) {
       RateStats stats;
       stats.mode = GetSupported(station, i);
@@ -190,7 +160,6 @@ void ThompsonSamplingWifiManager::UpdateNextMode(WifiRemoteStation *st) const {
 
   NS_ASSERT(!station->m_mcsStats.empty());
 
-  // Use the most robust MCS if frameSuccessRate is 0 for all MCS.
   station->m_nextMode = 0;
 
   for (uint32_t i = 0; i < station->m_mcsStats.size(); i++) {
@@ -202,7 +171,6 @@ void ThompsonSamplingWifiManager::UpdateNextMode(WifiRemoteStation *st) const {
         mode.GetDataRate(station->m_mcsStats.at(i).channelWidth, guardInterval,
                          station->m_mcsStats.at(i).nss);
 
-    // Thompson sampling
     frameSuccessRate =
         SampleBetaVariable(1.0 + station->m_mcsStats.at(i).success,
                            1.0 + station->m_mcsStats.at(i).fails);
@@ -296,9 +264,7 @@ ThompsonSamplingWifiManager::DoGetDataTxVector(WifiRemoteStation *st,
                       GetPreambleForTransmission(mode.GetModulationClass(),
                                                  GetShortPreambleEnabled()),
                       GetModeGuardInterval(st, mode), GetNumberOfAntennas(),
-                      nss,
-                      0, // NESS
-                      GetPhy()->GetTxBandwidth(mode, channelWidth),
+                      nss, 0, GetPhy()->GetTxBandwidth(mode, channelWidth),
                       GetAggregation(station), false);
 }
 
@@ -308,20 +274,17 @@ ThompsonSamplingWifiManager::DoGetRtsTxVector(WifiRemoteStation *st) {
   InitializeStation(st);
   auto station = static_cast<ThompsonSamplingWifiRemoteStation *>(st);
 
-  // Use the most robust MCS for the control channel.
   auto &stats = station->m_mcsStats.at(0);
   WifiMode mode = stats.mode;
   uint8_t nss = stats.nss;
 
-  // Make sure control frames are sent using 1 spatial stream.
   NS_ASSERT(nss == 1);
 
   return WifiTxVector(mode, GetDefaultTxPowerLevel(),
                       GetPreambleForTransmission(mode.GetModulationClass(),
                                                  GetShortPreambleEnabled()),
                       GetModeGuardInterval(st, mode), GetNumberOfAntennas(),
-                      nss,
-                      0, // NESS
+                      nss, 0,
                       GetPhy()->GetTxBandwidth(mode, stats.channelWidth),
                       GetAggregation(station), false);
 }

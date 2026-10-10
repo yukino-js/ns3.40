@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Shravya K.S. <shravya.ks0@gmail.com>
- *
- */
 
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
@@ -37,20 +18,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpDctcpTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Validates the setting of ECT and ECE codepoints for DCTCP enabled
- * traffic
- */
 class TcpDctcpCodePointsTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param testCase Test case number
-   * \param desc Description about the test
-   */
   TcpDctcpCodePointsTest(uint8_t testCase, const std::string &desc);
 
 protected:
@@ -64,10 +33,10 @@ protected:
   void ConfigureEnvironment() override;
 
 private:
-  uint32_t m_senderSent;     //!< Number of packets sent by the sender
-  uint32_t m_receiverSent;   //!< Number of packets sent by the receiver
-  uint32_t m_senderReceived; //!< Number of packets received by the sender
-  uint8_t m_testCase;        //!< Test type
+  uint32_t m_senderSent;
+  uint32_t m_receiverSent;
+  uint32_t m_senderReceived;
+  uint8_t m_testCase;
 };
 
 TcpDctcpCodePointsTest::TcpDctcpCodePointsTest(uint8_t testCase,
@@ -77,7 +46,7 @@ TcpDctcpCodePointsTest::TcpDctcpCodePointsTest(uint8_t testCase,
 
 void TcpDctcpCodePointsTest::Tx(const Ptr<const Packet> p, const TcpHeader &h,
                                 SocketWho who) {
-  bool foundTag = false; // IpTosTag will only be found if ECN bits are set
+  bool foundTag = false;
   if (who == SENDER && (m_testCase == 1 || m_testCase == 2)) {
     m_senderSent++;
     SocketIpTosTag ipTosTag;
@@ -175,41 +144,18 @@ void TcpDctcpCodePointsTest::ConfigureEnvironment() {
   Config::SetDefault("ns3::TcpDctcp::UseEct0", BooleanValue(false));
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief A TCP socket which sends a data packet with CE flags set for test 3.
- *
- * The SendDataPacket function of this class sends data packet numbered 1  with
- * CE flags set and also doesn't set CWR flags on receipt of ECE flags for
- * test 3. This is done to verify that DCTCP receiver sends ECE only if it
- * receives CE in spite of sender not sending CWR flags for ECE
- *
- */
 class TcpDctcpCongestedRouter : public TcpSocketMsgBase {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
-  uint32_t m_dataPacketSent; //!< Number of packets sent
-  uint8_t m_testCase;        //!< Test type
+  uint32_t m_dataPacketSent;
+  uint8_t m_testCase;
 
   TcpDctcpCongestedRouter() : TcpSocketMsgBase() { m_dataPacketSent = 0; }
 
-  /**
-   * \brief Constructor.
-   * \param other The object to copy from.
-   */
   TcpDctcpCongestedRouter(const TcpDctcpCongestedRouter &other)
       : TcpSocketMsgBase(other) {}
 
-  /**
-   * Set the test case type
-   * \param testCase test case type
-   */
   void SetTestCase(uint8_t testCase);
 
 protected:
@@ -247,7 +193,7 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
   }
 
   Ptr<Packet> p = m_txBuffer->CopyFromSequence(maxSize, seq)->GetPacketCopy();
-  uint32_t sz = p->GetSize(); // Size of packet
+  uint32_t sz = p->GetSize();
   uint8_t flags = withAck ? TcpHeader::ACK : 0;
   uint32_t remainingData =
       m_txBuffer->SizeFromSequence(seq + SequenceNumber32(sz));
@@ -257,8 +203,6 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
     m_delAckCount = 0;
   }
 
-  // For test 3, we don't send CWR flags on receipt of ECE to check if Receiver
-  // sends ECE only when there is CE flags
   if (m_tcb->m_ecnState == TcpSocketState::ECN_ECE_RCVD &&
       m_ecnEchoSeq.Get() > m_ecnCWRSeq.Get() && !isRetransmission &&
       m_testCase != 3) {
@@ -278,12 +222,6 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
       m_tcb->m_congState = TcpSocketState::CA_CWR;
     }
   }
-  /*
-   * Add tags for each socket option.
-   * Note that currently the socket adds both IPv4 tag and IPv6 tag
-   * if both options are set. Once the packet got to layer three, only
-   * the corresponding tags will be read.
-   */
   if (GetIpTos()) {
     SocketIpTosTag ipTosTag;
 
@@ -359,12 +297,10 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
 
   if (m_closeOnEmpty && (remainingData == 0)) {
     flags |= TcpHeader::FIN;
-    if (m_state ==
-        ESTABLISHED) { // On active close: I am the first one to send FIN
+    if (m_state == ESTABLISHED) {
       NS_LOG_DEBUG("ESTABLISHED -> FIN_WAIT_1");
       m_state = FIN_WAIT_1;
-    } else if (m_state ==
-               CLOSE_WAIT) { // On passive close: Peer sent me FIN already
+    } else if (m_state == CLOSE_WAIT) {
       NS_LOG_DEBUG("CLOSE_WAIT -> LAST_ACK");
       m_state = LAST_ACK;
     }
@@ -384,7 +320,6 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
   AddOptions(header);
 
   if (m_retxEvent.IsExpired()) {
-    // Schedules retransmit timeout. m_rto should be already doubled.
 
     NS_LOG_LOGIC(this << " SendDataPacket Schedule ReTxTimeout at time "
                       << Simulator::Now().GetSeconds() << " to expire at time "
@@ -413,12 +348,10 @@ uint32_t TcpDctcpCongestedRouter::SendDataPacket(SequenceNumber32 seq,
 
   UpdateRttHistory(seq, sz, isRetransmission);
 
-  // Notify the application of the data being sent unless this is a retransmit
   if (seq + sz > m_tcb->m_highTxMark) {
     Simulator::ScheduleNow(&TcpDctcpCongestedRouter::NotifyDataSent, this,
                            (seq + sz - m_tcb->m_highTxMark.Get()));
   }
-  // Update highTxMark
   m_tcb->m_highTxMark = std::max(seq + sz, m_tcb->m_highTxMark.Get());
   return sz;
 }
@@ -453,25 +386,8 @@ TcpDctcpCodePointsTest::CreateReceiverSocket(Ptr<Node> node) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief DCTCP should be same as Linux during slow start
- */
 class TcpDctcpToLinuxReno : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   *
-   * \param cWnd congestion window
-   * \param segmentSize segment size
-   * \param ssThresh slow start threshold
-   * \param segmentsAcked segments acked
-   * \param highTxMark high tx mark
-   * \param lastAckedSeq last acked seq
-   * \param rtt RTT
-   * \param name Name of the test
-   */
   TcpDctcpToLinuxReno(uint32_t cWnd, uint32_t segmentSize, uint32_t ssThresh,
                       uint32_t segmentsAcked, SequenceNumber32 highTxMark,
                       SequenceNumber32 lastAckedSeq, Time rtt,
@@ -479,18 +395,16 @@ public:
 
 private:
   void DoRun() override;
-  /** \brief Execute the test
-   */
   void ExecuteTest();
 
-  uint32_t m_cWnd;                 //!< cWnd
-  uint32_t m_segmentSize;          //!< segment size
-  uint32_t m_segmentsAcked;        //!< segments acked
-  uint32_t m_ssThresh;             //!< ss thresh
-  Time m_rtt;                      //!< rtt
-  SequenceNumber32 m_highTxMark;   //!< high tx mark
-  SequenceNumber32 m_lastAckedSeq; //!< last acked seq
-  Ptr<TcpSocketState> m_state;     //!< state
+  uint32_t m_cWnd;
+  uint32_t m_segmentSize;
+  uint32_t m_segmentsAcked;
+  uint32_t m_ssThresh;
+  Time m_rtt;
+  SequenceNumber32 m_highTxMark;
+  SequenceNumber32 m_lastAckedSeq;
+  Ptr<TcpSocketState> m_state;
 };
 
 TcpDctcpToLinuxReno::TcpDctcpToLinuxReno(uint32_t cWnd, uint32_t segmentSize,
@@ -534,11 +448,6 @@ void TcpDctcpToLinuxReno::ExecuteTest() {
                         "cWnd has not updated correctly");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP DCTCP TestSuite
- */
 class TcpDctcpTestSuite : public TestSuite {
 public:
   TcpDctcpTestSuite() : TestSuite("tcp-dctcp-test", UNIT) {
@@ -563,4 +472,4 @@ public:
   }
 };
 
-static TcpDctcpTestSuite g_tcpdctcpTest; //!< static var for test initialization
+static TcpDctcpTestSuite g_tcpdctcpTest;

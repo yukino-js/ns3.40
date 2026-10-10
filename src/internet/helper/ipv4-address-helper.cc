@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2008 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ipv4-address-helper.h"
 
@@ -37,11 +21,6 @@ NS_LOG_COMPONENT_DEFINE("Ipv4AddressHelper");
 Ipv4AddressHelper::Ipv4AddressHelper() {
   NS_LOG_FUNCTION_NOARGS();
 
-  //
-  // Set the default values to an illegal state.  Do this so the client is
-  // forced to think at least briefly about what addresses get used and what
-  // is going on here.
-  //
   m_network = 0xffffffff;
   m_mask = 0;
   m_address = 0xffffffff;
@@ -65,25 +44,15 @@ void Ipv4AddressHelper::SetBase(const Ipv4Address network, const Ipv4Mask mask,
   m_mask = mask.Get();
   m_base = m_address = address.Get();
 
-  //
-  // Some quick reasonableness testing.
-  //
   NS_ASSERT_MSG((m_network & ~m_mask) == 0,
                 "Ipv4AddressHelper::SetBase(): Inconsistent network and mask");
 
-  //
-  // Figure out how much to shift network numbers to get them aligned, and what
-  // the maximum allowed address is with respect to the current mask.
-  //
   m_shift = NumAddressBits(m_mask);
   m_max = (1 << m_shift) - 2;
 
   NS_ASSERT_MSG(m_shift <= 32,
                 "Ipv4AddressHelper::SetBase(): Unreasonable address length");
 
-  //
-  // Shift the network down into the normalized position.
-  //
   m_network >>= m_shift;
 
   NS_LOG_LOGIC("m_network == " << m_network);
@@ -92,23 +61,11 @@ void Ipv4AddressHelper::SetBase(const Ipv4Address network, const Ipv4Mask mask,
 }
 
 Ipv4Address Ipv4AddressHelper::NewAddress() {
-  //
-  // The way this is expected to be used is that an address and network number
-  // are initialized, and then NewAddress() is called repeatedly to allocate and
-  // get new addresses on a given subnet.  The client will expect that the first
-  // address she gets back is the one she used to initialize the generator with.
-  // This implies that this operation is a post-increment.
-  //
   NS_ASSERT_MSG(m_address <= m_max,
                 "Ipv4AddressHelper::NewAddress(): Address overflow");
 
   Ipv4Address addr((m_network << m_shift) | m_address);
   ++m_address;
-  //
-  // The Ipv4AddressGenerator allows us to keep track of the addresses we have
-  // allocated and will assert if we accidentally generate a duplicate.  This
-  // avoids some really hard to debug problems.
-  //
   Ipv4AddressGenerator::AddAllocated(addr);
   return addr;
 }
@@ -149,18 +106,11 @@ Ipv4InterfaceContainer Ipv4AddressHelper::Assign(const NetDeviceContainer &c) {
     ipv4->SetUp(interface);
     retval.Add(ipv4, interface);
 
-    // Install the default traffic control configuration if the traffic
-    // control layer has been aggregated, if this is not
-    // a loopback interface, and there is no queue disc installed already
     Ptr<TrafficControlLayer> tc = node->GetObject<TrafficControlLayer>();
     if (tc && !DynamicCast<LoopbackNetDevice>(device) &&
         !tc->GetRootQueueDiscOnDevice(device)) {
       Ptr<NetDeviceQueueInterface> ndqi =
           device->GetObject<NetDeviceQueueInterface>();
-      // It is useless to install a queue disc if the device has no
-      // NetDeviceQueueInterface attached: the device queue is never
-      // stopped and every packet enqueued in the queue disc is
-      // immediately dequeued, hence there will never be backlog
       if (ndqi) {
         std::size_t nTxQueues = ndqi->GetNTxQueues();
         NS_LOG_LOGIC("Installing default traffic control configuration ("
@@ -174,7 +124,7 @@ Ipv4InterfaceContainer Ipv4AddressHelper::Assign(const NetDeviceContainer &c) {
   return retval;
 }
 
-const uint32_t N_BITS = 32; //!< number of bits in a IPv4 address
+const uint32_t N_BITS = 32;
 
 uint32_t Ipv4AddressHelper::NumAddressBits(uint32_t maskbits) const {
   NS_LOG_FUNCTION_NOARGS();

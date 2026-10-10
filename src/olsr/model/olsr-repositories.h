@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2004 Francisco J. Ros
- * Copyright (c) 2007 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Francisco J. Ros  <fjrm@dif.um.es>
- *          Gustavo J. A. M. Carneiro <gjc@inescporto.pt>
- */
 
 #ifndef OLSR_REPOSITORIES_H
 #define OLSR_REPOSITORIES_H
@@ -32,31 +12,14 @@
 namespace ns3 {
 namespace olsr {
 
-/**
- * \ingroup olsr
- *
- * Willingness for forwarding packets from other nodes.
- * The standard defines the following set of values.
- * Values 0 - 7 are allowed by the standard, but this is not enforced in the
- * code.
- *
- * See \RFC{3626} section 18.8
- */
 enum Willingness : uint8_t {
   NEVER = 0,
   LOW = 1,
-  DEFAULT = 3, // medium
+  DEFAULT = 3,
   HIGH = 6,
   ALWAYS = 7,
 };
 
-/**
- * Stream insertion operator for OLSR willingness.
- *
- * \param os Output stream.
- * \param willingness Willingness.
- * \return A reference to the output stream.
- */
 inline std::ostream &operator<<(std::ostream &os, Willingness willingness) {
   switch (willingness) {
   case Willingness::NEVER:
@@ -70,20 +33,14 @@ inline std::ostream &operator<<(std::ostream &os, Willingness willingness) {
   case Willingness::ALWAYS:
     return (os << "ALWAYS");
   default:
-    return (os << static_cast<uint32_t>(
-                willingness)); // Cast to uint32_t to print correctly
+    return (os << static_cast<uint32_t>(willingness));
   }
   return os;
 }
 
-/// \ingroup olsr
-/// An Interface Association Tuple.
 struct IfaceAssocTuple {
-  /// Interface address of a node.
   Ipv4Address ifaceAddr;
-  /// Main address of the node.
   Ipv4Address mainAddr;
-  /// Time at which this tuple expires and must be removed.
   Time time;
 };
 
@@ -98,18 +55,11 @@ inline std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-/// \ingroup olsr
-/// A Link Tuple.
 struct LinkTuple {
-  /// Interface address of the local node.
   Ipv4Address localIfaceAddr;
-  /// Interface address of the neighbor node.
   Ipv4Address neighborIfaceAddr;
-  /// The link is considered bidirectional until this time.
   Time symTime;
-  /// The link is considered unidirectional until this time.
   Time asymTime;
-  /// Time at which this tuple expires and must be removed.
   Time time;
 };
 
@@ -126,23 +76,16 @@ inline std::ostream &operator<<(std::ostream &os, const LinkTuple &tuple) {
   return os;
 }
 
-/// \ingroup olsr
-/// A Neighbor Tuple.
 struct NeighborTuple {
-  /// Main address of a neighbor node.
   Ipv4Address neighborMainAddr;
 
-  /// Status of the link (Symmetric or not Symmetric).
   enum Status {
-    STATUS_NOT_SYM = 0, // "not symmetric"
-    STATUS_SYM = 1,     // "symmetric"
+    STATUS_NOT_SYM = 0,
+    STATUS_SYM = 1,
   };
 
-  /// Status of the link.
   Status status;
 
-  /// A value between 0 and 7 specifying the node's willingness to carry traffic
-  /// on behalf of other nodes.
   Willingness willingness;
 };
 
@@ -159,15 +102,10 @@ inline std::ostream &operator<<(std::ostream &os, const NeighborTuple &tuple) {
   return os;
 }
 
-/// \ingroup olsr
-/// A 2-hop Tuple.
 struct TwoHopNeighborTuple {
-  /// Main address of a neighbor.
   Ipv4Address neighborMainAddr;
-  /// Main address of a 2-hop neighbor with a symmetric link to nb_main_addr.
   Ipv4Address twoHopNeighborAddr;
-  /// Time at which this tuple expires and must be removed.
-  Time expirationTime; // previously called 'time_'
+  Time expirationTime;
 };
 
 inline std::ostream &operator<<(std::ostream &os,
@@ -184,34 +122,20 @@ inline bool operator==(const TwoHopNeighborTuple &a,
           a.twoHopNeighborAddr == b.twoHopNeighborAddr);
 }
 
-/// \ingroup olsr
-/// An MPR-Selector Tuple.
 struct MprSelectorTuple {
-  /// Main address of a node which have selected this node as a MPR.
   Ipv4Address mainAddr;
-  /// Time at which this tuple expires and must be removed.
-  Time expirationTime; // previously called 'time_'
+  Time expirationTime;
 };
 
 inline bool operator==(const MprSelectorTuple &a, const MprSelectorTuple &b) {
   return (a.mainAddr == b.mainAddr);
 }
 
-// The type "list of interface addresses"
-// typedef std::vector<nsaddr_t> addr_list_t;
-
-/// \ingroup olsr
-/// A Duplicate Tuple
 struct DuplicateTuple {
-  /// Originator address of the message.
   Ipv4Address address;
-  /// Message sequence number.
   uint16_t sequenceNumber;
-  /// Indicates whether the message has been retransmitted or not.
   bool retransmitted;
-  /// List of interfaces which the message has been received on.
   std::vector<Ipv4Address> ifaceList;
-  /// Time at which this tuple expires and must be removed.
   Time expirationTime;
 };
 
@@ -219,16 +143,10 @@ inline bool operator==(const DuplicateTuple &a, const DuplicateTuple &b) {
   return (a.address == b.address && a.sequenceNumber == b.sequenceNumber);
 }
 
-/// \ingroup olsr
-/// A Topology Tuple
 struct TopologyTuple {
-  /// Main address of the destination.
   Ipv4Address destAddr;
-  /// Main address of a node which is a neighbor of the destination.
   Ipv4Address lastAddr;
-  /// Sequence number.
   uint16_t sequenceNumber;
-  /// Time at which this tuple expires and must be removed.
   Time expirationTime;
 };
 
@@ -245,11 +163,9 @@ inline std::ostream &operator<<(std::ostream &os, const TopologyTuple &tuple) {
   return os;
 }
 
-/// \ingroup olsr
-/// Association
 struct Association {
-  Ipv4Address networkAddr; //!< IPv4 Network address.
-  Ipv4Mask netmask;        //!< IPv4 Network mask.
+  Ipv4Address networkAddr;
+  Ipv4Mask netmask;
 };
 
 inline bool operator==(const Association &a, const Association &b) {
@@ -262,16 +178,10 @@ inline std::ostream &operator<<(std::ostream &os, const Association &tuple) {
   return os;
 }
 
-/// \ingroup olsr
-/// An Association Tuple
 struct AssociationTuple {
-  /// Main address of the gateway.
   Ipv4Address gatewayAddr;
-  /// Network Address of network reachable through gatewayAddr
   Ipv4Address networkAddr;
-  /// Netmask of network reachable through gatewayAddr
   Ipv4Mask netmask;
-  /// Time at which this tuple expires and must be removed
   Time expirationTime;
 };
 
@@ -288,21 +198,18 @@ inline std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-typedef std::set<Ipv4Address> MprSet; //!< MPR Set type.
-typedef std::vector<MprSelectorTuple>
-    MprSelectorSet;                             //!< MPR Selector Set type.
-typedef std::vector<LinkTuple> LinkSet;         //!< Link Set type.
-typedef std::vector<NeighborTuple> NeighborSet; //!< Neighbor Set type.
-typedef std::vector<TwoHopNeighborTuple>
-    TwoHopNeighborSet;                            //!< 2-hop Neighbor Set type.
-typedef std::vector<TopologyTuple> TopologySet;   //!< Topology Set type.
-typedef std::vector<DuplicateTuple> DuplicateSet; //!< Duplicate Set type.
-typedef std::vector<IfaceAssocTuple>
-    IfaceAssocSet; //!< Interface Association Set type.
-typedef std::vector<AssociationTuple> AssociationSet; //!< Association Set type.
-typedef std::vector<Association> Associations;        //!< Association Set type.
+typedef std::set<Ipv4Address> MprSet;
+typedef std::vector<MprSelectorTuple> MprSelectorSet;
+typedef std::vector<LinkTuple> LinkSet;
+typedef std::vector<NeighborTuple> NeighborSet;
+typedef std::vector<TwoHopNeighborTuple> TwoHopNeighborSet;
+typedef std::vector<TopologyTuple> TopologySet;
+typedef std::vector<DuplicateTuple> DuplicateSet;
+typedef std::vector<IfaceAssocTuple> IfaceAssocSet;
+typedef std::vector<AssociationTuple> AssociationSet;
+typedef std::vector<Association> Associations;
 
 } // namespace olsr
 } // namespace ns3
 
-#endif /* OLSR_REPOSITORIES_H */
+#endif

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Jaume Nin <jnin@cttc.es>
- */
 
 #include "ns3/config-store.h"
 #include "ns3/core-module.h"
@@ -29,7 +11,6 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-// #include "ns3/gtk-config-store.h"
 
 using namespace ns3;
 
@@ -42,23 +23,17 @@ int main(int argc, char *argv[]) {
 
   cmd.Parse(argc, argv);
 
-  // Geometry of the scenario (in meters)
-  // Assume squared building
   double nodeHeight = 1.5;
   double roomHeight = 3;
   double roomLength = 500;
   uint32_t nRooms = 2;
-  // Create one eNodeB per room + one 3 sector eNodeB (i.e. 3 eNodeB) + one
-  // regular eNodeB
   uint32_t nEnb = nRooms * nRooms + 4;
   uint32_t nUe = 1;
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
-  // lteHelper->EnableLogComponents ();
   lteHelper->SetAttribute("PathlossModel",
                           StringValue("ns3::FriisPropagationLossModel"));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer oneSectorNodes;
   NodeContainer threeSectorNodes;
@@ -105,14 +80,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // Add a 1-sector site
   Vector v(500, 3000, nodeHeight);
   positionAlloc->Add(v);
   enbPosition.push_back(v);
   mobility.Install(ueNodes.at(plantedEnb));
   plantedEnb++;
 
-  // Add the 3-sector site
   for (uint32_t index = 0; index < 3; index++, plantedEnb++) {
     Vector v(500, 2000, nodeHeight);
     positionAlloc->Add(v);
@@ -123,7 +96,6 @@ int main(int argc, char *argv[]) {
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(enbNodes);
 
-  // Position of UEs attached to eNB
   for (uint32_t i = 0; i < nEnb; i++) {
     Ptr<UniformRandomVariable> posX = CreateObject<UniformRandomVariable>();
     posX->SetAttribute("Min",
@@ -158,18 +130,14 @@ int main(int argc, char *argv[]) {
     BuildingsHelper::Install(ueNodes.at(i));
   }
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   std::vector<NetDeviceContainer> ueDevs;
 
-  // power setting in dBm for small cells
   Config::SetDefault("ns3::LteEnbPhy::TxPower", DoubleValue(20.0));
   enbDevs = lteHelper->InstallEnbDevice(oneSectorNodes);
 
-  // power setting for three-sector macrocell
   Config::SetDefault("ns3::LteEnbPhy::TxPower", DoubleValue(43.0));
 
-  // Beam width is made quite narrow so sectors can be noticed in the REM
   lteHelper->SetEnbAntennaModelType("ns3::CosineAntennaModel");
   lteHelper->SetEnbAntennaModelAttribute("Orientation", DoubleValue(0));
   lteHelper->SetEnbAntennaModelAttribute("HorizontalBeamwidth",
@@ -201,8 +169,6 @@ int main(int argc, char *argv[]) {
     lteHelper->ActivateDataRadioBearer(ueDev, bearer);
   }
 
-  // by default, simulation will anyway stop right after the REM has been
-  // generated
   Simulator::Stop(Seconds(0.0069));
 
   Ptr<RadioEnvironmentMapHelper> remHelper =
@@ -217,9 +183,6 @@ int main(int argc, char *argv[]) {
   remHelper->Install();
 
   Simulator::Run();
-
-  //  GtkConfigStore config;
-  //  config.ConfigureAttributes ();
 
   lteHelper = nullptr;
   Simulator::Destroy();

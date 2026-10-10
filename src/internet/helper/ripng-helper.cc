@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ripng-helper.h"
 
@@ -82,7 +64,6 @@ int64_t RipNgHelper::AssignStreams(NodeContainer c, int64_t stream) {
       currentStream += ripng->AssignStreams(currentStream);
       continue;
     }
-    // RIPng may also be in a list
     Ptr<Ipv6ListRouting> list = DynamicCast<Ipv6ListRouting>(proto);
     if (list) {
       int16_t priority;
@@ -111,7 +92,6 @@ void RipNgHelper::SetDefaultRouter(Ptr<Node> node, Ipv6Address nextHop,
   if (ripng) {
     ripng->AddDefaultRouteTo(nextHop, interface);
   }
-  // RIPng may also be in a list
   Ptr<Ipv6ListRouting> list = DynamicCast<Ipv6ListRouting>(proto);
   if (list) {
     int16_t priority;

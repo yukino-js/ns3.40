@@ -1,22 +1,3 @@
-//
-// Copyright (c) 2009 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Pedro Fortuna  <pedro.fortuna@inescporto.pt>
-// <pedro.fortuna@gmail.com>
-//
 
 #include "histogram.h"
 
@@ -27,17 +8,9 @@
 
 #define DEFAULT_BIN_WIDTH 1
 
-// #define RESERVED_BINS_INC 10
-
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Histogram");
-
-// uint32_t
-// Histogram::GetSize () const
-// {
-//   return m_histogram.size ();
-// }
 
 uint32_t Histogram::GetNBins() const { return m_histogram.size(); }
 
@@ -52,9 +25,7 @@ double Histogram::GetBinEnd(uint32_t index) const {
 double Histogram::GetBinWidth(uint32_t index) const { return m_binWidth; }
 
 void Histogram::SetDefaultBinWidth(double binWidth) {
-  NS_ASSERT(
-      m_histogram
-          .empty()); // we can only change the bin width if no values were added
+  NS_ASSERT(m_histogram.empty());
   m_binWidth = binWidth;
 }
 
@@ -66,7 +37,6 @@ uint32_t Histogram::GetBinCount(uint32_t index) const {
 void Histogram::AddValue(double value) {
   auto index = (uint32_t)std::floor(value / m_binWidth);
 
-  // check if we need to resize the vector
   NS_LOG_DEBUG("AddValue: index=" << index << ", m_histogram.size()="
                                   << m_histogram.size());
 
@@ -84,14 +54,12 @@ Histogram::Histogram() { m_binWidth = DEFAULT_BIN_WIDTH; }
 
 void Histogram::SerializeToXmlStream(std::ostream &os, uint16_t indent,
                                      std::string elementName) const {
-  os << std::string(indent, ' ') << "<"
-     << elementName // << " binWidth=\"" << m_binWidth << "\""
-     << " nBins=\"" << m_histogram.size() << "\""
+  os << std::string(indent, ' ') << "<" << elementName << " nBins=\""
+     << m_histogram.size() << "\""
      << " >\n";
   indent += 2;
 
-#if 1 // two alternative forms of representing bin data, one more verbose than
-      // the other one
+#if 1
   for (uint32_t index = 0; index < m_histogram.size(); index++) {
     if (m_histogram[index]) {
       os << std::string(indent, ' ');

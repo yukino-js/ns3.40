@@ -1,37 +1,6 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ns3/ptr.h"
 #include "ns3/test.h"
-
-/**
- * \file
- * \ingroup core-tests
- * \ingroup ptr
- * \ingroup ptr-tests
- * Smart pointer test suite.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup ptr-tests Smart pointer test suite
- */
 
 namespace ns3 {
 
@@ -39,72 +8,37 @@ namespace tests {
 
 class PtrTestCase;
 
-/**
- * \ingroup ptr-tests
- * Pointer base test class
- */
 class PtrTestBase {
 public:
-  /** Constructor. */
   PtrTestBase();
-  /** Destructor. */
   virtual ~PtrTestBase();
-  /** Increment the reference count. */
   void Ref() const;
-  /** Decrement the reference count, and delete if necessary. */
   void Unref() const;
 
 private:
-  mutable uint32_t m_count; //!< The reference count.
+  mutable uint32_t m_count;
 };
 
-/**
- * \ingroup ptr-tests
- * No Count class
- */
 class NoCount : public PtrTestBase {
 public:
-  /**
-   * Constructor
-   *
-   * \param [in] test The object to track.
-   */
   NoCount(PtrTestCase *test);
-  /**
-   * Destructor.
-   * The object being tracked will also be destroyed,
-   * by calling DestroyNotify()
-   */
   ~NoCount() override;
-  /** Noop function. */
   void Nothing() const;
 
 private:
-  PtrTestCase *m_test; //!< The object being tracked.
+  PtrTestCase *m_test;
 };
 
-/**
- * \ingroup ptr-tests
- * Test case for pointer
- */
 class PtrTestCase : public TestCase {
 public:
-  /** Constructor. */
   PtrTestCase();
-  /** Count the destruction of an object. */
   void DestroyNotify();
 
 private:
   void DoRun() override;
-  /**
-   * Test that \pname{p} is a valid object, by calling a member function.
-   * \param [in] p The object pointer to test.
-   * \returns The object pointer.
-   */
   Ptr<NoCount> CallTest(Ptr<NoCount> p);
-  /** \copydoc CallTest(Ptr<NoCount>) */
   const Ptr<NoCount> CallTestConst(const Ptr<NoCount> p);
-  uint32_t m_nDestroyed; //!< Counter of number of objects destroyed.
+  uint32_t m_nDestroyed;
 };
 
 PtrTestBase::PtrTestBase() : m_count(1) {}
@@ -238,8 +172,6 @@ void PtrTestCase::DoRun() {
     const Ptr<NoCount> p3 = CallTestConst(p1);
     Ptr<NoCount> p4 = CallTestConst(p1);
     Ptr<const NoCount> p5 = p4;
-    // p4 = p5; You cannot make a const pointer be a non-const pointer.
-    //  but if you use ConstCast, you can.
     p4 = ConstCast<NoCount>(p5);
     p5 = p1;
     Ptr<NoCount> p;
@@ -290,20 +222,11 @@ void PtrTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup ptr-tests
- * Test suite for pointer
- */
 class PtrTestSuite : public TestSuite {
 public:
-  /** Constructor. */
   PtrTestSuite() : TestSuite("ptr") { AddTestCase(new PtrTestCase()); }
 };
 
-/**
- * \ingroup ptr-tests
- * PtrTestSuite instance variable.
- */
 static PtrTestSuite g_ptrTestSuite;
 
 } // namespace tests

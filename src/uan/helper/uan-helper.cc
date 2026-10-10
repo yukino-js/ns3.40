@@ -1,26 +1,3 @@
-/*
- * uan-helper.cc
- *
- *  Copyright (c) 2008 University of Washington
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2 as
- *  published by the Free Software Foundation;
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *  Created on: 9-Oct-2008
- *  Author: Leonard Tracy <lentracy@u.washington.edu>
- *
- *
- */
 
 #include "uan-helper.h"
 
@@ -45,15 +22,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("UanHelper");
 
-/**
- * Ascii trace callback on Phy transmit events.
- *
- * \param os The output stream.
- * \param context The node and device ids.
- * \param packet The transmitted packet.
- * \param txPowerDb The transmission power.
- * \param mode The transmission mode.
- */
 static void AsciiPhyTxEvent(std::ostream *os, std::string context,
                             Ptr<const Packet> packet,
                             double txPowerDb [[maybe_unused]],
@@ -62,15 +30,6 @@ static void AsciiPhyTxEvent(std::ostream *os, std::string context,
       << *packet << std::endl;
 }
 
-/**
- * Ascii trace callback on successful packet reception.
- *
- * \param os The output stream.
- * \param context The node and device ids.
- * \param packet The received packet.
- * \param snr The received signal to noise ratio.
- * \param mode The channel transmission mode.
- */
 static void AsciiPhyRxOkEvent(std::ostream *os, std::string context,
                               Ptr<const Packet> packet,
                               double snr [[maybe_unused]],
@@ -182,4 +141,4 @@ int64_t UanHelper::AssignStreams(NetDeviceContainer c, int64_t stream) {
   return (currentStream - stream);
 }
 
-} // end namespace ns3
+} // namespace ns3

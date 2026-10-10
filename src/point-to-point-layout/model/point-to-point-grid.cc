@@ -1,35 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Josh Pelkey <jpelkey@gatech.edu>
- */
-
-// Implement an object to create a grid topology.
 
 #include "point-to-point-grid.h"
 
@@ -48,7 +17,6 @@ NS_LOG_COMPONENT_DEFINE("PointToPointGridHelper");
 PointToPointGridHelper::PointToPointGridHelper(uint32_t nRows, uint32_t nCols,
                                                PointToPointHelper pointToPoint)
     : m_xSize(nCols), m_ySize(nRows) {
-  // Bounds check
   if (m_xSize < 1 || m_ySize < 1 || (m_xSize < 2 && m_ySize < 2)) {
     NS_FATAL_ERROR("Need more nodes for grid.");
   }
@@ -63,13 +31,11 @@ PointToPointGridHelper::PointToPointGridHelper(uint32_t nRows, uint32_t nCols,
     for (uint32_t x = 0; x < nCols; ++x) {
       rowNodes.Create(1);
 
-      // install p2p links across the row
       if (x > 0) {
         rowDevices.Add(
             pointToPoint.Install(rowNodes.Get(x - 1), rowNodes.Get(x)));
       }
 
-      // install vertical p2p links
       if (y > 0) {
         colDevices.Add(
             pointToPoint.Install((m_nodes.at(y - 1)).Get(x), rowNodes.Get(x)));
@@ -98,10 +64,6 @@ void PointToPointGridHelper::InstallStack(InternetStackHelper stack) {
 
 void PointToPointGridHelper::AssignIpv4Addresses(Ipv4AddressHelper rowIp,
                                                  Ipv4AddressHelper colIp) {
-  // Assign addresses to all row devices in the grid.
-  // These devices are stored in a vector.  Each row
-  // of the grid has all the row devices in one entry
-  // of the vector.  These entries come in pairs.
   for (uint32_t i = 0; i < m_rowDevices.size(); ++i) {
     Ipv4InterfaceContainer rowInterfaces;
     NetDeviceContainer rowContainer = m_rowDevices[i];
@@ -113,10 +75,6 @@ void PointToPointGridHelper::AssignIpv4Addresses(Ipv4AddressHelper rowIp,
     m_rowInterfaces.push_back(rowInterfaces);
   }
 
-  // Assign addresses to all col devices in the grid.
-  // These devices are stored in a vector.  Each col
-  // of the grid has all the col devices in one entry
-  // of the vector.  These entries come in pairs.
   for (uint32_t i = 0; i < m_colDevices.size(); ++i) {
     Ipv4InterfaceContainer colInterfaces;
     NetDeviceContainer colContainer = m_colDevices[i];
@@ -135,10 +93,6 @@ void PointToPointGridHelper::AssignIpv6Addresses(Ipv6Address addrBase,
   Ipv6Address v6network;
   Ipv6AddressHelper addrHelper;
 
-  // Assign addresses to all row devices in the grid.
-  // These devices are stored in a vector.  Each row
-  // of the grid has all the row devices in one entry
-  // of the vector.  These entries come in pairs.
   for (uint32_t i = 0; i < m_rowDevices.size(); ++i) {
     Ipv6InterfaceContainer rowInterfaces;
     NetDeviceContainer rowContainer = m_rowDevices[i];
@@ -154,10 +108,6 @@ void PointToPointGridHelper::AssignIpv6Addresses(Ipv6Address addrBase,
     m_rowInterfaces6.push_back(rowInterfaces);
   }
 
-  // Assign addresses to all col devices in the grid.
-  // These devices are stored in a vector.  Each col
-  // of the grid has all the col devices in one entry
-  // of the vector.  These entries come in pairs.
   for (uint32_t i = 0; i < m_colDevices.size(); ++i) {
     Ipv6InterfaceContainer colInterfaces;
     NetDeviceContainer colContainer = m_colDevices[i];
@@ -224,13 +174,6 @@ Ipv4Address PointToPointGridHelper::GetIpv4Address(uint32_t row, uint32_t col) {
         "Index out of bounds in PointToPointGridHelper::GetIpv4Address.");
   }
 
-  // Right now this just gets one of the addresses of the
-  // specified node.  The exact device can't be specified.
-  // If you picture the grid, the address returned is the
-  // address of the left (row) device of all nodes, with
-  // the exception of the left-most nodes in the grid;
-  // in which case the right (row) device address is
-  // returned
   if (col == 0) {
     return (m_rowInterfaces.at(row)).GetAddress(0);
   } else {
@@ -244,13 +187,6 @@ Ipv6Address PointToPointGridHelper::GetIpv6Address(uint32_t row, uint32_t col) {
         "Index out of bounds in PointToPointGridHelper::GetIpv6Address.");
   }
 
-  // Right now this just gets one of the addresses of the
-  // specified node.  The exact device can't be specified.
-  // If you picture the grid, the address returned is the
-  // address of the left (row) device of all nodes, with
-  // the exception of the left-most nodes in the grid;
-  // in which case the right (row) device address is
-  // returned
   if (col == 0) {
     return (m_rowInterfaces6.at(row)).GetAddress(0, 1);
   } else {

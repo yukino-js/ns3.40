@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2008 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/ipv4-address-generator.h"
 #include "ns3/ipv4-address-helper.h"
@@ -22,11 +6,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 network allocator helper Test
- */
 class NetworkAllocatorHelperTestCase : public TestCase {
 public:
   NetworkAllocatorHelperTestCase();
@@ -69,11 +48,6 @@ void NetworkAllocatorHelperTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(address, Ipv4Address("0.0.2.1"), "105");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 address allocator helper Test
- */
 class AddressAllocatorHelperTestCase : public TestCase {
 public:
   AddressAllocatorHelperTestCase();
@@ -115,11 +89,6 @@ void AddressAllocatorHelperTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(address, Ipv4Address("0.0.1.4"), "205");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 reset allocator helper Test
- */
 class ResetAllocatorHelperTestCase : public TestCase {
 public:
   ResetAllocatorHelperTestCase();
@@ -134,11 +103,6 @@ void ResetAllocatorHelperTestCase::DoRun() {
   Ipv4Address network;
   Ipv4Address address;
   Ipv4AddressHelper h;
-
-  //
-  // We're going to use some of the same addresses allocated above,
-  // so reset the Ipv4AddressGenerator to make it forget we did.
-  //
 
   h.SetBase("1.0.0.0", "255.0.0.0", "0.0.0.3");
   address = h.NewAddress();
@@ -176,11 +140,6 @@ void ResetAllocatorHelperTestCase::DoTeardown() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 address helper Test
- */
 class IpAddressHelperTestCasev4 : public TestCase {
 public:
   IpAddressHelperTestCasev4();
@@ -200,7 +159,6 @@ void IpAddressHelperTestCasev4::DoRun() {
   Ipv4AddressHelper ip1;
   Ipv4Address ipAddr1;
   ipAddr1 = ip1.NewAddress();
-  // Ipv4AddressHelper that is unconfigured
   NS_TEST_ASSERT_MSG_EQ(ipAddr1, Ipv4Address("255.255.255.255"),
                         "Ipv4AddressHelper failure");
 
@@ -215,38 +173,30 @@ void IpAddressHelperTestCasev4::DoRun() {
   ipAddr1 = ip1.NewAddress();
   NS_TEST_ASSERT_MSG_EQ(ipAddr1, Ipv4Address("192.168.1.1"),
                         "Ipv4AddressHelper failure");
-  ip1.NewNetwork();           // 192.168.2
-  ip1.NewNetwork();           // 192.168.3
-  ip1.NewNetwork();           // 192.168.4
-  ipAddr1 = ip1.NewAddress(); // 4.1
-  ipAddr1 = ip1.NewAddress(); // 4.2
-  ipAddr1 = ip1.NewAddress(); // 4.3
+  ip1.NewNetwork();
+  ip1.NewNetwork();
+  ip1.NewNetwork();
+  ipAddr1 = ip1.NewAddress();
+  ipAddr1 = ip1.NewAddress();
+  ipAddr1 = ip1.NewAddress();
   NS_TEST_ASSERT_MSG_EQ(ipAddr1, Ipv4Address("192.168.4.3"),
                         "Ipv4AddressHelper failure");
 
-  // reset base to start at 192.168.0.100
   ip1.SetBase("192.168.0.0", "255.255.255.0", "0.0.0.100");
   ipAddr1 = ip1.NewAddress();
   NS_TEST_ASSERT_MSG_EQ(ipAddr1, Ipv4Address("192.168.0.100"),
                         "Ipv4AddressHelper failure");
 
-  // rollover
   ip1.SetBase("192.168.0.0", "255.255.255.0", "0.0.0.254");
-  ipAddr1 = ip1.NewAddress(); // .254
+  ipAddr1 = ip1.NewAddress();
   NS_TEST_ASSERT_MSG_EQ(ipAddr1, Ipv4Address("192.168.0.254"),
                         "Ipv4AddressHelper failure");
-  // The below will overflow and assert, so it is commented out
-  // ipAddr1 = ip1.NewAddress (); // .255
 
-  // create with arguments
   Ipv4AddressHelper ip2 =
       Ipv4AddressHelper("192.168.1.0", "255.255.255.0", "0.0.0.1");
-  // duplicate assignment
-  ip2.NewNetwork(); // 192.168.2
-  ip2.NewNetwork(); // 192.168.3
-  ip2.NewNetwork(); // 192.168.4
-                    // Uncomment below, and 192.168.4.1 will crash since it was
-                    // allocated above ipAddr1 = ip2.NewAddress (); // 4.1
+  ip2.NewNetwork();
+  ip2.NewNetwork();
+  ip2.NewNetwork();
 }
 
 void IpAddressHelperTestCasev4::DoTeardown() {
@@ -254,11 +204,6 @@ void IpAddressHelperTestCasev4::DoTeardown() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Address Helper TestSuite
- */
 class Ipv4AddressHelperTestSuite : public TestSuite {
 public:
   Ipv4AddressHelperTestSuite();
@@ -274,5 +219,4 @@ Ipv4AddressHelperTestSuite::Ipv4AddressHelperTestSuite()
   AddTestCase(new IpAddressHelperTestCasev4(), TestCase::QUICK);
 }
 
-static Ipv4AddressHelperTestSuite
-    g_ipv4AddressHelperTestSuite; //!< Static variable for test initialization
+static Ipv4AddressHelperTestSuite g_ipv4AddressHelperTestSuite;

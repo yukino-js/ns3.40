@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "wifi-mac-helper.h"
 
@@ -33,7 +15,6 @@
 namespace ns3 {
 
 WifiMacHelper::WifiMacHelper() {
-  // By default, we create an AdHoc MAC layer (without QoS).
   SetType("ns3::AdhocWifiMac");
 
   m_assocManager.SetTypeId("ns3::WifiDefaultAssocManager");
@@ -50,7 +31,6 @@ Ptr<WifiMac> WifiMacHelper::Create(Ptr<WifiNetDevice> device,
   NS_ABORT_MSG_IF(standard == WIFI_STANDARD_UNSPECIFIED,
                   "No standard specified!");
 
-  // this is a const method, but we need to force the correct QoS setting
   ObjectFactory macObjectFactory = m_mac;
   if (standard >= WIFI_STANDARD_80211n) {
     macObjectFactory.Set("QosSupported", BooleanValue(true));
@@ -66,10 +46,6 @@ Ptr<WifiMac> WifiMacHelper::Create(Ptr<WifiNetDevice> device,
       m_queueScheduler.Create<WifiMacQueueScheduler>();
   mac->SetMacQueueScheduler(queueScheduler);
 
-  // WaveNetDevice (through ns-3.38) stores PHY entities in a different member
-  // than WifiNetDevice, hence GetNPhys() would return 0. We have to attach a
-  // protection manager and an ack manager to the unique instance of frame
-  // exchange manager anyway
   for (uint8_t linkId = 0; linkId < std::max<uint8_t>(device->GetNPhys(), 1);
        ++linkId) {
     auto fem = mac->GetFrameExchangeManager(linkId);
@@ -85,19 +61,11 @@ Ptr<WifiMac> WifiMacHelper::Create(Ptr<WifiNetDevice> device,
     ackManager->SetLinkId(linkId);
     fem->SetAckManager(ackManager);
 
-    // 11be MLDs require a MAC address to be assigned to each STA. Note that
-    // FrameExchangeManager objects are created by
-    // WifiMac::SetupFrameExchangeManager (which is invoked by
-    // WifiMac::ConfigureStandard, which is called above), which sets the
-    // FrameExchangeManager's address to the address held by WifiMac. Hence, in
-    // case the number of PHY objects is 1, the FrameExchangeManager's address
-    // equals the WifiMac's address.
     if (device->GetNPhys() > 1) {
       fem->SetAddress(Mac48Address::Allocate());
     }
   }
 
-  // create and install the Multi User Scheduler if this is an HE AP
   Ptr<ApWifiMac> apMac;
   if (standard >= WIFI_STANDARD_80211ax && m_muScheduler.IsTypeIdSet() &&
       (apMac = DynamicCast<ApWifiMac>(mac))) {
@@ -106,7 +74,6 @@ Ptr<WifiMac> WifiMacHelper::Create(Ptr<WifiNetDevice> device,
     apMac->AggregateObject(muScheduler);
   }
 
-  // create and install the Association Manager if this is a STA
   auto staMac = DynamicCast<StaWifiMac>(mac);
   if (staMac) {
     Ptr<WifiAssocManager> assocManager =
@@ -114,8 +81,6 @@ Ptr<WifiMac> WifiMacHelper::Create(Ptr<WifiNetDevice> device,
     staMac->SetAssocManager(assocManager);
   }
 
-  // create and install the EMLSR Manager if this is an EHT non-AP MLD with
-  // EMLSR activated
   if (BooleanValue emlsrActivated;
       standard >= WIFI_STANDARD_80211be && staMac && staMac->GetNLinks() > 1 &&
       device->GetEhtConfiguration()->GetAttributeFailSafe("EmlsrActivated",

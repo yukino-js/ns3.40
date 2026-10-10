@@ -1,25 +1,4 @@
-/*
- * Copyright (c) 2010 Hajime Tazaki
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
- */
 
-//-----------------------------------------------------------------------------
-// Unit tests
-//-----------------------------------------------------------------------------
 
 #include "ns3/abort.h"
 #include "ns3/attribute.h"
@@ -49,52 +28,13 @@
 
 using namespace ns3;
 
-// static void
-// AddInternetStack (Ptr<Node> node)
-//{
-//   Ptr<Ipv6L3Protocol> ipv6 = CreateObject<Ipv6L3Protocol> ();
-//   Ptr<Icmpv6L4Protocol> icmpv6 = CreateObject<Icmpv6L4Protocol> ();
-//   node->AggregateObject (ipv6);
-//   node->AggregateObject (icmpv6);
-//   ipv6->Insert (icmpv6);
-//   icmpv6->SetAttribute ("DAD", BooleanValue (false));
-//
-//   //Routing for Ipv6
-//   Ptr<Ipv6ListRouting> ipv6Routing = CreateObject<Ipv6ListRouting> ();
-//   ipv6->SetRoutingProtocol (ipv6Routing);
-//   Ptr<Ipv6StaticRouting> ipv6staticRouting = CreateObject<Ipv6StaticRouting>
-//   (); ipv6Routing->AddRoutingProtocol (ipv6staticRouting, 0);
-//
-//   /* register IPv6 extensions and options */
-//   ipv6->RegisterExtensions ();
-//   ipv6->RegisterOptions ();
-//
-//   // Traffic Control
-//   Ptr<TrafficControlLayer> tc = CreateObject<TrafficControlLayer> ();
-//   node->AggregateObject (tc);
-// }
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 PacketInfoTag Test
- */
 class Ipv6PacketInfoTagTest : public TestCase {
 public:
   Ipv6PacketInfoTagTest();
 
 private:
   void DoRun() override;
-  /**
-   * \brief Receive callback.
-   * \param socket Receiving socket.
-   */
   void RxCb(Ptr<Socket> socket);
-  /**
-   * \brief Send data.
-   * \param socket Sending socket.
-   * \param to Destination address.
-   */
   void DoSendData(Ptr<Socket> socket, std::string to);
 };
 
@@ -121,9 +61,7 @@ void Ipv6PacketInfoTagTest::DoSendData(Ptr<Socket> socket, std::string to) {
   if (DynamicCast<UdpSocket>(socket)) {
     NS_TEST_EXPECT_MSG_EQ(socket->SendTo(Create<Packet>(123), 0, realTo), 123,
                           "100");
-  }
-  // Should only Ipv6RawSock
-  else {
+  } else {
     socket->SendTo(Create<Packet>(123), 0, realTo);
   }
 }
@@ -141,7 +79,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   InternetStackHelper internet;
   internet.SetIpv4StackInstall(false);
 
-  // For Node 0
   node0->AddDevice(device);
   internet.Install(node0);
   Ptr<Ipv6> ipv6 = node0->GetObject<Ipv6>();
@@ -155,7 +92,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   ipv6->SetMetric(index, 1);
   ipv6->SetUp(index);
 
-  // For Node 1
   node1->AddDevice(device2);
   internet.Install(node1);
   ipv6 = node1->GetObject<Ipv6>();
@@ -169,7 +105,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   ipv6->SetMetric(index, 1);
   ipv6->SetUp(index);
 
-  // ipv6 w rawsocket
   Ptr<SocketFactory> factory =
       node0->GetObject<SocketFactory>(Ipv6RawSocketFactory::GetTypeId());
   Ptr<Socket> socket = factory->CreateSocket();
@@ -179,7 +114,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   socket->SetRecvPktInfo(true);
   socket->SetRecvCallback(MakeCallback(&Ipv6PacketInfoTagTest::RxCb, this));
 
-  // receive on loopback
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &Ipv6PacketInfoTagTest::DoSendData, this,
                                  socket, "::1");
@@ -196,7 +130,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   Simulator::Run();
 
 #ifdef UDP6_SUPPORTED
-  // IPv6 test
   factory = node0->GetObject<SocketFactory>(UdpSocketFactory::GetTypeId());
   socket = factory->CreateSocket();
   local = Inet6SocketAddress(Ipv6Address::GetAny(), 200);
@@ -204,7 +137,6 @@ void Ipv6PacketInfoTagTest::DoRun() {
   socket->SetRecvPktInfo(true);
   socket->SetRecvCallback(MakeCallback(&Ipv6PacketInfoTagTest::RxCb, this));
 
-  // receive on loopback
   Simulator::ScheduleWithContext(socket->GetNode()->GetId(), Seconds(0),
                                  &Ipv6PacketInfoTagTest::DoSendData, this,
                                  socket, "::1");
@@ -217,17 +149,11 @@ void Ipv6PacketInfoTagTest::DoRun() {
                                  socket, "10.1.1.1");
   Simulator::Run();
 
-#endif // UDP6_SUPPORTED
+#endif
 
   Simulator::Destroy();
-  // IPv6 test
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 PacketInfoTag TestSuite
- */
 class Ipv6PacketInfoTagTestSuite : public TestSuite {
 public:
   Ipv6PacketInfoTagTestSuite();
@@ -240,5 +166,4 @@ Ipv6PacketInfoTagTestSuite::Ipv6PacketInfoTagTestSuite()
   AddTestCase(new Ipv6PacketInfoTagTest(), TestCase::QUICK);
 }
 
-static Ipv6PacketInfoTagTestSuite
-    g_packetinfotagTests; //!< Static variable for test initialization
+static Ipv6PacketInfoTagTestSuite g_packetinfotagTests;

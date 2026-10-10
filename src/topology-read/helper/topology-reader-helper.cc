@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2010 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella (tommaso.pecorella@unifi.it)
- * Author: Valerio Sartini (valesar@gmail.com)
- */
 
 #include "topology-reader-helper.h"
 
@@ -25,12 +6,6 @@
 #include "ns3/object.h"
 #include "ns3/orbis-topology-reader.h"
 #include "ns3/rocketfuel-topology-reader.h"
-
-/**
- * \file
- * \ingroup topology
- * ns3::TopologyHelper implementation.
- */
 
 namespace ns3 {
 

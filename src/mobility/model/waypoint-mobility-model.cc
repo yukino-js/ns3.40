@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 Phillip Sitbon
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Phillip Sitbon <phillip@sitbon.net>
- */
 #include "waypoint-mobility-model.h"
 
 #include "ns3/abort.h"
@@ -111,11 +93,6 @@ void WaypointMobilityModel::Update() const {
   while (now >= m_next.time) {
     if (m_waypoints.empty()) {
       if (m_current.time <= m_next.time) {
-        /*
-          Set m_next.time = -1 to make sure this doesn't happen more than once.
-          The comparison here still needs to be '<=' in the case of mobility
-          with one waypoint.
-        */
         m_next.time = Seconds(-1.0);
         m_current.position = m_next.position;
         m_current.time = now;
@@ -140,8 +117,7 @@ void WaypointMobilityModel::Update() const {
     m_velocity.z = (m_next.position.z - m_current.position.z) / t_span;
   }
 
-  if (now > m_current.time) // Won't ever be less, but may be equal
-  {
+  if (now > m_current.time) {
     const double t_diff = (now - m_current.time).GetSeconds();
     m_current.position.x += m_velocity.x * t_diff;
     m_current.position.y += m_velocity.y * t_diff;
@@ -173,7 +149,6 @@ void WaypointMobilityModel::DoSetPosition(const Vector &position) {
   m_velocity = Vector(0, 0, 0);
 
   if (!m_first && (now >= m_current.time)) {
-    // This is only a course change if the node is actually moving
     NotifyCourseChange();
   }
 }

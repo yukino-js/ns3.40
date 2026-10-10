@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2022 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "ns3/address-utils.h"
 #include "ns3/header-serialization-test.h"
@@ -37,29 +19,11 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiEhtInfoElemsTest");
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test Multi-Link Element (Basic variant) serialization and
- * deserialization
- */
 class BasicMultiLinkElementTest : public HeaderSerializationTestCase {
 public:
-  /**
-   * Constructor
-   */
   BasicMultiLinkElementTest();
   ~BasicMultiLinkElementTest() override;
 
-  /**
-   * Get a Multi-Link Element including the given Common Info field and the
-   * given Per-STA Profile Subelements
-   *
-   * \param commonInfo the given Common Info field
-   * \param subelements the given set of Per-STA Profile Subelements
-   * \return a Multi-Link Element
-   */
   MultiLinkElement GetMultiLinkElement(
       const CommonInfoBasicMle &commonInfo,
       std::vector<MultiLinkElement::PerStaProfileSubelement> subelements);
@@ -67,7 +31,7 @@ public:
 private:
   void DoRun() override;
 
-  MgtAssocRequestHeader m_outerAssoc; //!< the frame containing the MLE
+  MgtAssocRequestHeader m_outerAssoc;
 };
 
 BasicMultiLinkElementTest::BasicMultiLinkElementTest()
@@ -120,17 +84,14 @@ void BasicMultiLinkElementTest::DoRun() {
       .m_mldMacAddress = Mac48Address("01:23:45:67:89:ab"),
   };
 
-  // Common Info with MLD MAC address
   TestHeaderSerialization(GetMultiLinkElement(commonInfo, {}));
 
   commonInfo.m_linkIdInfo = 3;
 
-  // Adding Link ID Info
   TestHeaderSerialization(GetMultiLinkElement(commonInfo, {}));
 
   commonInfo.m_bssParamsChangeCount = 1;
 
-  // Adding BSS Parameters Change Count
   TestHeaderSerialization(GetMultiLinkElement(commonInfo, {}));
 
   commonInfo.m_mediumSyncDelayInfo =
@@ -138,7 +99,6 @@ void BasicMultiLinkElementTest::DoRun() {
                                               .mediumSyncOfdmEdThreshold = 4,
                                               .mediumSyncMaxNTxops = 5};
 
-  // Adding Medium Sync Delay Information
   TestHeaderSerialization(GetMultiLinkElement(commonInfo, {}));
 
   commonInfo.m_emlCapabilities =
@@ -147,13 +107,7 @@ void BasicMultiLinkElementTest::DoRun() {
                                           .emlsrTransitionDelay = 5,
                                           .transitionTimeout = 10};
 
-  // Adding Medium Sync Delay Information
   TestHeaderSerialization(GetMultiLinkElement(commonInfo, {}));
-
-  /**
-   * To test the serialization/deserialization of Per-STA Profile subelements,
-   * we include the Multi-Link Element in an Association Request frame
-   */
 
   CapabilityInformation capabilities;
   capabilities.SetShortPreamble(true);
@@ -173,7 +127,6 @@ void BasicMultiLinkElementTest::DoRun() {
   rates.AddSupportedRate(36e6);
   rates.AddSupportedRate(48e6);
   rates.AddSupportedRate(54e6);
-  // extended rates
   rates.AddSupportedRate(1e6);
   rates.AddSupportedRate(2e6);
 
@@ -191,42 +144,22 @@ void BasicMultiLinkElementTest::DoRun() {
   m_outerAssoc.Get<HeCapabilities>().emplace();
   m_outerAssoc.Get<EhtCapabilities>() = ehtCapabilities;
 
-  // The Association Request included in the first Per-STA Profile subelement is
-  // identical to the containing frame, so that all the IEs are inherited and
-  // the Per-STA Profile does not contain any Information Element.
-
   MultiLinkElement::PerStaProfileSubelement perStaProfile1(
       MultiLinkElement::BASIC_VARIANT);
   perStaProfile1.SetLinkId(3);
   perStaProfile1.SetCompleteProfile();
   perStaProfile1.SetAssocRequest(m_outerAssoc);
 
-  /* Association Request included in the second Per-STA Profile subelement */
   MgtAssocRequestHeader assoc;
   assoc.Capabilities() = capabilities;
-  // we simulate a "mistake" by adding an Ssid IE, which cannot be included in
-  // the Per-STA Profile subelement. We will check that this Ssid is not
-  // serialized
   assoc.Get<Ssid>() = Ssid("OtherSsid");
-  // another "mistake" of the same type, except that a TID-To-Link Mapping
-  // element is not included in the containing frame
   assoc.Get<TidToLinkMapping>().emplace_back();
-  // the SupportedRates IE is the same (hence not serialized) as in the
-  // containing frame, while the ExtendedSupportedRatesIE is different (hence
-  // serialized)
   rates.AddSupportedRate(5.5e6);
   rates.AddSupportedRate(11e6);
   assoc.Get<SupportedRates>() = rates.rates;
   assoc.Get<ExtendedSupportedRatesIE>() = rates.extendedRates;
-  // a VhtCapabilities IE is not present in the containing frame, hence it is
-  // serialized
   assoc.Get<VhtCapabilities>().emplace();
-  // HeCapabilities IE is present in the containing frame and in the Per-STA
-  // Profile subelement, hence it is not serialized
   assoc.Get<HeCapabilities>().emplace();
-  // EhtCapabilities IE is present in the containing frame but not in the
-  // Per-STA Profile
-  //  subelement, hence it is listed in a Non-Inheritance element
 
   MultiLinkElement::PerStaProfileSubelement perStaProfile2(
       MultiLinkElement::BASIC_VARIANT);
@@ -235,34 +168,24 @@ void BasicMultiLinkElementTest::DoRun() {
   perStaProfile2.SetStaMacAddress(Mac48Address("ba:98:76:54:32:10"));
   perStaProfile2.SetAssocRequest(assoc);
 
-  // The Association Request included in the third Per-STA Profile subelement
-  // has the EHT Capabilities element (which is inherited and not serialized)
-  // but it does not have the Ssid element, which is not listed in the
-  // Non-Inheritance element because it shall not appear in a Per-STA Profile
-  // subelement.
   assoc.Get<Ssid>().reset();
   assoc.Get<EhtCapabilities>() = ehtCapabilities;
 
   auto perStaProfile3 = perStaProfile2;
   perStaProfile3.SetAssocRequest(assoc);
 
-  // Adding MLE with two Per-STA Profile Subelements
   m_outerAssoc.Get<MultiLinkElement>() = GetMultiLinkElement(
       commonInfo, {perStaProfile1, perStaProfile2, perStaProfile3});
 
-  // first, check that serialization/deserialization of the whole Association
-  // Request works
   TestHeaderSerialization(m_outerAssoc);
 
-  // now, "manually" serialize and deserialize the header to check that the
-  // expected elements have been serialized
   Buffer buffer;
   buffer.AddAtStart(m_outerAssoc.GetSerializedSize());
   m_outerAssoc.Serialize(buffer.Begin());
 
   auto i = buffer.Begin();
   i = CapabilityInformation().Deserialize(i);
-  i.ReadLsbtohU16(); // Listen interval
+  i.ReadLsbtohU16();
 
   auto tmp = i;
   i = Ssid().DeserializeIfPresent(tmp);
@@ -280,10 +203,9 @@ void BasicMultiLinkElementTest::DoRun() {
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
                         "HeCapabilities element not present");
 
-  // deserialize Multi-Link Element
   NS_TEST_EXPECT_MSG_EQ(i.ReadU8(), IE_EXTENSION,
                         "IE_EXTENSION expected at the begin of MLE");
-  i.ReadU8(); // length
+  i.ReadU8();
   NS_TEST_EXPECT_MSG_EQ(i.ReadU8(), IE_EXT_MULTI_LINK_ELEMENT,
                         "IE_EXT_MULTI_LINK_ELEMENT expected");
 
@@ -291,30 +213,23 @@ void BasicMultiLinkElementTest::DoRun() {
   auto nBytes = CommonInfoBasicMle().Deserialize(i, mlControl >> 4);
   i.Next(nBytes);
 
-  // first Per-STA Profile subelement
   NS_TEST_EXPECT_MSG_EQ(i.ReadU8(),
                         MultiLinkElement::PER_STA_PROFILE_SUBELEMENT_ID,
                         "PER_STA_PROFILE_SUBELEMENT_ID expected");
-  i.ReadU8();        // length
-  i.ReadLsbtohU16(); // STA Control field
-  i.ReadU8();        // STA Info Length
-  // no STA address
+  i.ReadU8();
+  i.ReadLsbtohU16();
+  i.ReadU8();
   i = CapabilityInformation().Deserialize(i);
-  // no Information Element
 
-  // second Per-STA Profile subelement
   NS_TEST_EXPECT_MSG_EQ(i.ReadU8(),
                         MultiLinkElement::PER_STA_PROFILE_SUBELEMENT_ID,
                         "PER_STA_PROFILE_SUBELEMENT_ID expected");
-  i.ReadU8();        // length
-  i.ReadLsbtohU16(); // STA Control field
-  i.ReadU8();        // STA Info Length
+  i.ReadU8();
+  i.ReadLsbtohU16();
+  i.ReadU8();
   Mac48Address address;
   ReadFrom(i, address);
   i = CapabilityInformation().Deserialize(i);
-  // no Listen interval
-  // Ssid element not present (as mandated by specs)
-  // SupportedRates not present because it is inherited
 
   i = ExtendedSupportedRatesIE().DeserializeIfPresent(tmp = i);
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
@@ -324,7 +239,6 @@ void BasicMultiLinkElementTest::DoRun() {
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
                         "VhtCapabilities element not present");
 
-  // HeCapabilities not present because it is inherited
   NonInheritance nonInheritance;
   i = nonInheritance.DeserializeIfPresent(tmp = i);
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
@@ -339,18 +253,14 @@ void BasicMultiLinkElementTest::DoRun() {
       nonInheritance.m_elemIdExtList.size(), 1,
       "Unexpected size for Elem ID list of Non-Inheritance element");
 
-  // third Per-STA Profile subelement
   NS_TEST_EXPECT_MSG_EQ(i.ReadU8(),
                         MultiLinkElement::PER_STA_PROFILE_SUBELEMENT_ID,
                         "PER_STA_PROFILE_SUBELEMENT_ID expected");
-  i.ReadU8();        // length
-  i.ReadLsbtohU16(); // STA Control field
-  i.ReadU8();        // STA Info Length
+  i.ReadU8();
+  i.ReadLsbtohU16();
+  i.ReadU8();
   ReadFrom(i, address);
   i = CapabilityInformation().Deserialize(i);
-  // no Listen interval
-  // Ssid element not present (as mandated by specs)
-  // SupportedRates not present because it is inherited
 
   i = ExtendedSupportedRatesIE().DeserializeIfPresent(tmp = i);
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
@@ -360,28 +270,18 @@ void BasicMultiLinkElementTest::DoRun() {
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
                         "VhtCapabilities element not present");
 
-  // HeCapabilities not present because it is inherited
-  // EhtCapabilities not present because it is inherited
-
-  // the Multi-Link Element is done, we shall now find the EHT Capabilities of
-  // the containing Association Request frame
   ehtCapabilities =
       EhtCapabilities(true, m_outerAssoc.Get<HeCapabilities>().value());
   i = ehtCapabilities.DeserializeIfPresent(tmp = i);
   NS_TEST_EXPECT_MSG_GT(i.GetDistanceFrom(tmp), 0,
                         "EhtCapabilities element not present");
 
-  /**
-   * Yet another test: use the Deserialize method of the management frame and
-   * check that inherited Information Elements have been copied
-   */
   MgtAssocRequestHeader frame;
   auto count = frame.Deserialize(buffer.Begin());
 
   NS_TEST_EXPECT_MSG_EQ(count, buffer.GetSize(),
                         "Unexpected number of deserialized bytes");
 
-  // containing frame
   NS_TEST_EXPECT_MSG_EQ(frame.Get<Ssid>().has_value(), true,
                         "Containing frame should have SSID IE");
   NS_TEST_EXPECT_MSG_EQ(frame.Get<SupportedRates>().has_value(), true,
@@ -411,8 +311,6 @@ void BasicMultiLinkElementTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(mle.GetNPerStaProfileSubelements(), 3,
                         "Unexpected number of Per-STA Profile subelements");
 
-  // frame in first Per-STA Profile subelement has inherited all the IEs but
-  // SSID and Multi-Link Element IEs
   auto &perSta1 = mle.GetPerStaProfile(0);
   NS_TEST_EXPECT_MSG_EQ(
       perSta1.HasAssocRequest(), true,
@@ -471,12 +369,6 @@ void BasicMultiLinkElementTest::DoRun() {
       perSta1Frame.Get<TidToLinkMapping>().empty(), true,
       "Frame in first Per-STA Profile should not have TID-to-Link Mapping IE");
 
-  // frame in second Per-STA Profile subelement includes VHT Capabilities IE and
-  // has inherited
-  //  all the IEs but SSID IE, Multi-Link Element IE, Extended Supported Rates
-  //  IE (different
-  // than in containing frame) and EHT Capabilities IE (listed in
-  // Non-Inheritance IE).
   auto &perSta2 = mle.GetPerStaProfile(1);
   NS_TEST_EXPECT_MSG_EQ(
       perSta2.HasAssocRequest(), true,
@@ -532,11 +424,6 @@ void BasicMultiLinkElementTest::DoRun() {
       perSta2Frame.Get<TidToLinkMapping>().empty(), true,
       "Frame in second Per-STA Profile should not have TID-to-Link Mapping IE");
 
-  // frame in third Per-STA Profile subelement includes VHT Capabilities IE and
-  // has inherited
-  //  all the IEs but SSID IE, Multi-Link Element IE and Extended Supported
-  //  Rates IE (different
-  // than in containing frame).
   auto &perSta3 = mle.GetPerStaProfile(2);
   NS_TEST_EXPECT_MSG_EQ(
       perSta3.HasAssocRequest(), true,
@@ -597,32 +484,13 @@ void BasicMultiLinkElementTest::DoRun() {
       "Frame in third Per-STA Profile should not have TID-to-Link Mapping IE");
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test Reduced Neighbor Report serialization and deserialization
- */
 class ReducedNeighborReportTest : public HeaderSerializationTestCase {
 public:
-  /**
-   * Constructor
-   */
   ReducedNeighborReportTest();
   ~ReducedNeighborReportTest() override;
 
-  /// typedef for const iterator on the set of available channels
   using PhyOpChannelIt = WifiPhyOperatingChannel::ConstIterator;
 
-  /**
-   * Get a Reduced Neighbor Report element including the given operating
-   * channels
-   *
-   * \param channel2_4It a channel in the 2.4 GHz band
-   * \param channel5It a channel in the 5 GHz band
-   * \param channel6It a channel in the 6 GHz band
-   * \return a Reduced Neighbor Report element
-   */
   ReducedNeighborReport GetReducedNeighborReport(PhyOpChannelIt channel2_4It,
                                                  PhyOpChannelIt channel5It,
                                                  PhyOpChannelIt channel6It);
@@ -653,7 +521,6 @@ ReducedNeighborReportTest::GetReducedNeighborReport(PhyOpChannelIt channel2_4It,
     rnr.AddNbrApInfoField();
     std::size_t nbrId = rnr.GetNNbrApInfoFields() - 1;
     rnr.SetOperatingChannel(nbrId, channel);
-    // Add a TBTT Information Field
     rnr.AddTbttInformationField(nbrId);
     rnr.SetBssid(nbrId, 0, Mac48Address("00:00:00:00:00:24"));
     rnr.SetShortSsid(nbrId, 0, 0);
@@ -670,14 +537,12 @@ ReducedNeighborReportTest::GetReducedNeighborReport(PhyOpChannelIt channel2_4It,
     rnr.AddNbrApInfoField();
     std::size_t nbrId = rnr.GetNNbrApInfoFields() - 1;
     rnr.SetOperatingChannel(nbrId, channel);
-    // Add a TBTT Information Field
     rnr.AddTbttInformationField(nbrId);
     rnr.SetBssid(nbrId, 0, Mac48Address("00:00:00:00:00:05"));
     rnr.SetShortSsid(nbrId, 0, 0);
     rnr.SetBssParameters(nbrId, 0, 20);
     rnr.SetPsd20MHz(nbrId, 0, 60);
     rnr.SetMldParameters(nbrId, 0, 0, 3, 4);
-    // Add another TBTT Information Field
     rnr.AddTbttInformationField(nbrId);
     rnr.SetBssid(nbrId, 1, Mac48Address("00:00:00:00:01:05"));
     rnr.SetShortSsid(nbrId, 1, 0);
@@ -694,7 +559,6 @@ ReducedNeighborReportTest::GetReducedNeighborReport(PhyOpChannelIt channel2_4It,
     rnr.AddNbrApInfoField();
     std::size_t nbrId = rnr.GetNNbrApInfoFields() - 1;
     rnr.SetOperatingChannel(nbrId, channel);
-    // Add a TBTT Information Field
     rnr.AddTbttInformationField(nbrId);
     rnr.SetBssid(nbrId, 0, Mac48Address("00:00:00:00:00:06"));
     rnr.SetShortSsid(nbrId, 0, 0);
@@ -714,7 +578,6 @@ void ReducedNeighborReportTest::DoRun() {
   channel2_4It = channel5It = channel6It =
       WifiPhyOperatingChannel::m_frequencyChannels.cbegin();
 
-  // Test all available frequency channels
   while (channel2_4It != WifiPhyOperatingChannel::m_frequencyChannels.cend() ||
          channel5It != WifiPhyOperatingChannel::m_frequencyChannels.cend() ||
          channel6It != WifiPhyOperatingChannel::m_frequencyChannels.cend()) {
@@ -734,7 +597,6 @@ void ReducedNeighborReportTest::DoRun() {
     TestHeaderSerialization(
         GetReducedNeighborReport(channel2_4It, channel5It, channel6It));
 
-    // advance all channel iterators
     if (channel2_4It != WifiPhyOperatingChannel::m_frequencyChannels.cend()) {
       channel2_4It++;
     }
@@ -747,91 +609,36 @@ void ReducedNeighborReportTest::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test serialization and deserialization of EHT capabilities IE
- */
 class WifiEhtCapabilitiesIeTest : public HeaderSerializationTestCase {
 public:
-  /**
-   * Constructor
-   * \param is2_4Ghz whether the PHY is operating in 2.4 GHz
-   * \param channelWidth the supported channel width in MHz
-   */
   WifiEhtCapabilitiesIeTest(bool is2_4Ghz, uint16_t channelWidth);
   ~WifiEhtCapabilitiesIeTest() override = default;
 
-  /**
-   * Generate the HE capabilities IE.
-   *
-   * \return the generated HE capabilities IE
-   */
   HeCapabilities GetHeCapabilities() const;
 
-  /**
-   * Generate the EHT capabilities IE.
-   *
-   * \param maxMpduLength the maximum MPDU length in bytes
-   * \param maxAmpduSize the maximum A-MPDU size in bytes
-   * \param maxSupportedMcs the maximum EHT MCS supported by the PHY
-   * \return the generated EHT capabilities IE
-   */
   EhtCapabilities GetEhtCapabilities(uint16_t maxMpduLength,
                                      uint32_t maxAmpduSize,
                                      uint8_t maxSupportedMcs) const;
 
-  /**
-   * Serialize the EHT capabilities in a buffer.
-   *
-   * \param ehtCapabilities the EHT capabilities
-   * \return the buffer in which the EHT capabilities has been serialized
-   */
   Buffer SerializeIntoBuffer(const EhtCapabilities &ehtCapabilities);
 
-  /**
-   * Check that the given buffer contains the given value at the given position.
-   *
-   * \param buffer the given buffer
-   * \param position the given position (starting at 0)
-   * \param value the given value
-   */
   void CheckSerializedByte(const Buffer &buffer, uint32_t position,
                            uint8_t value);
 
-  /**
-   * Check the content of the EHT MAC Capabilities Information subfield.
-   *
-   * \param buffer the buffer containing the serialized EHT capabilities
-   * \param expectedValueFirstByte the expected value for the first byte
-   */
   void CheckEhtMacCapabilitiesInformation(const Buffer &buffer,
                                           uint8_t expectedValueFirstByte);
 
-  /**
-   * Check the content of the EHT PHY Capabilities Information subfield.
-   *
-   * \param buffer the buffer containing the serialized EHT capabilities
-   * \param expectedValueSixthByte the expected value for the sixth byte
-   */
   void CheckEhtPhyCapabilitiesInformation(const Buffer &buffer,
                                           uint8_t expectedValueSixthByte);
 
-  /**
-   * Check the content of the Supported EHT-MCS And NSS Set subfield.
-   * \param maxSupportedMcs the maximum EHT MCS supported by the PHY
-   *
-   * \param buffer the buffer containing the serialized EHT capabilities
-   */
   void CheckSupportedEhtMcsAndNssSet(const Buffer &buffer,
                                      uint8_t maxSupportedMcs);
 
 private:
   void DoRun() override;
 
-  bool m_is2_4Ghz;         //!< whether the PHY is operating in 2.4 GHz
-  uint16_t m_channelWidth; //!< Supported channel width by the PHY (in MHz)
+  bool m_is2_4Ghz;
+  uint16_t m_channelWidth;
 };
 
 WifiEhtCapabilitiesIeTest ::WifiEhtCapabilitiesIeTest(bool is2_4Ghz,
@@ -865,12 +672,9 @@ WifiEhtCapabilitiesIeTest::GetEhtCapabilities(uint16_t maxMpduLength,
   if (m_is2_4Ghz) {
     capabilities.SetMaxMpduLength(maxMpduLength);
   }
-  // round to the next power of two minus one
   maxAmpduSize =
       (1UL << static_cast<uint32_t>(std::ceil(std::log2(maxAmpduSize + 1)))) -
       1;
-  // The maximum A-MPDU length in EHT capabilities elements ranges from 2^23-1
-  // to 2^24-1
   capabilities.SetMaxAmpduLength(
       std::min(std::max(maxAmpduSize, 8388607U), 16777215U));
 
@@ -965,62 +769,24 @@ void WifiEhtCapabilitiesIeTest::CheckEhtPhyCapabilitiesInformation(
 void WifiEhtCapabilitiesIeTest::CheckSupportedEhtMcsAndNssSet(
     const Buffer &buffer, uint8_t maxSupportedMcs) {
   if (m_channelWidth == 20) {
-    CheckSerializedByte(buffer, 14,
-                        0x21); // first byte of Supported EHT-MCS And NSS Set
-    CheckSerializedByte(
-        buffer, 15,
-        maxSupportedMcs >= 8
-            ? 0x21
-            : 0x00); // second byte of Supported EHT-MCS And NSS Set
-    CheckSerializedByte(
-        buffer, 16,
-        maxSupportedMcs >= 10
-            ? 0x21
-            : 0x00); // third byte of Supported EHT-MCS And NSS Set
-    CheckSerializedByte(
-        buffer, 17,
-        maxSupportedMcs >= 12
-            ? 0x21
-            : 0x00); // fourth byte of Supported EHT-MCS And NSS Set
+    CheckSerializedByte(buffer, 14, 0x21);
+    CheckSerializedByte(buffer, 15, maxSupportedMcs >= 8 ? 0x21 : 0x00);
+    CheckSerializedByte(buffer, 16, maxSupportedMcs >= 10 ? 0x21 : 0x00);
+    CheckSerializedByte(buffer, 17, maxSupportedMcs >= 12 ? 0x21 : 0x00);
   } else {
-    CheckSerializedByte(buffer, 14,
-                        0x43); // first byte of Supported EHT-MCS And NSS Set
-    CheckSerializedByte(
-        buffer, 15,
-        maxSupportedMcs >= 10
-            ? 0x43
-            : 0x00); // second byte of Supported EHT-MCS And NSS Set
-    CheckSerializedByte(
-        buffer, 16,
-        maxSupportedMcs >= 12
-            ? 0x43
-            : 0x00); // third byte of Supported EHT-MCS And NSS Set
+    CheckSerializedByte(buffer, 14, 0x43);
+    CheckSerializedByte(buffer, 15, maxSupportedMcs >= 10 ? 0x43 : 0x00);
+    CheckSerializedByte(buffer, 16, maxSupportedMcs >= 12 ? 0x43 : 0x00);
   }
   if (m_channelWidth >= 160) {
-    CheckSerializedByte(buffer, 17,
-                        0x12); // first byte of EHT-MCS Map (BW = 160 MHz)
-    CheckSerializedByte(
-        buffer, 18,
-        maxSupportedMcs >= 10
-            ? 0x12
-            : 0x00); // second byte of EHT-MCS Map (BW = 160 MHz)
-    CheckSerializedByte(buffer, 19,
-                        maxSupportedMcs >= 12
-                            ? 0x12
-                            : 0x00); // third byte of EHT-MCS Map (BW = 160 MHz)
+    CheckSerializedByte(buffer, 17, 0x12);
+    CheckSerializedByte(buffer, 18, maxSupportedMcs >= 10 ? 0x12 : 0x00);
+    CheckSerializedByte(buffer, 19, maxSupportedMcs >= 12 ? 0x12 : 0x00);
   }
   if (m_channelWidth == 320) {
-    CheckSerializedByte(buffer, 20,
-                        0x34); // first byte of EHT-MCS Map (BW = 320 MHz)
-    CheckSerializedByte(
-        buffer, 21,
-        maxSupportedMcs >= 10
-            ? 0x34
-            : 0x00); // second byte of EHT-MCS Map (BW = 320 MHz)
-    CheckSerializedByte(buffer, 22,
-                        maxSupportedMcs >= 12
-                            ? 0x34
-                            : 0x00); // third byte of EHT-MCS Map (BW = 320 MHz)
+    CheckSerializedByte(buffer, 20, 0x34);
+    CheckSerializedByte(buffer, 21, maxSupportedMcs >= 10 ? 0x34 : 0x00);
+    CheckSerializedByte(buffer, 22, maxSupportedMcs >= 12 ? 0x34 : 0x00);
   }
 }
 
@@ -1045,13 +811,7 @@ void WifiEhtCapabilitiesIeTest::DoRun() {
     NS_ASSERT_MSG(false, "Invalid upper channel width " << m_channelWidth);
   }
 
-  uint16_t expectedSize =
-      1 +                          // Element ID
-      1 +                          // Length
-      1 +                          // Element ID Extension
-      2 +                          // EHT MAC Capabilities Information
-      9 +                          // EHT PHY Capabilities Information
-      expectedEhtMcsAndNssSetSize; // Supported EHT-MCS And NSS Set
+  uint16_t expectedSize = 1 + 1 + 1 + 2 + 9 + expectedEhtMcsAndNssSetSize;
 
   auto mapType = m_channelWidth == 20
                      ? EhtMcsAndNssSet::EHT_MCS_MAP_TYPE_20_MHZ_ONLY
@@ -1132,12 +892,12 @@ void WifiEhtCapabilitiesIeTest::DoRun() {
     NS_ASSERT(ehtCapabilities.GetHighestSupportedTxMcs(mapType) == maxMcs);
 
     std::vector<std::pair<uint8_t, uint8_t>> ppeThresholds;
-    ppeThresholds.emplace_back(1, 2); // NSS1 242-tones RU
-    ppeThresholds.emplace_back(2, 3); // NSS1 484-tones RU
-    ppeThresholds.emplace_back(3, 4); // NSS2 242-tones RU
-    ppeThresholds.emplace_back(4, 3); // NSS2 484-tones RU
-    ppeThresholds.emplace_back(3, 2); // NSS3 242-tones RU
-    ppeThresholds.emplace_back(2, 1); // NSS3 484-tones RU
+    ppeThresholds.emplace_back(1, 2);
+    ppeThresholds.emplace_back(2, 3);
+    ppeThresholds.emplace_back(3, 4);
+    ppeThresholds.emplace_back(4, 3);
+    ppeThresholds.emplace_back(3, 2);
+    ppeThresholds.emplace_back(2, 1);
     ehtCapabilities.SetPpeThresholds(2, 0x03, ppeThresholds);
 
     expectedSize += 6;
@@ -1157,23 +917,8 @@ void WifiEhtCapabilitiesIeTest::DoRun() {
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test TID-To-Link Mapping information element serialization and
- * deserialization
- */
 class TidToLinkMappingElementTest : public HeaderSerializationTestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param direction The direction for the TID-to-link mapping
-   * \param mappingSwitchTime the Mapping Switching Time
-   * \param expectedDuration the Expected Duration
-   * \param mappings A TID-indexed map of the link sets the TIDs are mapped to
-   */
   TidToLinkMappingElementTest(WifiDirection direction,
                               std::optional<Time> mappingSwitchTime,
                               std::optional<Time> expectedDuration,
@@ -1185,11 +930,11 @@ private:
   void DoSetup() override;
   void DoRun() override;
 
-  WifiDirection m_direction; ///< the direction for the TID-to-link mapping
-  std::optional<Time> m_mappingSwitchTime; ///< the Mapping Switching Time
-  std::optional<Time> m_expectedDuration;  ///< the Expected Duration
-  WifiTidLinkMapping m_mappings;           ///< maps TIDs to link sets
-  TidToLinkMapping m_tidToLinkMapping;     ///< TID-To-Link Mapping element
+  WifiDirection m_direction;
+  std::optional<Time> m_mappingSwitchTime;
+  std::optional<Time> m_expectedDuration;
+  WifiTidLinkMapping m_mappings;
+  TidToLinkMapping m_tidToLinkMapping;
 };
 
 TidToLinkMappingElementTest::TidToLinkMappingElementTest(
@@ -1236,29 +981,8 @@ void TidToLinkMappingElementTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test EHT Operation information element serialization and
- * deserialization
- */
 class EhtOperationElementTest : public HeaderSerializationTestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param params the EHT Operation Parameters field
-   * \param rxMaxNss0_7 RX max NSS that supports EHT MCS 0-7
-   * \param txMaxNss0_7 TX max NSS that supports EHT MCS 0-7
-   * \param rxMaxNss8_9 RX max NSS that supports EHT MCS 8-9
-   * \param txMaxNss8_9 TX max NSS that supports EHT MCS 8-9
-   * \param rxMaxNss10_11 RX max NSS that supports EHT MCS 10-11
-   * \param txMaxNss10_11 TX max NSS that supports EHT MCS 10-11
-   * \param rxMaxNss12_13 RX max NSS that supports EHT MCS 12-13
-   * \param txMaxNss12_13 TX max NSS that supports EHT MCS 12-13
-   * \param opInfo the EHT Operation Information field
-   */
   EhtOperationElementTest(const EhtOperation::EhtOpParams &params,
                           uint8_t rxMaxNss0_7, uint8_t txMaxNss0_7,
                           uint8_t rxMaxNss8_9, uint8_t txMaxNss8_9,
@@ -1271,7 +995,7 @@ public:
 private:
   void DoRun() override;
 
-  EhtOperation m_ehtOperation; ///< EHT Operation element
+  EhtOperation m_ehtOperation;
 };
 
 EhtOperationElementTest::EhtOperationElementTest(
@@ -1297,12 +1021,6 @@ void EhtOperationElementTest::DoRun() {
   TestHeaderSerialization(m_ehtOperation);
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief wifi EHT Information Elements Test Suite
- */
 class WifiEhtInfoElemsTestSuite : public TestSuite {
 public:
   WifiEhtInfoElemsTestSuite();
@@ -1357,5 +1075,4 @@ WifiEhtInfoElemsTestSuite::WifiEhtInfoElemsTestSuite()
       TestCase::QUICK);
 }
 
-static WifiEhtInfoElemsTestSuite
-    g_wifiEhtInfoElemsTestSuite; ///< the test suite
+static WifiEhtInfoElemsTestSuite g_wifiEhtInfoElemsTestSuite;

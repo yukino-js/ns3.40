@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "csma-helper.h"
 
@@ -56,11 +38,6 @@ void CsmaHelper::DisableFlowControl() { m_enableFlowControl = false; }
 
 void CsmaHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
                                     bool promiscuous, bool explicitFilename) {
-  //
-  // All of the Pcap enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type CsmaNetDevice.
-  //
   Ptr<CsmaNetDevice> device = nd->GetObject<CsmaNetDevice>();
   if (!device) {
     NS_LOG_INFO("CsmaHelper::EnablePcapInternal(): Device "
@@ -89,11 +66,6 @@ void CsmaHelper::EnablePcapInternal(std::string prefix, Ptr<NetDevice> nd,
 void CsmaHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
                                      std::string prefix, Ptr<NetDevice> nd,
                                      bool explicitFilename) {
-  //
-  // All of the ascii enable functions vector through here including the ones
-  // that are wandering through all of devices on perhaps all of the nodes in
-  // the system.  We can only deal with devices of type CsmaNetDevice.
-  //
   Ptr<CsmaNetDevice> device = nd->GetObject<CsmaNetDevice>();
   if (!device) {
     NS_LOG_INFO("CsmaHelper::EnableAsciiInternal(): Device "
@@ -101,24 +73,9 @@ void CsmaHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // Our default trace sinks are going to use packet printing, so we have to
-  // make sure that is turned on.
-  //
   Packet::EnablePrinting();
 
-  //
-  // If we are not provided an OutputStreamWrapper, we are expected to create
-  // one using the usual trace filename conventions and do a Hook*WithoutContext
-  // since there will be one file per context and therefore the context would
-  // be redundant.
-  //
   if (!stream) {
-    //
-    // Set up an output stream object to deal with private ofstream copy
-    // constructor and lifetime issues.  Let the helper decide the actual
-    // name of the file given the prefix.
-    //
     AsciiTraceHelper asciiTraceHelper;
 
     std::string filename;
@@ -131,16 +88,9 @@ void CsmaHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     Ptr<OutputStreamWrapper> theStream =
         asciiTraceHelper.CreateFileStream(filename);
 
-    //
-    // The MacRx trace source provides our "r" event.
-    //
     asciiTraceHelper.HookDefaultReceiveSinkWithoutContext<CsmaNetDevice>(
         device, "MacRx", theStream);
 
-    //
-    // The "+", '-', and 'd' events are driven by trace sources actually in the
-    // transmit queue.
-    //
     Ptr<Queue<Packet>> queue = device->GetQueue();
     asciiTraceHelper.HookDefaultEnqueueSinkWithoutContext<Queue<Packet>>(
         queue, "Enqueue", theStream);
@@ -152,18 +102,6 @@ void CsmaHelper::EnableAsciiInternal(Ptr<OutputStreamWrapper> stream,
     return;
   }
 
-  //
-  // If we are provided an OutputStreamWrapper, we are expected to use it, and
-  // to providd a context.  We are free to come up with our own context if we
-  // want, and use the AsciiTraceHelper Hook*WithContext functions, but for
-  // compatibility and simplicity, we just use Config::Connect and let it deal
-  // with the context.
-  //
-  // Note that we are going to use the default trace sinks provided by the
-  // ascii trace helper.  There is actually no AsciiTraceHelper in sight here,
-  // but the default trace sinks are actually publicly available static
-  // functions that are always there waiting for just such a case.
-  //
   uint32_t nodeid = nd->GetNode()->GetId();
   uint32_t deviceid = nd->GetIfIndex();
   std::ostringstream oss;
@@ -277,7 +215,6 @@ Ptr<NetDevice> CsmaHelper::InstallPriv(Ptr<Node> node,
   device->SetQueue(queue);
   device->Attach(channel);
   if (m_enableFlowControl) {
-    // Aggregate a NetDeviceQueueInterface object
     Ptr<NetDeviceQueueInterface> ndqi = CreateObject<NetDeviceQueueInterface>();
     ndqi->GetTxQueue(0)->ConnectQueueTraces(queue);
     device->AggregateObject(ndqi);

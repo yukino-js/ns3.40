@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Benjamin Cizdziel <ben.cizdziel@gmail.com>
- */
 
 #include <ns3/log.h>
 #include <ns3/test.h>
@@ -25,45 +7,15 @@ NS_LOG_COMPONENT_DEFINE("TvHelperDistributionTest");
 
 using namespace ns3;
 
-/**
- * \ingroup spectrum-tests
- *
- * This test verifies the accuracy of the private GetRandomNumTransmitters()
- * method in the TvSpectrumTransmitterHelper class. The method generates a
- * random number corresponding to the number of TV transmitters to create based
- * on the given location density (low, medium, or high) and maximum possible
- * number of TV channels. Low density will generate a transmitter for between
- * one (a single transmitter) and one third of the number of possible channels,
- * medium density will generate a transmitter for between one third and two
- * thirds, and high density will generate a transmitter for between two thirds
- * and all of the possible channels. In this test, it is verified that the
- * lower (1) and upper (max number of possible channels input) bounds are not
- * exceeded and that the number of transmitters to be generated does not overlap
- * between adjacent densities. For example, given 60 possible channels, for low
- * density between 1 and 20 transmitters can be created, for medium density
- * between 21 and 40 transmitters can be created, and for high density between
- * 41 and 60 transmitters can be created (all inclusive). This is tested with
- * various cases.
- */
 class TvHelperDistributionTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param maxNumTransmitters maximum number of transmitters.
-   */
   TvHelperDistributionTestCase(uint32_t maxNumTransmitters);
   ~TvHelperDistributionTestCase() override;
 
 private:
   void DoRun() override;
-  /**
-   * Build the test name
-   * \param maxNumTransmitters maximum number of transmitters.
-   * \return The test name
-   */
   static std::string Name(uint32_t maxNumTransmitters);
-  uint32_t m_maxNumTransmitters; //!< Maximum number of transmitters.
+  uint32_t m_maxNumTransmitters;
 };
 
 std::string TvHelperDistributionTestCase::Name(uint32_t maxNumTransmitters) {
@@ -120,11 +72,6 @@ void TvHelperDistributionTestCase::DoRun() {
                         "medium density overlaps with high density");
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * Test suite for the TvSpectrumTransmitterHelper class
- */
 class TvHelperDistributionTestSuite : public TestSuite {
 public:
   TvHelperDistributionTestSuite();
@@ -140,5 +87,4 @@ TvHelperDistributionTestSuite::TvHelperDistributionTestSuite()
   }
 }
 
-/// Static variable for test initialization
 static TvHelperDistributionTestSuite g_TvHelperDistributionTestSuite;

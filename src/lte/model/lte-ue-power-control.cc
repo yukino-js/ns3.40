@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-ue-power-control.h"
 
@@ -36,7 +17,7 @@ LteUePowerControl::LteUePowerControl() {
   NS_LOG_FUNCTION(this);
   m_deltaTF = 0;
   m_fc = 0;
-  m_pathLoss = 100; // initial value
+  m_pathLoss = 100;
   m_curPuschTxPower = 10;
   m_curPucchTxPower = 10;
   m_curSrsTxPower = 10;
@@ -47,8 +28,7 @@ LteUePowerControl::LteUePowerControl() {
 
   m_M_Pusch = 0;
   m_rsrpSet = false;
-  m_pcRsrpFilterCoefficient =
-      4; // Default value similar to the eNB (see lte-enb-rrc.cc)
+  m_pcRsrpFilterCoefficient = 4;
 }
 
 LteUePowerControl::~LteUePowerControl() { NS_LOG_FUNCTION(this); }
@@ -281,7 +261,6 @@ void LteUePowerControl::ReportTpc(uint8_t tpc) {
       if (m_deltaPusch.size() == 4) {
         if ((m_curPuschTxPower <= m_Pcmin && m_deltaPusch.at(0) < 0) ||
             (m_curPuschTxPower >= m_Pcmax && m_deltaPusch.at(0) > 0)) {
-          // TPC commands for serving cell shall not be accumulated
           m_deltaPusch.erase(m_deltaPusch.begin());
         } else {
           m_fc = m_fc + m_deltaPusch.at(0);

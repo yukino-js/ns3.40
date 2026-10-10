@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "epc-x2.h"
 
@@ -52,8 +34,6 @@ X2IfaceInfo &X2IfaceInfo::operator=(const X2IfaceInfo &value) {
   return *this;
 }
 
-///////////////////////////////////////////
-
 X2CellInfo::X2CellInfo(std::vector<uint16_t> localCellIds,
                        std::vector<uint16_t> remoteCellIds)
     : m_localCellIds{localCellIds}, m_remoteCellIds{remoteCellIds} {}
@@ -66,8 +46,6 @@ X2CellInfo &X2CellInfo::operator=(const X2CellInfo &value) {
   m_remoteCellIds = value.m_remoteCellIds;
   return *this;
 }
-
-///////////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(EpcX2);
 
@@ -112,10 +90,8 @@ void EpcX2::AddX2Interface(uint16_t localCellId, Ipv4Address localX2Address,
 
   int retval;
 
-  // Get local eNB where this X2 entity belongs to
   Ptr<Node> localEnb = GetObject<Node>();
 
-  // Create X2-C socket for the local eNB
   Ptr<Socket> localX2cSocket = Socket::CreateSocket(
       localEnb, TypeId::LookupByName("ns3::UdpSocketFactory"));
   retval =
@@ -124,7 +100,6 @@ void EpcX2::AddX2Interface(uint16_t localCellId, Ipv4Address localX2Address,
   localX2cSocket->SetRecvCallback(
       MakeCallback(&EpcX2::RecvFromX2cSocket, this));
 
-  // Create X2-U socket for the local eNB
   Ptr<Socket> localX2uSocket = Socket::CreateSocket(
       localEnb, TypeId::LookupByName("ns3::UdpSocketFactory"));
   retval =
@@ -231,8 +206,7 @@ void EpcX2::RecvFromX2cSocket(Ptr<Socket> socket) {
       NS_LOG_LOGIC("targetCellId = " << params.targetCellId);
 
       m_x2SapUser->RecvHandoverRequestAck(params);
-    } else // messageType == EpcX2Header::UnsuccessfulOutcome
-    {
+    } else {
       NS_LOG_LOGIC("Recv X2 message: HANDOVER PREPARATION FAILURE");
 
       EpcX2HandoverPreparationFailureHeader x2HoPrepFailHeader;
@@ -396,9 +370,6 @@ void EpcX2::RecvFromX2uSocket(Ptr<Socket> socket) {
   m_x2SapUser->RecvUeData(params);
 }
 
-//
-// Implementation of the X2 SAP Provider
-//
 void EpcX2::DoSendHandoverRequest(
     EpcX2SapProvider::HandoverRequestParams params) {
   NS_LOG_FUNCTION(this);
@@ -420,7 +391,6 @@ void EpcX2::DoSendHandoverRequest(
 
   NS_LOG_INFO("Send X2 message: HANDOVER REQUEST");
 
-  // Build the X2 message
   EpcX2HandoverRequestHeader x2HoReqHeader;
   x2HoReqHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2HoReqHeader.SetCause(params.cause);
@@ -441,14 +411,12 @@ void EpcX2::DoSendHandoverRequest(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 HandoverRequest header: " << x2HoReqHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet =
       (params.rrcContext) ? (params.rrcContext) : (Create<Packet>());
   packet->AddHeader(x2HoReqHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   sourceSocket->SendTo(packet, 0,
                        InetSocketAddress(targetIpAddr, m_x2cUdpPort));
 }
@@ -477,7 +445,6 @@ void EpcX2::DoSendHandoverRequestAck(
 
   NS_LOG_INFO("Send X2 message: HANDOVER REQUEST ACK");
 
-  // Build the X2 message
   EpcX2HandoverRequestAckHeader x2HoAckHeader;
   x2HoAckHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2HoAckHeader.SetNewEnbUeX2apId(params.newEnbUeX2apId);
@@ -494,14 +461,12 @@ void EpcX2::DoSendHandoverRequestAck(
   NS_LOG_INFO("X2 HandoverAck header: " << x2HoAckHeader);
   NS_LOG_INFO("RRC context: " << params.rrcContext);
 
-  // Build the X2 packet
   Ptr<Packet> packet =
       (params.rrcContext) ? (params.rrcContext) : (Create<Packet>());
   packet->AddHeader(x2HoAckHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   localSocket->SendTo(packet, 0, InetSocketAddress(remoteIpAddr, m_x2cUdpPort));
 }
 
@@ -530,7 +495,6 @@ void EpcX2::DoSendHandoverPreparationFailure(
 
   NS_LOG_INFO("Send X2 message: HANDOVER PREPARATION FAILURE");
 
-  // Build the X2 message
   EpcX2HandoverPreparationFailureHeader x2HoPrepFailHeader;
   x2HoPrepFailHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2HoPrepFailHeader.SetCause(params.cause);
@@ -545,13 +509,11 @@ void EpcX2::DoSendHandoverPreparationFailure(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 HandoverPrepFail header: " << x2HoPrepFailHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2HoPrepFailHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   localSocket->SendTo(packet, 0, InetSocketAddress(remoteIpAddr, m_x2cUdpPort));
 }
 
@@ -581,7 +543,6 @@ void EpcX2::DoSendSnStatusTransfer(
 
   NS_LOG_INFO("Send X2 message: SN STATUS TRANSFER");
 
-  // Build the X2 message
   EpcX2SnStatusTransferHeader x2SnStatusXferHeader;
   x2SnStatusXferHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2SnStatusXferHeader.SetNewEnbUeX2apId(params.newEnbUeX2apId);
@@ -597,13 +558,11 @@ void EpcX2::DoSendSnStatusTransfer(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 SnStatusTransfer header: " << x2SnStatusXferHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2SnStatusXferHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   localSocket->SendTo(packet, 0, InetSocketAddress(remoteIpAddr, m_x2cUdpPort));
 }
 
@@ -630,7 +589,6 @@ void EpcX2::DoSendUeContextRelease(
 
   NS_LOG_INFO("Send X2 message: UE CONTEXT RELEASE");
 
-  // Build the X2 message
   EpcX2UeContextReleaseHeader x2UeCtxReleaseHeader;
   x2UeCtxReleaseHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2UeCtxReleaseHeader.SetNewEnbUeX2apId(params.newEnbUeX2apId);
@@ -644,13 +602,11 @@ void EpcX2::DoSendUeContextRelease(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 UeContextRelease header: " << x2UeCtxReleaseHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2UeCtxReleaseHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   localSocket->SendTo(packet, 0, InetSocketAddress(remoteIpAddr, m_x2cUdpPort));
 }
 
@@ -674,7 +630,6 @@ void EpcX2::DoSendLoadInformation(
 
   NS_LOG_INFO("Send X2 message: LOAD INFORMATION");
 
-  // Build the X2 message
   EpcX2LoadInformationHeader x2LoadInfoHeader;
   x2LoadInfoHeader.SetCellInformationList(params.cellInformationList);
 
@@ -687,13 +642,11 @@ void EpcX2::DoSendLoadInformation(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 LoadInformation header: " << x2LoadInfoHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2LoadInfoHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   sourceSocket->SendTo(packet, 0,
                        InetSocketAddress(targetIpAddr, m_x2cUdpPort));
 }
@@ -720,7 +673,6 @@ void EpcX2::DoSendResourceStatusUpdate(
 
   NS_LOG_INFO("Send X2 message: RESOURCE STATUS UPDATE");
 
-  // Build the X2 message
   EpcX2ResourceStatusUpdateHeader x2ResourceStatUpdHeader;
   x2ResourceStatUpdHeader.SetEnb1MeasurementId(params.enb1MeasurementId);
   x2ResourceStatUpdHeader.SetEnb2MeasurementId(params.enb2MeasurementId);
@@ -736,13 +688,11 @@ void EpcX2::DoSendResourceStatusUpdate(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 ResourceStatusUpdate header: " << x2ResourceStatUpdHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2ResourceStatUpdHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   sourceSocket->SendTo(packet, 0,
                        InetSocketAddress(targetIpAddr, m_x2cUdpPort));
 }
@@ -766,8 +716,7 @@ void EpcX2::DoSendUeData(EpcX2SapProvider::UeDataParams params) {
 
   GtpuHeader gtpu;
   gtpu.SetTeid(params.gtpTeid);
-  gtpu.SetLength(params.ueData->GetSize() + gtpu.GetSerializedSize() -
-                 8); /// \todo This should be done in GtpuHeader
+  gtpu.SetLength(params.ueData->GetSize() + gtpu.GetSerializedSize() - 8);
   NS_LOG_INFO("GTP-U header: " << gtpu);
 
   Ptr<Packet> packet = params.ueData;
@@ -802,7 +751,6 @@ void EpcX2::DoSendHandoverCancel(
 
   NS_LOG_INFO("Send X2 message: HANDOVER CANCEL");
 
-  // Build the X2 message
   EpcX2HandoverCancelHeader x2HandoverCancelHeader;
   x2HandoverCancelHeader.SetOldEnbUeX2apId(params.oldEnbUeX2apId);
   x2HandoverCancelHeader.SetNewEnbUeX2apId(params.newEnbUeX2apId);
@@ -817,13 +765,11 @@ void EpcX2::DoSendHandoverCancel(
   NS_LOG_INFO("X2 header: " << x2Header);
   NS_LOG_INFO("X2 UeContextRelease header: " << x2HandoverCancelHeader);
 
-  // Build the X2 packet
   Ptr<Packet> packet = Create<Packet>();
   packet->AddHeader(x2HandoverCancelHeader);
   packet->AddHeader(x2Header);
   NS_LOG_INFO("packetLen = " << packet->GetSize());
 
-  // Send the X2 message through the socket
   localSocket->SendTo(packet, 0, InetSocketAddress(remoteIpAddr, m_x2cUdpPort));
 }
 

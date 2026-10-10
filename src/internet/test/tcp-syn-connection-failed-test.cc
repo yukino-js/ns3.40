@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2019 Alexander Krotov <krotov@iitp.ru>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
@@ -25,31 +8,16 @@
 
 using namespace ns3;
 
-/**
- * \ingroup internet-test
- *
- * \brief Test that connection failed callback is called when
- * SYN retransmission number is exceeded.
- */
 class TcpSynConnectionFailedTest : public TestCase {
 public:
-  /**
-   * Constructor.
-   * \param desc Test description.
-   * \param useEcn Whether to enable ECN.
-   */
   TcpSynConnectionFailedTest(std::string desc, bool useEcn);
 
-  /**
-   * \brief Handle a connection failure.
-   * \param socket The receiving socket.
-   */
   void HandleConnectionFailed(Ptr<Socket> socket);
   void DoRun() override;
 
 private:
-  bool m_connectionFailed{false}; //!< Connection failure indicator
-  bool m_useEcn{false};           //!< Use ECN (true or false)
+  bool m_connectionFailed{false};
+  bool m_useEcn{false};
 };
 
 TcpSynConnectionFailedTest::TcpSynConnectionFailedTest(std::string desc,
@@ -86,11 +54,6 @@ void TcpSynConnectionFailedTest::DoRun() {
                         "Connection failed callback was not called");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TestSuite
- */
 class TcpSynConnectionFailedTestSuite : public TestSuite {
 public:
   TcpSynConnectionFailedTestSuite()
@@ -104,6 +67,4 @@ public:
   }
 };
 
-static TcpSynConnectionFailedTestSuite
-    g_TcpSynConnectionFailedTestSuite; //!< Static variable for test
-                                       //!< initialization
+static TcpSynConnectionFailedTestSuite g_TcpSynConnectionFailedTestSuite;

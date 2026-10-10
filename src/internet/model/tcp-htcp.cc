@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2015 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * by: Amir Modarresi <amodarresi@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "tcp-htcp.h"
 
@@ -105,8 +81,6 @@ void TcpHtcp::UpdateAlpha() {
   } else {
     Time diff = m_delta - m_deltaL;
     double diffSec = diff.GetSeconds();
-    // alpha=1+10(Delta-Delta_L)+[0.5(Delta-Delta_L)]^2  (seconds)
-    // from Leith and Shorten H-TCP paper
     m_alpha = (1 + 10 * diffSec + 0.25 * (diffSec * diffSec));
   }
   m_alpha = 2 * (1 - m_beta) * m_alpha;
@@ -119,7 +93,6 @@ void TcpHtcp::UpdateAlpha() {
 void TcpHtcp::UpdateBeta() {
   NS_LOG_FUNCTION(this);
 
-  // Default value for m_beta
   m_beta = m_defaultBackoff;
 
   if (m_throughput > m_lastThroughput && m_lastThroughput > 0) {

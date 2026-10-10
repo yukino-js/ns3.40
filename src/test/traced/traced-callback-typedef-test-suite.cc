@@ -1,103 +1,44 @@
-/*
- * Copyright (c) 2015 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
 #include "ns3/core-module.h"
-#include "ns3/dsr-module.h"      // DsrOPtionSRHeader
-#include "ns3/internet-module.h" // Ipv4, Ipv4L3Protocol, Ipv4PacketProbe
+#include "ns3/dsr-module.h"
+#include "ns3/internet-module.h"
 #include "ns3/test.h"
 
+#include "ns3/lr-wpan-mac.h"
+#include "ns3/lte-module.h"
+#include "ns3/mesh-module.h"
+#include "ns3/mobility-module.h"
+#include "ns3/network-module.h"
+#include "ns3/olsr-module.h"
+#include "ns3/sixlowpan-module.h"
+#include "ns3/spectrum-module.h"
+#include "ns3/stats-module.h"
+#include "ns3/uan-module.h"
+#include "ns3/wifi-mac-header.h"
+#include "ns3/wifi-phy-state-helper.h"
 #include <iostream>
 #include <set>
 #include <sstream>
 #include <string>
-// Ipv6L3Protocol, Ipv6PacketProbe
-#include "ns3/lr-wpan-mac.h"      // LrWpanMac
-#include "ns3/lte-module.h"       // PhyReceptionStatParameters,
-                                  // PhyTransmissionStatParameters,
-                                  // LteUePowerControl
-#include "ns3/mesh-module.h"      // PeerManagementProtocol
-#include "ns3/mobility-module.h"  // MobilityModel
-#include "ns3/network-module.h"   // Packet, PacketBurst
-#include "ns3/olsr-module.h"      // olsr::RoutingProtocol
-#include "ns3/sixlowpan-module.h" // SixLowPanNetDevice
-#include "ns3/spectrum-module.h"  // SpectrumValue
-#include "ns3/stats-module.h"     // TimeSeriesAdapter
-#include "ns3/uan-module.h"       // UanPhy
-#include "ns3/wifi-mac-header.h"
-#include "ns3/wifi-phy-state-helper.h"
 
 using namespace ns3;
 
-/**
- * \file
- * \ingroup system-tests-traced
- *
- * TracedCallback tests to verify if they are called with
- * the right type and number of arguments.
- */
-
-/**
- * \ingroup system-tests-traced
- *
- * TracedCallback Testcase.
- *
- * This test verifies that the TracedCallback is called with
- * the right type and number of arguments.
- */
 class TracedCallbackTypedefTestCase : public TestCase {
 public:
   TracedCallbackTypedefTestCase();
 
   ~TracedCallbackTypedefTestCase() override {}
 
-  /**
-   * Number of arguments passed to callback.
-   *
-   * Since the sink function is outside the invoking class we can't use
-   * the test macros directly.  Instead, we cache success
-   * in the \c m_nArgs public value, then inspect it
-   * in the CheckType() method.
-   */
   static std::size_t m_nArgs;
 
 private:
-  /** Callback checkers. */
   template <typename... Ts> class Checker;
 
   void DoRun() override;
-
-}; // TracedCallbackTypedefTestCase
-
-/*
-  --------------------------------------------------------------------
-  Support functions and classes
-  --------------------------------------------------------------------
-*/
+};
 
 namespace {
 
-/**
- * \ingroup system-tests-traced
- *
- * Record typedefs which are identical to previously declared.
- * \return a container of strings representing the duplicates.
- */
 std::set<std::string> Duplicates() {
   std::set<std::string> dupes;
 
@@ -110,29 +51,10 @@ std::set<std::string> Duplicates() {
   return dupes;
 }
 
-/**
- * \ingroup system-tests-traced
- *
- * Container for duplicate types.
- */
 std::set<std::string> g_dupes = Duplicates();
 
-/**
- * \ingroup system-tests-traced
- *
- * Stringify the known TracedCallback type names.
- *
- * \tparam T \explicit The typedef name.
- * \param [in] N The number of arguments expected.
- * \returns The \c TracedCallback type name.
- */
 template <typename T> inline std::string TypeName(int N) { return "unknown"; }
 
-/**
- * \ingroup system-tests-traced
- *
- * Returns a string representing the type of a class.
- */
 #define TYPENAME(T)                                                            \
   template <> inline std::string TypeName<T>(int N) {                          \
     std::stringstream ss;                                                      \
@@ -140,15 +62,6 @@ template <typename T> inline std::string TypeName(int N) { return "unknown"; }
     return ss.str();                                                           \
   }
 
-/**
- * \ingroup system-tests-traced
- *
- * \name Stringify known typename.
- */
-/**
- * @{
- * \brief Stringify a known typename
- */
 TYPENAME(dsr::DsrOptionSRHeader::TracedCallback);
 TYPENAME(EpcUeNas::StateTracedCallback);
 TYPENAME(Ipv4L3Protocol::DropTracedCallback);
@@ -204,72 +117,37 @@ TYPENAME(WifiPhyStateHelper::StateTracedCallback);
 TYPENAME(WifiPhyStateHelper::TxTracedCallback);
 TYPENAME(WifiRemoteStationManager::PowerChangeTracedCallback);
 TYPENAME(WifiRemoteStationManager::RateChangeTracedCallback);
-/** @} */
 #undef TYPENAME
 
-/**
- * \ingroup system-tests-traced
- *
- * Log that a callback was invoked.
- *
- * We can't actually do anything with any of the arguments,
- * but the fact we got called is what's important.
- *
- * \param [in] N The number of arguments passed to the callback.
- */
 void SinkIt(std::size_t N) {
   std::cout << "with " << N << " args." << std::endl;
   TracedCallbackTypedefTestCase::m_nArgs = N;
 }
 
-/**
- * \ingroup system-tests-traced
- *
- * Sink functions.
- */
 template <typename... Ts> class TracedCbSink {
 public:
-  /**
-   * \brief Sink function, called by a TracedCallback.
-   * \tparam Ts parameters of the TracedCallback.
-   */
   static void Sink(Ts...) {
     const std::size_t n = sizeof...(Ts);
     SinkIt(n);
   }
 };
 
-} // unnamed namespace
-
-/*
-  --------------------------------------------------------------------
-  Class TracedCallbackTypedefTestCase implementation
-
-  We put the template implementations here to break a dependency cycle
-  from the Checkers() to TracedCbSink<> to SinkIt()
-  --------------------------------------------------------------------
-*/
+} // namespace
 
 std::size_t TracedCallbackTypedefTestCase::m_nArgs = 0;
 
 template <typename... Ts>
 class TracedCallbackTypedefTestCase::Checker : public Object {
-  /// TracedCallback to be called.
   TracedCallback<Ts...> m_cb;
 
 public:
   Checker() {};
   ~Checker() override {};
 
-  /// Arguments of the TracedCallback.
   std::tuple<typename TypeTraits<Ts>::BaseType...> m_items;
 
-  /// Number of arguments of the TracedCallback.
   const std::size_t m_nItems = sizeof...(Ts);
 
-  /**
-   * Invoke a TracedCallback.
-   */
   template <typename U> void Invoke() {
     U sink = TracedCbSink<Ts...>::Sink;
     Callback<void, Ts...> cb = MakeCallback(sink);
@@ -280,9 +158,6 @@ public:
     Cleanup();
   }
 
-  /**
-   * Cleanup the test.
-   */
   void Cleanup() {
     if (m_nArgs == 0) {
       std::cout << std::endl;
@@ -296,12 +171,6 @@ public:
 TracedCallbackTypedefTestCase::TracedCallbackTypedefTestCase()
     : TestCase("Check basic TracedCallback operation") {}
 
-/**
- * \ingroup system-tests-traced
- *
- * Check the TracedCallback duplicate by checking if it matches the
- * TracedCallback it is supposed to be equal to.
- */
 #define DUPE(U, T1)                                                            \
   if (g_dupes.find(#U) == g_dupes.end()) {                                     \
     NS_TEST_ASSERT_MSG_NE(0, 1, "expected to find " << #U << " in dupes.");    \
@@ -316,11 +185,6 @@ TracedCallbackTypedefTestCase::TracedCallbackTypedefTestCase()
             << " but no longer does.  Please add a new CHECK call.");          \
   }
 
-/**
- * \ingroup system-tests-traced
- *
- * Check the TracedCallback by calling its Invoke function.
- */
 #define CHECK(U, ...) CreateObject<Checker<__VA_ARGS__>>()->Invoke<U>()
 
 void TracedCallbackTypedefTestCase::DoRun() {
@@ -476,11 +340,6 @@ void TracedCallbackTypedefTestCase::DoRun() {
         Mac48Address);
 }
 
-/**
- * \ingroup system-tests-traced
- *
- * \brief TracedCallback typedef TestSuite
- */
 class TracedCallbackTypedefTestSuite : public TestSuite {
 public:
   TracedCallbackTypedefTestSuite();
@@ -491,5 +350,4 @@ TracedCallbackTypedefTestSuite::TracedCallbackTypedefTestSuite()
   AddTestCase(new TracedCallbackTypedefTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static TracedCallbackTypedefTestSuite tracedCallbackTypedefTestSuite;

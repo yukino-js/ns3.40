@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2010 Hemanth Narra
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hemanth Narra <hemanth@ittc.ku.com>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 #include "dsdv-packet-queue.h"
 
 #include "ns3/ipv4-route.h"
@@ -63,14 +33,11 @@ bool PacketQueue::Enqueue(QueueEntry &entry) {
       GetCountForPacketsWithDst(entry.GetIpv4Header().GetDestination());
   NS_LOG_DEBUG(
       "Number of packets with this destination: " << numPacketswithdst);
-  /** For Brock Paper comparison*/
   if (numPacketswithdst >= m_maxLenPerDst || m_queue.size() >= m_maxLen) {
     NS_LOG_DEBUG("Max packets reached for this destination. Not queuing any "
                  "further packets");
     return false;
   } else {
-    // NS_LOG_DEBUG("Packet size while enqueuing
-    // "<<entry.GetPacket()->GetSize());
     entry.SetExpireTime(m_queueTimeout);
     m_queue.push_back(entry);
     return true;
@@ -125,24 +92,13 @@ uint32_t PacketQueue::GetCountForPacketsWithDst(Ipv4Address dst) {
   return count;
 }
 
-/**
- * IsExpired structure
- */
 struct IsExpired {
-  /**
-   * \brief Check for expired entry
-   * \param e QueueEntry to check
-   * \return true if expired
-   */
   bool operator()(const QueueEntry &e) const {
-    // NS_LOG_DEBUG("Expire time for packet in req queue: "<<e.GetExpireTime
-    // ());
     return (e.GetExpireTime() < Seconds(0));
   }
 };
 
 void PacketQueue::Purge() {
-  // NS_LOG_DEBUG("Purging Queue");
   IsExpired pred;
   for (auto i = m_queue.begin(); i != m_queue.end(); ++i) {
     if (pred(*i)) {
@@ -157,8 +113,6 @@ void PacketQueue::Purge() {
 void PacketQueue::Drop(QueueEntry en, std::string reason) {
   NS_LOG_LOGIC(reason << en.GetPacket()->GetUid() << " "
                       << en.GetIpv4Header().GetDestination());
-  // en.GetErrorCallback () (en.GetPacket (), en.GetIpv4Header (),
-  //   Socket::ERROR_NOROUTETOHOST);
 }
 
 } // namespace dsdv

@@ -1,44 +1,4 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pasquale Imputato <p.imputato@gmail.com>
- */
 
-/*
- *                                          node
- *                     --------------------------------------------------
- *                     |                                                |
- *                     |        pfifo_fast    queueDiscType [pfifo_fast]|
- *                     |                      bql [false]               |
- *                     |        interface 0   interface 1               |
- *                     |             |             |                    |
- *                     --------------------------------------------------
- *                                   |             |
- *   1 Gbps access incoming link     |             |           100 Mbps
- * bottleneck outgoing link
- * ----------------------------------- -----------------------------------
- *
- * This example builds a node with two interfaces in emulation mode in
- * either {raw, netmap}. The aim is to explore different qdiscs behaviours
- * on the backlog of a device emulated bottleneck side.
- *
- * If you run emulation in netmap mode, you need before to load the
- * netmap.ko module.  The user is responsible for configuring and building
- * netmap separately.
- */
 
 #include "ns3/abort.h"
 #include "ns3/core-module.h"
@@ -87,7 +47,7 @@ int main(int argc, char *argv[]) {
   bool writer = true;
 #ifdef HAVE_PACKET_H
   std::string emuMode("raw");
-#else // HAVE_NETMAP_USER_H is true (otherwise this example is not compiled)
+#else
   std::string emuMode("netmap");
 #endif
 
@@ -117,46 +77,13 @@ int main(int argc, char *argv[]) {
   Mac48AddressValue mac0(m0.c_str());
   Mac48AddressValue mac1(m1.c_str());
 
-  //
-  // Since we are using a real piece of hardware we need to use the realtime
-  // simulator.
-  //
   GlobalValue::Bind("SimulatorImplementationType",
                     StringValue("ns3::RealtimeSimulatorImpl"));
 
-  //
-  // Since we are going to be talking to real-world machines, we need to enable
-  // calculation of checksums in our protocols.
-  //
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(true));
 
-  //
-  // In such a simple topology, the use of the helper API can be a hindrance
-  // so we drop down into the low level API and do it manually.
-  //
-  // First we need a single node.
-  //
   NS_LOG_INFO("Create Node");
   Ptr<Node> node = CreateObject<Node>();
-
-  //
-  // Create an emu device, allocate a MAC address and point the device to the
-  // Linux device name.  The device needs a transmit queueing discipline so
-  // create a droptail queue and give it to the device.  Finally, "install"
-  // the device into the node.
-  //
-  // Do understand that the ns-3 allocated MAC address will be sent out over
-  // your network since the emu net device will spoof it.  By default, this
-  // address will have an Organizationally Unique Identifier (OUI) of zero.
-  // The Internet Assigned Number Authority IANA
-  //
-  //  https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.txt
-  //
-  // reports that this OUI is unassigned, and so should not conflict with
-  // real hardware on your net.  It may raise all kinds of red flags in a
-  // real environment to have packets from a device with an obviously bogus
-  // OUI flying around.  Be aware.
-  //
 
   NS_LOG_INFO("Create Devices");
 
@@ -199,10 +126,6 @@ int main(int argc, char *argv[]) {
   Ptr<NetDevice> device1 = devices1.Get(0);
   device1->SetAttribute("Address", mac1);
 
-  //
-  // Add a default internet stack to the node.  This gets us the ns-3 versions
-  // of ARP, IPv4, ICMP, UDP and TCP.
-  //
   NS_LOG_INFO("Add Internet Stack");
   InternetStackHelper internetStackHelper;
   internetStackHelper.Install(node);
@@ -227,14 +150,11 @@ int main(int argc, char *argv[]) {
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Traffic control configurations
-  // Access link side
   TrafficControlHelper tch0;
   tch0.SetRootQueueDisc("ns3::PfifoFastQueueDisc", "MaxSize",
                         StringValue("1000p"));
   tch0.Install(devices0);
 
-  // Bottleneck link side
   TrafficControlHelper tch1;
 
   if (queueDiscType == "PfifoFast") {

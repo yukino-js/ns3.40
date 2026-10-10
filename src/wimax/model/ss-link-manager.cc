@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "ss-link-manager.h"
 
@@ -86,8 +66,6 @@ EventId SSLinkManager::GetDlMapSyncTimeoutEvent() {
 
 void SSLinkManager::StartScanning(SubscriberStationNetDevice::EventType type,
                                   bool deleteParameters) {
-  // temp parameter "type" just to check on expiry of which event the function
-  // was called
 
   if (deleteParameters) {
     DeleteUplinkParameters();
@@ -101,8 +79,6 @@ void SSLinkManager::StartScanning(SubscriberStationNetDevice::EventType type,
     m_dlChnlNr++;
   }
 
-  // using max number of channel according to according to Section 8.5.1 of IEEE
-  // 802.16-2004 standard.
   if (m_dlChnlNr >= 200) {
     m_dlChnlNr = 0;
   }
@@ -142,8 +118,7 @@ void SSLinkManager::SendRangingRequest(uint8_t uiuc, uint16_t allocationSize) {
       "SS: Error while sending a ranging request: the ss state should be "
       "SS_STATE_WAITING_REG_RANG_INTRVL or SS_STATE_WAITING_INV_RANG_INTRVL");
 
-  if (m_nrRngReqsSent == 0) // sending the first time
-  {
+  if (m_nrRngReqsSent == 0) {
     m_pTxIrMax = CalculateMaxIRSignalStrength();
     m_rngreq.SetReqDlBurstProfile(
         m_ss->GetBurstProfileManager()->GetBurstProfileToRequest());
@@ -166,8 +141,7 @@ void SSLinkManager::SendRangingRequest(uint8_t uiuc, uint16_t allocationSize) {
 
   if (m_rangingStatus == WimaxNetDevice::RANGING_STATUS_CONTINUE) {
     connection = m_ss->GetBasicConnection();
-  } else // have been assigned BCID, means currently adjusting parameters
-  {
+  } else {
     connection = m_ss->GetInitialRangingConnection();
   }
 
@@ -187,8 +161,6 @@ void SSLinkManager::SendRangingRequest(uint8_t uiuc, uint16_t allocationSize) {
       "SS: Error while sending a ranging request: the allocation size is not "
       "correct");
 
-  // will work even if connection is not passed (i.e. null is passed) as
-  // scheduler will automatically select the same connection
   m_ss->SendBurst(uiuc, allocationSize, connection);
 }
 
@@ -255,13 +227,8 @@ void SSLinkManager::PerformBackoff() {
 }
 
 void SSLinkManager::SelectRandomBackoff() {
-  NS_ASSERT_MSG(
-      m_rangingCW != 0 && m_rangingBO == 0,
-      "be sure that CW has been set and BO is not already set"); // ensuring CW
-                                                                 // has been set
-                                                                 // and BO is
-                                                                 // not already
-                                                                 // set
+  NS_ASSERT_MSG(m_rangingCW != 0 && m_rangingBO == 0,
+                "be sure that CW has been set and BO is not already set");
 
   m_rangingBO = (rand() % m_rangingCW);
   m_isBackoffSet = true;
@@ -280,7 +247,6 @@ void SSLinkManager::ResetRangingRequestCW() {
 }
 
 void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
-  // need to distinguish initial ranging or periodic ranging
 
   if (cid == m_ss->GetInitialRangingConnection()->GetCid()) {
     if (rngrsp.GetFrameNumber() == m_rngReqFrameNumber &&
@@ -288,7 +254,6 @@ void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
       Simulator::Cancel(m_waitForRngRspEvent);
       m_nrRngRspsRecvd++;
 
-      // RNG-REQ was undecodable
       ResetRangingRequestCW();
       AdjustRangingParameters(rngrsp);
       m_ss->SetState(SubscriberStationNetDevice::SS_STATE_ADJUSTING_PARAMETERS);
@@ -306,7 +271,6 @@ void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
         CreateObject<WimaxConnection>(rngrsp.GetPrimaryCid(), Cid::PRIMARY));
     m_ss->SetAreManagementConnectionsAllocated(true);
   } else {
-    // either periodic ranging or an additional RNG-RSP during initial ranging
   }
 
   m_nrRngRspsRecvd++;
@@ -325,9 +289,7 @@ void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
 
   if (m_rangingStatus == WimaxNetDevice::RANGING_STATUS_ABORT) {
     if (rngrsp.GetDlFreqOverride()) {
-      // code to move to new channel/frequency goes here
     }
-    // deassigning basic and primary CIDs
     m_ss->SetBasicConnection(nullptr);
     m_ss->SetPrimaryConnection(nullptr);
     m_ss->SetAreManagementConnectionsAllocated(false);
@@ -336,7 +298,6 @@ void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
 
     if (m_rangingStatus == WimaxNetDevice::RANGING_STATUS_SUCCESS) {
       m_ss->SetState(SubscriberStationNetDevice::SS_STATE_REGISTERED);
-      // initiate service flows
       if (m_ss->HasServiceFlows() && !m_ss->GetAreServiceFlowsAllocated()) {
         m_ss->GetServiceFlowManager()->InitiateServiceFlows();
       }
@@ -345,42 +306,31 @@ void SSLinkManager::PerformRanging(Cid cid, RngRsp rngrsp) {
     } else {
       m_ss->SetState(
           SubscriberStationNetDevice::SS_STATE_WAITING_INV_RANG_INTRVL);
-      // wait for invited ranging interval assigned to its Basic CID
     }
   }
 }
 
 void SSLinkManager::DeleteUplinkParameters() { m_ss->SetCurrentUcd(Ucd()); }
 
-bool SSLinkManager::IsUlChannelUsable() {
-  // don't know how to check if usable, see Figure 58.
-  return true; // temporarily assuming usable
-}
+bool SSLinkManager::IsUlChannelUsable() { return true; }
 
 void SSLinkManager::AdjustRangingParameters(const RngRsp &rngrsp) {
-#if 0 /* a template for future implementation following */
+#if 0
   bool successful = true;
   uint8_t temp = rngrsp.GetTimingAdjust ();
   temp = rngrsp.GetPowerLevelAdjust ();
   temp = rngrsp.GetOffsetFreqAdjust ();
 
-  // code for adjusting parameters goes here
 
   if (!successful)
     {
-      // code for setting ranging anomalies goes here
     }
 #endif
 }
 
-void SSLinkManager::NegotiateBasicCapabilities() {
-  // code to nagotiate basic capabilities goes here, ignored until very advanced
-  // stages
-}
+void SSLinkManager::NegotiateBasicCapabilities() {}
 
 uint16_t SSLinkManager::CalculateMaxIRSignalStrength() {
-  // SS obtains RSSI measurement from the OFDM downlink preambles using a
-  // complex formula, page 486
   uint16_t rss = 1;
 
   if (m_bsEirp == 65535 || m_eirXPIrMax == 65535) {
@@ -392,11 +342,7 @@ uint16_t SSLinkManager::CalculateMaxIRSignalStrength() {
   return 0;
 }
 
-uint16_t SSLinkManager::GetMinTransmitPowerLevel() {
-  // code to calculate minimum transmit power level of the SS, see page 189 of
-  // amendment
-  return 10; // temp
-}
+uint16_t SSLinkManager::GetMinTransmitPowerLevel() { return 10; }
 
 void SSLinkManager::ScheduleScanningRestart(
     Time interval, SubscriberStationNetDevice::EventType eventType,

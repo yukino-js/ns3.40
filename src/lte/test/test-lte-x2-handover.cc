@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/core-module.h>
 #include <ns3/internet-module.h>
@@ -31,38 +13,15 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteX2HandoverTest");
 
-/**
- * \ingroup lte-test
- *
- * \brief HandoverEvent structure
- */
 struct HandoverEvent {
-  Time startTime;                ///< start time
-  uint32_t ueDeviceIndex;        ///< UE device index
-  uint32_t sourceEnbDeviceIndex; ///< source ENB device index
-  uint32_t targetEnbDeviceIndex; ///< target ENB device index
+  Time startTime;
+  uint32_t ueDeviceIndex;
+  uint32_t sourceEnbDeviceIndex;
+  uint32_t targetEnbDeviceIndex;
 };
 
-/**
- * \ingroup lte-test
- *
- * \brief Test X2 Handover. In this test is used NoOpHandoverAlgorithm and
- * the request for handover is generated manually, and it is not based on
- * measurements.
- */
 class LteX2HandoverTestCase : public TestCase {
 public:
-  /**
-   *
-   *
-   * \param nUes number of UEs in the test
-   * \param nDedicatedBearers number of bearers to be activated per UE
-   * \param handoverEventList
-   * \param handoverEventListName
-   * \param schedulerType the scheduler type
-   * \param admitHo
-   * \param useIdealRrc true if the ideal RRC should be used
-   */
   LteX2HandoverTestCase(uint32_t nUes, uint32_t nDedicatedBearers,
                         std::list<HandoverEvent> handoverEventList,
                         std::string handoverEventListName,
@@ -70,92 +29,50 @@ public:
                         bool useIdealRrc);
 
 private:
-  /**
-   * Build name string
-   * \param nUes number of UEs in the test
-   * \param nDedicatedBearers number of bearers to be activated per UE
-   * \param handoverEventListName
-   * \param schedulerType the scheduler type
-   * \param admitHo
-   * \param useIdealRrc true if the ideal RRC should be used
-   * \returns the name string
-   */
   static std::string BuildNameString(uint32_t nUes, uint32_t nDedicatedBearers,
                                      std::string handoverEventListName,
                                      std::string schedulerType, bool admitHo,
                                      bool useIdealRrc);
   void DoRun() override;
-  /**
-   * Check connected function
-   * \param ueDevice the UE device
-   * \param enbDevice the ENB device
-   */
   void CheckConnected(Ptr<NetDevice> ueDevice, Ptr<NetDevice> enbDevice);
 
-  /**
-   * Teleport UE between both eNBs of the test
-   * \param ueNode the UE node
-   */
   void TeleportUeToMiddle(Ptr<Node> ueNode);
 
-  /**
-   * Teleport UE near the target eNB of the handover
-   * \param ueNode the UE node
-   * \param enbNode the target eNB node
-   */
   void TeleportUeNearTargetEnb(Ptr<Node> ueNode, Ptr<Node> enbNode);
 
-  uint32_t m_nUes;                              ///< number of UEs in the test
-  uint32_t m_nDedicatedBearers;                 ///< number of UEs in the test
-  std::list<HandoverEvent> m_handoverEventList; ///< handover event list
-  std::string m_handoverEventListName;          ///< handover event list name
-  bool m_epc;                                   ///< whether to use EPC
-  std::string m_schedulerType;                  ///< scheduler type
-  bool m_admitHo;             ///< whether to admit the handover request
-  bool m_useIdealRrc;         ///< whether to use the ideal RRC
-  Ptr<LteHelper> m_lteHelper; ///< LTE helper
-  Ptr<PointToPointEpcHelper> m_epcHelper; ///< EPC helper
+  uint32_t m_nUes;
+  uint32_t m_nDedicatedBearers;
+  std::list<HandoverEvent> m_handoverEventList;
+  std::string m_handoverEventListName;
+  bool m_epc;
+  std::string m_schedulerType;
+  bool m_admitHo;
+  bool m_useIdealRrc;
+  Ptr<LteHelper> m_lteHelper;
+  Ptr<PointToPointEpcHelper> m_epcHelper;
 
-  /**
-   * \ingroup lte-test
-   *
-   * \brief BearerData structure
-   */
   struct BearerData {
-    uint32_t bid;           ///< BID
-    Ptr<PacketSink> dlSink; ///< DL sink
-    Ptr<PacketSink> ulSink; ///< UL sink
-    uint32_t dlOldTotalRx;  ///< DL old total receive
-    uint32_t ulOldTotalRx;  ///< UL old total receive
+    uint32_t bid;
+    Ptr<PacketSink> dlSink;
+    Ptr<PacketSink> ulSink;
+    uint32_t dlOldTotalRx;
+    uint32_t ulOldTotalRx;
   };
 
-  /**
-   * \ingroup lte-test
-   *
-   * \brief UeData structure
-   */
   struct UeData {
-    uint32_t id;                          ///< ID
-    std::list<BearerData> bearerDataList; ///< bearer ID list
+    uint32_t id;
+    std::list<BearerData> bearerDataList;
   };
 
-  /**
-   * \brief Save stats after handover function
-   * \param ueIndex the index of the UE
-   */
   void SaveStatsAfterHandover(uint32_t ueIndex);
-  /**
-   * \brief Check stats a while after handover function
-   * \param ueIndex the index of the UE
-   */
   void CheckStatsAWhileAfterHandover(uint32_t ueIndex);
 
-  std::vector<UeData> m_ueDataVector; ///< UE data vector
+  std::vector<UeData> m_ueDataVector;
 
-  const Time m_maxHoDuration;        ///< maximum HO duration
-  const Time m_statsDuration;        ///< stats duration
-  const Time m_udpClientInterval;    ///< UDP client interval
-  const uint32_t m_udpClientPktSize; ///< UDP client packet size
+  const Time m_maxHoDuration;
+  const Time m_statsDuration;
+  const Time m_udpClientInterval;
+  const uint32_t m_udpClientPktSize;
 };
 
 std::string LteX2HandoverTestCase::BuildNameString(
@@ -199,7 +116,6 @@ void LteX2HandoverTestCase::DoRun() {
   uint32_t previousSeed = RngSeedManager::GetSeed();
   uint64_t previousRun = RngSeedManager::GetRun();
   Config::Reset();
-  // This test is sensitive to random variable stream assignments
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(3);
   Config::SetDefault("ns3::UdpClient::Interval",
@@ -208,7 +124,6 @@ void LteX2HandoverTestCase::DoRun() {
   Config::SetDefault("ns3::UdpClient::PacketSize",
                      UintegerValue(m_udpClientPktSize));
 
-  // Disable Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(false));
 
@@ -218,8 +133,7 @@ void LteX2HandoverTestCase::DoRun() {
   m_lteHelper->SetAttribute(
       "PathlossModel", StringValue("ns3::FriisSpectrumPropagationLossModel"));
   m_lteHelper->SetSchedulerType(m_schedulerType);
-  m_lteHelper->SetHandoverAlgorithmType(
-      "ns3::NoOpHandoverAlgorithm"); // disable automatic handover
+  m_lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
   m_lteHelper->SetAttribute("UseIdealRrc", BooleanValue(m_useIdealRrc));
 
   NodeContainer enbNodes;
@@ -234,8 +148,8 @@ void LteX2HandoverTestCase::DoRun() {
 
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(-3000, 0, 0)); // enb0
-  positionAlloc->Add(Vector(3000, 0, 0));  // enb1
+  positionAlloc->Add(Vector(-3000, 0, 0));
+  positionAlloc->Add(Vector(3000, 0, 0));
   for (uint32_t i = 0; i < m_nUes; i++) {
     positionAlloc->Add(Vector(-3000, 100, 0));
   }
@@ -262,14 +176,12 @@ void LteX2HandoverTestCase::DoRun() {
   Ipv4InterfaceContainer ueIpIfaces;
   Ptr<Node> remoteHost;
   if (m_epc) {
-    // Create a single RemoteHost
     NodeContainer remoteHostContainer;
     remoteHostContainer.Create(1);
     remoteHost = remoteHostContainer.Get(0);
     InternetStackHelper internet;
     internet.Install(remoteHostContainer);
 
-    // Create the Internet
     PointToPointHelper p2ph;
     p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
     p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -279,7 +191,6 @@ void LteX2HandoverTestCase::DoRun() {
     Ipv4AddressHelper ipv4h;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
     Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-    // in this container, interface 0 is the pgw, 1 is the remoteHost
     remoteHostAddr = internetIpIfaces.GetAddress(1);
 
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
@@ -288,28 +199,18 @@ void LteX2HandoverTestCase::DoRun() {
     remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                                Ipv4Mask("255.0.0.0"), 1);
 
-    // Install the IP stack on the UEs
     internet.Install(ueNodes);
     ueIpIfaces =
         m_epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueDevices));
   }
 
-  // attachment (needs to be done after IP stack configuration)
-  // all UEs attached to eNB 0 at the beginning
   m_lteHelper->Attach(ueDevices, enbDevices.Get(0));
 
   if (m_epc) {
-    // always true: bool epcDl = true;
-    // always true: bool epcUl = true;
-    // the rest of this block is copied from lena-dual-stripe
 
-    // Install and start applications on UEs and remote host
     uint16_t dlPort = 10000;
     uint16_t ulPort = 20000;
 
-    // randomize a bit start times to avoid simulation artifacts
-    // (e.g., buffer overflows due to packet transmissions happening
-    // exactly at the same time)
     Ptr<UniformRandomVariable> startTimeSeconds =
         CreateObject<UniformRandomVariable>();
     startTimeSeconds->SetAttribute("Min", DoubleValue(0));
@@ -318,7 +219,6 @@ void LteX2HandoverTestCase::DoRun() {
 
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u) {
       Ptr<Node> ue = ueNodes.Get(u);
-      // Set the default gateway for the UE
       Ptr<Ipv4StaticRouting> ueStaticRouting =
           ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
       ueStaticRouting->SetDefaultRoute(
@@ -334,7 +234,6 @@ void LteX2HandoverTestCase::DoRun() {
         ApplicationContainer serverApps;
         BearerData bearerData = BearerData();
 
-        // always true: if (epcDl)
         {
           UdpClientHelper dlClientHelper(ueIpIfaces.GetAddress(u), dlPort);
           clientApps.Add(dlClientHelper.Install(remoteHost));
@@ -345,7 +244,6 @@ void LteX2HandoverTestCase::DoRun() {
           bearerData.dlSink = sinkContainer.Get(0)->GetObject<PacketSink>();
           serverApps.Add(sinkContainer);
         }
-        // always true: if (epcUl)
         {
           UdpClientHelper ulClientHelper(remoteHostAddr, ulPort);
           clientApps.Add(ulClientHelper.Install(ue));
@@ -359,14 +257,12 @@ void LteX2HandoverTestCase::DoRun() {
         }
 
         Ptr<EpcTft> tft = Create<EpcTft>();
-        // always true: if (epcDl)
         {
           EpcTft::PacketFilter dlpf;
           dlpf.localPortStart = dlPort;
           dlpf.localPortEnd = dlPort;
           tft->Add(dlpf);
         }
-        // always true: if (epcUl)
         {
           EpcTft::PacketFilter ulpf;
           ulpf.remotePortStart = ulPort;
@@ -374,7 +270,6 @@ void LteX2HandoverTestCase::DoRun() {
           tft->Add(ulpf);
         }
 
-        // always true: if (epcDl || epcUl)
         {
           EpsBearer bearer(EpsBearer::NGBR_VIDEO_TCP_DEFAULT);
           m_lteHelper->ActivateDedicatedEpsBearer(ueDevices.Get(u), bearer,
@@ -386,15 +281,11 @@ void LteX2HandoverTestCase::DoRun() {
         clientApps.Start(startTime);
 
         ueData.bearerDataList.push_back(bearerData);
-
-      } // end for b
+      }
 
       m_ueDataVector.push_back(ueData);
     }
-  } else // (epc == false)
-  {
-    // for radio bearer activation purposes, consider together home UEs and
-    // macro UEs
+  } else {
     for (uint32_t u = 0; u < ueDevices.GetN(); ++u) {
       Ptr<NetDevice> ueDev = ueDevices.Get(u);
       for (uint32_t b = 0; b < m_nDedicatedBearers; ++b) {
@@ -407,7 +298,6 @@ void LteX2HandoverTestCase::DoRun() {
 
   m_lteHelper->AddX2Interface(enbNodes);
 
-  // check initial RRC connection
   const Time maxRrcConnectionEstablishmentDuration = Seconds(0.080);
   for (auto it = ueDevices.Begin(); it != ueDevices.End(); ++it) {
     Simulator::Schedule(maxRrcConnectionEstablishmentDuration,
@@ -415,12 +305,9 @@ void LteX2HandoverTestCase::DoRun() {
                         enbDevices.Get(0));
   }
 
-  // schedule handover events and corresponding checks
-
   Time stopTime = Seconds(0);
   for (auto hoEventIt = m_handoverEventList.begin();
        hoEventIt != m_handoverEventList.end(); ++hoEventIt) {
-    // Teleport the UE between both eNBs just before the handover starts
     Simulator::Schedule(hoEventIt->startTime - MilliSeconds(10),
                         &LteX2HandoverTestCase::TeleportUeToMiddle, this,
                         ueNodes.Get(hoEventIt->ueDeviceIndex));
@@ -435,7 +322,6 @@ void LteX2HandoverTestCase::DoRun() {
         enbDevices.Get(hoEventIt->sourceEnbDeviceIndex),
         enbDevices.Get(hoEventIt->targetEnbDeviceIndex));
 
-    // Once the handover is finished, teleport the UE near the target eNB
     Simulator::Schedule(hoEventIt->startTime + MilliSeconds(40),
                         &LteX2HandoverTestCase::TeleportUeNearTargetEnb, this,
                         ueNodes.Get(hoEventIt->ueDeviceIndex),
@@ -462,18 +348,13 @@ void LteX2HandoverTestCase::DoRun() {
     }
   }
 
-  // m_lteHelper->EnableRlcTraces ();
-  // m_lteHelper->EnablePdcpTraces();
-
   Simulator::Stop(stopTime);
 
   Simulator::Run();
 
   Simulator::Destroy();
 
-  // Undo changes to default settings
   Config::Reset();
-  // Restore the previous settings of RngSeed and RngRun
   RngSeedManager::SetSeed(previousSeed);
   RngSeedManager::SetRun(previousRun);
 }
@@ -538,21 +419,15 @@ void LteX2HandoverTestCase::CheckConnected(Ptr<NetDevice> ueDevice,
         enbBearerIt->second->GetObject<LteDataRadioBearerInfo>();
     Ptr<LteDataRadioBearerInfo> ueDrbInfo =
         ueBearerIt->second->GetObject<LteDataRadioBearerInfo>();
-    // NS_TEST_ASSERT_MSG_EQ (enbDrbInfo->m_epsBearer, ueDrbInfo->m_epsBearer,
-    // "epsBearer differs");
     NS_TEST_ASSERT_MSG_EQ((uint32_t)enbDrbInfo->m_epsBearerIdentity,
                           (uint32_t)ueDrbInfo->m_epsBearerIdentity,
                           "epsBearerIdentity differs");
     NS_TEST_ASSERT_MSG_EQ((uint32_t)enbDrbInfo->m_drbIdentity,
                           (uint32_t)ueDrbInfo->m_drbIdentity,
                           "drbIdentity differs");
-    // NS_TEST_ASSERT_MSG_EQ (enbDrbInfo->m_rlcConfig, ueDrbInfo->m_rlcConfig,
-    // "rlcConfig differs");
     NS_TEST_ASSERT_MSG_EQ((uint32_t)enbDrbInfo->m_logicalChannelIdentity,
                           (uint32_t)ueDrbInfo->m_logicalChannelIdentity,
                           "logicalChannelIdentity differs");
-    // NS_TEST_ASSERT_MSG_EQ (enbDrbInfo->m_logicalChannelConfig,
-    // ueDrbInfo->m_logicalChannelConfig, "logicalChannelConfig differs");
 
     ++enbBearerIt;
     ++ueBearerIt;
@@ -605,21 +480,6 @@ void LteX2HandoverTestCase::CheckStatsAWhileAfterHandover(uint32_t ueIndex) {
   }
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief LTE X2 Handover Test Suite.
- *
- * In this test suite, we use NoOpHandoverAlgorithm, i.e. "handover algorithm
- * which does nothing" is used and handover is triggered manually. The automatic
- * handover algorithms (A2A4, A3Rsrp) are not tested.
- *
- * The tests are designed to check that eNB-buffered data received while a
- * handover is in progress is not lost but successfully forwarded. But the test
- * suite doesn't test for possible loss of RLC-buffered data because "lossless"
- * handover is not implemented, and there are other application send patterns
- * (outside of the range tested here) that may incur losses.
- */
 class LteX2HandoverTestSuite : public TestSuite {
 public:
   LteX2HandoverTestSuite();
@@ -627,9 +487,6 @@ public:
 
 LteX2HandoverTestSuite::LteX2HandoverTestSuite()
     : TestSuite("lte-x2-handover", SYSTEM) {
-  // in the following:
-  // fwd means handover from enb 0 to enb 1
-  // bwd means handover from enb 1 to enb 0
 
   HandoverEvent ue1fwd;
   ue1fwd.startTime = MilliSeconds(100);
@@ -696,17 +553,6 @@ LteX2HandoverTestSuite::LteX2HandoverTestSuite()
       ue2bwd,
   };
 
-  // std::string handoverEventList6name("2 fwd");
-  // const std::list<HandoverEvent> handoverEventList6{
-  //     ue2fwd,
-  // };
-
-  // std::string handoverEventList7name("2 fwd & bwd");
-  // const std::list<HandoverEvent> handoverEventList7{
-  //     ue2fwd,
-  //     ue2bwd,
-  // };
-
   std::vector<std::string> schedulers{
       "ns3::RrFfMacScheduler",
       "ns3::PfFfMacScheduler",
@@ -715,7 +561,6 @@ LteX2HandoverTestSuite::LteX2HandoverTestSuite()
   for (auto schedIt = schedulers.begin(); schedIt != schedulers.end();
        ++schedIt) {
     for (auto useIdealRrc : {true, false}) {
-      // nUes, nDBearers, helist, name, sched, admitHo, idealRrc
       AddTestCase(new LteX2HandoverTestCase(1, 0, handoverEventList0,
                                             handoverEventList0name, *schedIt,
                                             true, useIdealRrc),
@@ -880,8 +725,4 @@ LteX2HandoverTestSuite::LteX2HandoverTestSuite()
   }
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteX2HandoverTestSuite g_lteX2HandoverTestSuiteInstance;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "position-allocator.h"
 
 #include "ns3/csv-reader.h"
@@ -62,15 +44,13 @@ void ListPositionAllocator::Add(Vector v) {
   m_current = m_positions.begin();
 }
 
-void ListPositionAllocator::Add(const std::string filePath,
-                                double defaultZ /* = 0 */,
-                                char delimiter /* = ',' */) {
+void ListPositionAllocator::Add(const std::string filePath, double defaultZ,
+                                char delimiter) {
   NS_LOG_FUNCTION(this << filePath << std::string("'") + delimiter + "'");
 
   CsvReader csv(filePath, delimiter);
   while (csv.FetchNextRow()) {
     if (csv.ColumnCount() == 1) {
-      // comment line
       continue;
     }
 
@@ -94,8 +74,7 @@ void ListPositionAllocator::Add(const std::string filePath,
 
     Vector pos(x, y, z);
     Add(pos);
-
-  } // while FetchNextRow
+  }
   NS_LOG_INFO("read " << csv.RowNumber() << " rows");
 }
 

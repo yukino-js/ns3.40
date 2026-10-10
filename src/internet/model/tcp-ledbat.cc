@@ -1,29 +1,10 @@
-/*
- * Copyright (c) 2016 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Ankit Deepak <adadeepak8@gmail.com>
- *
- */
 
 #include "tcp-ledbat.h"
 
 #include "tcp-socket-state.h"
 
 #include "ns3/log.h"
-#include "ns3/simulator.h" // Now ()
+#include "ns3/simulator.h"
 
 namespace ns3 {
 
@@ -151,9 +132,7 @@ void TcpLedbat::CongestionAvoidance(Ptr<TcpSocketState> tcb,
                                     uint32_t segmentsAcked) {
   NS_LOG_FUNCTION(this << tcb << segmentsAcked);
   if ((m_flag & LEDBAT_VALID_OWD) == 0) {
-    TcpNewReno::CongestionAvoidance(
-        tcb,
-        segmentsAcked); // letting it fall to TCP behaviour if no timestamps
+    TcpNewReno::CongestionAvoidance(tcb, segmentsAcked);
     return;
   }
   int64_t queue_delay;

@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
-/**
- * This is the test code for ipv4-l3protocol.cc (only the fragmentation and
- * reassembly part).
- */
 
 #include "ns3/arp-l3-protocol.h"
 #include "ns3/boolean.h"
@@ -58,19 +36,11 @@ using namespace ns3;
 
 class UdpSocketImpl;
 
-/**
- * \ingroup internet-test
- *
- * \brief Tag used in IPv4 Fragmentation Test
- */
 class IPv4TestTag : public Tag {
 private:
-  uint64_t token; //!< Token carried by the tag.
+  uint64_t token;
+
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId() {
     static TypeId tid = TypeId("ns3::IPv4TestTag")
                             .SetParent<Tag>()
@@ -88,95 +58,40 @@ public:
 
   void Print(std::ostream &os) const override { os << "token=" << token; }
 
-  /**
-   * \brief Set the token.
-   * \param token The token.
-   */
   void SetToken(uint64_t token) { this->token = token; }
 
-  /**
-   * \brief Get the token.
-   * \returns The token.
-   */
   uint64_t GetToken() const { return token; }
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Fragmentation Test
- */
 class Ipv4FragmentationTest : public TestCase {
-  Ptr<Packet> m_sentPacketClient;     //!< Packet sent by client.
-  Ptr<Packet> m_receivedPacketClient; //!< Packet received by client.
-  Ptr<Packet> m_receivedPacketServer; //!< Packet received by server.
+  Ptr<Packet> m_sentPacketClient;
+  Ptr<Packet> m_receivedPacketClient;
+  Ptr<Packet> m_receivedPacketServer;
 
-  Ptr<Socket> m_socketServer; //!< Server socket.
-  Ptr<Socket> m_socketClient; //!< Client socket.
-  uint32_t m_dataSize;        //!< Data size.
-  uint8_t *m_data;            //!< Data.
-  uint32_t m_size;            //!< packet size.
-  uint8_t m_icmpType;         //!< ICMP type.
-  bool m_broadcast;           //!< broadcast packets
+  Ptr<Socket> m_socketServer;
+  Ptr<Socket> m_socketClient;
+  uint32_t m_dataSize;
+  uint8_t *m_data;
+  uint32_t m_size;
+  uint8_t m_icmpType;
+  bool m_broadcast;
 
 public:
   void DoRun() override;
-  /**
-   * Constructor
-   * \param broadcast send broadcast packets (true) or unicast packets (false)
-   */
   Ipv4FragmentationTest(bool broadcast);
   ~Ipv4FragmentationTest() override;
 
-  // server part
-
-  /**
-   * \brief Start the server.
-   * \param ServerNode The server.
-   */
   void StartServer(Ptr<Node> ServerNode);
-  /**
-   * \brief Handle incoming packets.
-   * \param socket The receiving socket.
-   */
   void HandleReadServer(Ptr<Socket> socket);
 
-  // client part
-
-  /**
-   * \brief Start the client.
-   * \param ClientNode The client.
-   */
   void StartClient(Ptr<Node> ClientNode);
-  /**
-   * \brief Handle incoming packets.
-   * \param socket The receiving socket.
-   */
   void HandleReadClient(Ptr<Socket> socket);
-  /**
-   * \brief Handle incoming ICMP packets.
-   * \param icmpSource The ICMP sender.
-   * \param icmpTtl The ICMP TTL.
-   * \param icmpType The ICMP Type.
-   * \param icmpCode The ICMP Code.
-   * \param icmpInfo The ICMP Info.
-   */
   void HandleReadIcmpClient(Ipv4Address icmpSource, uint8_t icmpTtl,
                             uint8_t icmpType, uint8_t icmpCode,
                             uint32_t icmpInfo);
 
-  /**
-   * \brief Set the packet fill.
-   * \param fill The fill.
-   * \param fillSize The fill size.
-   * \param dataSize The packet size.
-   */
   void SetFill(uint8_t *fill, uint32_t fillSize, uint32_t dataSize);
 
-  /**
-   * \brief Send a packet.
-   * \returns The sent packet.
-   */
   Ptr<Packet> SendClient();
 };
 
@@ -208,7 +123,6 @@ void Ipv4FragmentationTest::StartServer(Ptr<Node> ServerNode) {
     m_socketServer->Bind(local);
     Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket>(m_socketServer);
     if (udpSocket) {
-      // equivalent to setsockopt (MCAST_JOIN_GROUP)
       udpSocket->MulticastJoinGroup(0, Ipv4Address("10.0.0.1"));
     }
   }
@@ -311,15 +225,9 @@ Ptr<Packet> Ipv4FragmentationTest::SendClient() {
 }
 
 void Ipv4FragmentationTest::DoRun() {
-  // set the arp cache to something quite high
-  // we shouldn't need because the NetDevice used doesn't need arp, but still
   Config::SetDefault("ns3::ArpCache::PendingQueueSize", UintegerValue(100));
 
-  // Create topology
-
-  // Receiver Node
   Ptr<Node> serverNode = CreateObject<Node>();
-  // Sender Node
   Ptr<Node> clientNode = CreateObject<Node>();
 
   NodeContainer nodes(serverNode, clientNode);
@@ -338,7 +246,6 @@ void Ipv4FragmentationTest::DoRun() {
   uint32_t netdev_idx;
   Ipv4InterfaceAddress ipv4Addr;
 
-  // Receiver Node
   ipv4 = serverNode->GetObject<Ipv4>();
   netdev_idx = ipv4->AddInterface(net.Get(0));
   ipv4Addr =
@@ -352,7 +259,6 @@ void Ipv4FragmentationTest::DoRun() {
   serverDev->SetReceiveErrorModel(serverDevErrorModel);
   StartServer(serverNode);
 
-  // Sender Node
   ipv4 = clientNode->GetObject<Ipv4>();
   netdev_idx = ipv4->AddInterface(net.Get(1));
   ipv4Addr =
@@ -366,16 +272,13 @@ void Ipv4FragmentationTest::DoRun() {
   clientDev->SetReceiveErrorModel(clientDevErrorModel);
   StartClient(clientNode);
 
-  // some small packets, some rather big ones
   uint32_t packetSizes[5] = {1000, 2000, 5000, 10000, 65000};
 
-  // using the alphabet
   uint8_t fillData[78];
   for (uint32_t k = 48; k <= 125; k++) {
     fillData[k - 48] = k;
   }
 
-  // First test: normal channel, no errors, no delays
   for (int i = 0; i < 5; i++) {
     uint32_t packetSize = packetSizes[i];
 
@@ -399,10 +302,6 @@ void Ipv4FragmentationTest::DoRun() {
         "Packet content differs");
   }
 
-  // Second test: normal channel, no errors, delays each 2 packets.
-  // Each other fragment will arrive out-of-order.
-  // The packets should be received correctly since reassembly will reorder the
-  // fragments.
   channel->SetJumpingMode(true);
   for (int i = 0; i < 5; i++) {
     uint32_t packetSize = packetSizes[i];
@@ -428,13 +327,6 @@ void Ipv4FragmentationTest::DoRun() {
   }
   channel->SetJumpingMode(false);
 
-  // Third test: normal channel, some errors, no delays.
-  // The reassembly procedure should fire a timeout after 30 seconds (as
-  // specified in the RFCs). Upon the timeout, the fragments received so far are
-  // discarded and an ICMP should be sent back to the sender (if the first
-  // fragment has been received). In this test case the first fragment is
-  // received, so we do expect an ICMP. Client -> Server : errors enabled Server
-  // -> Client : errors disabled (we want to have back the ICMP)
   clientDevErrorModel->Disable();
   serverDevErrorModel->Enable();
   for (int i = 1; i < 5; i++) {
@@ -442,7 +334,6 @@ void Ipv4FragmentationTest::DoRun() {
 
     SetFill(fillData, 78, packetSize);
 
-    // reset the model, we want to receive the very first fragment.
     serverDevErrorModel->Reset();
 
     m_receivedPacketServer = Create<Packet>();
@@ -460,8 +351,6 @@ void Ipv4FragmentationTest::DoRun() {
                           "Client did not receive ICMP::TIME_EXCEEDED");
   }
 
-  // Fourth test: normal channel, no errors, no delays.
-  // We check tags
   clientDevErrorModel->Disable();
   serverDevErrorModel->Disable();
   for (int i = 0; i < 5; i++) {
@@ -514,11 +403,6 @@ void Ipv4FragmentationTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 Fragmentation TestSuite
- */
 class Ipv4FragmentationTestSuite : public TestSuite {
 public:
   Ipv4FragmentationTestSuite();
@@ -530,5 +414,4 @@ Ipv4FragmentationTestSuite::Ipv4FragmentationTestSuite()
   AddTestCase(new Ipv4FragmentationTest(true), TestCase::QUICK);
 }
 
-static Ipv4FragmentationTestSuite
-    g_ipv4fragmentationTestSuite; //!< Static variable for test initialization
+static Ipv4FragmentationTestSuite g_ipv4fragmentationTestSuite;

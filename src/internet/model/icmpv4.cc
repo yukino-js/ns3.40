@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "icmpv4.h"
 
@@ -25,10 +7,6 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Icmpv4Header");
-
-/********************************************************
- *        Icmpv4Header
- ********************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(Icmpv4Header);
 
@@ -80,7 +58,7 @@ uint32_t Icmpv4Header::Deserialize(Buffer::Iterator start) {
   NS_LOG_FUNCTION(this << &start);
   m_type = start.ReadU8();
   m_code = start.ReadU8();
-  start.Next(2); // uint16_t checksum = start.ReadNtohU16 ();
+  start.Next(2);
   return 4;
 }
 
@@ -109,10 +87,6 @@ uint8_t Icmpv4Header::GetCode() const {
   return m_code;
 }
 
-/********************************************************
- *        Icmpv4Echo
- ********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(Icmpv4Echo);
 
 void Icmpv4Echo::SetIdentifier(uint16_t id) {
@@ -129,13 +103,6 @@ void Icmpv4Echo::SetData(Ptr<const Packet> data) {
   NS_LOG_FUNCTION(this << *data);
 
   uint32_t size = data->GetSize();
-  //
-  // All kinds of optimizations are possible, but let's not get carried away
-  // since this is probably a very uncommon thing in the big picture.
-  //
-  // N.B. Zero is a legal size for the alloc below even though a hardcoded zero
-  // would result in  warning.
-  //
   if (size != m_dataSize) {
     delete[] m_data;
     m_data = new uint8_t[size];
@@ -175,10 +142,6 @@ TypeId Icmpv4Echo::GetTypeId() {
 
 Icmpv4Echo::Icmpv4Echo() : m_identifier(0), m_sequence(0), m_dataSize(0) {
   NS_LOG_FUNCTION(this);
-  //
-  // After construction, m_data is always valid until destruction.  This is true
-  // even if m_dataSize is zero.
-  //
   m_data = new uint8_t[m_dataSize];
 }
 
@@ -229,10 +192,6 @@ void Icmpv4Echo::Print(std::ostream &os) const {
      << ", data size=" << m_dataSize;
 }
 
-/********************************************************
- *        Icmpv4DestinationUnreachable
- ********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(Icmpv4DestinationUnreachable);
 
 TypeId Icmpv4DestinationUnreachable::GetTypeId() {
@@ -245,8 +204,6 @@ TypeId Icmpv4DestinationUnreachable::GetTypeId() {
 
 Icmpv4DestinationUnreachable::Icmpv4DestinationUnreachable() {
   NS_LOG_FUNCTION(this);
-  // make sure that thing is initialized to get initialized bytes
-  // when the ip payload's size is smaller than 8 bytes.
   for (uint8_t j = 0; j < 8; j++) {
     m_data[j] = 0;
   }
@@ -329,10 +286,6 @@ void Icmpv4DestinationUnreachable::Print(std::ostream &os) const {
   }
 }
 
-/********************************************************
- *        Icmpv4TimeExceeded
- ********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(Icmpv4TimeExceeded);
 
 TypeId Icmpv4TimeExceeded::GetTypeId() {
@@ -345,8 +298,6 @@ TypeId Icmpv4TimeExceeded::GetTypeId() {
 
 Icmpv4TimeExceeded::Icmpv4TimeExceeded() {
   NS_LOG_FUNCTION(this);
-  // make sure that thing is initialized to get initialized bytes
-  // when the ip payload's size is smaller than 8 bytes.
   for (uint8_t j = 0; j < 8; j++) {
     m_data[j] = 0;
   }

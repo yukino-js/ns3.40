@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Include., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Nicola Baldo <nbaldo@cttc.es>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "radiotap-header.h"
 
@@ -63,175 +44,80 @@ uint32_t RadiotapHeader::GetSerializedSize() const {
 void RadiotapHeader::Serialize(Buffer::Iterator start) const {
   NS_LOG_FUNCTION(this << &start);
 
-  start.WriteU8(0);          // major version of radiotap header
-  start.WriteU8(0);          // pad field
-  start.WriteU16(m_length);  // entire length of radiotap data + header
-  start.WriteU32(m_present); // bits describing which fields follow header
+  start.WriteU8(0);
+  start.WriteU8(0);
+  start.WriteU16(m_length);
+  start.WriteU32(m_present);
 
-  //
-  // Time Synchronization Function Timer (when the first bit of the MPDU
-  // arrived at the MAC)
-  // Reference: https://www.radiotap.org/fields/TSFT.html
-  //
-  if (m_present & RADIOTAP_TSFT) // bit 0
-  {
+  if (m_present & RADIOTAP_TSFT) {
     start.WriteU64(m_tsft);
   }
 
-  //
-  // Properties of transmitted and received frames.
-  // Reference: https://www.radiotap.org/fields/Flags.html
-  //
-  if (m_present & RADIOTAP_FLAGS) // bit 1
-  {
+  if (m_present & RADIOTAP_FLAGS) {
     start.WriteU8(m_flags);
   }
 
-  //
-  // TX/RX data rate in units of 500 kbps
-  // Reference: https://www.radiotap.org/fields/Rate.html
-  //
-  if (m_present & RADIOTAP_RATE) // bit 2
-  {
+  if (m_present & RADIOTAP_RATE) {
     start.WriteU8(m_rate);
   }
 
-  //
-  // Tx/Rx frequency in MHz, followed by flags.
-  // Reference: https://www.radiotap.org/fields/Channel.html
-  //
-  if (m_present & RADIOTAP_CHANNEL) // bit 3
-  {
+  if (m_present & RADIOTAP_CHANNEL) {
     start.WriteU8(0, m_channelPad);
     start.WriteU16(m_channelFreq);
     start.WriteU16(m_channelFlags);
   }
 
-  //
-  // The hop set and pattern for frequency-hopping radios.  We don't need it but
-  // still need to account for it.
-  // Reference: https://www.radiotap.org/fields/FHSS.html
-  //
-  if (m_present & RADIOTAP_FHSS) // bit 4
-  {
-    start.WriteU8(0); // not yet implemented
+  if (m_present & RADIOTAP_FHSS) {
+    start.WriteU8(0);
   }
 
-  //
-  // RF signal power at the antenna, decibel difference from an arbitrary, fixed
-  // reference.
-  // Reference: https://www.radiotap.org/fields/Antenna%20signal.html
-  //
-  if (m_present & RADIOTAP_DBM_ANTSIGNAL) // bit 5
-  {
+  if (m_present & RADIOTAP_DBM_ANTSIGNAL) {
     start.WriteU8(m_antennaSignal);
   }
 
-  //
-  // RF noise power at the antenna, decibel difference from an arbitrary, fixed
-  // reference.
-  // Reference: https://www.radiotap.org/fields/Antenna%20noise.html
-  //
-  if (m_present & RADIOTAP_DBM_ANTNOISE) // bit 6
-  {
+  if (m_present & RADIOTAP_DBM_ANTNOISE) {
     start.WriteU8(m_antennaNoise);
   }
 
-  //
-  // Quality of Barker code lock.
-  // Reference: https://www.radiotap.org/fields/Lock%20quality.html
-  //
-  if (m_present & RADIOTAP_LOCK_QUALITY) // bit 7
-  {
-    start.WriteU16(0); // not yet implemented
+  if (m_present & RADIOTAP_LOCK_QUALITY) {
+    start.WriteU16(0);
   }
 
-  //
-  // Transmit power expressed as unitless distance from max power
-  // set at factory calibration (0 is max power).
-  // Reference: https://www.radiotap.org/fields/TX%20attenuation.html
-  //
-  if (m_present & RADIOTAP_TX_ATTENUATION) // bit 8
-  {
-    start.WriteU16(0); // not yet implemented
+  if (m_present & RADIOTAP_TX_ATTENUATION) {
+    start.WriteU16(0);
   }
 
-  //
-  // Transmit power expressed as decibel distance from max power
-  // set at factory calibration (0 is max power).
-  // Reference: https://www.radiotap.org/fields/dB%20TX%20attenuation.html
-  //
-  if (m_present & RADIOTAP_DB_TX_ATTENUATION) // bit 9
-  {
-    start.WriteU16(0); // not yet implemented
+  if (m_present & RADIOTAP_DB_TX_ATTENUATION) {
+    start.WriteU16(0);
   }
 
-  //
-  // Transmit power expressed as dBm (decibels from a 1 milliwatt reference).
-  // This is the absolute power level measured at the antenna port.
-  // Reference: https://www.radiotap.org/fields/dBm%20TX%20power.html
-  //
-  if (m_present & RADIOTAP_DBM_TX_POWER) // bit 10
-  {
-    start.WriteU8(0); // not yet implemented
+  if (m_present & RADIOTAP_DBM_TX_POWER) {
+    start.WriteU8(0);
   }
 
-  //
-  // Unitless indication of the Rx/Tx antenna for this packet.
-  // The first antenna is antenna 0.
-  // Reference: https://www.radiotap.org/fields/Antenna.html
-  //
-  if (m_present & RADIOTAP_ANTENNA) // bit 11
-  {
-    start.WriteU8(0); // not yet implemented
+  if (m_present & RADIOTAP_ANTENNA) {
+    start.WriteU8(0);
   }
 
-  //
-  // RF signal power at the antenna (decibel difference from an arbitrary fixed
-  // reference). Reference:
-  // https://www.radiotap.org/fields/dB%20antenna%20signal.html
-  //
-  if (m_present & RADIOTAP_DB_ANTSIGNAL) // bit 12
-  {
-    start.WriteU8(0); // not yet implemented
+  if (m_present & RADIOTAP_DB_ANTSIGNAL) {
+    start.WriteU8(0);
   }
 
-  //
-  // RF noise power at the antenna (decibel difference from an arbitrary fixed
-  // reference). Reference:
-  // https://www.radiotap.org/fields/dB%20antenna%20noise.html
-  //
-  if (m_present & RADIOTAP_DB_ANTNOISE) // bit 13
-  {
-    start.WriteU8(0); // not yet implemented
+  if (m_present & RADIOTAP_DB_ANTNOISE) {
+    start.WriteU8(0);
   }
 
-  //
-  // Properties of received frames.
-  // Reference: https://www.radiotap.org/fields/RX%20flags.html
-  //
-  if (m_present & RADIOTAP_RX_FLAGS) // bit 14
-  {
-    start.WriteU16(0); // not yet implemented
+  if (m_present & RADIOTAP_RX_FLAGS) {
+    start.WriteU16(0);
   }
 
-  //
-  // MCS field.
-  // Reference: https://www.radiotap.org/fields/MCS.html
-  //
-  if (m_present & RADIOTAP_MCS) // bit 19
-  {
+  if (m_present & RADIOTAP_MCS) {
     start.WriteU8(m_mcsKnown);
     start.WriteU8(m_mcsFlags);
     start.WriteU8(m_mcsRate);
   }
 
-  //
-  // A-MPDU Status, information about the received or transmitted A-MPDU.
-  // Reference: https://www.radiotap.org/fields/A-MPDU%20status.html
-  //
-  if (m_present & RADIOTAP_AMPDU_STATUS) // bit 20
-  {
+  if (m_present & RADIOTAP_AMPDU_STATUS) {
     start.WriteU8(0, m_ampduStatusPad);
     start.WriteU32(m_ampduStatusRef);
     start.WriteU16(m_ampduStatusFlags);
@@ -239,12 +125,7 @@ void RadiotapHeader::Serialize(Buffer::Iterator start) const {
     start.WriteU8(0);
   }
 
-  //
-  // Information about the received or transmitted VHT frame.
-  // Reference: https://www.radiotap.org/fields/VHT.html
-  //
-  if (m_present & RADIOTAP_VHT) // bit 21
-  {
+  if (m_present & RADIOTAP_VHT) {
     start.WriteU8(0, m_vhtPad);
     start.WriteU16(m_vhtKnown);
     start.WriteU8(m_vhtFlags);
@@ -257,12 +138,7 @@ void RadiotapHeader::Serialize(Buffer::Iterator start) const {
     start.WriteU16(m_vhtPartialAid);
   }
 
-  //
-  // HE field.
-  // Reference: https://www.radiotap.org/fields/HE.html
-  //
-  if (m_present & RADIOTAP_HE) // bit 23
-  {
+  if (m_present & RADIOTAP_HE) {
     start.WriteU8(0, m_hePad);
     start.WriteU16(m_heData1);
     start.WriteU16(m_heData2);
@@ -272,12 +148,7 @@ void RadiotapHeader::Serialize(Buffer::Iterator start) const {
     start.WriteU16(m_heData6);
   }
 
-  //
-  // HE MU field.
-  // Reference: https://www.radiotap.org/fields/HE-MU.html
-  //
-  if (m_present & RADIOTAP_HE_MU) // bit 24
-  {
+  if (m_present & RADIOTAP_HE_MU) {
     start.WriteU8(0, m_heMuPad);
     start.WriteU16(m_heMuFlags1);
     start.WriteU16(m_heMuFlags2);
@@ -291,12 +162,7 @@ void RadiotapHeader::Serialize(Buffer::Iterator start) const {
     start.WriteU8(0);
   }
 
-  //
-  // HE MU other user field.
-  // Reference: https://www.radiotap.org/fields/HE-MU-other-user.html
-  //
-  if (m_present & RADIOTAP_HE_MU_OTHER_USER) // bit 25
-  {
+  if (m_present & RADIOTAP_HE_MU_OTHER_USER) {
     start.WriteU8(0, m_heMuOtherUserPad);
     start.WriteU16(m_heMuPerUser1);
     start.WriteU16(m_heMuPerUser2);
@@ -308,52 +174,32 @@ void RadiotapHeader::Serialize(Buffer::Iterator start) const {
 uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
   NS_LOG_FUNCTION(this << &start);
 
-  uint8_t tmp = start.ReadU8(); // major version of radiotap header
+  uint8_t tmp = start.ReadU8();
   NS_ASSERT_MSG(tmp == 0x00,
                 "RadiotapHeader::Deserialize(): Unexpected major version");
-  start.ReadU8(); // pad field
+  start.ReadU8();
 
-  m_length = start.ReadU16();  // entire length of radiotap data + header
-  m_present = start.ReadU32(); // bits describing which fields follow header
+  m_length = start.ReadU16();
+  m_present = start.ReadU32();
 
   uint32_t bytesRead = 8;
 
-  //
-  // Time Synchronization Function Timer (when the first bit of the MPDU arrived
-  // at the MAC) Reference: https://www.radiotap.org/fields/TSFT.html
-  //
-  if (m_present & RADIOTAP_TSFT) // bit 0
-  {
+  if (m_present & RADIOTAP_TSFT) {
     m_tsft = start.ReadU64();
     bytesRead += 8;
   }
 
-  //
-  // Properties of transmitted and received frames.
-  // Reference: https://www.radiotap.org/fields/Flags.html
-  //
-  if (m_present & RADIOTAP_FLAGS) // bit 1
-  {
+  if (m_present & RADIOTAP_FLAGS) {
     m_flags = start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // TX/RX data rate in units of 500 kbps
-  // Reference: https://www.radiotap.org/fields/Rate.html
-  //
-  if (m_present & RADIOTAP_RATE) // bit 2
-  {
+  if (m_present & RADIOTAP_RATE) {
     m_rate = start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // Tx/Rx frequency in MHz, followed by flags.
-  // Reference: https://www.radiotap.org/fields/Channel.html
-  //
-  if (m_present & RADIOTAP_CHANNEL) // bit 3
-  {
+  if (m_present & RADIOTAP_CHANNEL) {
     m_channelPad = ((2 - bytesRead % 2) % 2);
     start.Next(m_channelPad);
     m_channelFreq = start.ReadU16();
@@ -361,152 +207,69 @@ uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
     bytesRead += (4 + m_channelPad);
   }
 
-  //
-  // The hop set and pattern for frequency-hopping radios.  We don't need it but
-  // still need to account for it.
-  // Reference: https://www.radiotap.org/fields/FHSS.html
-  //
-  if (m_present & RADIOTAP_FHSS) // bit 4
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_FHSS) {
     start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // RF signal power at the antenna, decibel difference from an arbitrary, fixed
-  // reference.
-  // Reference: https://www.radiotap.org/fields/Antenna%20signal.html
-  //
-  if (m_present & RADIOTAP_DBM_ANTSIGNAL) // bit 5
-  {
+  if (m_present & RADIOTAP_DBM_ANTSIGNAL) {
     m_antennaSignal = start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // RF noise power at the antenna, decibel difference from an arbitrary, fixed
-  // reference.
-  // Reference: https://www.radiotap.org/fields/Antenna%20noise.html
-  //
-  if (m_present & RADIOTAP_DBM_ANTNOISE) // bit 6
-  {
+  if (m_present & RADIOTAP_DBM_ANTNOISE) {
     m_antennaNoise = start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // Quality of Barker code lock.
-  // Reference: https://www.radiotap.org/fields/Lock%20quality.html
-  //
-  if (m_present & RADIOTAP_LOCK_QUALITY) // bit 7
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_LOCK_QUALITY) {
     start.ReadU16();
     bytesRead += 2;
   }
 
-  //
-  // Transmit power expressed as unitless distance from max power
-  // set at factory calibration (0 is max power).
-  // Reference: https://www.radiotap.org/fields/TX%20attenuation.html
-  //
-  if (m_present & RADIOTAP_TX_ATTENUATION) // bit 8
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_TX_ATTENUATION) {
     start.ReadU16();
     bytesRead += 2;
   }
 
-  //
-  // Transmit power expressed as decibel distance from max power
-  // set at factory calibration (0 is max power).
-  // Reference: https://www.radiotap.org/fields/dB%20TX%20attenuation.html
-  //
-  if (m_present & RADIOTAP_DB_TX_ATTENUATION) // bit 9
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_DB_TX_ATTENUATION) {
     start.ReadU16();
     bytesRead += 2;
   }
 
-  //
-  // Transmit power expressed as dBm (decibels from a 1 milliwatt reference).
-  // This is the absolute power level measured at the antenna port.
-  // Reference: https://www.radiotap.org/fields/dBm%20TX%20power.html
-  //
-  if (m_present & RADIOTAP_DBM_TX_POWER) // bit 10
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_DBM_TX_POWER) {
     start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // Unitless indication of the Rx/Tx antenna for this packet.
-  // The first antenna is antenna 0.
-  // Reference: https://www.radiotap.org/fields/Antenna.html
-  //
-  if (m_present & RADIOTAP_ANTENNA) // bit 11
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_ANTENNA) {
     start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // RF signal power at the antenna (decibel difference from an arbitrary fixed
-  // reference). Reference:
-  // https://www.radiotap.org/fields/dB%20antenna%20signal.html
-  //
-  if (m_present & RADIOTAP_DB_ANTSIGNAL) // bit 12
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_DB_ANTSIGNAL) {
     start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // RF noise power at the antenna (decibel difference from an arbitrary fixed
-  // reference). Reference:
-  // https://www.radiotap.org/fields/dB%20antenna%20noise.html
-  //
-  if (m_present & RADIOTAP_DB_ANTNOISE) // bit 13
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_DB_ANTNOISE) {
     start.ReadU8();
     ++bytesRead;
   }
 
-  //
-  // Properties of received frames.
-  // Reference: https://www.radiotap.org/fields/RX%20flags.html
-  //
-  if (m_present & RADIOTAP_RX_FLAGS) // bit 14
-  {
-    // not yet implemented
+  if (m_present & RADIOTAP_RX_FLAGS) {
     start.ReadU16();
     bytesRead += 2;
   }
 
-  //
-  // MCS field.
-  // Reference: https://www.radiotap.org/fields/MCS.html
-  //
-  if (m_present & RADIOTAP_MCS) // bit 19
-  {
+  if (m_present & RADIOTAP_MCS) {
     m_mcsKnown = start.ReadU8();
     m_mcsFlags = start.ReadU8();
     m_mcsRate = start.ReadU8();
     bytesRead += 3;
   }
 
-  //
-  // A-MPDU Status, information about the received or transmitted A-MPDU.
-  // Reference: https://www.radiotap.org/fields/A-MPDU%20status.html
-  //
-  if (m_present & RADIOTAP_AMPDU_STATUS) // bit 20
-  {
+  if (m_present & RADIOTAP_AMPDU_STATUS) {
     m_ampduStatusPad = ((4 - bytesRead % 4) % 4);
     start.Next(m_ampduStatusPad);
     m_ampduStatusRef = start.ReadU32();
@@ -516,12 +279,7 @@ uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
     bytesRead += (8 + m_ampduStatusPad);
   }
 
-  //
-  // Information about the received or transmitted VHT frame.
-  // Reference: https://www.radiotap.org/fields/VHT.html
-  //
-  if (m_present & RADIOTAP_VHT) // bit 21
-  {
+  if (m_present & RADIOTAP_VHT) {
     m_vhtPad = ((2 - bytesRead % 2) % 2);
     start.Next(m_vhtPad);
     m_vhtKnown = start.ReadU16();
@@ -536,12 +294,7 @@ uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
     bytesRead += (12 + m_vhtPad);
   }
 
-  //
-  // HE field.
-  // Reference: https://www.radiotap.org/fields/HE.html
-  //
-  if (m_present & RADIOTAP_HE) // bit 23
-  {
+  if (m_present & RADIOTAP_HE) {
     m_hePad = ((2 - bytesRead % 2) % 2);
     start.Next(m_hePad);
     m_heData1 = start.ReadU16();
@@ -553,12 +306,7 @@ uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
     bytesRead += (12 + m_hePad);
   }
 
-  //
-  // HE MU field.
-  // Reference: https://www.radiotap.org/fields/HE-MU.html
-  //
-  if (m_present & RADIOTAP_HE_MU) // bit 24
-  {
+  if (m_present & RADIOTAP_HE_MU) {
     m_heMuPad = ((2 - bytesRead % 2) % 2);
     m_heMuFlags1 = start.ReadU16();
     m_heMuFlags2 = start.ReadU16();
@@ -573,12 +321,7 @@ uint32_t RadiotapHeader::Deserialize(Buffer::Iterator start) {
     bytesRead += (12 + m_heMuPad);
   }
 
-  //
-  // HE MU other user field.
-  // Reference: https://www.radiotap.org/fields/HE-MU-other-user.html
-  //
-  if (m_present & RADIOTAP_HE_MU_OTHER_USER) // bit 25
-  {
+  if (m_present & RADIOTAP_HE_MU_OTHER_USER) {
     m_heMuOtherUserPad = ((2 - bytesRead % 2) % 2);
     m_heMuPerUser1 = start.ReadU16();
     m_heMuPerUser2 = start.ReadU16();
@@ -787,10 +530,9 @@ void RadiotapHeader::SetHeFields(uint16_t data1, uint16_t data2, uint16_t data3,
                     << m_present << std::dec);
 }
 
-void RadiotapHeader::SetHeMuFields(
-    uint16_t flags1, uint16_t flags2,
-    const std::array<uint8_t, 4> & /*ruChannel1*/,
-    const std::array<uint8_t, 4> & /*ruChannel2*/) {
+void RadiotapHeader::SetHeMuFields(uint16_t flags1, uint16_t flags2,
+                                   const std::array<uint8_t, 4> &,
+                                   const std::array<uint8_t, 4> &) {
   NS_LOG_FUNCTION(this << flags1 << flags2);
   m_heMuFlags1 = flags1;
   m_heMuFlags2 = flags2;

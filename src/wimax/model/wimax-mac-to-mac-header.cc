@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2010 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *
- */
 #include "wimax-mac-to-mac-header.h"
 
 #include "ns3/address-utils.h"
@@ -64,33 +45,19 @@ uint32_t WimaxMacToMacHeader::GetSerializedSize() const {
   } else {
     return 20 + sizeOfLen - 1;
   }
-  // return 19+sizeOfLen;
 }
 
 void WimaxMacToMacHeader::Serialize(Buffer::Iterator i) const {
-  // The following header encoding was reverse-engineered by looking
-  // at existing live pcap traces which could be opened with wireshark
-  // i.e., we have no idea where this is coming from.
-  //
-  // 6 zeros for mac destination
-  // 6 zeros for mac source
-  // 2 bytes for length/type: 0x08f0
-  // 2 bytes for sequence number: 0x0001
-  // 2 bytes for number of tlvs: 0x0001
-  // 1 byte for type of first tlv: 0x09
-  // 1 byte to indicate the length of the length field of the tlv : 0x80 | 0x04
-  // n bytes to indicate the size of the packet (network order)
-  // n bytes for the packet data
 
   uint8_t zero = 0;
 
   for (int j = 0; j < 12; j++) {
     i.WriteU8(zero);
   }
-  i.WriteU16(0xf008); // eth length/type
-  i.WriteU16(0x0100); // sequence number
-  i.WriteU16(0x0100); // number of tlvs
-  i.WriteU8(0x09);    // type of first tlv
+  i.WriteU16(0xf008);
+  i.WriteU16(0x0100);
+  i.WriteU16(0x0100);
+  i.WriteU8(0x09);
   uint8_t lenSize = GetSizeOfLen();
   if (lenSize == 1) {
     i.WriteU8(m_len);
@@ -102,10 +69,7 @@ void WimaxMacToMacHeader::Serialize(Buffer::Iterator i) const {
   }
 }
 
-uint32_t WimaxMacToMacHeader::Deserialize(Buffer::Iterator start) {
-  // not needed here
-  return 20;
-}
+uint32_t WimaxMacToMacHeader::Deserialize(Buffer::Iterator start) { return 20; }
 
 void WimaxMacToMacHeader::Print(std::ostream &os) const {}
 }; // namespace ns3

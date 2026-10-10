@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "vector.h"
 
 #include "fatal-error.h"
@@ -25,12 +7,6 @@
 #include <sstream>
 #include <tuple>
 
-/**
- * \file
- * \ingroup attribute_Vector
- * ns3::Vector, ns3::Vector2D and ns3::Vector3D attribute value implementations.
- */
-
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Vector");
@@ -38,7 +14,6 @@ NS_LOG_COMPONENT_DEFINE("Vector");
 ATTRIBUTE_HELPER_CPP(Vector3D);
 ATTRIBUTE_HELPER_CPP(Vector2D);
 
-// compatibility for mobility code
 Ptr<const AttributeChecker> MakeVectorChecker() {
   NS_LOG_FUNCTION_NOARGS();
   return MakeVector3DChecker();

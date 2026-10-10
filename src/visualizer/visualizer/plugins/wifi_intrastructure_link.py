@@ -1,17 +1,3 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import math
 from ns import ns
 from gi.repository import GooCanvas
@@ -22,20 +8,7 @@ except ModuleNotFoundError:
     from visualizer.base import Link, transform_distance_canvas_to_simulation
 
 
-## WifiLink class
 class WifiLink(Link):
-    ## @var node1
-    #  sta
-    ## @var dev
-    #  dev
-    ## @var node2
-    #  ap
-    ## @var canvas_item
-    #  parent_canvas_item
-    ## @var invisible_line
-    #  invisible line
-    ## @var visible_line
-    #  visible line
     def __init__(self, parent_canvas_item, sta, dev):
         """! Initialize function.
         @param self The object pointer.
@@ -46,7 +19,7 @@ class WifiLink(Link):
         super(WifiLink, self).__init__()
         self.node1 = sta
         self.dev = dev
-        self.node2 = None  # ap
+        self.node2 = None
         self.canvas_item = GooCanvas.CanvasGroup(parent=parent_canvas_item)
         self.invisible_line = GooCanvas.CanvasPolyline(
             parent=self.canvas_item,
@@ -59,9 +32,6 @@ class WifiLink(Link):
             stroke_color_rgba=0xC00000FF,
             line_dash=GooCanvas.CanvasLineDash.newv([2.0, 2.0]),
         )
-        # self.invisible_line.set_property("pointer-events", (GooCanvas.CanvasPointerEvents.STROKE_MASK
-        #                                             |GooCanvas.CanvasPointerEvents.FILL_MASK
-        #                                             |GooCanvas.CanvasPointerEvents.PAINTED_MASK))
         self.canvas_item.pyviz_object = self
         self.canvas_item.lower(None)
         self.set_ap(None)
@@ -140,19 +110,14 @@ class WifiLink(Link):
         )
 
 
-## WifiLinkMonitor class
 class WifiLinkMonitor(object):
-    ## @var access_points
-    #  bssid -> node
-    ## @var stations
-    #  list of (sta_netdevice, viz_node, wifi_link)
     def __init__(self, dummy_viz):
         """! Initialize function.
         @param self The object pointer.
         @param dummy_viz A dummy visualizer
         """
-        self.access_points = {}  # bssid -> node
-        self.stations = []  # list of (sta_netdevice, viz_node, wifi_link)
+        self.access_points = {}
+        self.stations = []
 
     def scan_nodes(self, viz):
         """! Scan nodes function.
@@ -179,8 +144,6 @@ class WifiLinkMonitor(object):
                 elif isinstance(wifi_mac, ns.wifi.ApWifiMac):
                     bssid = ns.network.Mac48Address.ConvertFrom(dev.GetAddress())
                     self.access_points[str(bssid)] = node
-        # print "APs: ", self.access_points
-        # print "STAs: ", self.stations
 
     def simulation_periodic_update(self, viz):
         """! Simulation Periodic Update function.

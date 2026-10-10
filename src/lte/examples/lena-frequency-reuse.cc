@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "ns3/config-store.h"
 #include "ns3/core-module.h"
@@ -92,7 +73,6 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::LteHelper::UsePdschForCqiGeneration",
                      BooleanValue(true));
 
-  // Uplink Power Control
   Config::SetDefault("ns3::LteUePhy::EnableUplinkPowerControl",
                      BooleanValue(true));
   Config::SetDefault("ns3::LteUePowerControl::ClosedLoop", BooleanValue(true));
@@ -110,7 +90,6 @@ int main(int argc, char *argv[]) {
   Box macroUeBox = Box(-distance * 0.5, distance * 1.5, -distance * 0.5,
                        distance * 1.5, 1.5, 1.5);
 
-  // Command line arguments
   CommandLine cmd(__FILE__);
   cmd.AddValue("numberOfUes", "Number of random UEs", numberOfRandomUes);
   cmd.AddValue("simTime", "Total duration of the simulation (in seconds)",
@@ -134,7 +113,6 @@ int main(int argc, char *argv[]) {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer centerUeNodes;
   NodeContainer edgeUeNodes;
@@ -144,28 +122,11 @@ int main(int argc, char *argv[]) {
   edgeUeNodes.Create(3);
   randomUeNodes.Create(numberOfRandomUes);
 
-  /*   the topology is the following:
-   *                 eNB3
-   *                /     \
-   *               /       \
-   *              /         \
-   *             /           \
-   *   distance /             \ distance
-   *           /      UEs      \
-   *          /                 \
-   *         /                   \
-   *        /                     \
-   *       /                       \
-   *   eNB1-------------------------eNB2
-   *                  distance
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> enbPositionAlloc =
       CreateObject<ListPositionAllocator>();
-  enbPositionAlloc->Add(Vector(0.0, 0.0, 0.0));                         // eNB1
-  enbPositionAlloc->Add(Vector(distance, 0.0, 0.0));                    // eNB2
-  enbPositionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0)); // eNB3
+  enbPositionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  enbPositionAlloc->Add(Vector(distance, 0.0, 0.0));
+  enbPositionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(enbPositionAlloc);
@@ -173,21 +134,17 @@ int main(int argc, char *argv[]) {
 
   Ptr<ListPositionAllocator> edgeUePositionAlloc =
       CreateObject<ListPositionAllocator>();
-  edgeUePositionAlloc->Add(
-      Vector(distance * 0.5, distance * 0.28867, 0.0)); // edgeUE1
-  edgeUePositionAlloc->Add(
-      Vector(distance * 0.5, distance * 0.28867, 0.0)); // edgeUE2
-  edgeUePositionAlloc->Add(
-      Vector(distance * 0.5, distance * 0.28867, 0.0)); // edgeUE3
+  edgeUePositionAlloc->Add(Vector(distance * 0.5, distance * 0.28867, 0.0));
+  edgeUePositionAlloc->Add(Vector(distance * 0.5, distance * 0.28867, 0.0));
+  edgeUePositionAlloc->Add(Vector(distance * 0.5, distance * 0.28867, 0.0));
   mobility.SetPositionAllocator(edgeUePositionAlloc);
   mobility.Install(edgeUeNodes);
 
   Ptr<ListPositionAllocator> centerUePositionAlloc =
       CreateObject<ListPositionAllocator>();
-  centerUePositionAlloc->Add(Vector(0.0, 0.0, 0.0));      // centerUE1
-  centerUePositionAlloc->Add(Vector(distance, 0.0, 0.0)); // centerUE2
-  centerUePositionAlloc->Add(
-      Vector(distance * 0.5, distance * 0.866, 0.0)); // centerUE3
+  centerUePositionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  centerUePositionAlloc->Add(Vector(distance, 0.0, 0.0));
+  centerUePositionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0));
   mobility.SetPositionAllocator(centerUePositionAlloc);
   mobility.Install(centerUeNodes);
 
@@ -208,7 +165,6 @@ int main(int argc, char *argv[]) {
   mobility.SetPositionAllocator(randomUePositionAlloc);
   mobility.Install(randomUeNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer edgeUeDevs;
   NetDeviceContainer centerUeDevs;
@@ -223,7 +179,6 @@ int main(int argc, char *argv[]) {
   NS_LOG_DEBUG("FrAlgorithmType: " << frAlgorithmType);
 
   if (frAlgorithmType == "ns3::LteFrHardAlgorithm") {
-    // Nothing to configure here in automatic mode
   } else if (frAlgorithmType == "ns3::LteFrStrictAlgorithm") {
     lteHelper->SetFfrAlgorithmAttribute("RsrqThreshold", UintegerValue(32));
     lteHelper->SetFfrAlgorithmAttribute(
@@ -234,7 +189,6 @@ int main(int argc, char *argv[]) {
     lteHelper->SetFfrAlgorithmAttribute("CenterAreaTpc", UintegerValue(0));
     lteHelper->SetFfrAlgorithmAttribute("EdgeAreaTpc", UintegerValue(3));
 
-    // ns3::LteFrStrictAlgorithm works with Absolute Mode Uplink Power Control
     Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                        BooleanValue(false));
   } else if (frAlgorithmType == "ns3::LteFrSoftAlgorithm") {
@@ -249,7 +203,6 @@ int main(int argc, char *argv[]) {
     lteHelper->SetFfrAlgorithmAttribute("CenterAreaTpc", UintegerValue(0));
     lteHelper->SetFfrAlgorithmAttribute("EdgeAreaTpc", UintegerValue(3));
 
-    // ns3::LteFrSoftAlgorithm works with Absolute Mode Uplink Power Control
     Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                        BooleanValue(false));
   } else if (frAlgorithmType == "ns3::LteFfrSoftAlgorithm") {
@@ -269,7 +222,6 @@ int main(int argc, char *argv[]) {
     lteHelper->SetFfrAlgorithmAttribute("MediumAreaTpc", UintegerValue(2));
     lteHelper->SetFfrAlgorithmAttribute("EdgeAreaTpc", UintegerValue(3));
 
-    // ns3::LteFfrSoftAlgorithm works with Absolute Mode Uplink Power Control
     Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                        BooleanValue(false));
   } else if (frAlgorithmType == "ns3::LteFfrEnhancedAlgorithm") {
@@ -285,8 +237,6 @@ int main(int argc, char *argv[]) {
     lteHelper->SetFfrAlgorithmAttribute("CenterAreaTpc", UintegerValue(0));
     lteHelper->SetFfrAlgorithmAttribute("EdgeAreaTpc", UintegerValue(3));
 
-    // ns3::LteFfrEnhancedAlgorithm works with Absolute Mode Uplink Power
-    // Control
     Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                        BooleanValue(false));
   } else if (frAlgorithmType == "ns3::LteFfrDistributedAlgorithm") {
@@ -306,38 +256,31 @@ int main(int argc, char *argv[]) {
   lteHelper->SetFfrAlgorithmAttribute("FrCellTypeId", UintegerValue(3));
   enbDevs.Add(lteHelper->InstallEnbDevice(enbNodes.Get(2)));
 
-  // FR algorithm reconfiguration if needed
   PointerValue tmp;
   enbDevs.Get(0)->GetAttribute("LteFfrAlgorithm", tmp);
   Ptr<LteFfrAlgorithm> ffrAlgorithm =
       DynamicCast<LteFfrAlgorithm>(tmp.GetObject());
   ffrAlgorithm->SetAttribute("FrCellTypeId", UintegerValue(1));
 
-  // Install Ue Device
   edgeUeDevs = lteHelper->InstallUeDevice(edgeUeNodes);
   centerUeDevs = lteHelper->InstallUeDevice(centerUeNodes);
   randomUeDevs = lteHelper->InstallUeDevice(randomUeNodes);
 
-  // Attach edge UEs to eNbs
   for (uint32_t i = 0; i < edgeUeDevs.GetN(); i++) {
     lteHelper->Attach(edgeUeDevs.Get(i), enbDevs.Get(i));
   }
-  // Attach center UEs to eNbs
   for (uint32_t i = 0; i < centerUeDevs.GetN(); i++) {
     lteHelper->Attach(centerUeDevs.Get(i), enbDevs.Get(i));
   }
 
-  // Attach UE to a eNB
   lteHelper->AttachToClosestEnb(randomUeDevs, enbDevs);
 
-  // Activate a data radio bearer
   EpsBearer::Qci q = EpsBearer::GBR_CONV_VOICE;
   EpsBearer bearer(q);
   lteHelper->ActivateDataRadioBearer(edgeUeDevs, bearer);
   lteHelper->ActivateDataRadioBearer(centerUeDevs, bearer);
   lteHelper->ActivateDataRadioBearer(randomUeDevs, bearer);
 
-  // Spectrum analyzer
   NodeContainer spectrumAnalyzerNodes;
   spectrumAnalyzerNodes.Create(1);
   SpectrumAnalyzerHelper spectrumAnalyzerHelper;
@@ -345,10 +288,7 @@ int main(int argc, char *argv[]) {
   if (generateSpectrumTrace) {
     Ptr<ListPositionAllocator> positionAlloc =
         CreateObject<ListPositionAllocator>();
-    // position of Spectrum Analyzer
-    // positionAlloc->Add (Vector (0.0, 0.0, 0.0));                      // eNB1
-    // positionAlloc->Add (Vector (distance,  0.0, 0.0));                // eNB2
-    positionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0)); // eNB3
+    positionAlloc->Add(Vector(distance * 0.5, distance * 0.866, 0.0));
 
     MobilityHelper mobility;
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -369,7 +309,7 @@ int main(int argc, char *argv[]) {
     spectrumAnalyzerHelper.SetPhyAttribute("Resolution",
                                            TimeValue(MicroSeconds(10)));
     spectrumAnalyzerHelper.SetPhyAttribute("NoisePowerSpectralDensity",
-                                           DoubleValue(1e-15)); // -120 dBm/Hz
+                                           DoubleValue(1e-15));
     spectrumAnalyzerHelper.EnableAsciiAll("spectrum-analyzer-output");
     spectrumAnalyzerHelper.Install(spectrumAnalyzerNodes);
   }
@@ -396,7 +336,6 @@ int main(int argc, char *argv[]) {
     }
 
     remHelper->Install();
-    // simulation will stop right after the REM has been generated
   } else {
     Simulator::Stop(Seconds(simTime));
   }

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 Network Security Lab, University of Washington, Seattle.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Sidharth Nabar <snabar@uw.edu>, He Wu <mdzz@u.washington.edu>
- */
 
 #include "basic-energy-source.h"
 
@@ -39,30 +21,27 @@ TypeId BasicEnergySource::GetTypeId() {
           .AddConstructor<BasicEnergySource>()
           .AddAttribute(
               "BasicEnergySourceInitialEnergyJ",
-              "Initial energy stored in basic energy source.",
-              DoubleValue(10), // in Joules
+              "Initial energy stored in basic energy source.", DoubleValue(10),
               MakeDoubleAccessor(&BasicEnergySource::SetInitialEnergy,
                                  &BasicEnergySource::GetInitialEnergy),
               MakeDoubleChecker<double>())
           .AddAttribute(
               "BasicEnergySupplyVoltageV",
               "Initial supply voltage for basic energy source.",
-              DoubleValue(3.0), // in Volts
+              DoubleValue(3.0),
               MakeDoubleAccessor(&BasicEnergySource::SetSupplyVoltage,
                                  &BasicEnergySource::GetSupplyVoltage),
               MakeDoubleChecker<double>())
-          .AddAttribute(
-              "BasicEnergyLowBatteryThreshold",
-              "Low battery threshold for basic energy source.",
-              DoubleValue(0.10), // as a fraction of the initial energy
-              MakeDoubleAccessor(&BasicEnergySource::m_lowBatteryTh),
-              MakeDoubleChecker<double>())
-          .AddAttribute(
-              "BasicEnergyHighBatteryThreshold",
-              "High battery threshold for basic energy source.",
-              DoubleValue(0.15), // as a fraction of the initial energy
-              MakeDoubleAccessor(&BasicEnergySource::m_highBatteryTh),
-              MakeDoubleChecker<double>())
+          .AddAttribute("BasicEnergyLowBatteryThreshold",
+                        "Low battery threshold for basic energy source.",
+                        DoubleValue(0.10),
+                        MakeDoubleAccessor(&BasicEnergySource::m_lowBatteryTh),
+                        MakeDoubleChecker<double>())
+          .AddAttribute("BasicEnergyHighBatteryThreshold",
+                        "High battery threshold for basic energy source.",
+                        DoubleValue(0.15),
+                        MakeDoubleAccessor(&BasicEnergySource::m_highBatteryTh),
+                        MakeDoubleChecker<double>())
           .AddAttribute(
               "PeriodicEnergyUpdateInterval",
               "Time between two consecutive periodic energy updates.",
@@ -119,14 +98,12 @@ double BasicEnergySource::GetInitialEnergy() const {
 
 double BasicEnergySource::GetRemainingEnergy() {
   NS_LOG_FUNCTION(this);
-  // update energy source to get the latest remaining energy.
   UpdateEnergySource();
   return m_remainingEnergyJ;
 }
 
 double BasicEnergySource::GetEnergyFraction() {
   NS_LOG_FUNCTION(this);
-  // update energy source to get the latest remaining energy.
   UpdateEnergySource();
   return m_remainingEnergyJ / m_initialEnergyJ;
 }
@@ -157,30 +134,26 @@ void BasicEnergySource::UpdateEnergySource() {
   }
 }
 
-/*
- * Private functions start here.
- */
-
 void BasicEnergySource::DoInitialize() {
   NS_LOG_FUNCTION(this);
-  UpdateEnergySource(); // start periodic update
+  UpdateEnergySource();
 }
 
 void BasicEnergySource::DoDispose() {
   NS_LOG_FUNCTION(this);
-  BreakDeviceEnergyModelRefCycle(); // break reference cycle
+  BreakDeviceEnergyModelRefCycle();
 }
 
 void BasicEnergySource::HandleEnergyDrainedEvent() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("BasicEnergySource:Energy depleted!");
-  NotifyEnergyDrained(); // notify DeviceEnergyModel objects
+  NotifyEnergyDrained();
 }
 
 void BasicEnergySource::HandleEnergyRechargedEvent() {
   NS_LOG_FUNCTION(this);
   NS_LOG_DEBUG("BasicEnergySource:Energy recharged!");
-  NotifyEnergyRecharged(); // notify DeviceEnergyModel objects
+  NotifyEnergyRecharged();
 }
 
 void BasicEnergySource::CalculateRemainingEnergy() {
@@ -188,7 +161,6 @@ void BasicEnergySource::CalculateRemainingEnergy() {
   double totalCurrentA = CalculateTotalCurrent();
   Time duration = Simulator::Now() - m_lastUpdateTime;
   NS_ASSERT(duration.IsPositive());
-  // energy = current * voltage * time
   double energyToDecreaseJ =
       (totalCurrentA * m_supplyVoltageV * duration).GetSeconds();
   NS_ASSERT(m_remainingEnergyJ >= energyToDecreaseJ);

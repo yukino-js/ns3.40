@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Based on
- *      NS-2 AODV model developed by the CMU/MONARCH group and optimized and
- *      tuned by Samir Das and Mahesh Marina, University of Cincinnati;
- *
- *      AODV-UU implementation by Erik Nordström of Uppsala University
- *      https://web.archive.org/web/20100527072022/http://core.it.uu.se/core/index.php/AODV-UU
- *
- * Authors: Elena Buchatskaia <borovkovaes@iitp.ru>
- *          Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "aodv-rtable.h"
 
@@ -38,10 +12,6 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("AodvRoutingTable");
 
 namespace aodv {
-
-/*
- The Routing Table
- */
 
 RoutingTableEntry::RoutingTableEntry(Ptr<NetDevice> dev, Ipv4Address dst,
                                      bool vSeqNo, uint32_t seqNo,
@@ -134,9 +104,8 @@ void RoutingTableEntry::Invalidate(Time badLinkLifetime) {
 }
 
 void RoutingTableEntry::Print(Ptr<OutputStreamWrapper> stream,
-                              Time::Unit unit /* = Time::S */) const {
+                              Time::Unit unit) const {
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 
@@ -172,13 +141,8 @@ void RoutingTableEntry::Print(Ptr<OutputStreamWrapper> stream,
 
   *os << std::setw(16) << expire.str();
   *os << m_hops << std::endl;
-  // Restore the previous ostream state
   (*os).copyfmt(oldState);
 }
-
-/*
- The Routing Table
- */
 
 RoutingTable::RoutingTable(Time t) : m_badLinkLifetime(t) {}
 
@@ -376,11 +340,10 @@ bool RoutingTable::MarkLinkAsUnidirectional(Ipv4Address neighbor,
 }
 
 void RoutingTable::Print(Ptr<OutputStreamWrapper> stream,
-                         Time::Unit unit /* = Time::S */) const {
+                         Time::Unit unit) const {
   std::map<Ipv4Address, RoutingTableEntry> table = m_ipv4AddressEntry;
   Purge(table);
   std::ostream *os = stream->GetStream();
-  // Copy the current ostream state
   std::ios oldState(nullptr);
   oldState.copyfmt(*os);
 

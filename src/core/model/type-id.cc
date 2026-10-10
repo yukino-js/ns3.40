@@ -1,25 +1,7 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "type-id.h"
 
 #include "hash.h"
-#include "log.h" // NS_ASSERT and NS_LOG
+#include "log.h"
 #include "singleton.h"
 #include "trace-source-accessor.h"
 
@@ -28,350 +10,94 @@
 #include <sstream>
 #include <vector>
 
-/**
- * \file
- * \ingroup object
- * ns3::TypeId and ns3::IidManager implementations.
- */
-
-/*********************************************************************
- *         Helper code
- *********************************************************************/
-
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TypeId");
 
-// IidManager needs to be in ns3 namespace for NS_ASSERT and NS_LOG
-// to find g_log
-
-/**
- * \ingroup object
- * \brief TypeId information manager
- *
- * Information records are stored in a vector.  Name and hash lookup
- * are performed by maps to the vector index.
- *
- * \internal
- * <b>Hash Chaining</b>
- *
- * We require all types to produce distinct hashes. What if we encounter
- * two types that produce the same hash value?  As we move to a
- * federated distribution model (the App store), it becomes increasingly
- * likely that the core ns3 team *won't* discover this in test builds.
- * Therefore, we need to handle this case explicitly.
- *
- * Note, we expect this to be *extremely* rare.  As of this writing we
- * have ~400 < 2^9 types, so the probability of getting a collision
- * when we introduce a new type is ~2^9/2^31 = 2^-22, assuming we
- * reserve 31 bits for the hash, and one bit for chaining.  Even with
- * double the number of types the probability of having a collision
- * is only 2 x 10^-4.  The probability for a three-fold collision is
- * 1 x 10^-10.
- *
- * Therefore, we'll handle one collision explicitly by reserving
- * the high order bit of the hash value, and assert on higher level
- * collisions.  The three-fold collision probability should be an
- * acceptablly small error rate.
- */
 class IidManager : public Singleton<IidManager> {
 public:
-  /**
-   * Create a new unique type id.
-   * \param [in] name The name of this type id.
-   * \returns The id.
-   */
   uint16_t AllocateUid(std::string name);
-  /**
-   * Set the parent of a type id.
-   * \param [in] uid The id.
-   * \param [in] parent The id of the parent.
-   */
   void SetParent(uint16_t uid, uint16_t parent);
-  /**
-   * Set the group name of a type id.
-   * \param [in] uid The id.
-   * \param [in] groupName The group name.
-   */
   void SetGroupName(uint16_t uid, std::string groupName);
-  /**
-   * Set the size of the object class referred to by this id.
-   * \param [in] uid The id.
-   * \param [in] size The object size.
-   */
   void SetSize(uint16_t uid, std::size_t size);
-  /**
-   * Add a constructor Callback to this type id.
-   * \param [in] uid The id.
-   * \param [in] callback The Callback for the constructor.
-   */
   void AddConstructor(uint16_t uid, Callback<ObjectBase *> callback);
-  /**
-   * Mark this type id to be excluded from documentation.
-   * \param [in] uid The id.
-   */
   void HideFromDocumentation(uint16_t uid);
-  /**
-   * Get a type id by name.
-   * \param [in] name The type id to find.
-   * \returns The type id.  A type id of 0 means \pname{name} wasn't found.
-   */
   uint16_t GetUid(std::string name) const;
-  /**
-   * Get a type id by hash value.
-   * \param [in] hash The type id to find.
-   * \returns The type id.  A type id of 0 means \pname{hash} wasn't found.
-   */
   uint16_t GetUid(TypeId::hash_t hash) const;
-  /**
-   * Get the name of a type id.
-   * \param [in] uid The id.
-   * \returns The name of the type id.
-   */
   std::string GetName(uint16_t uid) const;
-  /**
-   * Get the hash of a type id.
-   * \param [in] uid The id.
-   * \returns The hash of the type id.
-   */
   TypeId::hash_t GetHash(uint16_t uid) const;
-  /**
-   * Get the parent of a type id.
-   * \param [in] uid The id.
-   * \returns The parent type id of the type id.
-   */
   uint16_t GetParent(uint16_t uid) const;
-  /**
-   * Get the group name of a type id.
-   * \param [in] uid The id.
-   * \returns The group name of the type id.
-   */
   std::string GetGroupName(uint16_t uid) const;
-  /**
-   * Get the size of a type id.
-   * \param [in] uid The id.
-   * \returns The size of the type id.
-   */
   std::size_t GetSize(uint16_t uid) const;
-  /**
-   * Get the constructor Callback of a type id.
-   * \param [in] uid The id.
-   * \returns The constructor Callback of the type id.
-   */
   Callback<ObjectBase *> GetConstructor(uint16_t uid) const;
-  /**
-   * Check if a type id has a constructor Callback.
-   * \param [in] uid The id.
-   * \returns \c true if the type id has a constructor Callback.
-   */
   bool HasConstructor(uint16_t uid) const;
-  /**
-   * Get the total number of type ids.
-   * \returns The total number.
-   */
   uint16_t GetRegisteredN() const;
-  /**
-   * Get a type id by index.
-   *
-   * The type id value 0 indicates not registered, so there is an offset
-   * of 1 between the index and the type id value.  This function converts
-   * from an index to the type id value.
-   * \param [in] i The index.
-   * \returns The type id.
-   */
   uint16_t GetRegistered(uint16_t i) const;
-  /**
-   * Record a new attribute in a type id.
-   * \param [in] uid The id.
-   * \param [in] name The name of the new attribute
-   * \param [in] help Some help text which describes the purpose of this
-   *             attribute.
-   * \param [in] flags Flags which describe how this attribute can be
-   *             read and/or written.
-   * \param [in] initialValue The initial value for this attribute.
-   * \param [in] accessor An instance of the associated AttributeAccessor
-   *             subclass.
-   * \param [in] checker An instance of the associated AttributeChecker
-   *             subclass.
-   * \param [in] supportLevel The support/deprecation status for this attribute.
-   * \param [in] supportMsg Upgrade hint if this attribute is no longer
-   * supported.
-   */
   void AddAttribute(uint16_t uid, std::string name, std::string help,
                     uint32_t flags, Ptr<const AttributeValue> initialValue,
                     Ptr<const AttributeAccessor> accessor,
                     Ptr<const AttributeChecker> checker,
                     TypeId::SupportLevel supportLevel = TypeId::SUPPORTED,
                     const std::string &supportMsg = "");
-  /**
-   * Set the initial value of an Attribute.
-   * \param [in] uid The id.
-   * \param [in] i The attribute to manipulate
-   * \param [in] initialValue The new initial value to use for this attribute.
-   */
   void SetAttributeInitialValue(uint16_t uid, std::size_t i,
                                 Ptr<const AttributeValue> initialValue);
-  /**
-   * Get the number of attributes.
-   * \param [in] uid The id.
-   * \returns The number of attributes associated to this TypeId
-   */
   std::size_t GetAttributeN(uint16_t uid) const;
-  /**
-   * Get Attribute information by index.
-   * \param [in] uid The id.
-   * \param [in] i Index into attribute array
-   * \returns The information associated to attribute whose index is \pname{i}.
-   */
   TypeId::AttributeInformation GetAttribute(uint16_t uid, std::size_t i) const;
-  /**
-   * Record a new TraceSource.
-   * \param [in] uid The id.
-   * \param [in] name The name of the new trace source
-   * \param [in] help Some help text which describes the purpose of this
-   *             trace source.
-   * \param [in] accessor A pointer to a TraceSourceAccessor which can be
-   *             used to connect/disconnect sinks to this trace source.
-   * \param [in] callback Fully qualified typedef name for the callback
-   *             signature.  Generally this should begin with the
-   *             "ns3::" namespace qualifier.
-   * \param [in] supportLevel The support/deprecation status for this attribute.
-   * \param [in] supportMsg Upgrade hint if this attribute is no longer
-   * supported.
-   */
   void AddTraceSource(uint16_t uid, std::string name, std::string help,
                       Ptr<const TraceSourceAccessor> accessor,
                       std::string callback,
                       TypeId::SupportLevel supportLevel = TypeId::SUPPORTED,
                       const std::string &supportMsg = "");
-  /**
-   * Get the number of Trace sources.
-   * \param [in] uid The id.
-   * \returns The number of trace sources defined in this TypeId.
-   */
   std::size_t GetTraceSourceN(uint16_t uid) const;
-  /**
-   * Get the trace source by index.
-   * \param [in] uid The id.
-   * \param [in] i Index into trace source array.
-   * \returns Detailed information about the requested trace source.
-   */
   TypeId::TraceSourceInformation GetTraceSource(uint16_t uid,
                                                 std::size_t i) const;
-  /**
-   * Check if this TypeId should not be listed in documentation.
-   * \param [in] uid The id.
-   * \returns \c true if this TypeId should be hidden from the user.
-   */
   bool MustHideFromDocumentation(uint16_t uid) const;
 
 private:
-  /**
-   * Check if a type id has a given TraceSource.
-   * \param [in] uid The id.
-   * \param [in] name The TraceSource name.
-   * \returns \c true if \pname{uid} has the TraceSource \pname{name}.
-   */
   bool HasTraceSource(uint16_t uid, std::string name);
-  /**
-   * Check if a type id has a given Attribute.
-   * \param [in] uid The id.
-   * \param [in] name The Attribute name.
-   * \returns \c true if \pname{uid} has the Attribute \pname{name}.
-   */
   bool HasAttribute(uint16_t uid, std::string name);
-  /**
-   * Hashing function.
-   * \param [in] name The type id name.
-   * \returns The hashed value of \pname{name}.
-   */
   static TypeId::hash_t Hasher(const std::string name);
 
-  /** The information record about a single type id. */
   struct IidInformation {
-    /** The type id name. */
     std::string name;
-    /** The type id hash value. */
     TypeId::hash_t hash;
-    /** The parent type id. */
     uint16_t parent;
-    /** The group name. */
     std::string groupName;
-    /** The size of the object represented by this type id. */
     std::size_t size;
-    /** \c true if a constructor Callback has been registered. */
     bool hasConstructor;
-    /** The constructor Callback. */
     Callback<ObjectBase *> constructor;
-    /** \c true if this type should be omitted from documentation. */
     bool mustHideFromDocumentation;
-    /** The container of Attributes. */
     std::vector<TypeId::AttributeInformation> attributes;
-    /** The container of TraceSources. */
     std::vector<TypeId::TraceSourceInformation> traceSources;
-    /** Support level/deprecation. */
     TypeId::SupportLevel supportLevel;
-    /** Support message. */
     std::string supportMsg;
   };
 
-  /** Iterator type. */
   typedef std::vector<IidInformation>::const_iterator Iterator;
 
-  /**
-   * Retrieve the information record for a type.
-   * \param [in] uid The id.
-   * \returns The information record.
-   */
   IidManager::IidInformation *LookupInformation(uint16_t uid) const;
 
-  /** The container of all type id records. */
   std::vector<IidInformation> m_information;
 
-  /** Type of the by-name index. */
   typedef std::map<std::string, uint16_t> namemap_t;
-  /** The by-name index. */
   namemap_t m_namemap;
 
-  /** Type of the by-hash index. */
   typedef std::map<TypeId::hash_t, uint16_t> hashmap_t;
-  /** The by-hash index. */
   hashmap_t m_hashmap;
 
-  /** IidManager constants. */
-  enum {
-    /**
-     * Hash chaining flag.
-     *
-     * To handle the first collision, we reserve the high bit as a
-     * chain flag.
-     */
-    HashChainFlag = 0x80000000
-  };
+  enum { HashChainFlag = 0x80000000 };
 };
 
-// static
 TypeId::hash_t IidManager::Hasher(const std::string name) {
   static ns3::Hasher hasher(Create<Hash::Function::Murmur3>());
   return hasher.clear().GetHash32(name);
 }
 
-/**
- * \ingroup object
- * \internal
- * IidManager shorthand for use in NS_LOG
- */
 #define IID "IidManager"
-/**
- * \ingroup object
- * \internal
- * IidManager shorthand for use in NS_LOG
- */
 #define IIDL IID << ": "
 
 uint16_t IidManager::AllocateUid(std::string name) {
   NS_LOG_FUNCTION(IID << name);
-  // Type names are definitive: equal names are equal types
   NS_ASSERT_MSG(m_namemap.count(name) == 0,
                 "Trying to allocate twice the same uid: " << name);
 
@@ -381,41 +107,23 @@ uint16_t IidManager::AllocateUid(std::string name) {
                  << name << "'.  "
                  << "This is not a bug, but is extremely unlikely.  "
                  << "Please contact the ns3 developers.");
-    // ns3 developer contacted about this message:
-    // You have four options (in order of difficulty):
-    //   1. Let it ride, and play the odds that a third collision
-    //        never appears.
-    //   2. Change the name of the new (or old) tag, even trivially, to
-    //        remove the collision.
-    //   3. Switch to 64-bit hashes.
-    //   4. Implement 2-bit (or higher) chaining.
-    //
-    //  Oh, by the way, I owe you a beer, since I bet Mathieu that
-    //  this would never happen..  -- Peter Barnes, LLNL
 
     NS_ASSERT_MSG(
         m_hashmap.count(hash | HashChainFlag) == 0,
         "Triplicate hash detected while chaining TypeId for '"
             << name << "'. Please contact the ns3 developers for assistance.");
-    // ns3 developer contacted about this message:
-    // You have three options: #2-4 above.
-    //
-    // Oh, by the way, I have no idea how this crazy hashing idea got
-    // into ns3.  -- Peter Barnes, LLNL
 
-    // Alphabetize the two types, so it's deterministic
     IidInformation *hinfo = LookupInformation(GetUid(hash));
-    if (name > hinfo->name) { // new type gets chained
+    if (name > hinfo->name) {
       NS_LOG_LOGIC(IIDL << "New TypeId '" << name << "' getting chained.");
       hash = hash | HashChainFlag;
-    } else { // chain old type
+    } else {
       NS_LOG_LOGIC(IIDL << "Old TypeId '" << hinfo->name
                         << "' getting chained.");
       uint16_t oldUid = GetUid(hinfo->hash);
       m_hashmap.erase(m_hashmap.find(hinfo->hash));
       hinfo->hash = hash | HashChainFlag;
       m_hashmap.insert(std::make_pair(hinfo->hash, oldUid));
-      // leave new hash unchained
     }
   }
 
@@ -433,7 +141,6 @@ uint16_t IidManager::AllocateUid(std::string name) {
   NS_ASSERT(tuid <= 0xffff);
   auto uid = static_cast<uint16_t>(tuid);
 
-  // Add to both maps:
   m_namemap.insert(std::make_pair(name, uid));
   m_hashmap.insert(std::make_pair(hash, uid));
   NS_LOG_LOGIC(IIDL << uid);
@@ -583,11 +290,9 @@ bool IidManager::HasAttribute(uint16_t uid, std::string name) {
     }
     IidInformation *parent = LookupInformation(information->parent);
     if (parent == information) {
-      // top of inheritance tree
       NS_LOG_LOGIC(IIDL << false);
       return false;
     }
-    // check parent
     information = parent;
   }
   NS_LOG_LOGIC(IIDL << false);
@@ -666,11 +371,9 @@ bool IidManager::HasTraceSource(uint16_t uid, std::string name) {
     }
     IidInformation *parent = LookupInformation(information->parent);
     if (parent == information) {
-      // top of inheritance tree
       NS_LOG_LOGIC(IIDL << false);
       return false;
     }
-    // check parent
     information = parent;
   }
   NS_LOG_LOGIC(IIDL << false);
@@ -730,10 +433,6 @@ bool IidManager::MustHideFromDocumentation(uint16_t uid) const {
 } // namespace ns3
 
 namespace ns3 {
-
-/*********************************************************************
- *         The TypeId class
- *********************************************************************/
 
 TypeId::TypeId(const std::string &name) {
   NS_LOG_FUNCTION(this << name);
@@ -1030,23 +729,11 @@ void TypeId::SetUid(uint16_t uid) {
   m_tid = uid;
 }
 
-/**
- * \brief Insertion operator for TypeId
- * \param [in] os the output stream
- * \param [in] tid the TypeId
- * \returns the updated output stream.
- */
 std::ostream &operator<<(std::ostream &os, TypeId tid) {
   os << tid.GetName();
   return os;
 }
 
-/**
- * \brief Extraction operator for TypeId
- * \param [in] is the input stream
- * \param [out] tid the TypeId value
- * \returns the updated input stream.
- */
 std::istream &operator>>(std::istream &is, TypeId &tid) {
   std::string tidString;
   is >> tidString;

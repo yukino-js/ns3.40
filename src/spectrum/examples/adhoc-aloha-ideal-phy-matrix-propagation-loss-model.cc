@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/adhoc-aloha-noack-ideal-phy-helper.h>
 #include <ns3/applications-module.h>
@@ -41,15 +23,9 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TestAdhocOfdmAloha");
 
-static bool g_verbose = false; //!< True if verbose output.
-static uint64_t g_rxBytes;     //!< Rx bytes counter.
+static bool g_verbose = false;
+static uint64_t g_rxBytes;
 
-/**
- * Trace for PHY Rx successful end.
- *
- * \param context The context.
- * \param p The packet.
- */
 void PhyRxEndOkTrace(std::string context, Ptr<const Packet> p) {
   if (g_verbose) {
     std::cout << context << " PHY RX END OK p:" << p << std::endl;
@@ -57,36 +33,15 @@ void PhyRxEndOkTrace(std::string context, Ptr<const Packet> p) {
   g_rxBytes += p->GetSize();
 }
 
-/**
- * \ingroup spectrum
- *
- * Store the last pathloss value for each TX-RX pair. This is an
- * example of how the PathlossTrace (provided by some SpectrumChannel
- * implementations) work.
- *
- */
 class GlobalPathlossDatabase {
 public:
-  /**
-   * update the pathloss value
-   *
-   * \param context
-   * \param txPhy the transmitting PHY
-   * \param rxPhy the receiving PHY
-   * \param lossDb the loss in dB
-   */
   void UpdatePathloss(std::string context, Ptr<const SpectrumPhy> txPhy,
                       Ptr<const SpectrumPhy> rxPhy, double lossDb);
 
-  /**
-   * print the stored pathloss values to standard output
-   *
-   */
   void Print();
 
 private:
-  std::map<uint32_t, std::map<uint32_t, double>>
-      m_pathlossMap; //!< Path loss map
+  std::map<uint32_t, std::map<uint32_t, double>> m_pathlossMap;
 };
 
 void GlobalPathlossDatabase::UpdatePathloss(std::string context,
@@ -134,8 +89,6 @@ int main(int argc, char **argv) {
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(c);
-  // the actual positions are irrelevant, since we use
-  // MatrixPropagationLossModel
 
   SpectrumChannelHelper channelHelper;
   channelHelper.SetChannel(channelType);
@@ -153,12 +106,9 @@ int main(int argc, char **argv) {
   Ptr<SpectrumValue> txPsd =
       sf.CreateTxPowerSpectralDensity(txPowerW, channelNumber);
 
-  // for the noise, we use the Power Spectral Density of thermal noise
-  // at room temperature. The value of the PSD will be constant over the band of
-  // interest.
-  const double k = 1.381e-23;   // Boltzmann's constant
-  const double T = 290;         // temperature in Kelvin
-  double noisePsdValue = k * T; // watts per hertz
+  const double k = 1.381e-23;
+  const double T = 290;
+  double noisePsdValue = k * T;
   Ptr<SpectrumValue> noisePsd = sf.CreateConstant(noisePsdValue);
 
   AdhocAlohaNoackIdealPhyHelper deviceHelper;

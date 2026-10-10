@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 #include "ns3/boolean.h"
 #include "ns3/config.h"
 #include "ns3/error-channel.h"
@@ -46,77 +28,33 @@
 
 using namespace ns3;
 
-/**
- * \ingroup sixlowpan-tests
- *
- * \brief 6LoWPAN Fragmentation Test
- */
 class SixlowpanFragmentationTest : public TestCase {
-  Ptr<Packet> m_sentPacketClient;     //!< Packet sent by client.
-  Ptr<Packet> m_receivedPacketClient; //!< Packet received by the client.
-  Ptr<Packet> m_receivedPacketServer; //!< packet received by the server.
+  Ptr<Packet> m_sentPacketClient;
+  Ptr<Packet> m_receivedPacketClient;
+  Ptr<Packet> m_receivedPacketServer;
 
-  Ptr<Socket> m_socketServer; //!< Socket on the server.
-  Ptr<Socket> m_socketClient; //!< Socket on the client.
-  uint32_t m_dataSize;        //!< Size of the data (if any).
-  uint8_t *m_data;            //!< Data to be carried in the packet
-  uint32_t m_size;    //!< Size of the packet if no data has been provided.
-  uint8_t m_icmpType; //!< ICMP type.
-  uint8_t m_icmpCode; //!< ICMP code.
+  Ptr<Socket> m_socketServer;
+  Ptr<Socket> m_socketClient;
+  uint32_t m_dataSize;
+  uint8_t *m_data;
+  uint32_t m_size;
+  uint8_t m_icmpType;
+  uint8_t m_icmpCode;
 
 public:
   void DoRun() override;
   SixlowpanFragmentationTest();
   ~SixlowpanFragmentationTest() override;
 
-  // server part
-
-  /**
-   * Start the server node.
-   * \param serverNode The server node.
-   */
   void StartServer(Ptr<Node> serverNode);
-  /**
-   * Handles incoming packets in the server.
-   * \param socket The receiving socket.
-   */
   void HandleReadServer(Ptr<Socket> socket);
 
-  // client part
-
-  /**
-   * Start the client node.
-   * \param clientNode The client node.
-   */
   void StartClient(Ptr<Node> clientNode);
-  /**
-   * Handles incoming packets in the client.
-   * \param socket The receiving socket.
-   */
   void HandleReadClient(Ptr<Socket> socket);
-  /**
-   * Handles incoming ICMP packets in the client.
-   * \param icmpSource ICMP sender address.
-   * \param icmpTtl ICMP TTL.
-   * \param icmpType ICMP type.
-   * \param icmpCode ICMP code.
-   * \param icmpInfo ICMP info.
-   */
   void HandleReadIcmpClient(Ipv6Address icmpSource, uint8_t icmpTtl,
                             uint8_t icmpType, uint8_t icmpCode,
                             uint32_t icmpInfo);
-  /**
-   * Set the packet optional content.
-   * \param fill Pointer to an array of data.
-   * \param fillSize Size of the array of data.
-   * \param dataSize Size of the packet - if fillSize is less than dataSize, the
-   * data is repeated.
-   */
   void SetFill(uint8_t *fill, uint32_t fillSize, uint32_t dataSize);
-  /**
-   * Send a packet to the server.
-   * \returns The packet sent.
-   */
   Ptr<Packet> SendClient();
 };
 
@@ -236,12 +174,10 @@ Ptr<Packet> SixlowpanFragmentationTest::SendClient() {
 }
 
 void SixlowpanFragmentationTest::DoRun() {
-  // Create topology
   InternetStackHelper internet;
   internet.SetIpv4StackInstall(false);
   Packet::EnablePrinting();
 
-  // Receiver Node
   Ptr<Node> serverNode = CreateObject<Node>();
   internet.Install(serverNode);
   Ptr<SimpleNetDevice> serverDev;
@@ -272,7 +208,6 @@ void SixlowpanFragmentationTest::DoRun() {
   }
   StartServer(serverNode);
 
-  // Sender Node
   Ptr<Node> clientNode = CreateObject<Node>();
   internet.Install(clientNode);
   Ptr<SimpleNetDevice> clientDev;
@@ -303,21 +238,17 @@ void SixlowpanFragmentationTest::DoRun() {
   }
   StartClient(clientNode);
 
-  // link the two nodes
   Ptr<ErrorChannel> channel = CreateObject<ErrorChannel>();
   serverDev->SetChannel(channel);
   clientDev->SetChannel(channel);
 
-  // some small packets, some rather big ones
   uint32_t packetSizes[5] = {200, 300, 400, 500, 600};
 
-  // using the alphabet
   uint8_t fillData[78];
   for (uint32_t k = 48; k <= 125; k++) {
     fillData[k - 48] = k;
   }
 
-  // First test: normal channel, no errors, no delays
   for (int i = 0; i < 5; i++) {
     uint32_t packetSize = packetSizes[i];
 
@@ -344,10 +275,6 @@ void SixlowpanFragmentationTest::DoRun() {
         "Packet content differs");
   }
 
-  // Second test: normal channel, no errors, delays each 2 packets.
-  // Each other fragment will arrive out-of-order.
-  // The packets should be received correctly since reassembly will reorder the
-  // fragments.
   channel->SetJumpingMode(true);
   for (int i = 0; i < 5; i++) {
     uint32_t packetSize = packetSizes[i];
@@ -376,15 +303,12 @@ void SixlowpanFragmentationTest::DoRun() {
   }
   channel->SetJumpingMode(false);
 
-  // Third test: normal channel, some packets are duplicate.
-  // The duplicate fragments should be discarded, so no error should be fired.
   channel->SetDuplicateMode(true);
   for (int i = 1; i < 5; i++) {
     uint32_t packetSize = packetSizes[i];
 
     SetFill(fillData, 78, packetSize);
 
-    // reset the model, we want to receive the very first fragment.
     serverDevErrorModel->Reset();
 
     m_receivedPacketServer = Create<Packet>();
@@ -411,10 +335,6 @@ void SixlowpanFragmentationTest::DoRun() {
   }
   channel->SetDuplicateMode(false);
 
-  // Fourth test: normal channel, some errors, no delays.
-  // The reassembly procedure does NOT fire any ICMP, so we do not expect any
-  // reply from the server. Client -> Server : errors enabled Server -> Client :
-  // errors disabled
   clientDevErrorModel->Disable();
   serverDevErrorModel->Enable();
   for (int i = 1; i < 5; i++) {
@@ -422,7 +342,6 @@ void SixlowpanFragmentationTest::DoRun() {
 
     SetFill(fillData, 78, packetSize);
 
-    // reset the model, we want to receive the very first fragment.
     serverDevErrorModel->Reset();
 
     m_receivedPacketServer = Create<Packet>();
@@ -437,17 +356,11 @@ void SixlowpanFragmentationTest::DoRun() {
 
     NS_TEST_EXPECT_MSG_EQ((recvSize == 0), true,
                           "Server got a packet, something wrong");
-    // Note that a 6LoWPAN fragment timeout does NOT send any ICMPv6.
   }
 
   Simulator::Destroy();
 }
 
-/**
- * \ingroup sixlowpan-tests
- *
- * \brief 6LoWPAN Fragmentation TestSuite
- */
 class SixlowpanFragmentationTestSuite : public TestSuite {
 public:
   SixlowpanFragmentationTestSuite();
@@ -460,6 +373,4 @@ SixlowpanFragmentationTestSuite::SixlowpanFragmentationTestSuite()
   AddTestCase(new SixlowpanFragmentationTest(), TestCase::QUICK);
 }
 
-static SixlowpanFragmentationTestSuite
-    g_sixlowpanFragmentationTestSuite; //!< Static variable for test
-                                       //!< initialization
+static SixlowpanFragmentationTestSuite g_sixlowpanFragmentationTestSuite;

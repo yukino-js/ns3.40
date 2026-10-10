@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-end-point-demux.h"
 
@@ -148,11 +130,6 @@ void Ipv6EndPointDemux::DeAllocate(Ipv6EndPoint *endPoint) {
   }
 }
 
-/*
- * If we have an exact match, we return it.
- * Otherwise, if we find a generic match, we return it.
- * Otherwise, we return 0.
- */
 Ipv6EndPointDemux::EndPoints
 Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
                           uint16_t sport,
@@ -160,11 +137,10 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
   NS_LOG_FUNCTION(this << daddr << dport << saddr << sport
                        << incomingInterface);
 
-  EndPoints retval1; /* Matches exact on local port, wildcards on others */
-  EndPoints
-      retval2; /* Matches exact on local port/adder, wildcards on others */
-  EndPoints retval3; /* Matches all but local address */
-  EndPoints retval4; /* Exact match on all 4 */
+  EndPoints retval1;
+  EndPoints retval2;
+  EndPoints retval3;
+  EndPoints retval4;
 
   NS_LOG_DEBUG("Looking up endpoint for destination address " << daddr);
   for (auto i = m_endPoints.begin(); i != m_endPoints.end(); i++) {
@@ -203,8 +179,6 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
       }
     }
 
-    /*    Ipv6Address incomingInterfaceAddr = incomingInterface->GetAddress ();
-     */
     NS_LOG_DEBUG("dest addr " << daddr);
 
     bool localAddressMatchesWildCard =
@@ -213,7 +187,6 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
     bool localAddressMatchesAllRouters =
         endP->GetLocalAddress() == Ipv6Address::GetAllRoutersMulticast();
 
-    /* if no match here, keep looking */
     if (!(localAddressMatchesExact || localAddressMatchesWildCard)) {
       continue;
     }
@@ -223,8 +196,6 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
     bool remoteAddressMatchesWildCard =
         endP->GetPeerAddress() == Ipv6Address::GetAny();
 
-    /* If remote does not match either with exact or wildcard,i
-       skip this one */
     if (!(remotePeerMatchesExact || remotePeerMatchesWildCard)) {
       continue;
     }
@@ -232,28 +203,24 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
       continue;
     }
 
-    /* Now figure out which return list to add this one to */
     if (localAddressMatchesWildCard && remotePeerMatchesWildCard &&
-        remoteAddressMatchesWildCard) { /* Only local port matches exactly */
+        remoteAddressMatchesWildCard) {
       retval1.push_back(endP);
     }
     if ((localAddressMatchesExact || (localAddressMatchesAllRouters)) &&
-        remotePeerMatchesWildCard &&
-        remoteAddressMatchesWildCard) { /* Only local port and local address
-                                           matches exactly */
+        remotePeerMatchesWildCard && remoteAddressMatchesWildCard) {
       retval2.push_back(endP);
     }
     if (localAddressMatchesWildCard && remotePeerMatchesExact &&
-        remoteAddressMatchesExact) { /* All but local address */
+        remoteAddressMatchesExact) {
       retval3.push_back(endP);
     }
     if (localAddressMatchesExact && remotePeerMatchesExact &&
-        remoteAddressMatchesExact) { /* All 4 match */
+        remoteAddressMatchesExact) {
       retval4.push_back(endP);
     }
   }
 
-  // Here we find the most exact match
   EndPoints retval;
   if (!retval4.empty()) {
     retval = retval4;
@@ -268,7 +235,7 @@ Ipv6EndPointDemux::Lookup(Ipv6Address daddr, uint16_t dport, Ipv6Address saddr,
   NS_ABORT_MSG_IF(retval.size() > 1, "Too many endpoints - perhaps you created "
                                      "too many sockets without binding "
                                      "them to different NetDevices.");
-  return retval; // might be empty if no matches
+  return retval;
 }
 
 Ipv6EndPoint *Ipv6EndPointDemux::SimpleLookup(Ipv6Address dst, uint16_t dport,
@@ -285,7 +252,6 @@ Ipv6EndPoint *Ipv6EndPointDemux::SimpleLookup(Ipv6Address dst, uint16_t dport,
 
     if ((*i)->GetLocalAddress() == dst && (*i)->GetPeerPort() == sport &&
         (*i)->GetPeerAddress() == src) {
-      /* this is an exact match. */
       return *i;
     }
 
@@ -326,4 +292,4 @@ Ipv6EndPointDemux::EndPoints Ipv6EndPointDemux::GetEndPoints() const {
   return m_endPoints;
 }
 
-} /* namespace ns3 */
+} // namespace ns3

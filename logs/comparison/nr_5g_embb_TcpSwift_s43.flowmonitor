@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<FlowMonitor>
+  <Metadata setting="tcp_only" scenario="nr_5g_embb" protocol="TcpSwift" />
+  <FlowStats>
+    <Flow flowId="1" timeFirstTxPacket="+100000000ns" timeFirstRxPacket="+107572703ns" timeLastTxPacket="+20092427297ns" timeLastRxPacket="+20100000000ns" delaySum="+1843816937608ns" jitterSum="+19723704345ns" lastDelay="+7572703ns" txBytes="360405160" rxBytes="360353360" txPackets="243517" rxPackets="243482" lostPackets="35" timesForwarded="486964">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.0151454065" count="243482" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="0.00016201432" count="243481" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="1480" width="1" count="243482" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+    <Flow flowId="2" timeFirstTxPacket="+107572703ns" timeFirstRxPacket="+114574367ns" timeLastTxPacket="+20092998336ns" timeLastRxPacket="+20100000000ns" delaySum="+852067500480ns" jitterSum="+852060499ns" lastDelay="+7001664ns" txBytes="6328140" rxBytes="6328140" txPackets="121695" rxPackets="121695" lostPackets="0" timesForwarded="243390">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.014003328" count="121695" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="1.4003328e-05" count="121694" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="52" width="1" count="121695" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+    <Flow flowId="3" timeFirstTxPacket="+200000000ns" timeFirstRxPacket="+207796561ns" timeLastTxPacket="+20092203439ns" timeLastRxPacket="+20100000000ns" delaySum="+2008534384971ns" jitterSum="+22267844569ns" lastDelay="+7796561ns" txBytes="381323480" rxBytes="381274640" txPackets="257651" rxPackets="257618" lostPackets="33" timesForwarded="515236">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.0155931215" count="257618" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="0.000172875583" count="257617" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="1480" width="1" count="257618" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+    <Flow flowId="4" timeFirstTxPacket="+207796561ns" timeFirstRxPacket="+214798225ns" timeLastTxPacket="+20092998336ns" timeLastRxPacket="+20100000000ns" delaySum="+901527254976ns" jitterSum="+901520253ns" lastDelay="+7001664ns" txBytes="6695468" rxBytes="6695468" txPackets="128759" rxPackets="128759" lostPackets="0" timesForwarded="257518">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.014003328" count="128759" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="1.4003328e-05" count="128758" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="52" width="1" count="128759" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+    <Flow flowId="5" timeFirstTxPacket="+300000000ns" timeFirstRxPacket="+308155477ns" timeLastTxPacket="+20091844523ns" timeLastRxPacket="+20100000000ns" delaySum="+1873052198123ns" jitterSum="+16854183082ns" lastDelay="+8155477ns" txBytes="339960440" rxBytes="339908640" txPackets="229703" rxPackets="229668" lostPackets="35" timesForwarded="459336">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.0163109549" count="229668" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="0.000146770612" count="229667" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="1480" width="1" count="229668" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+    <Flow flowId="6" timeFirstTxPacket="+308155477ns" timeFirstRxPacket="+315157141ns" timeLastTxPacket="+20092998336ns" timeLastRxPacket="+20100000000ns" delaySum="+803700005568ns" jitterSum="+803693004ns" lastDelay="+7001664ns" txBytes="5968924" rxBytes="5968924" txPackets="114787" rxPackets="114787" lostPackets="0" timesForwarded="229574">
+      <delayHistogram nBins="1">
+        <bin index="0" start="0" width="0.014003328" count="114787" />
+      </delayHistogram>
+      <jitterHistogram nBins="1">
+        <bin index="0" start="0" width="1.4003328e-05" count="114786" />
+      </jitterHistogram>
+      <packetSizeHistogram nBins="1">
+        <bin index="0" start="52" width="1" count="114787" />
+      </packetSizeHistogram>
+      <flowInterruptionsHistogram nBins="0" />
+    </Flow>
+  </FlowStats>
+  <Ipv4FlowClassifier>
+    <Flow flowId="1" sourceAddress="10.1.1.1" destinationAddress="10.2.1.1" protocol="6" sourcePort="49153" destinationPort="5000">
+      <Dscp value="0x0" packets="243517" />
+    </Flow>
+    <Flow flowId="2" sourceAddress="10.2.1.1" destinationAddress="10.1.1.1" protocol="6" sourcePort="5000" destinationPort="49153">
+      <Dscp value="0x0" packets="121695" />
+    </Flow>
+    <Flow flowId="3" sourceAddress="10.1.2.1" destinationAddress="10.2.2.1" protocol="6" sourcePort="49153" destinationPort="5000">
+      <Dscp value="0x0" packets="257651" />
+    </Flow>
+    <Flow flowId="4" sourceAddress="10.2.2.1" destinationAddress="10.1.2.1" protocol="6" sourcePort="5000" destinationPort="49153">
+      <Dscp value="0x0" packets="128759" />
+    </Flow>
+    <Flow flowId="5" sourceAddress="10.1.3.1" destinationAddress="10.2.3.1" protocol="6" sourcePort="49153" destinationPort="5000">
+      <Dscp value="0x0" packets="229703" />
+    </Flow>
+    <Flow flowId="6" sourceAddress="10.2.3.1" destinationAddress="10.1.3.1" protocol="6" sourcePort="5000" destinationPort="49153">
+      <Dscp value="0x0" packets="114787" />
+    </Flow>
+  </Ipv4FlowClassifier>
+  <Ipv6FlowClassifier />
+  <FlowProbes>
+    <FlowProbe index="0">
+      <FlowStats flowId="1" packets="243482" bytes="360353360" delayFromFirstProbeSum="+1843816937608ns" />
+      <FlowStats flowId="2" packets="121695" bytes="6328140" delayFromFirstProbeSum="+852067500480ns" />
+      <FlowStats flowId="3" packets="257618" bytes="381274640" delayFromFirstProbeSum="+2008534384971ns" />
+      <FlowStats flowId="4" packets="128759" bytes="6695468" delayFromFirstProbeSum="+901527254976ns" />
+      <FlowStats flowId="5" packets="229668" bytes="339908640" delayFromFirstProbeSum="+1873052198123ns" />
+      <FlowStats flowId="6" packets="114787" bytes="5968924" delayFromFirstProbeSum="+803700005568ns" />
+    </FlowProbe>
+  </FlowProbes>
+</FlowMonitor>

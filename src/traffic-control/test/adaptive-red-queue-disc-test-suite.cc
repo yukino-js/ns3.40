@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2015 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "ns3/double.h"
 #include "ns3/log.h"
@@ -29,30 +10,11 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control
- * \ingroup tests
- * \defgroup traffic-control-test traffic-control module tests
- */
-
-/**
- * \ingroup traffic-control-test
- *
- * \brief Ared Queue Disc Test Item
- */
 class AredQueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p packet
-   * \param addr address
-   */
   AredQueueDiscTestItem(Ptr<Packet> p, const Address &addr);
   ~AredQueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   AredQueueDiscTestItem() = delete;
   AredQueueDiscTestItem(const AredQueueDiscTestItem &) = delete;
   AredQueueDiscTestItem &operator=(const AredQueueDiscTestItem &) = delete;
@@ -70,35 +32,14 @@ void AredQueueDiscTestItem::AddHeader() {}
 
 bool AredQueueDiscTestItem::Mark() { return false; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Ared Queue Disc Test Case
- */
 class AredQueueDiscTestCase : public TestCase {
 public:
   AredQueueDiscTestCase();
   void DoRun() override;
 
 private:
-  /**
-   * Enqueue function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void Enqueue(Ptr<RedQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /**
-   * Enqueue with delay function
-   * \param queue the queue disc
-   * \param size the size
-   * \param nPkt the number of packets
-   */
   void EnqueueWithDelay(Ptr<RedQueueDisc> queue, uint32_t size, uint32_t nPkt);
-  /**
-   * Run ARED queue disc test function
-   * \param mode the test mode
-   */
   void RunAredDiscTest(QueueSizeUnit mode);
 };
 
@@ -107,14 +48,12 @@ AredQueueDiscTestCase::AredQueueDiscTestCase()
 
 void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   uint32_t pktSize = 0;
-  uint32_t modeSize = 1; // 1 for packets; pktSize for bytes
+  uint32_t modeSize = 1;
   double minTh = 70;
   double maxTh = 150;
   uint32_t qSize = 300;
   Address dest;
 
-  // test 1: Verify automatic setting of QW. [QW = 0.0 with default
-  // LinkBandwidth]
   Ptr<RedQueueDisc> queue = CreateObject<RedQueueDisc>();
 
   if (mode == QueueSizeUnit::BYTES) {
@@ -144,8 +83,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_EQ(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be zero unforced drops");
 
-  // test 2: Verify automatic setting of QW. [QW = 0.0 with lesser
-  // LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MinTh", DoubleValue(minTh)), true,
@@ -170,8 +107,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_NE(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be some unforced drops");
 
-  // test 3: Verify automatic setting of QW. [QW = -1.0 with default
-  // LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MinTh", DoubleValue(minTh)), true,
@@ -192,8 +127,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_EQ(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be zero unforced drops");
 
-  // test 4: Verify automatic setting of QW. [QW = -1.0 with lesser
-  // LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MinTh", DoubleValue(minTh)), true,
@@ -218,8 +151,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_NE(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be some unforced drops");
 
-  // test 5: Verify automatic setting of QW. [QW = -2.0 with default
-  // LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MinTh", DoubleValue(minTh)), true,
@@ -240,8 +171,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   uint32_t test5 = st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP);
   NS_TEST_ASSERT_MSG_NE(test5, 0, "There should be some unforced drops");
 
-  // test 6: Verify automatic setting of QW. [QW = -2.0 with lesser
-  // LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MinTh", DoubleValue(minTh)), true,
@@ -267,8 +196,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_NE(test6, test5,
                         "Test 6 should have more unforced drops than Test 5");
 
-  // test 7: Verify automatic setting of minTh and maxTh. [minTh = maxTh = 0.0,
-  // with default LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(queue->SetAttributeFailSafe("MinTh", DoubleValue(0.0)),
                         true,
@@ -286,8 +213,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_NE(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be some unforced drops");
 
-  // test 8: Verify automatic setting of minTh and maxTh. [minTh = maxTh = 0.0,
-  // with higher LinkBandwidth]
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(queue->SetAttributeFailSafe("MinTh", DoubleValue(0.0)),
                         true,
@@ -309,7 +234,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_EQ(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be zero unforced drops");
 
-  // test 9: Default RED (automatic and adaptive settings disabled)
   queue = CreateObject<RedQueueDisc>();
   minTh = 5 * modeSize;
   maxTh = 15 * modeSize;
@@ -338,7 +262,6 @@ void AredQueueDiscTestCase::RunAredDiscTest(QueueSizeUnit mode) {
   NS_TEST_ASSERT_MSG_NE(st.GetNDroppedPackets(RedQueueDisc::UNFORCED_DROP), 0,
                         "There should be some unforced drops");
 
-  // test 10: Adaptive RED (automatic and adaptive settings enabled)
   queue = CreateObject<RedQueueDisc>();
   NS_TEST_ASSERT_MSG_EQ(
       queue->SetAttributeFailSafe("MaxSize",
@@ -371,7 +294,7 @@ void AredQueueDiscTestCase::Enqueue(Ptr<RedQueueDisc> queue, uint32_t size,
 void AredQueueDiscTestCase::EnqueueWithDelay(Ptr<RedQueueDisc> queue,
                                              uint32_t size, uint32_t nPkt) {
   Address dest;
-  double delay = 0.01; // enqueue packets with delay to allow m_curMaxP to adapt
+  double delay = 0.01;
   for (uint32_t i = 0; i < nPkt; i++) {
     Simulator::Schedule(Time(Seconds((i + 1) * delay)),
                         &AredQueueDiscTestCase::Enqueue, this, queue, size, 1);
@@ -384,14 +307,9 @@ void AredQueueDiscTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Ared Queue Disc Test Suite
- */
 static class AredQueueDiscTestSuite : public TestSuite {
 public:
   AredQueueDiscTestSuite() : TestSuite("adaptive-red-queue-disc", UNIT) {
     AddTestCase(new AredQueueDiscTestCase(), TestCase::QUICK);
   }
-} g_aredQueueDiscTestSuite; ///< the test suite
+} g_aredQueueDiscTestSuite;

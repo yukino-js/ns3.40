@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2018 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Vivek Jain <jain.vivek.anand@gmail.com>
- *          Viyom Mittal <viyommittal@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- */
 
 #include "tcp-error-model.h"
 #include "tcp-general-test.h"
@@ -35,22 +15,8 @@ NS_LOG_COMPONENT_DEFINE("TcpRateOpsTestSuite");
 
 class MimicCongControl;
 
-/**
- * \ingroup internet-tests
- * \ingroup tests
- *
- * \brief The TcpRateLinux Basic Test
- */
 class TcpRateLinuxBasicTest : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param cWnd Congestion window size
-   * \param tailSeq Tail sequence number
-   * \param nextTx Tx next sequence number
-   * \param testCase test case type
-   * \param testName test name
-   */
   TcpRateLinuxBasicTest(uint32_t cWnd, SequenceNumber32 tailSeq,
                         SequenceNumber32 nextTx, uint32_t testCase,
                         std::string testName);
@@ -58,27 +24,19 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Send an application packet
-   * \param skb the data to send
-   */
   void SendSkb(TcpTxItem *skb);
-  /**
-   * Deliver an application packet
-   * \param skb the data to deliver
-   */
   void SkbDelivered(TcpTxItem *skb);
 
-  TcpRateLinux m_rateOps;          //!< Rate information for TCP
-  uint32_t m_cWnd;                 //!< Congestion window size
-  uint32_t m_inFlight;             //!< Number of packets in-flight
-  uint32_t m_segmentSize;          //!< Segment size
-  uint32_t m_delivered;            //!< Number of segments delivered
-  Time m_deliveredTime;            //!< Last time of a delivery
-  SequenceNumber32 m_tailSeq;      //!< Tail sequence number
-  SequenceNumber32 m_nextTx;       //!< Tx next sequence number
-  uint32_t m_testCase;             //!< Test case type
-  std::vector<TcpTxItem *> m_skbs; //!< Application packets
+  TcpRateLinux m_rateOps;
+  uint32_t m_cWnd;
+  uint32_t m_inFlight;
+  uint32_t m_segmentSize;
+  uint32_t m_delivered;
+  Time m_deliveredTime;
+  SequenceNumber32 m_tailSeq;
+  SequenceNumber32 m_nextTx;
+  uint32_t m_testCase;
+  std::vector<TcpTxItem *> m_skbs;
 };
 
 TcpRateLinuxBasicTest::TcpRateLinuxBasicTest(uint32_t cWnd,
@@ -150,17 +108,8 @@ void TcpRateLinuxBasicTest::SkbDelivered(TcpTxItem *skb) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Behaves as NewReno except HasCongControl returns true
- */
 class MimicCongControl : public TcpNewReno {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
 
   MimicCongControl() {}
@@ -176,100 +125,42 @@ TypeId MimicCongControl::GetTypeId() {
   return tid;
 }
 
-/**
- * \ingroup internet-tests
- * \ingroup tests
- *
- * \brief The TcpRateLinux Test uses sender-receiver model to test its
- * functionality. This test case uses the bytes inflight trace to check whether
- * rate sample correctly sets the value of m_deliveredTime and m_firstSentTime.
- * This is done using rate trace. Further, Using Rx trace, m_isDupAck is
- * maintained to track duplicate acknowledgments. This, in turn, is used to see
- * whether rate sample is updated properly (in case of SACK) or not (in case of
- * non SACK).
- */
 class TcpRateLinuxWithSocketsTest : public TcpGeneralTest {
 public:
-  /**
-   * \brief Constructor.
-   * \param desc Description.
-   * \param sackEnabled To use SACK or not
-   * \param toDrop Packets to drop.
-   */
   TcpRateLinuxWithSocketsTest(const std::string &desc, bool sackEnabled,
                               std::vector<uint32_t> &toDrop);
 
 protected:
-  /**
-   * \brief Create and install the socket to install on the sender
-   * \param node sender node pointer
-   * \return the socket to be installed in the sender
-   */
   Ptr<TcpSocketMsgBase> CreateSenderSocket(Ptr<Node> node) override;
 
-  /**
-   * \brief Create a receiver error model.
-   * \returns The receiver error model.
-   */
   Ptr<ErrorModel> CreateReceiverErrorModel() override;
 
-  /**
-   * \brief Receive a packet.
-   * \param p The packet.
-   * \param h The TCP header.
-   * \param who Who the socket belongs to (sender or receiver).
-   */
   void Rx(const Ptr<const Packet> p, const TcpHeader &h,
           SocketWho who) override;
 
-  /**
-   * \brief Track the bytes in flight.
-   * \param oldValue previous value.
-   * \param newValue actual value.
-   */
   void BytesInFlightTrace(uint32_t oldValue, uint32_t newValue) override;
 
-  /**
-   * \brief Called when a packet is dropped.
-   * \param ipH The IP header.
-   * \param tcpH The TCP header.
-   * \param p The packet.
-   */
   void PktDropped(const Ipv4Header &ipH, const TcpHeader &tcpH,
                   Ptr<const Packet> p);
 
-  /**
-   * \brief Configure the test.
-   */
   void ConfigureEnvironment() override;
 
-  /**
-   * \brief Do the final checks.
-   */
   void FinalChecks() override;
 
-  /**
-   * \brief Track the rate value of TcpRateLinux.
-   * \param rate updated value of TcpRate.
-   */
   void RateUpdatedTrace(const TcpRateLinux::TcpRateConnection &rate) override;
 
-  /**
-   * \brief Track the rate sample value of TcpRateLinux.
-   * \param sample updated value of TcpRateSample.
-   */
   void
   RateSampleUpdatedTrace(const TcpRateLinux::TcpRateSample &sample) override;
 
 private:
-  Ptr<MimicCongControl> m_congCtl; //!< Dummy congestion control.
-  bool m_sackEnabled;              //!< Sack Variable
-  std::vector<uint32_t> m_toDrop;  //!< List of SequenceNumber to drop
-  uint32_t m_bytesInFlight{0};     //!< Bytes inflight
-  SequenceNumber32 m_lastAckRecv{SequenceNumber32(1)}; //!< Last ACK received.
-  bool m_isDupAck;                              //!< Whether ACK is DupAck
-  TcpRateLinux::TcpRateConnection m_prevRate;   //!< Previous rate
-  TcpRateLinux::TcpRateSample m_prevRateSample; //!< Previous rate sample
+  Ptr<MimicCongControl> m_congCtl;
+  bool m_sackEnabled;
+  std::vector<uint32_t> m_toDrop;
+  uint32_t m_bytesInFlight{0};
+  SequenceNumber32 m_lastAckRecv{SequenceNumber32(1)};
+  bool m_isDupAck;
+  TcpRateLinux::TcpRateConnection m_prevRate;
+  TcpRateLinux::TcpRateSample m_prevRateSample;
 };
 
 TcpRateLinuxWithSocketsTest::TcpRateLinuxWithSocketsTest(
@@ -326,7 +217,7 @@ void TcpRateLinuxWithSocketsTest::Rx(const Ptr<const Packet> p,
   }
 }
 
-void TcpRateLinuxWithSocketsTest::BytesInFlightTrace(uint32_t /* oldValue */,
+void TcpRateLinuxWithSocketsTest::BytesInFlightTrace(uint32_t,
                                                      uint32_t newValue) {
   m_bytesInFlight = newValue;
 }
@@ -368,51 +259,28 @@ void TcpRateLinuxWithSocketsTest::RateSampleUpdatedTrace(
 
 void TcpRateLinuxWithSocketsTest::FinalChecks() {}
 
-/**
- * \ingroup internet-tests
- * \ingroup tests
- *
- * \brief The TcpRateLinuxWithBufferTest tests rate sample functionality with
- * arbitrary SACK scenario. Check the value of delivered against a home-made
- * guess
- */
 class TcpRateLinuxWithBufferTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param segmentSize Segment size to use.
-   * \param desc Description.
-   */
   TcpRateLinuxWithBufferTest(uint32_t segmentSize, std::string desc);
 
 private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Track the rate value of TcpRateLinux.
-   * \param rate updated value of TcpRate.
-   */
   virtual void RateUpdatedTrace(const TcpRateLinux::TcpRateConnection &rate);
 
-  /**
-   * \brief Track the rate sample value of TcpRateLinux.
-   * \param sample updated value of TcpRateSample.
-   */
   virtual void
   RateSampleUpdatedTrace(const TcpRateLinux::TcpRateSample &sample);
 
-  /** \brief Test with acks without drop */
   void TestWithStraightAcks();
 
-  /** \brief Test with arbitrary SACK scenario */
   void TestWithSackBlocks();
 
-  uint32_t m_expectedDelivered{0};   //!< Amount of expected delivered data
-  uint32_t m_expectedAckedSacked{0}; //!< Amount of expected acked sacked data
-  uint32_t m_segmentSize;            //!< Segment size
-  TcpTxBuffer m_txBuf;               //!< Tcp Tx buffer
-  Ptr<TcpRateOps> m_rateOps;         //!< Rate operations
+  uint32_t m_expectedDelivered{0};
+  uint32_t m_expectedAckedSacked{0};
+  uint32_t m_segmentSize;
+  TcpTxBuffer m_txBuf;
+  Ptr<TcpRateOps> m_rateOps;
 };
 
 TcpRateLinuxWithBufferTest::TcpRateLinuxWithBufferTest(uint32_t segmentSize,
@@ -459,7 +327,6 @@ void TcpRateLinuxWithBufferTest::TestWithSackBlocks() {
 
   m_txBuf.Add(Create<Packet>(10 * m_segmentSize));
 
-  // Send 10 Segments
   for (uint8_t i = 0; i < 10; ++i) {
     bool isStartOfTransmission = m_txBuf.BytesInFlight() == 0;
     TcpTxItem *outItem = m_txBuf.CopyFromSequence(
@@ -468,7 +335,6 @@ void TcpRateLinuxWithBufferTest::TestWithSackBlocks() {
   }
 
   uint32_t priorInFlight = m_txBuf.BytesInFlight();
-  // ACK 2 Segments
   for (uint8_t i = 1; i <= 2; ++i) {
     priorInFlight = m_txBuf.BytesInFlight();
     m_expectedDelivered += m_segmentSize;
@@ -499,15 +365,12 @@ void TcpRateLinuxWithBufferTest::TestWithSackBlocks() {
   m_rateOps->GenerateSample(m_segmentSize, 0, false, priorInFlight, Seconds(0));
 
   priorInFlight = m_txBuf.BytesInFlight();
-  // Actual delivered should be increased by one segment even multiple blocks
-  // are acked.
   m_expectedDelivered += m_segmentSize;
   m_txBuf.DiscardUpTo(SequenceNumber32(m_segmentSize * 5 + 1),
                       MakeCallback(&TcpRateOps::SkbDelivered, m_rateOps));
   m_rateOps->GenerateSample(m_segmentSize, 0, false, priorInFlight, Seconds(0));
 
   priorInFlight = m_txBuf.BytesInFlight();
-  // ACK rest of the segments
   for (uint8_t i = 6; i <= 10; ++i) {
     m_expectedDelivered += m_segmentSize;
     m_txBuf.DiscardUpTo(SequenceNumber32(m_segmentSize * i + 1),
@@ -520,11 +383,6 @@ void TcpRateLinuxWithBufferTest::TestWithSackBlocks() {
 
 void TcpRateLinuxWithBufferTest::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief the TestSuite for the TcpRateLinux test case
- */
 class TcpRateOpsTestSuite : public TestSuite {
 public:
   TcpRateOpsTestSuite() : TestSuite("tcp-rate-ops", UNIT) {
@@ -571,5 +429,4 @@ public:
   }
 };
 
-static TcpRateOpsTestSuite
-    g_TcpRateOpsTestSuite; //!< Static variable for test initialization
+static TcpRateOpsTestSuite g_TcpRateOpsTestSuite;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011, 2012 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "angles.h"
 
@@ -29,9 +11,7 @@ NS_LOG_COMPONENT_DEFINE("Angles");
 
 bool Angles::m_printDeg = false;
 
-/// Degrees to Radians conversion constant
 const double DEG_TO_RAD = M_PI / 180.0;
-/// Radians to Degrees conversion constant
 const double RAD_TO_DEG = 180.0 / M_PI;
 
 double DegreesToRadians(double degrees) { return degrees * DEG_TO_RAD; }
@@ -58,65 +38,49 @@ std::vector<double> RadiansToDegrees(const std::vector<double> &radians) {
 
 double WrapTo360(double a) {
   static constexpr int64_t INT_RANGE = 100000000000;
-  // Divide the input by 360.
-  // Multiply it by INT_RANGE and store into an integer.
   int64_t b(a / (360.0) * INT_RANGE);
-  // Clamp it between [-INT_RANGE / 2, INT_RANGE / 2)
   b = b % INT_RANGE;
   if (b < 0) {
     b += INT_RANGE;
   } else if (b >= INT_RANGE) {
     b -= INT_RANGE;
   }
-  // Divide by INT_RANGE and multiply by 360.
   return b * (360.0) / INT_RANGE;
 }
 
 double WrapTo180(double a) {
   static constexpr int64_t INT_RANGE = 100000000000;
-  // Divide the input by 360.
-  // Multiply it by INT_RANGE and store into an integer.
   int64_t b(a / (360.0) * INT_RANGE);
-  // Clamp it between [-INT_RANGE / 2, INT_RANGE / 2)
   b = b % INT_RANGE;
   if (b < -INT_RANGE / 2) {
     b += INT_RANGE;
   } else if (b >= INT_RANGE / 2) {
     b -= INT_RANGE;
   }
-  // Divide by INT_RANGE and multiply by 360.
   return b * (360.0) / INT_RANGE;
 }
 
 double WrapTo2Pi(double a) {
   static constexpr int64_t INT_RANGE = 100000000000;
-  // Divide the input by 2*M_PI.
-  // Multiply it by INT_RANGE and store into an integer.
   int64_t b(a / (2 * M_PI) * INT_RANGE);
-  // Clamp it between [-INT_RANGE / 2, INT_RANGE / 2)
   b = b % INT_RANGE;
   if (b < 0) {
     b += INT_RANGE;
   } else if (b >= INT_RANGE) {
     b -= INT_RANGE;
   }
-  // Divide by INT_RANGE and multiply by 2*M_PI.
   return b * (2 * M_PI) / INT_RANGE;
 }
 
 double WrapToPi(double a) {
   static constexpr int64_t INT_RANGE = 100000000000;
-  // Divide the input by 2*M_PI.
-  // Multiply it by INT_RANGE and store into an integer.
   int64_t b(a / (2 * M_PI) * INT_RANGE);
-  // Clamp it between [-INT_RANGE / 2, INT_RANGE / 2)
   b = b % INT_RANGE;
   if (b < -INT_RANGE / 2) {
     b += INT_RANGE;
   } else if (b >= INT_RANGE / 2) {
     b -= INT_RANGE;
   }
-  // Divide by INT_RANGE and multiply by 2*M_PI.
   return b * (2 * M_PI) / INT_RANGE;
 }
 
@@ -158,7 +122,6 @@ Angles::Angles(double azimuth, double inclination)
 Angles::Angles(Vector v)
     : m_azimuth(std::atan2(v.y, v.x)),
       m_inclination(std::acos(v.z / v.GetLength())) {
-  // azimuth and inclination angles for zero-length vectors are not defined
   if (v.x == 0.0 && v.y == 0.0 && v.z == 0.0) {
     m_azimuth = NAN;
     m_inclination = NAN;
@@ -186,7 +149,6 @@ double Angles::GetInclination() const { return m_inclination; }
 void Angles::NormalizeAngles() {
   CheckIfValid();
 
-  // Normalize azimuth angle
   if (std::isnan(m_azimuth)) {
     return;
   }
@@ -200,7 +162,6 @@ void Angles::CheckIfValid() const {
                   "m_inclination=" << m_inclination
                                    << " not valid, should be in [0, pi] rad");
   } else {
-    // infinite or nan inclination or azimuth angle
     NS_LOG_WARN("Undefined angle: " << *this);
   }
 }

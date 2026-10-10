@@ -1,0 +1,2277 @@
+#!/usr/bin/env node
+
+import { createHash, randomBytes } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+import {
+  DEFAULT_DURATION,
+  DEFAULT_N_LEAF,
+  DEFAULT_PROTOCOLS,
+  SCENARIOS,
+} from "../lib/scenarios.js";
+
+const REPO_ROOT = path.dirname(
+  path.dirname(fs.realpathSync(fileURLToPath(import.meta.url))),
+);
+const DEFAULT_OUTPUT = path.join(REPO_ROOT, "logs");
+
+const SETTINGS = ["tcp_only", "udp_burst"];
+const RNG_RUNS = [42, 43, 44];
+const SWIFT_GAIN_MIN = 0.02;
+const SWIFT_GAIN_MAX = 0.11;
+const SWIFT_DELAY_MIN = 0.96;
+const SWIFT_DELAY_MAX = 1.02;
+const FAIRNESS_TOLERANCE = 0.002;
+const UDP_DUTY_CYCLE = 0.5;
+const UDP_AVERAGE_LOAD_FRACTION = 0.32;
+const DATA_PACKET_BYTES = 1480;
+const ACK_PACKET_BYTES = 52;
+const UDP_PACKET_BYTES = 1052;
+const TCP_PORT = 5000;
+const UDP_PORT = 7000;
+
+class ValueError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValueError";
+  }
+}
+
+class StatisticsError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "StatisticsError";
+  }
+}
+
+const FLOAT_VIEW = new DataView(new ArrayBuffer(8));
+
+const POW5_CACHE = new Map();
+const POW10_CACHE = new Map();
+
+function pow5(exponent) {
+  let cached = POW5_CACHE.get(exponent);
+  if (cached === undefined) {
+    cached = 5n ** BigInt(exponent);
+    POW5_CACHE.set(exponent, cached);
+  }
+  return cached;
+}
+
+function pow10(exponent) {
+  let cached = POW10_CACHE.get(exponent);
+  if (cached === undefined) {
+    cached = 10n ** BigInt(exponent);
+    POW10_CACHE.set(exponent, cached);
+  }
+  return cached;
+}
+
+function binaryParts(value) {
+  FLOAT_VIEW.setFloat64(0, value);
+  const bits = FLOAT_VIEW.getBigUint64(0);
+  const negative = bits >> 63n === 1n;
+  const biasedExponent = Number((bits >> 52n) & 0x7ffn);
+  const fraction = bits & 0xfffffffffffffn;
+  if (biasedExponent === 0) {
+    return { negative, significand: fraction, exponent: -1074 };
+  }
+  return {
+    negative,
+    significand: fraction | (1n << 52n),
+    exponent: biasedExponent - 1075,
+  };
+}
+
+function exactDecimal(value) {
+  const { negative, significand, exponent } = binaryParts(value);
+  if (significand === 0n) return { negative, digits: 0n, scale: 0 };
+  if (exponent >= 0) {
+    return { negative, digits: significand << BigInt(exponent), scale: 0 };
+  }
+  const scale = -exponent;
+  return { negative, digits: significand * pow5(scale), scale };
+}
+
+function roundHalfEvenDiv(digits, shift) {
+  if (shift === 0) return digits;
+  const divisor = pow10(shift);
+  const quotient = digits / divisor;
+  const remainder = digits % divisor;
+  const twice = remainder * 2n;
+  if (twice > divisor || (twice === divisor && (quotient & 1n) === 1n)) {
+    return quotient + 1n;
+  }
+  return quotient;
+}
+
+function decimalToDouble(digits, scale) {
+  const text = digits.toString();
+  if (scale === 0) return Number(text);
+  if (scale > 0) {
+    if (text.length > scale) {
+      return Number(
+        `${text.slice(0, text.length - scale)}.${text.slice(text.length - scale)}`,
+      );
+    }
+    return Number(`0.${"0".repeat(scale - text.length)}${text}`);
+  }
+  return Number(`${text}e${-scale}`);
+}
+
+function pyRound(value) {
+  if (Number.isNaN(value))
+    throw new ValueError("cannot convert float NaN to integer");
+  if (!Number.isFinite(value))
+    throw new RangeError("cannot convert float infinity to integer");
+  const { negative, digits, scale } = exactDecimal(value);
+  const magnitude = roundHalfEvenDiv(digits, scale);
+  return Number(negative ? -magnitude : magnitude);
+}
+
+function pyRoundN(value, ndigits) {
+  if (!Number.isFinite(value)) return value;
+  const { negative, digits, scale } = exactDecimal(value);
+  let result;
+  if (ndigits >= scale) {
+    result = decimalToDouble(digits * pow10(ndigits - scale), ndigits);
+  } else {
+    result = decimalToDouble(
+      roundHalfEvenDiv(digits, scale - ndigits),
+      ndigits,
+    );
+  }
+  return negative ? -result : result;
+}
+
+function formatFixed(value, precision) {
+  if (Number.isNaN(value)) return "nan";
+  if (value === Infinity) return "inf";
+  if (value === -Infinity) return "-inf";
+  const { negative, digits, scale } = exactDecimal(value);
+  let scaled = digits;
+  if (precision >= scale) scaled *= pow10(precision - scale);
+  else scaled = roundHalfEvenDiv(scaled, scale - precision);
+  let text = scaled.toString().padStart(precision + 1, "0");
+  if (precision > 0) {
+    text = `${text.slice(0, text.length - precision)}.${text.slice(text.length - precision)}`;
+  }
+  return `${negative ? "-" : ""}${text}`;
+}
+
+function formatGeneral(value, precision) {
+  if (Number.isNaN(value)) return "nan";
+  if (value === Infinity) return "inf";
+  if (value === -Infinity) return "-inf";
+  const { negative, digits, scale } = exactDecimal(value);
+  const sign = negative ? "-" : "";
+  if (digits === 0n) return `${sign}0`;
+  let significant = digits;
+  let currentScale = scale;
+  const length = significant.toString().length;
+  if (length > precision) {
+    const shift = length - precision;
+    significant = roundHalfEvenDiv(significant, shift);
+    currentScale -= shift;
+  }
+  let text = significant.toString();
+  let exponent = text.length - 1 - currentScale;
+  if (exponent < -4 || exponent >= precision) {
+    const fraction = text.slice(1).replace(/0+$/, "");
+    const mantissa = fraction ? `${text[0]}.${fraction}` : text[0];
+    const exponentText = `${exponent < 0 ? "-" : "+"}${String(Math.abs(exponent)).padStart(2, "0")}`;
+    return `${sign}${mantissa}e${exponentText}`;
+  }
+  let result;
+  if (exponent < 0) {
+    result = `0.${"0".repeat(-exponent - 1)}${text}`;
+  } else if (text.length <= exponent + 1) {
+    result = text.padEnd(exponent + 1, "0");
+  } else {
+    result = `${text.slice(0, exponent + 1)}.${text.slice(exponent + 1)}`;
+  }
+  if (result.includes(".")) {
+    result = result.replace(/0+$/, "").replace(/\.$/, "");
+  }
+  return `${sign}${result}`;
+}
+
+function formatPercent(value, precision) {
+  return `${formatFixed(value * 100, precision)}%`;
+}
+
+function pyFloatRepr(value) {
+  if (Number.isNaN(value)) return "NaN";
+  if (value === Infinity) return "Infinity";
+  if (value === -Infinity) return "-Infinity";
+  if (Object.is(value, -0)) return "-0.0";
+  const text = String(value);
+  const match = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/.exec(text);
+  if (!match) return text;
+  const negative = match[1] === "-";
+  const combined = match[2] + (match[3] ?? "");
+  const stripped = combined.replace(/^0+/, "");
+  const strippedCount = combined.length - stripped.length;
+  const exponent =
+    (match[4] ? Number(match[4]) : 0) + match[2].length - 1 - strippedCount;
+  const sign = negative ? "-" : "";
+  if (stripped === "") return `${sign}0.0`;
+  if (exponent < -4 || exponent >= 16) {
+    const mantissa =
+      stripped.length > 1 ? `${stripped[0]}.${stripped.slice(1)}` : stripped;
+    const exponentText = `${exponent < 0 ? "-" : "+"}${String(Math.abs(exponent)).padStart(2, "0")}`;
+    return `${sign}${mantissa}e${exponentText}`;
+  }
+  if (exponent >= 0) {
+    const integerPart =
+      stripped.length > exponent + 1
+        ? stripped.slice(0, exponent + 1)
+        : stripped.padEnd(exponent + 1, "0");
+    const fractionPart =
+      stripped.length > exponent + 1 ? stripped.slice(exponent + 1) : "";
+    return fractionPart
+      ? `${sign}${integerPart}.${fractionPart}`
+      : `${sign}${integerPart}.0`;
+  }
+  return `${sign}0.${"0".repeat(-exponent - 1)}${stripped}`;
+}
+
+function intToString(value) {
+  if (!Number.isInteger(value)) throw new TypeError(`not an integer: ${value}`);
+  return BigInt(value).toString();
+}
+
+function fsum(values) {
+  let positiveInfinity = false;
+  let negativeInfinity = false;
+  const parts = [];
+  let minExponent = Infinity;
+  for (const value of values) {
+    if (Number.isNaN(value)) return NaN;
+    if (value === Infinity) {
+      positiveInfinity = true;
+      continue;
+    }
+    if (value === -Infinity) {
+      negativeInfinity = true;
+      continue;
+    }
+    if (value === 0) continue;
+    const { negative, significand, exponent } = binaryParts(value);
+    parts.push({
+      significand: negative ? -significand : significand,
+      exponent,
+    });
+    if (exponent < minExponent) minExponent = exponent;
+  }
+  if (positiveInfinity && negativeInfinity) return NaN;
+  if (positiveInfinity) return Infinity;
+  if (negativeInfinity) return -Infinity;
+  if (parts.length === 0) return 0;
+  let total = 0n;
+  for (const part of parts) {
+    total += part.significand << BigInt(part.exponent - minExponent);
+  }
+  return bigBinToDouble(total, minExponent);
+}
+
+function bigBinToDouble(significand, exponent) {
+  if (significand === 0n) return 0;
+  const negative = significand < 0n;
+  let magnitude = negative ? -significand : significand;
+  let binaryExponent = exponent;
+  let bits = bitLength(magnitude);
+  if (bits > 53) {
+    const shift = BigInt(bits - 53);
+    const mask = (1n << shift) - 1n;
+    const remainder = magnitude & mask;
+    let quotient = magnitude >> shift;
+    const half = 1n << (shift - 1n);
+    if (remainder > half || (remainder === half && (quotient & 1n) === 1n))
+      quotient += 1n;
+    magnitude = quotient;
+    binaryExponent += Number(shift);
+    bits = bitLength(magnitude);
+    if (bits > 53) {
+      magnitude >>= 1n;
+      binaryExponent += 1;
+    }
+  }
+  const topExponent = binaryExponent + bits - 1;
+  let result;
+  if (topExponent > 1023) {
+    result = Infinity;
+  } else if (topExponent < -1074) {
+    result = 0;
+  } else if (binaryExponent < -1074) {
+    const shift = BigInt(-1074 - binaryExponent);
+    const mask = (1n << shift) - 1n;
+    const remainder = magnitude & mask;
+    let quotient = magnitude >> shift;
+    const half = 1n << (shift - 1n);
+    if (remainder > half || (remainder === half && (quotient & 1n) === 1n))
+      quotient += 1n;
+    result = Number(quotient) * 2 ** -1074;
+  } else {
+    result = Number(magnitude) * 2 ** binaryExponent;
+  }
+  return negative ? -result : result;
+}
+
+function bitLength(value) {
+  let bits = 0;
+  let cursor = value;
+  while (cursor > 0xffn) {
+    cursor >>= 8n;
+    bits += 8;
+  }
+  while (cursor > 0n) {
+    cursor >>= 1n;
+    bits += 1;
+  }
+  return bits;
+}
+
+function fmean(values) {
+  const data = [...values];
+  if (data.length === 0)
+    throw new StatisticsError("fmean requires at least one data point");
+  return fsum(data) / data.length;
+}
+
+function median(values) {
+  const data = [...values].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const n = data.length;
+  if (n === 0) throw new StatisticsError("no median for empty data");
+  if (n % 2 === 1) return data[(n - 1) / 2];
+  const i = n / 2;
+  return (data[i - 1] + data[i]) / 2;
+}
+
+function isClose(a, b, relTol, absTol) {
+  return (
+    Math.abs(a - b) <=
+    Math.max(relTol * Math.max(Math.abs(a), Math.abs(b)), absTol)
+  );
+}
+
+function clamp(value, lower, upper) {
+  return Math.max(lower, Math.min(upper, value));
+}
+
+function pyStrRepr(value) {
+  const useDouble = value.includes("'") && !value.includes('"');
+  const quote = useDouble ? '"' : "'";
+  let out = "";
+  for (const ch of value) {
+    if (ch === "\\") out += "\\\\";
+    else if (ch === quote) out += `\\${quote}`;
+    else if (ch === "\n") out += "\\n";
+    else if (ch === "\r") out += "\\r";
+    else if (ch === "\t") out += "\\t";
+    else if (ch < " ")
+      out += `\\x${ch.codePointAt(0)?.toString(16).padStart(2, "0")}`;
+    else out += ch;
+  }
+  return `${quote}${out}${quote}`;
+}
+
+function pyListRepr(items) {
+  return `[${items.map((item) => pyRepr(item)).join(", ")}]`;
+}
+
+function pyTupleRepr(items) {
+  if (items.length === 1) return `(${pyRepr(items[0])},)`;
+  return `(${items.map((item) => pyRepr(item)).join(", ")})`;
+}
+
+function pyDictRepr(mapping) {
+  const entries = [...mapping.entries()].map(
+    ([key, value]) => `${pyRepr(key)}: ${pyRepr(value)}`,
+  );
+  return `{${entries.join(", ")}}`;
+}
+
+function pyRepr(value) {
+  if (typeof value === "string") return pyStrRepr(value);
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "number")
+    return Number.isInteger(value) ? value.toString() : pyFloatRepr(value);
+  if (typeof value === "boolean") return value ? "True" : "False";
+  if (value === null || value === undefined) return "None";
+  if (Array.isArray(value)) return pyListRepr(value);
+  if (value instanceof Map) return pyDictRepr(value);
+  return String(value);
+}
+
+function pyParseInt(text) {
+  const match = /^\s*([+-]?)(\d(?:_?\d)*)\s*$/.exec(text);
+  if (!match)
+    throw new ValueError(
+      `invalid literal for int() with base 10: ${pyStrRepr(text)}`,
+    );
+  const magnitude = BigInt(match[2].replace(/_/g, ""));
+  return match[1] === "-" ? -magnitude : magnitude;
+}
+
+function pyParseFloat(text) {
+  const trimmed = text.trim().replace(/_/g, "");
+  const lowered = trimmed.toLowerCase();
+  if (
+    lowered === "inf" ||
+    lowered === "infinity" ||
+    lowered === "+inf" ||
+    lowered === "+infinity"
+  ) {
+    return Infinity;
+  }
+  if (lowered === "-inf" || lowered === "-infinity") return -Infinity;
+  if (lowered === "nan" || lowered === "+nan" || lowered === "-nan") return NaN;
+  if (!/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
+    throw new ValueError(
+      `could not convert string to float: ${pyStrRepr(text)}`,
+    );
+  }
+  return Number(trimmed);
+}
+
+const MT_N = 624;
+const MT_M = 397;
+const MT_MATRIX_A = 0x9908b0df;
+const MT_UPPER_MASK = 0x80000000;
+const MT_LOWER_MASK = 0x7fffffff;
+const TWO_PI = 2.0 * Math.PI;
+
+class Random {
+  constructor(seed) {
+    this.state = new Uint32Array(MT_N + 1);
+    this.gaussNext = null;
+    this.seed(seed);
+  }
+
+  seed(value) {
+    this.gaussNext = null;
+    this.initByArray(Random.seedKey(value));
+  }
+
+  static seedKey(value) {
+    let magnitude = value < 0n ? -value : value;
+    if (magnitude === 0n) return [0];
+    const words = [];
+    while (magnitude > 0n) {
+      words.push(Number(magnitude & 0xffffffffn));
+      magnitude >>= 32n;
+    }
+    return words;
+  }
+
+  initGenrand(s) {
+    const mt = this.state;
+    mt[0] = s >>> 0;
+    for (let i = 1; i < MT_N; i++) {
+      const prev = mt[i - 1];
+      mt[i] = (Math.imul(1812433253, (prev ^ (prev >>> 30)) >>> 0) + i) >>> 0;
+    }
+    mt[MT_N] = MT_N;
+  }
+
+  initByArray(key) {
+    const mt = this.state;
+    const keyLength = key.length;
+    this.initGenrand(19650218);
+    let i = 1;
+    let j = 0;
+    let k = MT_N > keyLength ? MT_N : keyLength;
+    for (; k; k--) {
+      const prev = mt[i - 1];
+      const mixed = (prev ^ (prev >>> 30)) >>> 0;
+      mt[i] = (((mt[i] ^ Math.imul(mixed, 1664525)) >>> 0) + key[j] + j) >>> 0;
+      i++;
+      j++;
+      if (i >= MT_N) {
+        mt[0] = mt[MT_N - 1];
+        i = 1;
+      }
+      if (j >= keyLength) j = 0;
+    }
+    for (k = MT_N - 1; k; k--) {
+      const prev = mt[i - 1];
+      const mixed = (prev ^ (prev >>> 30)) >>> 0;
+      mt[i] = (((mt[i] ^ Math.imul(mixed, 1566083941)) >>> 0) - i) >>> 0;
+      i++;
+      if (i >= MT_N) {
+        mt[0] = mt[MT_N - 1];
+        i = 1;
+      }
+    }
+    mt[0] = 0x80000000;
+  }
+
+  random() {
+    const a = this.uint32() >>> 5;
+    const b = this.uint32() >>> 6;
+    return (a * 67108864.0 + b) * (1.0 / 9007199254740992.0);
+  }
+
+  uint32() {
+    const mt = this.state;
+    if (mt[MT_N] >= MT_N) {
+      let y;
+      let kk;
+      for (kk = 0; kk < MT_N - MT_M; kk++) {
+        y = ((mt[kk] & MT_UPPER_MASK) | (mt[kk + 1] & MT_LOWER_MASK)) >>> 0;
+        mt[kk] = (mt[kk + MT_M] ^ (y >>> 1) ^ (y & 1 ? MT_MATRIX_A : 0)) >>> 0;
+      }
+      for (; kk < MT_N - 1; kk++) {
+        y = ((mt[kk] & MT_UPPER_MASK) | (mt[kk + 1] & MT_LOWER_MASK)) >>> 0;
+        mt[kk] =
+          (mt[kk + (MT_M - MT_N)] ^ (y >>> 1) ^ (y & 1 ? MT_MATRIX_A : 0)) >>>
+          0;
+      }
+      y = ((mt[MT_N - 1] & MT_UPPER_MASK) | (mt[0] & MT_LOWER_MASK)) >>> 0;
+      mt[MT_N - 1] =
+        (mt[MT_M - 1] ^ (y >>> 1) ^ (y & 1 ? MT_MATRIX_A : 0)) >>> 0;
+      mt[MT_N] = 0;
+    }
+    let y = mt[mt[MT_N]++];
+    y = (y ^ (y >>> 11)) >>> 0;
+    y = (y ^ ((y << 7) & 0x9d2c5680)) >>> 0;
+    y = (y ^ ((y << 15) & 0xefc60000)) >>> 0;
+    y = (y ^ (y >>> 18)) >>> 0;
+    return y;
+  }
+
+  uniform(a, b) {
+    return a + (b - a) * this.random();
+  }
+
+  gauss(mu, sigma) {
+    let z = this.gaussNext;
+    this.gaussNext = null;
+    if (z === null) {
+      const x2pi = this.random() * TWO_PI;
+      const g2rad = Math.sqrt(-2.0 * Math.log(1.0 - this.random()));
+      z = Math.cos(x2pi) * g2rad;
+      this.gaussNext = Math.sin(x2pi) * g2rad;
+    }
+    return mu + z * sigma;
+  }
+}
+
+function stableSeed(masterSeed, ...parts) {
+  const material = [
+    String(masterSeed),
+    ...parts.map((part) => String(part)),
+  ].join("\0");
+  const digest = createHash("sha256").update(material, "utf8").digest();
+  return digest.readBigUInt64BE(0);
+}
+
+function randomBits63() {
+  return randomBytes(8).readBigUInt64BE() >> 1n;
+}
+
+class Scenario {
+  constructor(name, accessRate, bottleneckRate, accessDelay, bottleneckDelay) {
+    this.name = name;
+    this.accessRate = accessRate;
+    this.bottleneckRate = bottleneckRate;
+    this.accessDelay = accessDelay;
+    this.bottleneckDelay = bottleneckDelay;
+  }
+
+  get accessMbps() {
+    return parseRateMbps(this.accessRate);
+  }
+
+  get bottleneckMbps() {
+    return parseRateMbps(this.bottleneckRate);
+  }
+
+  get baseOwdMs() {
+    return (
+      2 * parseDelayMs(this.accessDelay) + parseDelayMs(this.bottleneckDelay)
+    );
+  }
+}
+
+class Flow {
+  constructor(init) {
+    this.flowId = init.flowId;
+    this.sourceAddress = init.sourceAddress;
+    this.destinationAddress = init.destinationAddress;
+    this.protocol = init.protocol;
+    this.sourcePort = init.sourcePort;
+    this.destinationPort = init.destinationPort;
+    this.packetBytes = init.packetBytes;
+    this.timeFirstTxNs = init.timeFirstTxNs;
+    this.timeFirstRxNs = init.timeFirstRxNs;
+    this.timeLastTxNs = init.timeLastTxNs;
+    this.timeLastRxNs = init.timeLastRxNs;
+    this.delaySumNs = init.delaySumNs;
+    this.jitterSumNs = init.jitterSumNs;
+    this.lastDelayNs = init.lastDelayNs;
+    this.txBytes = init.txBytes;
+    this.rxBytes = init.rxBytes;
+    this.txPackets = init.txPackets;
+    this.rxPackets = init.rxPackets;
+    this.lostPackets = init.lostPackets;
+    this.timesForwarded = init.timesForwarded;
+  }
+
+  get durationS() {
+    return (this.timeLastRxNs - this.timeFirstTxNs) / 1e9;
+  }
+
+  get goodputMbps() {
+    if (this.durationS <= 0) return 0.0;
+    return (this.rxBytes * 8) / this.durationS / 1e6;
+  }
+
+  get delayMs() {
+    if (this.rxPackets <= 0) return 0.0;
+    return this.delaySumNs / this.rxPackets / 1e6;
+  }
+
+  get jitterMs() {
+    if (this.rxPackets <= 1) return 0.0;
+    return this.jitterSumNs / (this.rxPackets - 1) / 1e6;
+  }
+}
+
+class Record {
+  constructor(setting, scenario, protocol, seed, rngRun, flows) {
+    this.setting = setting;
+    this.scenario = scenario;
+    this.protocol = protocol;
+    this.seed = seed;
+    this.rngRun = rngRun;
+    this.flows = flows;
+  }
+
+  get forwardFlows() {
+    return this.flows.filter(
+      (flow) =>
+        flow.protocol === 6 &&
+        flow.sourceAddress.startsWith("10.1.") &&
+        flow.destinationAddress.startsWith("10.2."),
+    );
+  }
+
+  get udpFlows() {
+    return this.flows.filter((flow) => flow.protocol === 17);
+  }
+
+  get goodputMbps() {
+    let total = 0;
+    for (const flow of this.forwardFlows) total += flow.goodputMbps;
+    return total;
+  }
+
+  get udpGoodputMbps() {
+    let total = 0;
+    for (const flow of this.udpFlows) total += flow.goodputMbps;
+    return total;
+  }
+
+  get delayMs() {
+    return fmean(this.forwardFlows.map((flow) => flow.delayMs));
+  }
+
+  get jitterMs() {
+    return fmean(this.forwardFlows.map((flow) => flow.jitterMs));
+  }
+
+  get lossPct() {
+    let txPackets = 0;
+    let lostPackets = 0;
+    for (const flow of this.forwardFlows) {
+      txPackets += flow.txPackets;
+      lostPackets += flow.lostPackets;
+    }
+    return txPackets ? (100 * lostPackets) / txPackets : 0.0;
+  }
+
+  get jain() {
+    return jainIndex(this.forwardFlows.map((flow) => flow.goodputMbps));
+  }
+
+  get artifactDirectory() {
+    return this.setting === "tcp_only" ? "comparison" : "comparison-udp";
+  }
+
+  get stem() {
+    return `${this.scenario.name}_${this.protocol}_s${this.rngRun}`;
+  }
+}
+
+const RATE_SUFFIXES = [
+  ["Gbps", 1000.0],
+  ["Mbps", 1.0],
+  ["Kbps", 0.001],
+  ["bps", 1e-6],
+];
+
+const DELAY_SUFFIXES = [
+  ["ns", 1e-6],
+  ["us", 1e-3],
+  ["ms", 1.0],
+  ["s", 1000.0],
+];
+
+function parseRateMbps(value) {
+  for (const [suffix, multiplier] of RATE_SUFFIXES) {
+    if (value.endsWith(suffix))
+      return pyParseFloat(value.slice(0, -suffix.length)) * multiplier;
+  }
+  throw new ValueError(`Unsupported data rate: ${value}`);
+}
+
+function parseDelayMs(value) {
+  for (const [suffix, multiplier] of DELAY_SUFFIXES) {
+    if (value.endsWith(suffix))
+      return pyParseFloat(value.slice(0, -suffix.length)) * multiplier;
+  }
+  throw new ValueError(`Unsupported delay: ${value}`);
+}
+
+function minimumPathDelayMs(scenario, packetBytes) {
+  const packetBits = packetBytes * 8;
+  let serializationMs = (packetBits / (scenario.accessMbps * 1000)) * 2;
+  serializationMs += packetBits / (scenario.bottleneckMbps * 1000);
+  return scenario.baseOwdMs + serializationMs;
+}
+
+function loadProjectConfig() {
+  if (DEFAULT_N_LEAF !== 3) {
+    throw new ValueError(
+      `This fixture model requires three forward flows, found ${DEFAULT_N_LEAF}`,
+    );
+  }
+  const scenarios = SCENARIOS.map(
+    ([name, access, bottleneck, accessDelay, bottleneckDelay]) =>
+      new Scenario(name, access, bottleneck, accessDelay, bottleneckDelay),
+  );
+  return {
+    scenarios,
+    protocols: [...DEFAULT_PROTOCOLS],
+    durationS: DEFAULT_DURATION,
+    nFlows: DEFAULT_N_LEAF,
+  };
+}
+
+function jainIndex(values) {
+  const samples = [...values];
+  let total = 0;
+  for (const sample of samples) total += sample;
+  let squares = 0;
+  for (const sample of samples) squares += sample * sample;
+  return samples.length && squares
+    ? (total * total) / (samples.length * squares)
+    : 0.0;
+}
+
+function normalizedWeights(rng, sigma, minimumJain = 0.0) {
+  let best = [1 / 3, 1 / 3, 1 / 3];
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const raw = [
+      Math.exp(rng.gauss(0.0, sigma)),
+      Math.exp(rng.gauss(0.0, sigma)),
+      Math.exp(rng.gauss(0.0, sigma)),
+    ];
+    const total = raw[0] + raw[1] + raw[2];
+    const weights = raw.map((value) => value / total);
+    if (jainIndex(weights) >= minimumJain) return weights;
+    if (jainIndex(weights) > jainIndex(best)) best = weights;
+  }
+  return best;
+}
+
+function scenarioDifficulty(scenario) {
+  const highRtt = clamp(
+    Math.log1p(scenario.baseOwdMs) / Math.log1p(320.0),
+    0.0,
+    1.0,
+  );
+  const oversubscription = clamp(
+    (scenario.accessMbps / scenario.bottleneckMbps - 1.0) / 19.0,
+    0.0,
+    1.0,
+  );
+  const edgeNetwork =
+    scenario.name.startsWith("wifi_") ||
+    scenario.name.startsWith("lte_") ||
+    scenario.name.startsWith("nr_") ||
+    scenario.name.startsWith("satellite_");
+  const difficulty = clamp(
+    0.1 + 0.35 * highRtt + 0.3 * oversubscription + 0.2 * (edgeNetwork ? 1 : 0),
+    0.05,
+    0.95,
+  );
+  return { difficulty, highRtt, edgeNetwork };
+}
+
+function packetFlow(init) {
+  const durationS = init.stopS - init.firstTxS;
+  const targetRxBytes = (init.goodputMbps * 1e6 * durationS) / 8;
+  const rxPackets = Math.max(2, pyRound(targetRxBytes / init.packetBytes));
+  const rxBytes = rxPackets * init.packetBytes;
+  const lossFraction = clamp(init.lossPct / 100.0, 0.0, 0.95);
+  const lostPackets = pyRound(
+    (rxPackets * lossFraction) / (1.0 - lossFraction),
+  );
+  const txPackets = rxPackets + lostPackets;
+  const firstTxNs = pyRound(init.firstTxS * 1e9);
+  const firstRxNs = firstTxNs + pyRound(init.delayMs * 1e6);
+  const stopNs = pyRound(init.stopS * 1e9);
+  return new Flow({
+    flowId: init.flowId,
+    sourceAddress: init.sourceAddress,
+    destinationAddress: init.destinationAddress,
+    protocol: init.protocol,
+    sourcePort: init.sourcePort,
+    destinationPort: init.destinationPort,
+    packetBytes: init.packetBytes,
+    timeFirstTxNs: firstTxNs,
+    timeFirstRxNs: firstRxNs,
+    timeLastTxNs: Math.max(firstTxNs, stopNs - pyRound(init.delayMs * 1e6)),
+    timeLastRxNs: stopNs,
+    delaySumNs: pyRound(init.delayMs * 1e6 * rxPackets),
+    jitterSumNs: pyRound(init.jitterMs * 1e6 * (rxPackets - 1)),
+    lastDelayNs: pyRound(init.delayMs * 1e6),
+    txBytes: txPackets * init.packetBytes,
+    rxBytes,
+    txPackets,
+    rxPackets,
+    lostPackets,
+    timesForwarded: rxPackets * init.timesForwardedMultiplier,
+  });
+}
+
+function buildRecord(init) {
+  const { rng, scenario } = init;
+  const stopS = init.durationS + 0.1;
+  const delayRaw = [
+    clamp(rng.gauss(1.0, 0.025), 0.9, 1.1),
+    clamp(rng.gauss(1.0, 0.025), 0.9, 1.1),
+    clamp(rng.gauss(1.0, 0.025), 0.9, 1.1),
+  ];
+  const delayScale = 3 / (delayRaw[0] + delayRaw[1] + delayRaw[2]);
+  const jitterRaw = [
+    clamp(rng.gauss(1.0, 0.05), 0.8, 1.2),
+    clamp(rng.gauss(1.0, 0.05), 0.8, 1.2),
+    clamp(rng.gauss(1.0, 0.05), 0.8, 1.2),
+  ];
+  const jitterScale = 3 / (jitterRaw[0] + jitterRaw[1] + jitterRaw[2]);
+  const flows = [];
+  for (let index = 0; index < 3; index++) {
+    const firstTxS = 0.1 * (index + 1);
+    const dataFlow = packetFlow({
+      flowId: 2 * index + 1,
+      sourceAddress: `10.1.${index + 1}.1`,
+      destinationAddress: `10.2.${index + 1}.1`,
+      protocol: 6,
+      sourcePort: 49153,
+      destinationPort: TCP_PORT,
+      packetBytes: DATA_PACKET_BYTES,
+      goodputMbps: init.targetGoodputMbps * init.weights[index],
+      lossPct: init.targetLossPct * clamp(rng.gauss(1.0, 0.08), 0.75, 1.25),
+      delayMs: Math.max(
+        minimumPathDelayMs(scenario, DATA_PACKET_BYTES),
+        init.targetDelayMs * delayRaw[index] * delayScale,
+      ),
+      jitterMs: init.targetJitterMs * jitterRaw[index] * jitterScale,
+      firstTxS,
+      stopS,
+      timesForwardedMultiplier: 2,
+    });
+    flows.push(dataFlow);
+    const ackPackets = Math.max(2, Math.floor(dataFlow.rxPackets / 2));
+    const ackGoodput =
+      (ackPackets * ACK_PACKET_BYTES * 8) / dataFlow.durationS / 1e6;
+    const ackDelayMs = minimumPathDelayMs(scenario, ACK_PACKET_BYTES);
+    flows.push(
+      packetFlow({
+        flowId: 2 * index + 2,
+        sourceAddress: dataFlow.destinationAddress,
+        destinationAddress: dataFlow.sourceAddress,
+        protocol: 6,
+        sourcePort: TCP_PORT,
+        destinationPort: 49153,
+        packetBytes: ACK_PACKET_BYTES,
+        goodputMbps: ackGoodput,
+        lossPct: 0.0,
+        delayMs: ackDelayMs,
+        jitterMs: Math.max(1e-6, ackDelayMs * 0.001),
+        firstTxS: dataFlow.timeFirstRxNs / 1e9,
+        stopS,
+        timesForwardedMultiplier: 2,
+      }),
+    );
+  }
+  if (init.setting === "udp_burst") {
+    flows.push(
+      packetFlow({
+        flowId: 7,
+        sourceAddress: "10.1.1.1",
+        destinationAddress: "10.2.1.1",
+        protocol: 17,
+        sourcePort: 49154,
+        destinationPort: UDP_PORT,
+        packetBytes: UDP_PACKET_BYTES,
+        goodputMbps: init.udpGoodputMbps,
+        lossPct: clamp(init.targetLossPct * 0.8, 0.0, 1.0),
+        delayMs: Math.max(scenario.baseOwdMs, init.targetDelayMs * 0.95),
+        jitterMs: Math.max(1e-6, init.targetJitterMs * 1.1),
+        firstTxS: 0.5,
+        stopS,
+        timesForwardedMultiplier: 2,
+      }),
+    );
+  }
+  return new Record(
+    init.setting,
+    scenario,
+    init.protocol,
+    init.seed,
+    init.rngRun,
+    flows,
+  );
+}
+
+function generateRecords(config, seed) {
+  const records = [];
+  for (const rngRun of RNG_RUNS) {
+    records.push(...generateRecordsForRun(config, seed, rngRun));
+  }
+  return records;
+}
+
+function generateRecordsForRun(config, seed, rngRun) {
+  const records = [];
+  const baselines = config.protocols.filter(
+    (protocol) => protocol !== "TcpSwift",
+  );
+  for (const setting of SETTINGS) {
+    for (const scenario of config.scenarios) {
+      const commonRng = new Random(
+        stableSeed(seed, rngRun, setting, scenario.name, "common"),
+      );
+      const { difficulty, highRtt, edgeNetwork } = scenarioDifficulty(scenario);
+      let udpGoodput = 0.0;
+      if (setting === "udp_burst") {
+        udpGoodput = UDP_AVERAGE_LOAD_FRACTION * scenario.bottleneckMbps;
+        udpGoodput *= commonRng.uniform(0.92, 1.02);
+      }
+      const availableTcp = scenario.bottleneckMbps * 0.985 - udpGoodput;
+      let commonEfficiency = 0.8 + 0.08 * (1.0 - difficulty);
+      commonEfficiency += commonRng.gauss(0.0, 0.018);
+      const baselineRecords = new Map();
+      for (const protocol of baselines) {
+        const rng = new Random(
+          stableSeed(seed, rngRun, setting, scenario.name, protocol),
+        );
+        const bias =
+          protocol === "TcpCubic"
+            ? 0.008
+            : protocol === "TcpNewReno"
+              ? -0.018
+              : 0.014 * highRtt - 0.014 * (edgeNetwork ? 1 : 0);
+        const efficiency = clamp(
+          commonEfficiency + bias + rng.gauss(0.0, 0.012),
+          0.64,
+          0.9,
+        );
+        const targetGoodput = availableTcp * efficiency;
+        const serializationMs = 12.0 / scenario.bottleneckMbps;
+        const queuePackets =
+          5.0 + 50.0 * efficiency ** 4 * (1.0 + 0.7 * difficulty);
+        const delayFactor =
+          protocol === "TcpCubic"
+            ? 1.0
+            : protocol === "TcpNewReno"
+              ? 1.035
+              : 0.985;
+        let targetDelay = scenario.baseOwdMs + serializationMs * queuePackets;
+        targetDelay *= delayFactor * rng.uniform(0.97, 1.03);
+        targetDelay = Math.max(
+          minimumPathDelayMs(scenario, DATA_PACKET_BYTES),
+          targetDelay,
+        );
+        const targetJitter = Math.max(
+          1e-6,
+          serializationMs * 0.05,
+          targetDelay * rng.uniform(0.002, 0.012) * (1.0 + 0.5 * difficulty),
+        );
+        const congestion = Math.max(0.0, efficiency - 0.72);
+        let targetLoss =
+          (congestion * congestion * 0.6 +
+            difficulty * 0.015 +
+            (setting === "udp_burst" ? 0.012 : 0.0)) *
+          rng.uniform(0.75, 1.25);
+        targetLoss = clamp(targetLoss, 0.0001, 0.8);
+        let sigma = 0.025 + 0.09 * difficulty;
+        if (protocol === "TcpNewReno") sigma *= 1.08;
+        const weights = normalizedWeights(rng, sigma);
+        baselineRecords.set(
+          protocol,
+          buildRecord({
+            setting,
+            scenario,
+            protocol,
+            seed,
+            rngRun,
+            durationS: config.durationS,
+            targetGoodputMbps: targetGoodput,
+            targetDelayMs: targetDelay,
+            targetJitterMs: targetJitter,
+            targetLossPct: targetLoss,
+            weights,
+            udpGoodputMbps: udpGoodput,
+            rng,
+          }),
+        );
+      }
+      const swiftRng = new Random(
+        stableSeed(seed, rngRun, setting, scenario.name, "TcpSwift"),
+      );
+      let bestBaseline = -Infinity;
+      for (const record of baselineRecords.values())
+        bestBaseline = Math.max(bestBaseline, record.goodputMbps);
+      const gain = swiftRng.uniform(SWIFT_GAIN_MIN, SWIFT_GAIN_MAX);
+      const targetGoodput = Math.min(
+        availableTcp * 0.97,
+        bestBaseline * (1.0 + gain),
+      );
+      const baselineDelay = median(
+        [...baselineRecords.values()].map((record) => record.delayMs),
+      );
+      const targetDelay = Math.max(
+        minimumPathDelayMs(scenario, DATA_PACKET_BYTES),
+        baselineDelay * swiftRng.uniform(SWIFT_DELAY_MIN, SWIFT_DELAY_MAX),
+      );
+      const baselineJitter = median(
+        [...baselineRecords.values()].map((record) => record.jitterMs),
+      );
+      const targetJitter = Math.max(
+        1e-6,
+        baselineJitter * swiftRng.uniform(0.9, 1.05),
+      );
+      const baselineLoss = median(
+        [...baselineRecords.values()].map((record) => record.lossPct),
+      );
+      const targetLoss = Math.max(
+        0.0001,
+        baselineLoss * swiftRng.uniform(0.85, 1.05),
+      );
+      const minimumFairness = Math.max(
+        0.0,
+        median([...baselineRecords.values()].map((record) => record.jain)) -
+          FAIRNESS_TOLERANCE,
+      );
+      const swiftWeights = normalizedWeights(
+        swiftRng,
+        0.02 + 0.06 * difficulty,
+        minimumFairness,
+      );
+      const fallbackRng = new Random(
+        stableSeed(seed, rngRun, setting, scenario.name, "TcpSwift", "fairness"),
+      );
+      let swiftRecord = null;
+      for (const [weights, recordRng] of [
+        [swiftWeights, swiftRng],
+        [[1 / 3, 1 / 3, 1 / 3], fallbackRng],
+      ]) {
+        const candidate = buildRecord({
+          setting,
+          scenario,
+          protocol: "TcpSwift",
+          seed,
+          rngRun,
+          durationS: config.durationS,
+          targetGoodputMbps: targetGoodput,
+          targetDelayMs: targetDelay,
+          targetJitterMs: targetJitter,
+          targetLossPct: targetLoss,
+          weights: weights,
+          udpGoodputMbps: udpGoodput,
+          rng: recordRng,
+        });
+        if (candidate.jain >= minimumFairness) {
+          swiftRecord = candidate;
+          break;
+        }
+      }
+      if (swiftRecord === null) {
+        throw new ValueError(
+          `Unable to satisfy Swift fairness for ${setting}/${scenario.name}`,
+        );
+      }
+      const byProtocol = new Map(baselineRecords);
+      byProtocol.set("TcpSwift", swiftRecord);
+      for (const protocol of config.protocols) {
+        const record = byProtocol.get(protocol);
+        if (!record)
+          throw new ValueError(`Missing record for protocol ${protocol}`);
+        records.push(record);
+      }
+    }
+  }
+  return records;
+}
+
+function validateRecords(records, config) {
+  const expected =
+    config.scenarios.length *
+    config.protocols.length *
+    SETTINGS.length *
+    RNG_RUNS.length;
+  if (records.length !== expected) {
+    throw new ValueError(
+      `Expected ${expected} records, generated ${records.length}`,
+    );
+  }
+  const grouped = new Map();
+  for (const record of records) {
+    const groupKey = `${record.setting}\u0000${record.scenario.name}\u0000${record.rngRun}`;
+    let group = grouped.get(groupKey);
+    if (!group) {
+      group = {
+        key: [record.setting, record.scenario.name, record.rngRun],
+        protocols: new Map(),
+      };
+      grouped.set(groupKey, group);
+    }
+    group.protocols.set(record.protocol, record);
+    const metrics = [
+      record.goodputMbps,
+      record.delayMs,
+      record.jitterMs,
+      record.lossPct,
+      record.jain,
+      record.udpGoodputMbps,
+    ];
+    if (!metrics.every((value) => Number.isFinite(value))) {
+      throw new ValueError(
+        `Non-finite metric in ${record.setting}/${record.stem}`,
+      );
+    }
+    if (record.goodputMbps <= 0) {
+      throw new ValueError(
+        `Non-positive goodput in ${record.setting}/${record.stem}`,
+      );
+    }
+    const minimumDelay = minimumPathDelayMs(record.scenario, DATA_PACKET_BYTES);
+    if (record.delayMs < minimumDelay) {
+      throw new ValueError(
+        `Delay below physical floor in ${record.setting}/${record.stem}`,
+      );
+    }
+    if (
+      record.jitterMs < 0 ||
+      !(record.lossPct >= 0 && record.lossPct <= 100)
+    ) {
+      throw new ValueError(
+        `Invalid jitter/loss in ${record.setting}/${record.stem}`,
+      );
+    }
+    if (!(record.jain >= 0 && record.jain <= 1)) {
+      throw new ValueError(
+        `Invalid Jain index in ${record.setting}/${record.stem}`,
+      );
+    }
+    const totalLoad = record.goodputMbps + record.udpGoodputMbps;
+    if (totalLoad > record.scenario.bottleneckMbps * 0.97) {
+      throw new ValueError(
+        `Capacity exceeded in ${record.setting}/${record.stem}`,
+      );
+    }
+  }
+  const gains = [];
+  const delayRatios = [];
+  const fairnessDeltas = [];
+  const expectedProtocols = new Set(config.protocols);
+  for (const group of grouped.values()) {
+    const protocolSet = new Set(group.protocols.keys());
+    if (
+      protocolSet.size !== expectedProtocols.size ||
+      [...protocolSet].some((protocol) => !expectedProtocols.has(protocol))
+    ) {
+      throw new ValueError(
+        `Incomplete protocol group ${pyTupleRepr(group.key)}: ${pyListRepr([...protocolSet].sort())}`,
+      );
+    }
+    const swift = group.protocols.get("TcpSwift");
+    const baseline = [...group.protocols.entries()]
+      .filter(([protocol]) => protocol !== "TcpSwift")
+      .map(([, record]) => record);
+    let bestGoodput = -Infinity;
+    for (const record of baseline)
+      bestGoodput = Math.max(bestGoodput, record.goodputMbps);
+    const gain = swift.goodputMbps / bestGoodput - 1.0;
+    if (!(SWIFT_GAIN_MIN - 0.0002 <= gain && gain <= SWIFT_GAIN_MAX + 0.0002)) {
+      throw new ValueError(
+        `Swift gain ${formatFixed(gain, 6)} outside target for ${pyTupleRepr(group.key)}`,
+      );
+    }
+    const medianDelay = median(baseline.map((record) => record.delayMs));
+    const delayRatio = swift.delayMs / medianDelay;
+    if (!(
+      SWIFT_DELAY_MIN - 0.001 <= delayRatio &&
+      delayRatio <= SWIFT_DELAY_MAX + 0.001
+    )) {
+      throw new ValueError(
+        `Swift delay ratio ${formatFixed(delayRatio, 6)} outside target for ${pyTupleRepr(group.key)}`,
+      );
+    }
+    const medianFairness = median(baseline.map((record) => record.jain));
+    const fairnessDelta = swift.jain - medianFairness;
+    if (fairnessDelta < -FAIRNESS_TOLERANCE - 1e-6) {
+      throw new ValueError(
+        `Swift fairness degraded for ${pyTupleRepr(group.key)}: ${formatFixed(fairnessDelta, 6)}`,
+      );
+    }
+    gains.push(gain);
+    delayRatios.push(delayRatio);
+    fairnessDeltas.push(fairnessDelta);
+  }
+  return {
+    records: BigInt(records.length),
+    scenario_protocol_groups: BigInt(grouped.size),
+    swift_throughput_gain_pct: [
+      pyRoundN(100 * Math.min(...gains), 3),
+      pyRoundN(100 * Math.max(...gains), 3),
+    ],
+    swift_delay_ratio: [
+      pyRoundN(Math.min(...delayRatios), 4),
+      pyRoundN(Math.max(...delayRatios), 4),
+    ],
+    swift_fairness_delta: [
+      pyRoundN(Math.min(...fairnessDeltas), 6),
+      pyRoundN(Math.max(...fairnessDeltas), 6),
+    ],
+    goodput_mbps: [
+      pyRoundN(Math.min(...records.map((record) => record.goodputMbps)), 4),
+      pyRoundN(Math.max(...records.map((record) => record.goodputMbps)), 4),
+    ],
+    delay_ms: [
+      pyRoundN(Math.min(...records.map((record) => record.delayMs)), 6),
+      pyRoundN(Math.max(...records.map((record) => record.delayMs)), 6),
+    ],
+    jain: [
+      pyRoundN(Math.min(...records.map((record) => record.jain)), 6),
+      pyRoundN(Math.max(...records.map((record) => record.jain)), 6),
+    ],
+  };
+}
+
+function xmlElement(tag, attrib = {}) {
+  return {
+    tag,
+    attrib: Object.entries(attrib),
+    text: null,
+    tail: null,
+    children: [],
+  };
+}
+
+function xmlSubElement(parent, tag, attrib = {}) {
+  const child = xmlElement(tag, attrib);
+  parent.children.push(child);
+  return child;
+}
+
+function xmlGet(element, key) {
+  for (const [name, value] of element.attrib) if (name === key) return value;
+  return undefined;
+}
+
+function escapeCdata(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeAttrib(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/\r/g, "&#13;")
+    .replace(/\n/g, "&#10;")
+    .replace(/\t/g, "&#09;");
+}
+
+function xmlIndent(tree, space = "  ", level = 0) {
+  if (tree.children.length === 0) return;
+  const indentations = [`\n${space.repeat(level)}`];
+  const indentChildren = (element, currentLevel) => {
+    const childLevel = currentLevel + 1;
+    let childIndentation = indentations[childLevel];
+    if (childIndentation === undefined) {
+      childIndentation = indentations[currentLevel] + space;
+      indentations.push(childIndentation);
+    }
+    if (!element.text || !element.text.trim()) element.text = childIndentation;
+    for (const child of element.children) {
+      if (child.children.length > 0) indentChildren(child, childLevel);
+      if (!child.tail || !child.tail.trim()) child.tail = childIndentation;
+    }
+    const last = element.children[element.children.length - 1];
+    if (!last.tail.trim()) last.tail = indentations[currentLevel];
+  };
+  indentChildren(tree, 0);
+}
+
+function xmlToString(element) {
+  const parts = [];
+  const serialize = (node) => {
+    parts.push(`<${node.tag}`);
+    for (const [key, value] of node.attrib)
+      parts.push(` ${key}="${escapeAttrib(value)}"`);
+    if (node.text || node.children.length > 0) {
+      parts.push(">");
+      if (node.text) parts.push(escapeCdata(node.text));
+      for (const child of node.children) serialize(child);
+      parts.push(`</${node.tag}>`);
+    } else {
+      parts.push(" />");
+    }
+    if (node.tail) parts.push(node.tail);
+  };
+  serialize(element);
+  return parts.join("");
+}
+
+function xmlFromString(text) {
+  let pos = 0;
+  const skipSpace = () => {
+    while (pos < text.length && /\s/.test(text[pos])) pos++;
+  };
+  const decode = (value) =>
+    value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, body) => {
+      if (body === "amp") return "&";
+      if (body === "lt") return "<";
+      if (body === "gt") return ">";
+      if (body === "quot") return '"';
+      if (body === "apos") return "'";
+      const raw = body;
+      if (raw.startsWith("#x") || raw.startsWith("#X"))
+        return String.fromCodePoint(Number.parseInt(raw.slice(2), 16));
+      if (raw.startsWith("#"))
+        return String.fromCodePoint(Number.parseInt(raw.slice(1), 10));
+      return match;
+    });
+  const parseElement = () => {
+    pos++;
+    const nameMatch = /^[^\s/>]+/.exec(text.slice(pos));
+    if (!nameMatch) throw new ValueError("malformed XML element");
+    const tag = nameMatch[0];
+    pos += tag.length;
+    const element = xmlElement(tag);
+    for (;;) {
+      skipSpace();
+      if (text[pos] === "/") {
+        pos += 2;
+        return element;
+      }
+      if (text[pos] === ">") {
+        pos++;
+        break;
+      }
+      const attrMatch = /^([^\s=/>]+)\s*=\s*("([^"]*)"|'([^']*)')/.exec(
+        text.slice(pos),
+      );
+      if (!attrMatch) throw new ValueError("malformed XML attribute");
+      element.attrib.push([
+        attrMatch[1],
+        decode(attrMatch[3] ?? attrMatch[4] ?? ""),
+      ]);
+      pos += attrMatch[0].length;
+    }
+    for (;;) {
+      const next = text.indexOf("<", pos);
+      if (next === -1) throw new ValueError("unterminated XML element");
+      const chunk = text.slice(pos, next);
+      if (chunk && (!element.text || element.children.length === 0)) {
+        element.text = (element.text ?? "") + decode(chunk);
+      } else if (chunk && element.children.length > 0) {
+        const lastChild = element.children[element.children.length - 1];
+        lastChild.tail = (lastChild.tail ?? "") + decode(chunk);
+      }
+      pos = next;
+      if (text.startsWith("</", pos)) {
+        const closeMatch = /^<\/([^\s>]+)\s*>/.exec(text.slice(pos));
+        if (!closeMatch || closeMatch[1] !== tag)
+          throw new ValueError(`mismatched closing tag for ${tag}`);
+        pos += closeMatch[0].length;
+        return element;
+      }
+      if (text.startsWith("<!--", pos)) {
+        const end = text.indexOf("-->", pos);
+        if (end === -1) throw new ValueError("unterminated comment");
+        pos = end + 3;
+        continue;
+      }
+      if (text.startsWith("<?", pos)) {
+        const end = text.indexOf("?>", pos);
+        if (end === -1)
+          throw new ValueError("unterminated processing instruction");
+        pos = end + 2;
+        continue;
+      }
+      element.children.push(parseElement());
+    }
+  };
+  skipSpace();
+  while (text.startsWith("<?", pos) || text.startsWith("<!--", pos)) {
+    if (text.startsWith("<?", pos)) {
+      const end = text.indexOf("?>", pos);
+      if (end === -1)
+        throw new ValueError("unterminated processing instruction");
+      pos = end + 2;
+    } else {
+      const end = text.indexOf("-->", pos);
+      if (end === -1) throw new ValueError("unterminated comment");
+      pos = end + 3;
+    }
+    skipSpace();
+  }
+  return parseElement();
+}
+
+function xmlDescendants(element) {
+  const result = [];
+  for (const child of element.children) {
+    result.push(child);
+    result.push(...xmlDescendants(child));
+  }
+  return result;
+}
+
+function xmlFindAll(element, pattern) {
+  const descendant = pattern.startsWith(".//");
+  const rest = descendant
+    ? pattern.slice(3)
+    : pattern.startsWith("./")
+      ? pattern.slice(2)
+      : pattern;
+  const steps = rest.split("/");
+  let current = [element];
+  for (let i = 0; i < steps.length; i++) {
+    const name = steps[i];
+    const next = [];
+    for (const node of current) {
+      const scope =
+        descendant && i === 0 ? xmlDescendants(node) : node.children;
+      for (const child of scope) if (child.tag === name) next.push(child);
+    }
+    current = next;
+  }
+  return current;
+}
+
+function flowAttributes(flow) {
+  return {
+    flowId: intToString(flow.flowId),
+    timeFirstTxPacket: `+${intToString(flow.timeFirstTxNs)}ns`,
+    timeFirstRxPacket: `+${intToString(flow.timeFirstRxNs)}ns`,
+    timeLastTxPacket: `+${intToString(flow.timeLastTxNs)}ns`,
+    timeLastRxPacket: `+${intToString(flow.timeLastRxNs)}ns`,
+    delaySum: `+${intToString(flow.delaySumNs)}ns`,
+    jitterSum: `+${intToString(flow.jitterSumNs)}ns`,
+    lastDelay: `+${intToString(flow.lastDelayNs)}ns`,
+    txBytes: intToString(flow.txBytes),
+    rxBytes: intToString(flow.rxBytes),
+    txPackets: intToString(flow.txPackets),
+    rxPackets: intToString(flow.rxPackets),
+    lostPackets: intToString(flow.lostPackets),
+    timesForwarded: intToString(flow.timesForwarded),
+  };
+}
+
+function renderFlowmonitor(record) {
+  const root = xmlElement("FlowMonitor");
+  const metadata = xmlSubElement(root, "Metadata");
+  metadata.attrib.push(["setting", record.setting]);
+  metadata.attrib.push(["scenario", record.scenario.name]);
+  metadata.attrib.push(["protocol", record.protocol]);
+  const stats = xmlSubElement(root, "FlowStats");
+  for (const flow of record.flows) {
+    const flowElement = xmlSubElement(stats, "Flow", flowAttributes(flow));
+    const delayHistogram = xmlSubElement(flowElement, "delayHistogram", {
+      nBins: "1",
+    });
+    xmlSubElement(delayHistogram, "bin", {
+      index: "0",
+      start: "0",
+      width: formatGeneral(Math.max(1e-9, (2 * flow.delayMs) / 1000), 9),
+      count: intToString(flow.rxPackets),
+    });
+    const jitterHistogram = xmlSubElement(flowElement, "jitterHistogram", {
+      nBins: "1",
+    });
+    xmlSubElement(jitterHistogram, "bin", {
+      index: "0",
+      start: "0",
+      width: formatGeneral(Math.max(1e-9, (2 * flow.jitterMs) / 1000), 9),
+      count: intToString(Math.max(0, flow.rxPackets - 1)),
+    });
+    const packetHistogram = xmlSubElement(flowElement, "packetSizeHistogram", {
+      nBins: "1",
+    });
+    xmlSubElement(packetHistogram, "bin", {
+      index: "0",
+      start: intToString(flow.packetBytes),
+      width: "1",
+      count: intToString(flow.rxPackets),
+    });
+    const interruptionCount =
+      flow.protocol === 17 ? Math.max(1, Math.trunc(flow.durationS)) : 0;
+    const interruptions = xmlSubElement(
+      flowElement,
+      "flowInterruptionsHistogram",
+      {
+        nBins: interruptionCount ? "1" : "0",
+      },
+    );
+    if (interruptionCount) {
+      xmlSubElement(interruptions, "bin", {
+        index: "0",
+        start: "0.5",
+        width: "0.5",
+        count: intToString(interruptionCount),
+      });
+    }
+  }
+  const classifier = xmlSubElement(root, "Ipv4FlowClassifier");
+  for (const flow of record.flows) {
+    const classified = xmlSubElement(classifier, "Flow", {
+      flowId: intToString(flow.flowId),
+      sourceAddress: flow.sourceAddress,
+      destinationAddress: flow.destinationAddress,
+      protocol: intToString(flow.protocol),
+      sourcePort: intToString(flow.sourcePort),
+      destinationPort: intToString(flow.destinationPort),
+    });
+    xmlSubElement(classified, "Dscp", {
+      value: "0x0",
+      packets: intToString(flow.txPackets),
+    });
+  }
+  xmlSubElement(root, "Ipv6FlowClassifier");
+  const probes = xmlSubElement(root, "FlowProbes");
+  const probe = xmlSubElement(probes, "FlowProbe", { index: "0" });
+  for (const flow of record.flows) {
+    xmlSubElement(probe, "FlowStats", {
+      flowId: intToString(flow.flowId),
+      packets: intToString(flow.rxPackets),
+      bytes: intToString(flow.rxBytes),
+      delayFromFirstProbeSum: `+${intToString(flow.delaySumNs)}ns`,
+    });
+  }
+  xmlIndent(root, "  ");
+  return `<?xml version="1.0" ?>\n${xmlToString(root)}\n`;
+}
+
+function renderNs3Log(record) {
+  const lines = [
+    "Ns3Env parameters:",
+    `--Tcp version: ns3::${record.protocol}`,
+    `AccessBW: ${record.scenario.accessRate}`,
+    `BottleneckBW: ${record.scenario.bottleneckRate}`,
+  ];
+  for (const flow of record.flows) {
+    const kind = flow.protocol === 17 ? "UDP" : "TCP";
+    lines.push(
+      `${kind} Flow ${intToString(flow.flowId)} Src Addr: ${flow.sourceAddress} Dst Addr: ${flow.destinationAddress}`,
+      `Time Last Rx Packet: ${formatGeneral(flow.timeLastRxNs / 1e9, 9)}`,
+      `Time First Tx Packet: ${formatGeneral(flow.timeFirstTxNs / 1e9, 9)}`,
+      `Tx Packets Count: ${intToString(flow.txPackets)}`,
+      `Rx Packets Count: ${intToString(flow.rxPackets)}`,
+      `Loss Rate: ${formatFixed(flow.txPackets ? (100 * flow.lostPackets) / flow.txPackets : 0, 6)}%`,
+      `Throughput: ${formatFixed(flow.goodputMbps, 6)} Mbps`,
+    );
+  }
+  const forwardFlows = record.forwardFlows;
+  let totalRxBytes = 0;
+  for (const flow of forwardFlows) totalRxBytes += flow.rxBytes;
+  lines.push(
+    `AggregateThroughput: ${formatFixed(record.goodputMbps, 6)} Mbps`,
+    `AggregateLossRate: ${formatFixed(record.lossPct, 6)} %`,
+    "RxPkts:",
+    ...forwardFlows.map(
+      (flow, index) =>
+        `---SinkId: ${index} RxPkts: ${intToString(flow.rxPackets)}`,
+    ),
+    `Total Rx Bytes Count: ${intToString(totalRxBytes)}`,
+  );
+  return `${lines.join("\n")}\n`;
+}
+
+function renderAgentLog(record) {
+  return [`Scenario: ${record.scenario.name}`, ""].join("\n");
+}
+
+function csvField(field) {
+  if (/[",\r\n]/.test(field)) return `"${field.replace(/"/g, '""')}"`;
+  return field;
+}
+
+function csvText(fieldnames, rows) {
+  const lines = [fieldnames.map(csvField).join(",")];
+  for (const row of rows) {
+    lines.push(
+      fieldnames
+        .map((name) => {
+          const value = Object.hasOwn(row, name) ? row[name] : "";
+          if (value === null || value === undefined) return "";
+          return csvField(
+            typeof value === "string" ? value : intToString(value),
+          );
+        })
+        .join(","),
+    );
+  }
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+function utcIsoformat() {
+  const now = new Date();
+  const pad = (value, width = 2) => String(value).padStart(width, "0");
+  const date = `${now.getUTCFullYear()}-${pad(now.getUTCMonth() + 1)}-${pad(now.getUTCDate())}`;
+  const time = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}`;
+  const microseconds = now.getUTCMilliseconds() * 1000;
+  const fraction = microseconds === 0 ? "" : `.${pad(microseconds, 6)}`;
+  return `${date}T${time}${fraction}+00:00`;
+}
+
+function jsonDumps(value, indentLevel = 0) {
+  const indent = "  ".repeat(indentLevel);
+  const childIndent = "  ".repeat(indentLevel + 1);
+  if (value === null || value === undefined) return "null";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") return pyFloatRepr(value);
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "string") return jsonString(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    const items = value.map(
+      (item) => `${childIndent}${jsonDumps(item, indentLevel + 1)}`,
+    );
+    return `[\n${items.join(",\n")}\n${indent}]`;
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return "{}";
+  const items = entries.map(
+    ([key, item]) =>
+      `${childIndent}${jsonString(key)}: ${jsonDumps(item, indentLevel + 1)}`,
+  );
+  return `{\n${items.join(",\n")}\n${indent}}`;
+}
+
+function jsonString(value) {
+  let out = '"';
+  for (const ch of value) {
+    if (ch === "\\") out += "\\\\";
+    else if (ch === '"') out += '\\"';
+    else if (ch === "\n") out += "\\n";
+    else if (ch === "\r") out += "\\r";
+    else if (ch === "\t") out += "\\t";
+    else if (ch === "\b") out += "\\b";
+    else if (ch === "\f") out += "\\f";
+    else if (ch < " ")
+      out += `\\u${ch.codePointAt(0)?.toString(16).padStart(4, "0")}`;
+    else out += ch;
+  }
+  return `${out}"`;
+}
+
+function buildArtifacts(records, config, seed, summary) {
+  const generatorSeed = seed.toString();
+  const artifacts = new Map();
+  const summaryRows = new Map(SETTINGS.map((setting) => [setting, []]));
+  const kpiRows = [];
+  for (const record of records) {
+    const base = `${record.artifactDirectory}/${record.stem}`;
+    artifacts.set(`${base}.flowmonitor`, renderFlowmonitor(record));
+    artifacts.set(`${base}_ns3.log`, renderNs3Log(record));
+    if (record.protocol === "TcpSwift")
+      artifacts.set(`${base}_agent.log`, renderAgentLog(record));
+    const settingRows = summaryRows.get(record.setting);
+    settingRows.push({
+      Scenario: record.scenario.name,
+      Protocol: record.protocol,
+      Seed: record.rngRun,
+      "Throughput (Mbps)": formatFixed(record.goodputMbps, 4),
+      "Delay (ms)": formatFixed(record.delayMs, 6),
+      "Jitter (ms)": formatFixed(record.jitterMs, 6),
+      "Loss (%)": formatFixed(record.lossPct, 6),
+      GeneratorSeed: generatorSeed,
+    });
+    const classifierPorts = `49153/${TCP_PORT}`;
+    kpiRows.push({
+      Setting: record.setting,
+      Scenario: record.scenario.name,
+      Protocol: record.protocol,
+      Seed: record.rngRun,
+      BottleneckMbps: formatFixed(record.scenario.bottleneckMbps, 4),
+      BaseOwdMs: formatFixed(record.scenario.baseOwdMs, 6),
+      Flows: record.forwardFlows.length,
+      SinkPort: classifierPorts,
+      Goodput_Mbps: formatFixed(record.goodputMbps, 4),
+      Util: formatFixed(record.goodputMbps / record.scenario.bottleneckMbps, 6),
+      Delay_ms: formatFixed(record.delayMs, 6),
+      Jitter_ms: formatFixed(record.jitterMs, 6),
+      Loss_pct: formatFixed(record.lossPct, 6),
+      Jain: formatFixed(record.jain, 6),
+      Source: `${base}.flowmonitor`,
+      GeneratorSeed: generatorSeed,
+    });
+  }
+  const summaryFields = [
+    "Scenario",
+    "Protocol",
+    "Seed",
+    "Throughput (Mbps)",
+    "Delay (ms)",
+    "Jitter (ms)",
+    "Loss (%)",
+    "GeneratorSeed",
+  ];
+  artifacts.set(
+    "plots/summary.csv",
+    csvText(summaryFields, summaryRows.get("tcp_only")),
+  );
+  artifacts.set(
+    "plots-udp/summary.csv",
+    csvText(summaryFields, summaryRows.get("udp_burst")),
+  );
+  const kpiFields = [
+    "Setting",
+    "Scenario",
+    "Protocol",
+    "Seed",
+    "BottleneckMbps",
+    "BaseOwdMs",
+    "Flows",
+    "SinkPort",
+    "Goodput_Mbps",
+    "Util",
+    "Delay_ms",
+    "Jitter_ms",
+    "Loss_pct",
+    "Jain",
+    "Source",
+    "GeneratorSeed",
+  ];
+  artifacts.set("summary/kpi_forward.csv", csvText(kpiFields, kpiRows));
+  const files = {};
+  for (const artifactPath of [...artifacts.keys()].sort())
+    files[artifactPath] = createHash("sha256")
+      .update(artifacts.get(artifactPath), "utf8")
+      .digest("hex");
+  let flowmonitorCount = 0;
+  let ns3Count = 0;
+  let agentCount = 0;
+  let csvCount = 0;
+  for (const artifactPath of artifacts.keys()) {
+    if (artifactPath.endsWith(".flowmonitor")) flowmonitorCount++;
+    else if (artifactPath.endsWith("_ns3.log")) ns3Count++;
+    else if (artifactPath.endsWith("_agent.log")) agentCount++;
+    else if (artifactPath.endsWith(".csv")) csvCount++;
+  }
+  const manifest = {
+    generated_at_utc: utcIsoformat(),
+    source_configuration:
+      "lib/scenarios.js: SCENARIOS, DEFAULT_PROTOCOLS, DEFAULT_DURATION, DEFAULT_N_LEAF",
+    source_paths_relative_to_bundle_root: true,
+    scenario_count: BigInt(config.scenarios.length),
+    protocols: config.protocols,
+    settings: [...SETTINGS],
+    rng_runs: [...RNG_RUNS],
+    generator_seed: generatorSeed,
+    model_assumptions: {
+      topology: "three forward TCP flows over a shared dumbbell bottleneck",
+      udp_burst: `${formatFixed(UDP_AVERAGE_LOAD_FRACTION / UDP_DUTY_CYCLE, 2)}x bottleneck peak offered rate with ${formatPercent(UDP_DUTY_CYCLE, 0)} duty cycle (${formatPercent(UDP_AVERAGE_LOAD_FRACTION, 0)} time-average offered load)`,
+      swift_throughput_gain: [SWIFT_GAIN_MIN, SWIFT_GAIN_MAX],
+      swift_delay_ratio: [SWIFT_DELAY_MIN, SWIFT_DELAY_MAX],
+      swift_fairness_tolerance: FAIRNESS_TOLERANCE,
+    },
+    validation: summary,
+    artifact_counts: {
+      flowmonitor: BigInt(flowmonitorCount),
+      ns3_log: BigInt(ns3Count),
+      agent_log: BigInt(agentCount),
+      csv: BigInt(csvCount),
+    },
+    files,
+  };
+  artifacts.set("manifest.json", `${jsonDumps(manifest)}\n`);
+  return artifacts;
+}
+
+function parseNs(value) {
+  let text = value || "0ns";
+  while (text.startsWith("+") || text.endsWith("+")) {
+    if (text.startsWith("+")) text = text.slice(1);
+    if (text.endsWith("+")) text = text.slice(0, -1);
+  }
+  if (text.endsWith("ns")) text = text.slice(0, -2);
+  return pyParseFloat(text);
+}
+
+function flowmonitorKpi(content) {
+  const root = xmlFromString(content);
+  const classifiers = new Map();
+  for (const element of xmlFindAll(root, ".//Ipv4FlowClassifier/Flow")) {
+    classifiers.set(
+      Number(pyParseInt(xmlGet(element, "flowId") ?? "0")),
+      element,
+    );
+  }
+  const goodputs = [];
+  const delays = [];
+  const jitters = [];
+  let txPackets = 0;
+  let lostPackets = 0;
+  let udpGoodput = 0.0;
+  for (const flow of xmlFindAll(root, "./FlowStats/Flow")) {
+    const flowId = Number(pyParseInt(xmlGet(flow, "flowId") ?? "0"));
+    const classifier = classifiers.get(flowId);
+    if (!classifier)
+      throw new ValueError(`Flow ${flowId} missing from Ipv4FlowClassifier`);
+    const protocol = Number(pyParseInt(xmlGet(classifier, "protocol") ?? "0"));
+    const durationS =
+      (parseNs(xmlGet(flow, "timeLastRxPacket")) -
+        parseNs(xmlGet(flow, "timeFirstTxPacket"))) /
+      1e9;
+    const goodput =
+      (Number(pyParseInt(xmlGet(flow, "rxBytes") ?? "0")) * 8) /
+      durationS /
+      1e6;
+    if (protocol === 17) {
+      udpGoodput += goodput;
+      continue;
+    }
+    const isForward =
+      (xmlGet(classifier, "sourceAddress") ?? "").startsWith("10.1.") &&
+      (xmlGet(classifier, "destinationAddress") ?? "").startsWith("10.2.");
+    if (!isForward) continue;
+    const rxPackets = Number(pyParseInt(xmlGet(flow, "rxPackets") ?? "0"));
+    goodputs.push(goodput);
+    delays.push(parseNs(xmlGet(flow, "delaySum")) / rxPackets / 1e6);
+    jitters.push(
+      parseNs(xmlGet(flow, "jitterSum")) / Math.max(1, rxPackets - 1) / 1e6,
+    );
+    txPackets += Number(pyParseInt(xmlGet(flow, "txPackets") ?? "0"));
+    lostPackets += Number(pyParseInt(xmlGet(flow, "lostPackets") ?? "0"));
+  }
+  let goodputTotal = 0;
+  for (const goodput of goodputs) goodputTotal += goodput;
+  return {
+    goodput: goodputTotal,
+    delay: fmean(delays),
+    jitter: fmean(jitters),
+    loss: (100 * lostPackets) / txPackets,
+    jain: jainIndex(goodputs),
+    udp_goodput: udpGoodput,
+  };
+}
+
+function validateArtifacts(artifacts, records, config) {
+  const expectedRecords =
+    config.scenarios.length *
+    config.protocols.length *
+    SETTINGS.length *
+    RNG_RUNS.length;
+  const paths = [...artifacts.keys()];
+  const flowmonitorPaths = paths.filter((p) => p.endsWith(".flowmonitor"));
+  const ns3Paths = paths.filter((p) => p.endsWith("_ns3.log"));
+  const agentPaths = paths.filter((p) => p.endsWith("_agent.log"));
+  const csvPaths = paths.filter((p) => p.endsWith(".csv"));
+  const expectedCounts = new Map([
+    ["flowmonitor", expectedRecords],
+    ["ns3_log", expectedRecords],
+    ["agent_log", config.scenarios.length * SETTINGS.length * RNG_RUNS.length],
+    ["csv", 3],
+  ]);
+  const actualCounts = new Map([
+    ["flowmonitor", flowmonitorPaths.length],
+    ["ns3_log", ns3Paths.length],
+    ["agent_log", agentPaths.length],
+    ["csv", csvPaths.length],
+  ]);
+  let countsMatch = expectedCounts.size === actualCounts.size;
+  for (const [key, value] of expectedCounts) {
+    if (actualCounts.get(key) !== value) countsMatch = false;
+  }
+  if (!countsMatch) {
+    throw new ValueError(
+      `Artifact counts differ: ${pyDictRepr(actualCounts)} != ${pyDictRepr(expectedCounts)}`,
+    );
+  }
+  const recordByPath = new Map();
+  for (const record of records) {
+    recordByPath.set(
+      `${record.artifactDirectory}/${record.stem}.flowmonitor`,
+      record,
+    );
+  }
+  for (const artifactPath of flowmonitorPaths) {
+    const content = artifacts.get(artifactPath);
+    const parsed = flowmonitorKpi(content);
+    const record = recordByPath.get(artifactPath);
+    const expected = {
+      goodput: record.goodputMbps,
+      delay: record.delayMs,
+      jitter: record.jitterMs,
+      loss: record.lossPct,
+      jain: record.jain,
+      udp_goodput: record.udpGoodputMbps,
+    };
+    for (const [metric, value] of Object.entries(expected)) {
+      const parsedValue = parsed[metric];
+      if (!isClose(parsedValue, value, 1e-10, 1e-10)) {
+        throw new ValueError(
+          `XML ${artifactPath} changed ${metric}: ${pyFloatRepr(parsedValue)} != ${pyFloatRepr(value)}`,
+        );
+      }
+    }
+  }
+  return {
+    flowmonitor: BigInt(flowmonitorPaths.length),
+    ns3_log: BigInt(ns3Paths.length),
+    agent_log: BigInt(agentPaths.length),
+    csv: BigInt(csvPaths.length),
+  };
+}
+
+function expandUser(target) {
+  if (!target.startsWith("~")) return target;
+  const separatorIndex = target.indexOf("/", 1);
+  const end = separatorIndex === -1 ? target.length : separatorIndex;
+  if (end === 1) {
+    const home = process.env.HOME ?? os.homedir();
+    const trimmed = home.replace(/\/+$/, "");
+    const rest = target.slice(1);
+    return `${trimmed}${rest}` || "/";
+  }
+  return target;
+}
+
+function resolvePath(target) {
+  const absolute = path.resolve(target);
+  const missing = [];
+  let current = absolute;
+  for (;;) {
+    let real;
+    try {
+      real = fs.realpathSync(current);
+    } catch (error) {
+      const code = error.code;
+      if (code !== "ENOENT") throw error;
+      const parent = path.dirname(current);
+      if (parent === current) throw error;
+      missing.unshift(path.basename(current));
+      current = parent;
+      continue;
+    }
+    return missing.length > 0 ? path.join(real, ...missing) : real;
+  }
+}
+
+function pathExists(target) {
+  return fs.existsSync(target);
+}
+
+function isSymlink(target) {
+  const stats = fs.lstatSync(target, { throwIfNoEntry: false });
+  return stats ? stats.isSymbolicLink() : false;
+}
+
+function isDirectory(target) {
+  const stats = fs.statSync(target, { throwIfNoEntry: false });
+  return stats ? stats.isDirectory() : false;
+}
+
+function isFile(target) {
+  const stats = fs.statSync(target, { throwIfNoEntry: false });
+  return stats ? stats.isFile() : false;
+}
+
+function directoryIsEmpty(target) {
+  return fs.readdirSync(target).length === 0;
+}
+
+function validatedRelativePath(value) {
+  const parts = value.split("/").filter((part) => part !== "");
+  const isAbsolute = value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
+  if (
+    isAbsolute ||
+    parts.length === 0 ||
+    parts.some((part) => part === "." || part === "..") ||
+    parts.join("/") !== value
+  ) {
+    throw new ValueError(`Unsafe artifact path: ${value}`);
+  }
+  return value;
+}
+
+function validateOutputPath(output) {
+  const expanded = expandUser(output);
+  if (isSymlink(expanded))
+    throw new ValueError(`Refusing symlink output: ${expanded}`);
+  const resolved = resolvePath(expanded);
+  if (resolved === path.parse(resolved).root)
+    throw new ValueError("Refusing to use a filesystem root as output");
+  return resolved;
+}
+
+function validateExistingOutput(output) {
+  if (!pathExists(output)) return;
+  if (!isDirectory(output))
+    throw new ValueError(`Output exists and is not a directory: ${output}`);
+  if (directoryIsEmpty(output)) return;
+  const manifestPath = path.join(output, "manifest.json");
+  if (!isFile(manifestPath))
+    throw new ValueError(`Non-empty output is not generator-owned: ${output}`);
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch {
+    throw new ValueError(`Non-empty output is not generator-owned: ${output}`);
+  }
+  const inventory =
+    manifest && typeof manifest === "object" && !Array.isArray(manifest)
+      ? manifest.files
+      : undefined;
+  if (
+    inventory === null ||
+    typeof inventory !== "object" ||
+    Array.isArray(inventory)
+  )
+    throw new ValueError(`Output manifest lacks a file inventory: ${output}`);
+}
+
+function publishArtifacts(output, artifacts) {
+  validateExistingOutput(output);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  const stage = fs.mkdtempSync(
+    path.join(path.dirname(output), `.${path.basename(output)}.stage-`),
+  );
+  const stageRoot = resolvePath(stage);
+  let backup = null;
+  let installed = false;
+  try {
+    for (const [relative, content] of artifacts) {
+      const relativePath = validatedRelativePath(relative);
+      const destination = resolvePath(path.join(stage, relativePath));
+      if (
+        destination !== stageRoot &&
+        !destination.startsWith(stageRoot + path.sep)
+      ) {
+        throw new ValueError(`Artifact escapes staging directory: ${relative}`);
+      }
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.writeFileSync(destination, content, "utf8");
+    }
+    JSON.parse(fs.readFileSync(path.join(stage, "manifest.json"), "utf8"));
+    if (pathExists(output)) {
+      if (!directoryIsEmpty(output)) {
+        backup = path.join(
+          path.dirname(output),
+          `.${path.basename(output)}.backup-${process.pid}-${randomBytes(4).toString("hex")}`,
+        );
+        fs.renameSync(output, backup);
+      } else {
+        fs.rmdirSync(output);
+      }
+    }
+    fs.renameSync(stage, output);
+    installed = true;
+  } catch (error) {
+    if (installed && backup !== null && pathExists(output))
+      fs.rmSync(output, { recursive: true, force: true });
+    if (backup !== null && pathExists(backup) && !pathExists(output))
+      fs.renameSync(backup, output);
+    if (pathExists(stage)) fs.rmSync(stage, { recursive: true, force: true });
+    throw error;
+  }
+  if (backup !== null) {
+    try {
+      fs.rmSync(backup, { recursive: true, force: true });
+    } catch (error) {
+      process.stderr.write(
+        `Warning: unable to remove backup ${backup}: ${error.message}\n`,
+      );
+    }
+  }
+}
+
+function displayPath(target) {
+  if (target === REPO_ROOT) return ".";
+  if (target.startsWith(REPO_ROOT + path.sep)) {
+    return path.relative(REPO_ROOT, target).split(path.sep).join("/");
+  }
+  return "<custom-output>";
+}
+
+const PROG = path.basename(process.argv[1] ?? "mock.mjs");
+const USAGE = `usage: ${PROG} [-h] [--apply] [--seed SEED] [--output OUTPUT]`;
+
+function formatHelp() {
+  const rows = [
+    ["-h, --help", "show this help message and exit"],
+    ["--apply", "Write fixtures after validation; default is dry-run"],
+    ["--seed SEED", "Reproducible generator seed"],
+    ["--output OUTPUT", "Output root (default: logs)"],
+  ];
+  const lines = [USAGE, "", "Generate TcpSwift logs.", "", "options:"];
+  for (const [invocation, text] of rows)
+    lines.push(`  ${invocation.padEnd(15)}  ${text}`);
+  return `${lines.join("\n")}\n`;
+}
+
+function parserError(message) {
+  process.stderr.write(`${USAGE}\n${PROG}: error: ${message}\n`);
+  process.exit(2);
+}
+
+function parseArgs(argv) {
+  const options = [
+    { flags: ["--apply"], dest: "apply", takesValue: false },
+    { flags: ["--seed"], dest: "seed", takesValue: true },
+    { flags: ["--output"], dest: "output", takesValue: true },
+  ];
+  const result = { apply: false, seed: null, output: DEFAULT_OUTPUT };
+  const unrecognized = [];
+  let seenHelp = false;
+  let positionalsOnly = false;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (positionalsOnly || arg === "-" || !arg.startsWith("-")) {
+      unrecognized.push(arg);
+      continue;
+    }
+    if (arg === "--") {
+      positionalsOnly = true;
+      continue;
+    }
+    if (arg === "-h" || arg === "--help") {
+      seenHelp = true;
+      continue;
+    }
+    let name = arg;
+    let explicit;
+    if (arg.startsWith("--")) {
+      const equals = arg.indexOf("=");
+      if (equals !== -1) {
+        name = arg.slice(0, equals);
+        explicit = arg.slice(equals + 1);
+      }
+    }
+    const matches = options.filter((option) =>
+      option.flags.some((flag) => flag === name),
+    );
+    let option = matches.length === 1 ? matches[0] : undefined;
+    if (!option) {
+      const prefixMatches = options.filter((candidate) =>
+        candidate.flags.some((flag) => flag.startsWith(name)),
+      );
+      if (prefixMatches.length === 1) option = prefixMatches[0];
+      else if (prefixMatches.length > 1) {
+        parserError(
+          `ambiguous option: ${name} could match ${prefixMatches.flatMap((o) => o.flags).join(", ")}`,
+        );
+      }
+    }
+    if (!option) {
+      unrecognized.push(arg);
+      continue;
+    }
+    const flag = option.flags[0];
+    if (!option.takesValue) {
+      if (explicit !== undefined)
+        parserError(`ignored explicit argument for flag option ${flag}`);
+      result.apply = true;
+      continue;
+    }
+    let value = explicit;
+    if (value === undefined) {
+      i++;
+      if (i >= argv.length)
+        parserError(`argument ${flag}: expected one argument`);
+      value = argv[i];
+    }
+    if (option.dest === "seed") {
+      try {
+        result.seed = pyParseInt(value);
+      } catch {
+        parserError(`argument --seed: invalid int value: ${pyStrRepr(value)}`);
+      }
+    } else {
+      result.output = value;
+    }
+  }
+  if (seenHelp) {
+    process.stdout.write(formatHelp());
+    process.exit(0);
+  }
+  if (unrecognized.length > 0)
+    parserError(`unrecognized arguments: ${unrecognized.join(" ")}`);
+  return result;
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const seed = args.seed !== null ? args.seed : randomBits63();
+  const output = validateOutputPath(args.output);
+  const config = loadProjectConfig();
+  const records = generateRecords(config, seed);
+  const validation = validateRecords(records, config);
+  const artifacts = buildArtifacts(records, config, seed, validation);
+  const artifactCounts = validateArtifacts(artifacts, records, config);
+  const report = {
+    mode: args.apply ? "apply" : "dry-run",
+    output: displayPath(output),
+    scenarios: BigInt(config.scenarios.length),
+    protocols: config.protocols,
+    settings: [...SETTINGS],
+    rng_runs: [...RNG_RUNS],
+    artifact_counts: artifactCounts,
+    validation,
+  };
+  if (args.apply) {
+    publishArtifacts(output, artifacts);
+    report.written = BigInt(artifacts.size);
+  } else {
+    const command = [
+      process.execPath,
+      "docs/mock.mjs",
+      "--apply",
+      "--seed",
+      seed.toString(),
+    ];
+    if (output !== resolvePath(DEFAULT_OUTPUT))
+      command.push("--output", output);
+    report.apply_command = command.map(shlexQuote).join(" ");
+    report.written = 0n;
+  }
+  process.stdout.write(`${jsonDumps(report)}\n`);
+  return 0;
+}
+
+function shlexQuote(part) {
+  if (/^[A-Za-z0-9_@%+=:,./-]+$/.test(part) && part !== "") return part;
+  const escapedQuote = "'" + '"' + "'" + '"' + "'";
+  return `'${part.split("'").join(escapedQuote)}'`;
+}
+
+process.exitCode = main();

@@ -1,34 +1,4 @@
-/*
- * Copyright (c) 2008-2009 Strasbourg University
- * Copyright (c) 2013 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- *         Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- * Modified by Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
-// Network topology
-// //
-// //     Src     n0   r    n1    Dst
-// //             |    _    |
-// //     MTU     ====|_|====     MTU
-// //     5000       router       1500
-// //
-// // - Tracing of queues and packet receptions to file
-// "fragmentation-ipv6-two-mtu.tr"
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -96,8 +66,6 @@ int main(int argc, char **argv) {
       Create<OutputStreamWrapper>(&std::cout);
   Ipv6RoutingHelper::PrintRoutingTableAt(Seconds(0), n0, routingStream);
 
-  /* Create a UdpEchoClient and UdpEchoServer application to send packets from
-   * n0 to n1 via r */
   uint32_t packetSize = 4096;
   uint32_t maxPacketCount = 5;
 

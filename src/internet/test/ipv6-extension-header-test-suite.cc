@@ -1,33 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Fabian Mauchle <fabian.mauchle@hsr.ch>
- */
 
 #include "ns3/ipv6-extension-header.h"
 #include "ns3/ipv6-option-header.h"
@@ -35,23 +6,6 @@
 
 using namespace ns3;
 
-// ===========================================================================
-// An empty option field must be filled with pad1 or padN header so theshape
-// extension header's size is a multiple of 8.
-//
-// 0                                                              31
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |  Extension Destination Header |                               |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+          PadN Header          +
-// |                                                               |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// ===========================================================================
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Empty option field.
- */
 class TestEmptyOptionField : public TestCase {
 public:
   TestEmptyOptionField() : TestCase("TestEmptyOptionField") {}
@@ -66,30 +20,13 @@ public:
     header.Serialize(buf.Begin());
 
     const uint8_t *data = buf.PeekData();
-    NS_TEST_EXPECT_MSG_EQ(*(data + 2), 1,
-                          "padding is missing"); // expecting a padN header
+    NS_TEST_EXPECT_MSG_EQ(*(data + 2), 1, "padding is missing");
   }
 };
 
-// ===========================================================================
-// An option without alignment requirement must not be padded
-//
-// 0                                                              31
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |  Extension Destination Header | OptionWithoutAlignmentHeader..|
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |..OptionWithoutAlignmentHeader |          PadN Header          |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// ===========================================================================
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Option without alignment.
- */
 class OptionWithoutAlignmentHeader : public Ipv6OptionHeader {
 public:
-  static const uint8_t TYPE = 42; //!< Option type.
+  static const uint8_t TYPE = 42;
 
   uint32_t GetSerializedSize() const override { return 4; }
 
@@ -100,11 +37,6 @@ public:
   }
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Test the option without alignment.
- */
 class TestOptionWithoutAlignment : public TestCase {
 public:
   TestOptionWithoutAlignment() : TestCase("TestOptionWithoutAlignment") {}
@@ -128,30 +60,9 @@ public:
   }
 };
 
-// ===========================================================================
-// An option with alignment requirement must be padded accordingly (padding to
-// a total size multiple of 8 is allowed)
-//
-// 0                                                              31
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |  Extension Destination Header |          PadN Header          |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |                   OptionWithAlignmentHeader                   |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |          PadN Header          |                               |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-// |                   Ipv6OptionJumbogramHeader                   |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// ===========================================================================
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Option with alignment.
- */
 class OptionWithAlignmentHeader : public Ipv6OptionHeader {
 public:
-  static const uint8_t TYPE = 73; //!< Option Type.
+  static const uint8_t TYPE = 73;
 
   uint32_t GetSerializedSize() const override { return 4; }
 
@@ -164,11 +75,6 @@ public:
   Alignment GetAlignment() const override { return (Alignment){4, 0}; }
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Test the option with alignment.
- */
 class TestOptionWithAlignment : public TestCase {
 public:
   TestOptionWithAlignment() : TestCase("TestOptionWithAlignment") {}
@@ -177,7 +83,7 @@ public:
     Ipv6ExtensionDestinationHeader header;
     OptionWithAlignmentHeader optionHeader;
     header.AddOption(optionHeader);
-    Ipv6OptionJumbogramHeader jumboHeader; // has an alignment of 4n+2
+    Ipv6OptionJumbogramHeader jumboHeader;
     header.AddOption(jumboHeader);
 
     NS_TEST_EXPECT_MSG_EQ(header.GetSerializedSize() % 8, 0,
@@ -188,45 +94,22 @@ public:
     header.Serialize(buf.Begin());
 
     const uint8_t *data = buf.PeekData();
-    NS_TEST_EXPECT_MSG_EQ(*(data + 2), 1,
-                          "padding is missing"); // expecting a padN header
+    NS_TEST_EXPECT_MSG_EQ(*(data + 2), 1, "padding is missing");
     NS_TEST_EXPECT_MSG_EQ(*(data + 4), OptionWithAlignmentHeader::TYPE,
                           "option with alignment is not padded correctly");
-    NS_TEST_EXPECT_MSG_EQ(*(data + 8), 1,
-                          "padding is missing"); // expecting a padN header
+    NS_TEST_EXPECT_MSG_EQ(*(data + 8), 1, "padding is missing");
     NS_TEST_EXPECT_MSG_EQ(*(data + 10), jumboHeader.GetType(),
                           "option with alignment is not padded correctly");
   }
 };
 
-// ===========================================================================
-// An option with an alignment that exactly matches the gap must not be padded
-// (padding to a total size multiple of 8 is allowed)
-//
-// 0                                                              31
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |  Extension Destination Header |                               |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
-// |                   Ipv6OptionJumbogramHeader                   |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |                   OptionWithAlignmentHeader                   |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// |                           PadN Header                         |
-// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-// ===========================================================================
-
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions Test: Test an option already aligned.
- */
 class TestFulfilledAlignment : public TestCase {
 public:
   TestFulfilledAlignment() : TestCase("TestCorrectAlignment") {}
 
   void DoRun() override {
     Ipv6ExtensionDestinationHeader header;
-    Ipv6OptionJumbogramHeader jumboHeader; // has an alignment of 4n+2
+    Ipv6OptionJumbogramHeader jumboHeader;
     header.AddOption(jumboHeader);
     OptionWithAlignmentHeader optionHeader;
     header.AddOption(optionHeader);
@@ -246,11 +129,6 @@ public:
   }
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 extensions TestSuite.
- */
 class Ipv6ExtensionHeaderTestSuite : public TestSuite {
 public:
   Ipv6ExtensionHeaderTestSuite() : TestSuite("ipv6-extension-header", UNIT) {
@@ -261,5 +139,4 @@ public:
   }
 };
 
-static Ipv6ExtensionHeaderTestSuite
-    ipv6ExtensionHeaderTestSuite; //!< Static variable for test initialization
+static Ipv6ExtensionHeaderTestSuite ipv6ExtensionHeaderTestSuite;

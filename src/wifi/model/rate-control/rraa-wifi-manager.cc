@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2004,2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Federico Maguolo <maguolof@dei.unipd.it>
- */
 
 #include "rraa-wifi-manager.h"
 
@@ -31,25 +13,19 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("RraaWifiManager");
 
-/**
- * \brief hold per-remote-station state for RRAA Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the RRAA Wifi manager
- */
 struct RraaWifiRemoteStation : public WifiRemoteStation {
-  uint32_t m_counter;        //!< Counter for transmission attempts.
-  uint32_t m_nFailed;        //!< Number of failed transmission attempts.
-  uint32_t m_adaptiveRtsWnd; //!< Window size for the Adaptive RTS mechanism.
-  uint32_t m_rtsCounter;     //!< Counter for RTS transmission attempts.
-  Time m_lastReset;          //!< Time of the last reset.
-  bool m_adaptiveRtsOn;      //!< Check if Adaptive RTS mechanism is on.
-  bool m_lastFrameFail;      //!< Flag if the last frame sent has failed.
-  bool m_initialized;        //!< For initializing variables.
-  uint8_t m_nRate;           //!< Number of supported rates.
-  uint8_t m_rateIndex;       //!< Current rate index.
+  uint32_t m_counter;
+  uint32_t m_nFailed;
+  uint32_t m_adaptiveRtsWnd;
+  uint32_t m_rtsCounter;
+  Time m_lastReset;
+  bool m_adaptiveRtsOn;
+  bool m_lastFrameFail;
+  bool m_initialized;
+  uint8_t m_nRate;
+  uint8_t m_rateIndex;
 
-  RraaThresholdsTable m_thresholds; //!< RRAA thresholds for this station.
+  RraaThresholdsTable m_thresholds;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(RraaWifiManager);
@@ -116,7 +92,6 @@ void RraaWifiManager::SetupPhy(const Ptr<WifiPhy> phy) {
     WifiTxVector txVector;
     txVector.SetMode(mode);
     txVector.SetPreambleType(WIFI_PREAMBLE_LONG);
-    /* Calculate the TX Time of the Data and the corresponding Ack */
     Time dataTxTime =
         phy->CalculateTxDuration(m_frameLength, txVector, phy->GetPhyBand());
     Time ackTxTime =
@@ -178,7 +153,7 @@ RraaWifiManager::GetThresholds(RraaWifiRemoteStation *station,
     }
   }
   NS_ABORT_MSG("No thresholds for mode " << mode << " found");
-  return threshold; // Silence compiler warning
+  return threshold;
 }
 
 WifiRemoteStation *RraaWifiManager::DoCreateStation() const {
@@ -194,11 +169,7 @@ WifiRemoteStation *RraaWifiManager::DoCreateStation() const {
 void RraaWifiManager::CheckInit(RraaWifiRemoteStation *station) {
   NS_LOG_FUNCTION(this << station);
   if (!station->m_initialized) {
-    // Note: we appear to be doing late initialization of the table
-    // to make sure that the set of supported rates has been initialized
-    // before we perform our own initialization.
     station->m_nRate = GetNSupported(station);
-    // Initialize at maximal rate
     station->m_rateIndex = GetMaxRate(station);
 
     station->m_initialized = true;

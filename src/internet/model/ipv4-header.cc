@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "ipv4-header.h"
 
@@ -67,19 +49,18 @@ void Ipv4Header::SetTos(uint8_t tos) {
 
 void Ipv4Header::SetDscp(DscpType dscp) {
   NS_LOG_FUNCTION(this << dscp);
-  m_tos &= 0x3; // Clear out the DSCP part, retain 2 bits of ECN
+  m_tos &= 0x3;
   m_tos |= (dscp << 2);
 }
 
 void Ipv4Header::SetEcn(EcnType ecn) {
   NS_LOG_FUNCTION(this << ecn);
-  m_tos &= 0xFC; // Clear out the ECN part, retain 6 bits of DSCP
+  m_tos &= 0xFC;
   m_tos |= ecn;
 }
 
 Ipv4Header::DscpType Ipv4Header::GetDscp() const {
   NS_LOG_FUNCTION(this);
-  // Extract only first 6 bits of TOS byte, i.e 0xFC
   return DscpType((m_tos & 0xFC) >> 2);
 }
 
@@ -135,7 +116,6 @@ std::string Ipv4Header::DscpTypeToString(DscpType dscp) const {
 
 Ipv4Header::EcnType Ipv4Header::GetEcn() const {
   NS_LOG_FUNCTION(this);
-  // Extract only last 2 bits of TOS byte, i.e 0x3
   return EcnType(m_tos & 0x3);
 }
 
@@ -192,7 +172,6 @@ bool Ipv4Header::IsDontFragment() const {
 
 void Ipv4Header::SetFragmentOffset(uint16_t offsetBytes) {
   NS_LOG_FUNCTION(this << offsetBytes);
-  // check if the user is trying to set an invalid offset
   NS_ABORT_MSG_IF((offsetBytes & 0x7),
                   "offsetBytes must be multiple of 8 bytes");
   m_fragmentOffset = offsetBytes;
@@ -200,7 +179,6 @@ void Ipv4Header::SetFragmentOffset(uint16_t offsetBytes) {
 
 uint16_t Ipv4Header::GetFragmentOffset() const {
   NS_LOG_FUNCTION(this);
-  // -fstrict-overflow sensitive, see bug 1868
   if (m_fragmentOffset + m_payloadSize > 65535 - 5 * 4) {
     NS_LOG_WARN(
         "Fragment will exceed the maximum packet size once reassembled");
@@ -269,7 +247,6 @@ TypeId Ipv4Header::GetInstanceTypeId() const {
 
 void Ipv4Header::Print(std::ostream &os) const {
   NS_LOG_FUNCTION(this << &os);
-  // ipv4, right ?
   std::string flags;
   if (m_flags == 0) {
     flags = "none";
@@ -296,7 +273,6 @@ void Ipv4Header::Print(std::ostream &os) const {
 
 uint32_t Ipv4Header::GetSerializedSize() const {
   NS_LOG_FUNCTION(this);
-  // return 5 * 4;
   return m_headerSize;
 }
 
@@ -369,7 +345,6 @@ uint32_t Ipv4Header::Deserialize(Buffer::Iterator start) {
   m_ttl = i.ReadU8();
   m_protocol = i.ReadU8();
   m_checksum = i.ReadU16();
-  /* i.Next (2); // checksum */
   m_source.Set(i.ReadNtohU32());
   m_destination.Set(i.ReadNtohU32());
   m_headerSize = headerSize;

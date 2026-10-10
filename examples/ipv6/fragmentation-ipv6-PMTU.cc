@@ -1,35 +1,4 @@
-/*
- * Copyright (c) 2008-2009 Strasbourg University
- * Copyright (c) 2013 Universita' di Firenze
- * Copyright (c) 2022 Jadavpur University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- *         Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- * Modified by Akash Mondal <a98mondal@gmail.com>
- */
 
-// Network topology
-// //
-// //      Src  n0        r1     n1      r2        n2
-// //           |         _      |       _         |
-// //           =========|_|============|_|=========
-// //      MTU   5000           2000          1500
-// //
-// // - Tracing of queues and packet receptions to file
-// "fragmentation-ipv6-PMTU.tr"
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -84,17 +53,16 @@ int main(int argc, char **argv) {
   csma.SetChannelAttribute("DataRate", DataRateValue(5000000));
   csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
   csma.SetDeviceAttribute("Mtu", UintegerValue(2000));
-  NetDeviceContainer d2 = csma.Install(net2); // CSMA Network with MTU 2000
+  NetDeviceContainer d2 = csma.Install(net2);
 
   csma.SetDeviceAttribute("Mtu", UintegerValue(5000));
-  NetDeviceContainer d1 = csma.Install(net1); // CSMA Network with MTU 5000
+  NetDeviceContainer d1 = csma.Install(net1);
 
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute("DataRate", DataRateValue(5000000));
   pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
   pointToPoint.SetDeviceAttribute("Mtu", UintegerValue(1500));
-  NetDeviceContainer d3 =
-      pointToPoint.Install(net3); // P2P Network with MTU 1500
+  NetDeviceContainer d3 = pointToPoint.Install(net3);
 
   NS_LOG_INFO("Create networks and assign IPv6 Addresses.");
   Ipv6AddressHelper ipv6;
@@ -122,7 +90,6 @@ int main(int argc, char **argv) {
       Create<OutputStreamWrapper>(&std::cout);
   Ipv6RoutingHelper::PrintRoutingTableAt(Seconds(0), r1, routingStream);
 
-  // Create an UDP Echo server on n2
   UdpEchoServerHelper echoServer(42);
   ApplicationContainer serverApps = echoServer.Install(n2);
   serverApps.Start(Seconds(0.0));
@@ -130,9 +97,7 @@ int main(int argc, char **argv) {
 
   uint32_t maxPacketCount = 5;
 
-  // Create an UDP Echo client on n1 to send UDP packets to n2 via r1
-  uint32_t packetSizeN1 =
-      1600; // Packet should fragment as intermediate link MTU is 1500
+  uint32_t packetSizeN1 = 1600;
   UdpEchoClientHelper echoClient(i3.GetAddress(1, 1), 42);
   echoClient.SetAttribute("PacketSize", UintegerValue(packetSizeN1));
   echoClient.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
@@ -140,9 +105,7 @@ int main(int argc, char **argv) {
   clientAppsN1.Start(Seconds(2.0));
   clientAppsN1.Stop(Seconds(10.0));
 
-  // Create an UDP Echo client on n0 to send UDP packets to n2 via r0 and r1
-  uint32_t packetSizeN2 =
-      4000; // Packet should fragment as intermediate link MTU is 1500
+  uint32_t packetSizeN2 = 4000;
   echoClient.SetAttribute("PacketSize", UintegerValue(packetSizeN2));
   echoClient.SetAttribute("MaxPackets", UintegerValue(maxPacketCount));
   ApplicationContainer clientAppsN2 = echoClient.Install(n1);

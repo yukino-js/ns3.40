@@ -1,18 +1,4 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# Set lib core link dependencies
 set(libraries_to_link)
 
 set(gsl_test_sources)
@@ -27,7 +13,6 @@ if(${GSL_FOUND})
   )
 endif()
 
-# Check for dependencies and add sources accordingly
 if(${CMAKE_VERSION}
    VERSION_LESS
    "3.11.0"
@@ -52,7 +37,6 @@ if(${CMAKE_VERSION}
     )
   endif()
 else()
-  # Fast path for CMake >= 3.11
   check_include_files(
     "boost/units/quantity.hpp;boost/units/systems/si.hpp"
     HAVE_BOOST_UNITS
@@ -123,7 +107,6 @@ if(${ENABLE_EXAMPLES})
   )
 endif()
 
-# Embedded version support
 set(embedded_version_sources)
 set(embedded_version_headers)
 if(${ENABLE_BUILD_VERSION})
@@ -150,7 +133,6 @@ else()
   )
 endif()
 
-# Define core lib sources
 set(source_files
     ${int64x64_sources}
     ${fd-reader-sources}
@@ -224,7 +206,6 @@ set(source_files
     model/matrix-array.cc
 )
 
-# Define core lib headers
 set(header_files
     ${int64x64_headers}
     ${example_as_test_headers}
@@ -368,7 +349,6 @@ set(test_sources
     test/matrix-array-test-suite.cc
 )
 
-# Build core lib
 build_lib(
   LIBNAME core
   SOURCE_FILES ${source_files}

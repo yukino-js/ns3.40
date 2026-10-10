@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2005, 2009 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- *          Stefano Avallone <stavallo@unina.it>
- */
 
 #include "wifi-mac-queue.h"
 
@@ -104,10 +83,8 @@ void WifiMacQueue::ExtractExpiredMpdus(
     mpdus.push_back(it->mpdu);
   }
   for (const auto &mpdu : mpdus) {
-    // fire the Expired trace
     Simulator::ScheduleNow(&WifiMacQueue::m_traceExpired, this, mpdu);
   }
-  // notify the scheduler
   if (!mpdus.empty()) {
     m_scheduler->NotifyRemove(m_ac, mpdus);
   }
@@ -123,10 +100,8 @@ void WifiMacQueue::ExtractAllExpiredMpdus() const {
     mpdus.push_back(it->mpdu);
   }
   for (const auto &mpdu : mpdus) {
-    // fire the Expired trace
     Simulator::ScheduleNow(&WifiMacQueue::m_traceExpired, this, mpdu);
   }
-  // notify the scheduler
   if (!mpdus.empty()) {
     m_scheduler->NotifyRemove(m_ac, mpdus);
   }
@@ -140,9 +115,6 @@ void WifiMacQueue::WipeAllExpiredMpdus() {
   auto [first, last] = GetContainer().GetAllExpiredMpdus();
 
   for (auto it = first; it != last;) {
-    // the scheduler has been notified and the Expired trace has been fired
-    // when the MPDU was extracted from its queue. The only thing left to do
-    // is to update the Queue base class statistics by calling Queue::DoRemove
     auto curr = it++;
     Queue<WifiMpdu, WifiMacQueueContainer>::DoRemove(curr);
   }
@@ -155,14 +127,6 @@ bool WifiMacQueue::TtlExceeded(Ptr<const WifiMpdu> item, const Time &now) {
     NS_LOG_DEBUG(
         "Removing packet that stayed in the queue for too long (queuing time="
         << now - it->expiryTime + m_maxDelay << ")");
-    // Trace the expired MPDU first and then remove it from the queue (if still
-    // in the queue). Indeed, the Expired traced source is connected to
-    // BlockAckManager::NotifyDiscardedMpdu, which checks if the expired MPDU is
-    // in-flight or is a retransmission to determine whether a BlockAckReq frame
-    // must be sent to advance the recipient window. If the expired MPDU is
-    // removed from the queue before tracing the expiration, it is no longer
-    // in-flight and NotifyDiscardedMpdu wrongfully assumes that a BlockAckReq
-    // is not needed.
     m_traceExpired(item);
     if (item->IsQueued()) {
       DoRemove(it);
@@ -196,12 +160,10 @@ bool WifiMacQueue::Insert(ConstIterator pos, Ptr<WifiMpdu> item) {
   NS_ASSERT_MSG(GetMaxSize().GetUnit() == QueueSizeUnit::PACKETS,
                 "WifiMacQueues must be in packet mode");
 
-  // insert the item if the queue is not full
   if (QueueBase::GetNPackets() < GetMaxSize().GetValue()) {
     return DoEnqueue(pos, item);
   }
 
-  // the queue is full; try to make some room by removing stale packets
   auto queueId = WifiMacQueueContainer::GetQueueId(item);
 
   if (pos != GetContainer().GetQueue(queueId).cend()) {
@@ -209,9 +171,6 @@ bool WifiMacQueue::Insert(ConstIterator pos, Ptr<WifiMpdu> item) {
         WifiMacQueueContainer::GetQueueId(pos->mpdu) != queueId,
         "pos must point to an element in the same container queue as item");
     if (pos->expiryTime <= Simulator::Now()) {
-      // the element pointed to by pos is stale and will be removed along with
-      // all of its predecessors; the new item will be enqueued at the front of
-      // the queue
       pos = GetContainer().GetQueue(queueId).cbegin();
     }
   }
@@ -222,8 +181,6 @@ bool WifiMacQueue::Insert(ConstIterator pos, Ptr<WifiMpdu> item) {
 }
 
 Ptr<WifiMpdu> WifiMacQueue::Dequeue() {
-  // An MPDU is dequeued when either is acknowledged or is dropped, hence a
-  // Dequeue method without an argument makes no sense.
   NS_ABORT_MSG("Not implemented by WifiMacQueue");
   return nullptr;
 }
@@ -276,8 +233,6 @@ Ptr<WifiMpdu> WifiMacQueue::PeekByQueueId(const WifiContainerQueueId &queueId,
   NS_ASSERT(!item || (item->IsQueued() &&
                       WifiMacQueueContainer::GetQueueId(item) == queueId));
 
-  // Remove MPDUs with expired lifetime if we are looking for the first MPDU in
-  // the queue
   if (!item) {
     ExtractExpiredMpdus(queueId);
   }
@@ -299,7 +254,6 @@ Ptr<WifiMpdu> WifiMacQueue::PeekFirstAvailable(uint8_t linkId,
   NS_ASSERT(!item || item->IsQueued());
 
   if (item) {
-    // check if there are other MPDUs in the same container queue as item
     auto mpdu = PeekByQueueId(WifiMacQueueContainer::GetQueueId(item), item);
 
     if (mpdu) {
@@ -339,9 +293,6 @@ Ptr<WifiMpdu> WifiMacQueue::Remove(Ptr<const WifiMpdu> mpdu) {
 void WifiMacQueue::Flush() {
   NS_LOG_FUNCTION(this);
 
-  // there may be some expired MPDUs in the container queue storing MPDUs with
-  // expired lifetime, which will not be flushed by the Flush() method of the
-  // base class.
   WipeAllExpiredMpdus();
   Queue<WifiMpdu, WifiMacQueueContainer>::Flush();
 }
@@ -360,8 +311,6 @@ void WifiMacQueue::Replace(Ptr<const WifiMpdu> currentItem,
   DoDequeue({currentIt});
   bool ret = Insert(pos, newItem);
   GetIt(newItem)->expiryTime = expiryTime;
-  // The size of a WifiMacQueue is measured as number of packets. We dequeued
-  // one packet, so there is certainly room for inserting one packet
   NS_ABORT_IF(!ret);
 }
 
@@ -377,15 +326,12 @@ bool WifiMacQueue::DoEnqueue(ConstIterator pos, Ptr<WifiMpdu> item) {
   NS_LOG_FUNCTION(this << *item);
 
   auto currSize = GetMaxSize();
-  // control frames should not consume room in the MAC queue, so increase queue
-  // size if we are trying to enqueue a control frame
   if (item->GetHeader().IsCtl()) {
     SetMaxSize(currSize + item);
   }
   auto mpdu = m_scheduler->HasToDropBeforeEnqueue(m_ac, item);
 
   if (mpdu == item) {
-    // the given item must be dropped
     SetMaxSize(currSize);
     return false;
   }
@@ -393,7 +339,6 @@ bool WifiMacQueue::DoEnqueue(ConstIterator pos, Ptr<WifiMpdu> item) {
   auto queueId = WifiMacQueueContainer::GetQueueId(item);
   if (pos != GetContainer().GetQueue(queueId).cend() && mpdu &&
       pos->mpdu == mpdu->GetOriginal()) {
-    // the element pointed to by pos must be dropped; update insert position
     pos = std::next(pos);
   }
   if (mpdu) {
@@ -402,7 +347,6 @@ bool WifiMacQueue::DoEnqueue(ConstIterator pos, Ptr<WifiMpdu> item) {
 
   Iterator ret;
   if (Queue<WifiMpdu, WifiMacQueueContainer>::DoEnqueue(pos, item, ret)) {
-    // set item's information about its position in the queue
     item->SetQueueIt(ret, {});
     ret->ac = m_ac;
     ret->expiryTime =
@@ -422,7 +366,6 @@ void WifiMacQueue::DoDequeue(const std::list<ConstIterator> &iterators) {
 
   std::list<Ptr<WifiMpdu>> items;
 
-  // First, dequeue all the items
   for (auto &it : iterators) {
     if (auto item = Queue<WifiMpdu, WifiMacQueueContainer>::DoDequeue(it)) {
       items.push_back(item);
@@ -432,7 +375,6 @@ void WifiMacQueue::DoDequeue(const std::list<ConstIterator> &iterators) {
     }
   }
 
-  // Then, notify the scheduler
   if (!items.empty()) {
     m_scheduler->NotifyDequeue(m_ac, items);
   }

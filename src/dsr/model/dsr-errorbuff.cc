@@ -1,33 +1,3 @@
-/*
- * Copyright (c) 2011 Yufei Cheng
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Yufei Cheng   <yfcheng@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "dsr-errorbuff.h"
 
@@ -59,7 +29,6 @@ bool DsrErrorBuffer::Enqueue(DsrErrorBuffEntry &entry) {
                 << " " << entry.GetNextHop() << " dst " << i->GetDestination()
                 << " " << entry.GetDestination());
 
-    /// \todo check the source and destination over here
     if ((i->GetPacket()->GetUid() == entry.GetPacket()->GetUid()) &&
         (i->GetSource() == entry.GetSource()) &&
         (i->GetNextHop() == entry.GetSource()) &&
@@ -68,17 +37,11 @@ bool DsrErrorBuffer::Enqueue(DsrErrorBuffEntry &entry) {
     }
   }
 
-  entry.SetExpireTime(
-      m_errorBufferTimeout); // Initialize the send buffer timeout
-  /*
-   * Drop the most aged packet when buffer reaches to max
-   */
+  entry.SetExpireTime(m_errorBufferTimeout);
   if (m_errorBuffer.size() >= m_maxLen) {
-    Drop(m_errorBuffer.front(),
-         "Drop the most aged packet"); // Drop the most aged packet
+    Drop(m_errorBuffer.front(), "Drop the most aged packet");
     m_errorBuffer.erase(m_errorBuffer.begin());
   }
-  // enqueue the entry
   m_errorBuffer.push_back(entry);
   return true;
 }
@@ -91,9 +54,6 @@ void DsrErrorBuffer::DropPacketForErrLink(Ipv4Address source,
   list.push_back(source);
   list.push_back(nextHop);
   const std::vector<Ipv4Address> link = list;
-  /*
-   * Drop the packet with the error link source----------nextHop
-   */
   for (auto i = m_errorBuffer.begin(); i != m_errorBuffer.end(); ++i) {
     if ((i->GetSource() == link[0]) && (i->GetNextHop() == link[1])) {
       DropLink(*i, "DropPacketForErrLink");
@@ -110,9 +70,6 @@ void DsrErrorBuffer::DropPacketForErrLink(Ipv4Address source,
 
 bool DsrErrorBuffer::Dequeue(Ipv4Address dst, DsrErrorBuffEntry &entry) {
   Purge();
-  /*
-   * Dequeue the entry with destination address dst
-   */
   for (auto i = m_errorBuffer.begin(); i != m_errorBuffer.end(); ++i) {
     if (i->GetDestination() == dst) {
       entry = *i;
@@ -126,9 +83,6 @@ bool DsrErrorBuffer::Dequeue(Ipv4Address dst, DsrErrorBuffEntry &entry) {
 }
 
 bool DsrErrorBuffer::Find(Ipv4Address dst) {
-  /*
-   * Make sure if the send buffer contains entry with certain dst
-   */
   for (auto i = m_errorBuffer.begin(); i != m_errorBuffer.end(); ++i) {
     if (i->GetDestination() == dst) {
       NS_LOG_DEBUG("Found the packet");
@@ -138,24 +92,13 @@ bool DsrErrorBuffer::Find(Ipv4Address dst) {
   return false;
 }
 
-/// IsExpired structure
 struct IsExpired {
-  /**
-   * \brief comparison operator
-   * \param e entry to compare
-   * \return true if entry expired
-   */
   bool operator()(const DsrErrorBuffEntry &e) const {
-    // NS_LOG_DEBUG("Expire time for packet in req queue: "<<e.GetExpireTime
-    // ());
     return (e.GetExpireTime() < Seconds(0));
   }
 };
 
 void DsrErrorBuffer::Purge() {
-  /*
-   * Purge the buffer to eliminate expired entries
-   */
   NS_LOG_DEBUG("The error buffer size " << m_errorBuffer.size());
   IsExpired pred;
   for (auto i = m_errorBuffer.begin(); i != m_errorBuffer.end(); ++i) {
@@ -172,15 +115,11 @@ void DsrErrorBuffer::Purge() {
 void DsrErrorBuffer::Drop(DsrErrorBuffEntry en, std::string reason) {
   NS_LOG_LOGIC(reason << en.GetPacket()->GetUid() << " "
                       << en.GetDestination());
-  //  en.GetErrorCallback () (en.GetPacket (), en.GetDestination (),
-  //     Socket::ERROR_NOROUTETOHOST);
 }
 
 void DsrErrorBuffer::DropLink(DsrErrorBuffEntry en, std::string reason) {
   NS_LOG_LOGIC(reason << en.GetPacket()->GetUid() << " " << en.GetSource()
                       << " " << en.GetNextHop());
-  //  en.GetErrorCallback () (en.GetPacket (), en.GetDestination (),
-  //     Socket::ERROR_NOROUTETOHOST);
 }
 } // namespace dsr
 } // namespace ns3

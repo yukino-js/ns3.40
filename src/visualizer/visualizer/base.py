@@ -1,58 +1,27 @@
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from gi.repository import GObject
 import os.path
 import sys
 
-PIXELS_PER_METER = 3.0  # pixels-per-meter, at 100% zoom level
+PIXELS_PER_METER = 3.0
 
 
-## PyVizObject class
 class PyVizObject(GObject.GObject):
-    ##  global type name
     __gtype_name__ = "PyVizObject"
 
-    ## Returns tooltip text string.
-    #
-    ## @param tooltip: tooltip object.
-    ## @return: Tooltip text.
     def tooltip_query(self, tooltip):
         tooltip.set_text("TODO: tooltip for %r" % self)
 
 
-## Link class
 class Link(PyVizObject):
     pass
 
 
-## InformationWindow class
 class InformationWindow(object):
-    ## update function
-    #
-    ## @return: NotImplementedError exception
     def update(self):
         raise NotImplementedError
 
 
-## NetDeviceTraits class
 class NetDeviceTraits(object):
-    ## class variables
-    ## @var is_wireless
-    #  is wireless
-    ## @var is_virtual
-    #  is virtual
     def __init__(self, is_wireless=None, is_virtual=False):
         """!
         Initialize function.
@@ -152,6 +121,5 @@ def load_plugins():
         except AttributeError:
             print("Plugin %r has no 'register' function" % name, file=sys.stderr)
         else:
-            # print("Plugin %r registered" % name, file=sys.stderr)
             register_plugin(plugin_func, name, plugin_module)
     sys.path = old_path

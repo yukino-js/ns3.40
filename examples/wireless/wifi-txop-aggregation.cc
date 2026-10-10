@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016 Sébastien Deronne
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "ns3/boolean.h"
 #include "ns3/command-line.h"
@@ -36,65 +18,13 @@
 #include "ns3/yans-wifi-channel.h"
 #include "ns3/yans-wifi-helper.h"
 
-// This is an example that illustrates how 802.11n aggregation is configured.
-// It defines 4 independent Wi-Fi networks (working on different channels).
-// Each network contains one access point and one station. Each station
-// continuously transmits data packets to its respective AP.
-//
-// Network topology (numbers in parentheses are channel numbers):
-//
-//  Network A (36)   Network B (40)   Network C (44)   Network D (48)
-//   *      *          *      *         *      *          *      *
-//   |      |          |      |         |      |          |      |
-//  AP A   STA A      AP B   STA B     AP C   STA C      AP D   STA D
-//
-// The aggregation parameters are configured differently on the 4 stations:
-// - station A uses default aggregation parameter values (A-MSDU disabled,
-// A-MPDU enabled with maximum size of 65 kB);
-// - station B doesn't use aggregation (both A-MPDU and A-MSDU are disabled);
-// - station C enables A-MSDU (with maximum size of 8 kB) but disables A-MPDU;
-// - station D uses two-level aggregation (A-MPDU with maximum size of 32 kB and
-// A-MSDU with maximum size of 4 kB).
-//
-// The user can select the distance between the stations and the APs, can
-// enable/disable the RTS/CTS mechanism and can modify the duration of a TXOP.
-// Example: ./ns3 run "wifi-txop-aggregation
-// --distance=10 --enableRts=0 --simulationTime=20"
-//
-// The output prints the throughput and the maximum TXOP duration measured for
-// the 4 cases/networks described above. When default aggregation parameters are
-// enabled, the maximum A-MPDU size is 65 kB and the throughput is maximal. When
-// aggregation is disabled, the throughput is about the half of the physical
-// bitrate. When only A-MSDU is enabled, the throughput is increased but is not
-// maximal, since the maximum A-MSDU size is limited to 7935 bytes (whereas the
-// maximum A-MPDU size is limited to 65535 bytes). When A-MSDU and A-MPDU are
-// both enabled (= two-level aggregation), the throughput is slightly smaller
-// than the first scenario since we set a smaller maximum A-MPDU size.
-//
-// When the distance is increased, the frame error rate gets higher, and the
-// output shows how it affects the throughput for the 4 networks. Even through
-// A-MSDU has less overheads than A-MPDU, A-MSDU is less robust against
-// transmission errors than A-MPDU. When the distance is augmented, the
-// throughput for the third scenario is more affected than the throughput
-// obtained in other networks.
-
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TxopMpduAggregation");
 
-/**
- * Keeps the maximum duration among all TXOPs
- */
 struct TxopDurationTracer {
-  /**
-   * Callback connected to TXOP duration trace source.
-   *
-   * \param startTime TXOP start time
-   * \param duration TXOP duration
-   * \param linkId the ID of the link
-   */
   void Trace(Time startTime, Time duration, uint8_t linkId);
-  Time m_max{Seconds(0)}; //!< maximum TXOP duration
+  Time m_max{Seconds(0)};
 };
 
 void TxopDurationTracer::Trace(Time startTime, Time duration, uint8_t linkId) {
@@ -104,13 +34,13 @@ void TxopDurationTracer::Trace(Time startTime, Time duration, uint8_t linkId) {
 }
 
 int main(int argc, char *argv[]) {
-  uint32_t payloadSize = 1472; // bytes
-  double simulationTime = 10;  // seconds
-  double txopLimit = 3520;     // microseconds
-  double distance = 5;         // meters
+  uint32_t payloadSize = 1472;
+  double simulationTime = 10;
+  double txopLimit = 3520;
+  double distance = 5;
   bool enableRts = false;
   bool enablePcap = false;
-  bool verifyResults = false; // used for regression
+  bool verifyResults = false;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("payloadSize", "Payload size in bytes", payloadSize);
@@ -157,7 +87,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer apDeviceD;
   Ssid ssid;
 
-  // Network A
   ssid = Ssid("network-A");
   phy.Set("ChannelSettings", StringValue("{36, 0, BAND_5GHZ, 0}"));
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
@@ -167,7 +96,6 @@ int main(int argc, char *argv[]) {
               BooleanValue(false));
   apDeviceA = wifi.Install(phy, mac, wifiApNodes.Get(0));
 
-  // Modify EDCA configuration (TXOP limit) for AC_BE
   Ptr<NetDevice> dev = wifiApNodes.Get(0)->GetDevice(0);
   Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice>(dev);
   PointerValue ptr;
@@ -176,19 +104,16 @@ int main(int argc, char *argv[]) {
   edca = ptr.Get<QosTxop>();
   edca->SetTxopLimit(MicroSeconds(txopLimit));
 
-  // Trace TXOP duration for BE on AP A
   TxopDurationTracer netA;
   edca->TraceConnectWithoutContext(
       "TxopTrace", MakeCallback(&TxopDurationTracer::Trace, &netA));
 
-  // Network B
   ssid = Ssid("network-B");
   phy.Set("ChannelSettings", StringValue("{40, 0, BAND_5GHZ, 0}"));
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
 
   staDeviceB = wifi.Install(phy, mac, wifiStaNodes.Get(1));
 
-  // Disable A-MPDU
   dev = wifiStaNodes.Get(1)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(0));
@@ -197,30 +122,24 @@ int main(int argc, char *argv[]) {
               BooleanValue(false));
   apDeviceB = wifi.Install(phy, mac, wifiApNodes.Get(1));
 
-  // Disable A-MPDU
   dev = wifiApNodes.Get(1)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(0));
 
-  // Modify EDCA configuration (TXOP limit) for AC_BE
   wifi_dev->GetMac()->GetAttribute("BE_Txop", ptr);
   edca = ptr.Get<QosTxop>();
   edca->SetTxopLimit(MicroSeconds(txopLimit));
 
-  // Trace TXOP duration for BE on AP B
   TxopDurationTracer netB;
   edca->TraceConnectWithoutContext(
       "TxopTrace", MakeCallback(&TxopDurationTracer::Trace, &netB));
 
-  // Network C
   ssid = Ssid("network-C");
   phy.Set("ChannelSettings", StringValue("{44, 0, BAND_5GHZ, 0}"));
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
 
   staDeviceC = wifi.Install(phy, mac, wifiStaNodes.Get(2));
 
-  // Disable A-MPDU and enable A-MSDU with the highest maximum size allowed by
-  // the standard (7935 bytes)
   dev = wifiStaNodes.Get(2)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(0));
@@ -230,33 +149,25 @@ int main(int argc, char *argv[]) {
               BooleanValue(false));
   apDeviceC = wifi.Install(phy, mac, wifiApNodes.Get(2));
 
-  // Disable A-MPDU and enable A-MSDU with the highest maximum size allowed by
-  // the standard (7935 bytes)
   dev = wifiApNodes.Get(2)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(0));
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmsduSize", UintegerValue(7935));
 
-  // Modify EDCA configuration (TXOP limit) for AC_BE
   wifi_dev->GetMac()->GetAttribute("BE_Txop", ptr);
   edca = ptr.Get<QosTxop>();
   edca->SetTxopLimit(MicroSeconds(txopLimit));
 
-  // Trace TXOP duration for BE on AP C
   TxopDurationTracer netC;
   edca->TraceConnectWithoutContext(
       "TxopTrace", MakeCallback(&TxopDurationTracer::Trace, &netC));
 
-  // Network D
   ssid = Ssid("network-D");
   phy.Set("ChannelSettings", StringValue("{48, 0, BAND_5GHZ, 0}"));
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid));
 
   staDeviceD = wifi.Install(phy, mac, wifiStaNodes.Get(3));
 
-  // Enable A-MPDU with a smaller size than the default one and
-  // enable A-MSDU with the smallest maximum size allowed by the standard (3839
-  // bytes)
   dev = wifiStaNodes.Get(3)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(32768));
@@ -266,36 +177,28 @@ int main(int argc, char *argv[]) {
               BooleanValue(false));
   apDeviceD = wifi.Install(phy, mac, wifiApNodes.Get(3));
 
-  // Enable A-MPDU with a smaller size than the default one and
-  // enable A-MSDU with the smallest maximum size allowed by the standard (3839
-  // bytes)
   dev = wifiApNodes.Get(3)->GetDevice(0);
   wifi_dev = DynamicCast<WifiNetDevice>(dev);
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmpduSize", UintegerValue(32768));
   wifi_dev->GetMac()->SetAttribute("BE_MaxAmsduSize", UintegerValue(3839));
 
-  // Modify EDCA configuration (TXOP limit) for AC_BE
   wifi_dev->GetMac()->GetAttribute("BE_Txop", ptr);
   edca = ptr.Get<QosTxop>();
   edca->SetTxopLimit(MicroSeconds(txopLimit));
 
-  // Trace TXOP duration for BE on AP D
   TxopDurationTracer netD;
   edca->TraceConnectWithoutContext(
       "TxopTrace", MakeCallback(&TxopDurationTracer::Trace, &netD));
 
-  // Setting mobility model
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 
-  // Set position for APs
   positionAlloc->Add(Vector(0.0, 0.0, 0.0));
   positionAlloc->Add(Vector(10.0, 0.0, 0.0));
   positionAlloc->Add(Vector(20.0, 0.0, 0.0));
   positionAlloc->Add(Vector(30.0, 0.0, 0.0));
-  // Set position for STAs
   positionAlloc->Add(Vector(distance, 0.0, 0.0));
   positionAlloc->Add(Vector(10 + distance, 0.0, 0.0));
   positionAlloc->Add(Vector(20 + distance, 0.0, 0.0));
@@ -305,7 +208,6 @@ int main(int argc, char *argv[]) {
   mobility.Install(wifiApNodes);
   mobility.Install(wifiStaNodes);
 
-  // Internet stack
   InternetStackHelper stack;
   stack.Install(wifiApNodes);
   stack.Install(wifiStaNodes);
@@ -335,7 +237,6 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer ApInterfaceD;
   ApInterfaceD = address.Assign(apDeviceD);
 
-  // Setting applications
   uint16_t port = 9;
   UdpServerHelper serverA(port);
   ApplicationContainer serverAppA = serverA.Install(wifiStaNodes.Get(0));
@@ -344,7 +245,7 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper clientA(StaInterfaceA.GetAddress(0), port);
   clientA.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  clientA.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+  clientA.SetAttribute("Interval", TimeValue(Time("0.0001")));
   clientA.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
   ApplicationContainer clientAppA = clientA.Install(wifiApNodes.Get(0));
@@ -358,7 +259,7 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper clientB(StaInterfaceB.GetAddress(0), port);
   clientB.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  clientB.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+  clientB.SetAttribute("Interval", TimeValue(Time("0.0001")));
   clientB.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
   ApplicationContainer clientAppB = clientB.Install(wifiApNodes.Get(1));
@@ -372,7 +273,7 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper clientC(StaInterfaceC.GetAddress(0), port);
   clientC.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  clientC.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+  clientC.SetAttribute("Interval", TimeValue(Time("0.0001")));
   clientC.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
   ApplicationContainer clientAppC = clientC.Install(wifiApNodes.Get(2));
@@ -386,7 +287,7 @@ int main(int argc, char *argv[]) {
 
   UdpClientHelper clientD(StaInterfaceD.GetAddress(0), port);
   clientD.SetAttribute("MaxPackets", UintegerValue(4294967295U));
-  clientD.SetAttribute("Interval", TimeValue(Time("0.0001"))); // packets/s
+  clientD.SetAttribute("Interval", TimeValue(Time("0.0001")));
   clientD.SetAttribute("PacketSize", UintegerValue(payloadSize));
 
   ApplicationContainer clientAppD = clientD.Install(wifiApNodes.Get(3));
@@ -407,7 +308,6 @@ int main(int argc, char *argv[]) {
   Simulator::Stop(Seconds(simulationTime + 1));
   Simulator::Run();
 
-  // Show results
   uint64_t totalPacketsThroughA =
       DynamicCast<UdpServer>(serverAppA.Get(0))->GetReceived();
   uint64_t totalPacketsThroughB =

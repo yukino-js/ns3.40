@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Budiarto Herman <budiarto.herman@magister.fi>
- *         Alexander Krotov <krotov@iitp.ru>
- */
 
 #include <ns3/boolean.h>
 #include <ns3/callback.h>
@@ -44,24 +25,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteHandoverDelayTest");
 
-/**
- * \ingroup lte-test
- *
- * \brief Verifying that the time needed for handover is under a
- * specified threshold.
- */
-
 class LteHandoverDelayTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param numberOfComponentCarriers number of component carriers
-   * \param useIdealRrc if true, use the ideal RRC
-   * \param handoverTime the time of handover
-   * \param delayThreshold the delay threshold
-   * \param simulationDuration duration of the simulation
-   */
   LteHandoverDelayTestCase(uint8_t numberOfComponentCarriers, bool useIdealRrc,
                            Time handoverTime, Time delayThreshold,
                            Time simulationDuration)
@@ -76,55 +41,25 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * UE handover start callback function
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param cellid the cell ID
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void UeHandoverStartCallback(std::string context, uint64_t imsi,
                                uint16_t cellid, uint16_t rnti,
                                uint16_t targetCellId);
-  /**
-   * UE handover end OK callback function
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param cellid the cell ID
-   * \param rnti the RNTI
-   */
   void UeHandoverEndOkCallback(std::string context, uint64_t imsi,
                                uint16_t cellid, uint16_t rnti);
-  /**
-   * ENB handover start callback function
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param cellid the cell ID
-   * \param rnti the RNTI
-   * \param targetCellId the target cell ID
-   */
   void EnbHandoverStartCallback(std::string context, uint64_t imsi,
                                 uint16_t cellid, uint16_t rnti,
                                 uint16_t targetCellId);
-  /**
-   * ENB handover end OK callback function
-   * \param context the context string
-   * \param imsi the IMSI
-   * \param cellid the cell ID
-   * \param rnti the RNTI
-   */
   void EnbHandoverEndOkCallback(std::string context, uint64_t imsi,
                                 uint16_t cellid, uint16_t rnti);
 
-  uint8_t m_numberOfComponentCarriers; ///< Number of component carriers
-  bool m_useIdealRrc;                  ///< use ideal RRC?
-  Time m_handoverTime;                 ///< handover time
-  Time m_delayThreshold;               ///< the delay threshold
-  Time m_simulationDuration;           ///< the simulation duration
+  uint8_t m_numberOfComponentCarriers;
+  bool m_useIdealRrc;
+  Time m_handoverTime;
+  Time m_delayThreshold;
+  Time m_simulationDuration;
 
-  Time m_ueHandoverStart;  ///< UE handover start time
-  Time m_enbHandoverStart; ///< ENB handover start time
+  Time m_ueHandoverStart;
+  Time m_enbHandoverStart;
 };
 
 void LteHandoverDelayTestCase::DoRun() {
@@ -132,9 +67,6 @@ void LteHandoverDelayTestCase::DoRun() {
               << m_useIdealRrc
               << " handover time = " << m_handoverTime.As(Time::S) << "-----");
 
-  /*
-   * Helpers.
-   */
   auto epcHelper = CreateObject<PointToPointEpcHelper>();
 
   auto lteHelper = CreateObject<LteHelper>();
@@ -150,20 +82,10 @@ void LteHandoverDelayTestCase::DoRun() {
   ccHelper->SetDlBandwidth(25);
   ccHelper->SetNumberOfComponentCarriers(m_numberOfComponentCarriers);
 
-  /*
-   * Physical layer.
-   *
-   * eNodeB 0                    UE                      eNodeB 1
-   *
-   *    x ----------------------- x ----------------------- x
-   *              500 m                      500 m
-   */
-  // Create nodes.
   NodeContainer enbNodes;
   enbNodes.Create(2);
   auto ueNode = CreateObject<Node>();
 
-  // Setup mobility
   auto posAlloc = CreateObject<ListPositionAllocator>();
   posAlloc->Add(Vector(0, 0, 0));
   posAlloc->Add(Vector(1000, 0, 0));
@@ -175,21 +97,14 @@ void LteHandoverDelayTestCase::DoRun() {
   mobilityHelper.Install(enbNodes);
   mobilityHelper.Install(ueNode);
 
-  /*
-   * Link layer.
-   */
   auto enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   auto ueDev = lteHelper->InstallUeDevice(ueNode).Get(0);
 
-  /*
-   * Network layer.
-   */
   InternetStackHelper inetStackHelper;
   inetStackHelper.Install(ueNode);
   Ipv4InterfaceContainer ueIfs;
   ueIfs = epcHelper->AssignUeIpv4Address(ueDev);
 
-  // Setup traces.
   Config::Connect(
       "/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart",
       MakeCallback(&LteHandoverDelayTestCase::UeHandoverStartCallback, this));
@@ -204,18 +119,15 @@ void LteHandoverDelayTestCase::DoRun() {
       "/NodeList/*/DeviceList/*/LteEnbRrc/HandoverEndOk",
       MakeCallback(&LteHandoverDelayTestCase::EnbHandoverEndOkCallback, this));
 
-  // Prepare handover.
   lteHelper->AddX2Interface(enbNodes);
   lteHelper->Attach(ueDev, enbDevs.Get(0));
   lteHelper->HandoverRequest(m_handoverTime, ueDev, enbDevs.Get(0),
                              enbDevs.Get(1));
 
-  // Run simulation.
   Simulator::Stop(m_simulationDuration);
   Simulator::Run();
   Simulator::Destroy();
-
-} // end of void LteHandoverDelayTestCase::DoRun ()
+}
 
 void LteHandoverDelayTestCase::UeHandoverStartCallback(std::string context,
                                                        uint64_t imsi,
@@ -267,26 +179,13 @@ void LteHandoverDelayTestCase::EnbHandoverEndOkCallback(std::string context,
           << " handover time = " << m_handoverTime.As(Time::S) << ")");
 }
 
-/**
- * \ingroup lte-test
- *
- * \brief Lte Handover Delay Test Suite
- */
-
 static class LteHandoverDelayTestSuite : public TestSuite {
 public:
   LteHandoverDelayTestSuite()
       : TestSuite("lte-handover-delay", TestSuite::SYSTEM) {
-    // LogComponentEnable ("LteHandoverDelayTest", LOG_PREFIX_TIME);
-    // LogComponentEnable ("LteHandoverDelayTest", LOG_DEBUG);
-    // LogComponentEnable ("LteHandoverDelayTest", LOG_INFO);
-
-    // HANDOVER DELAY TEST CASES WITH IDEAL RRC (THRESHOLD = 0.005 sec)
 
     for (Time handoverTime = Seconds(0.100); handoverTime < Seconds(0.110);
          handoverTime += Seconds(0.001)) {
-      // arguments: useIdealRrc, handoverTime, delayThreshold,
-      // simulationDuration
       AddTestCase(new LteHandoverDelayTestCase(1, true, handoverTime,
                                                Seconds(0.005), Seconds(0.200)),
                   TestCase::QUICK);
@@ -298,12 +197,8 @@ public:
                   TestCase::QUICK);
     }
 
-    // HANDOVER DELAY TEST CASES WITH REAL RRC (THRESHOLD = 0.020 sec)
-
     for (Time handoverTime = Seconds(0.100); handoverTime < Seconds(0.110);
          handoverTime += Seconds(0.001)) {
-      // arguments: useIdealRrc, handoverTime, delayThreshold,
-      // simulationDuration
       AddTestCase(new LteHandoverDelayTestCase(1, false, handoverTime,
                                                Seconds(0.020), Seconds(0.200)),
                   TestCase::QUICK);
@@ -315,4 +210,4 @@ public:
                   TestCase::QUICK);
     }
   }
-} g_lteHandoverDelayTestSuite; ///< the test suite
+} g_lteHandoverDelayTestSuite;

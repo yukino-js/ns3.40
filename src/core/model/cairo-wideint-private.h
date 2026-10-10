@@ -1,33 +1,3 @@
-/* cairo - a vector graphics library with display and print output
- *
- * Copyright © 2004 Keith Packard
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * The original code as contributed to the cairo library under
- * the dual license MPL+LGPL. We used the LGPL relicensing clause to
- * get a GPL version of this code which now lives here. This header is
- * unmodified other than the licensing clause.
- *
- * The Original Code is the cairo graphics library.
- *
- * The Initial Developer of the Original Code is Keith Packard
- *
- * Contributor(s):
- *    Keith R. Packard <keithp@keithp.com>
- *
- */
 
 // NOLINTBEGIN
 // clang-format off
@@ -35,23 +5,11 @@
 #ifndef CAIRO_WIDEINT_H
 #define CAIRO_WIDEINT_H
 
-/**
- * \file
- * \ingroup highprec
- * \c cairo_x function declarations, which provide the fallback
- * high precision arithmetic implementation.
- */
 
-// Adapt to ns-3 environment
-// Additional changes from upstream are marked with `//PDB'
 #include "ns3/core-config.h"
 #define cairo_private
 #define HAVE_UINT64_T 1
-// Implementation tags added below and in cairo-wideint.c:
-// extern const char * cairo_impl64;
-// extern const char * cairo_impl128;
 
-/*for compatibility with MacOS and Cygwin*/
 #ifndef HAVE_STDINT_H
 #ifdef __APPLE__
 #define HAVE_STDINT_H 1
@@ -95,15 +53,7 @@ typedef unsigned __int64 uint64_t;
 extern "C" {
 #endif
 
-/*
- * 64-bit datatypes.  Two separate implementations, one using
- * built-in 64-bit signed/unsigned types another implemented
- * as a pair of 32-bit ints
- */
 
-//PDB preprocessor symbol 'I' conflicts with
-// `#define I _Complex_I` in <complex>
-// Substitute a less generic symbol here
 #define cairo_I  cairo_private
 
 #if !HAVE_UINT64_T
@@ -189,9 +139,6 @@ typedef int64_t     cairo_int64_t;
 
 #endif
 
-/*
- * 64-bit comparisons derived from lt or eq
- */
 #define                 _cairo_uint64_le(a,b)       (!_cairo_uint64_gt (a,b))
 #define                 _cairo_uint64_ne(a,b)       (!_cairo_uint64_eq (a,b))
 #define                 _cairo_uint64_ge(a,b)       (!_cairo_uint64_lt (a,b))
@@ -202,10 +149,6 @@ typedef int64_t     cairo_int64_t;
 #define                 _cairo_int64_ge(a,b)        (!_cairo_int64_lt (a,b))
 #define                 _cairo_int64_gt(a,b)        _cairo_int64_lt (b,a)
 
-/*
- * As the C implementation always computes both, create
- * a function which returns both for the 'native' type as well
- */
 
 typedef struct _cairo_uquorem64 {
   cairo_uint64_t      quo;
@@ -223,11 +166,6 @@ _cairo_uint64_divrem (cairo_uint64_t num, cairo_uint64_t den);
 cairo_quorem64_t cairo_I
 _cairo_int64_divrem (cairo_int64_t num, cairo_int64_t den);
 
-/*
- * 128-bit datatypes.  Again, provide two implementations in
- * case the machine has a native 128-bit datatype.  GCC supports int128_t
- * on ia64
- */
 
 #if !HAVE_UINT128_T
 
@@ -274,7 +212,7 @@ int             cairo_I _cairo_int128_lt (cairo_int128_t a, cairo_int128_t b);
 #define                 _cairo_int128_negative(a)   (_cairo_uint128_negative (a))
 #define                 _cairo_int128_not(a)        _cairo_uint128_not (a)
 
-#else   /* !HAVE_UINT128_T */
+#else
 
 extern const char * cairo_impl128;
 
@@ -318,7 +256,7 @@ typedef int128_t        cairo_int128_t;
 #define                 _cairo_int128_negative(a)   ((a) < 0)
 #define                 _cairo_int128_not(a)        (~(a))
 
-#endif  /* HAVE_UINT128_T */
+#endif
 
 typedef struct _cairo_uquorem128 {
   cairo_uint128_t     quo;
@@ -360,7 +298,7 @@ _cairo_int_96by64_32x64_divrem (cairo_int128_t num,
 };
 #endif
 
-#endif /* CAIRO_WIDEINT_H */
+#endif
 
 // clang-format on
 // NOLINTEND

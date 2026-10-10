@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "ns3/flame-header.h"
 #include "ns3/flame-rtable.h"
@@ -26,11 +8,6 @@
 using namespace ns3;
 using namespace flame;
 
-/**
- * \ingroup flame-test
- *
- * \brief Built-in self test for FlameHeader
- */
 struct FlameHeaderTest : public TestCase {
   FlameHeaderTest() : TestCase("FlameHeader roundtrip serialization") {}
 
@@ -51,37 +28,26 @@ void FlameHeaderTest::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(b, a, "FlameHeader roundtrip serialization works");
 }
 
-//-----------------------------------------------------------------------------
-
-/**
- * \ingroup flame-test
- *
- * \brief Unit test for FlameRtable
- */
 class FlameRtableTest : public TestCase {
 public:
   FlameRtableTest();
   void DoRun() override;
 
 private:
-  /// Test Add apth and lookup path;
   void TestLookup();
 
-  /// Test add path and try to lookup after entry has expired
   void TestAddPath();
-  /// Test add path and try to lookup after entry has expired
   void TestExpire();
 
 private:
-  Mac48Address dst;       ///< destination address
-  Mac48Address hop;       ///< hop address
-  uint32_t iface;         ///< interface
-  uint8_t cost;           ///< cost
-  uint16_t seqnum;        ///< sequence number
-  Ptr<FlameRtable> table; ///< table
+  Mac48Address dst;
+  Mac48Address hop;
+  uint32_t iface;
+  uint8_t cost;
+  uint16_t seqnum;
+  Ptr<FlameRtable> table;
 };
 
-/// Test instance
 static FlameRtableTest g_FlameRtableTest;
 
 FlameRtableTest::FlameRtableTest()
@@ -101,7 +67,6 @@ void FlameRtableTest::TestAddPath() {
 }
 
 void FlameRtableTest::TestExpire() {
-  // this is assumed to be called when path records are already expired
   FlameRtable::LookupResult correct(hop, iface, cost, seqnum);
   NS_TEST_EXPECT_MSG_EQ(table->Lookup(dst).IsValid(), false,
                         "Routing table records expirations works");
@@ -118,11 +83,6 @@ void FlameRtableTest::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup flame-test
- *
- * \brief Flame Test Suite
- */
 class FlameTestSuite : public TestSuite {
 public:
   FlameTestSuite();
@@ -133,4 +93,4 @@ FlameTestSuite::FlameTestSuite() : TestSuite("devices-mesh-flame", UNIT) {
   AddTestCase(new FlameRtableTest, TestCase::QUICK);
 }
 
-static FlameTestSuite g_flameTestSuite; ///< the test suite
+static FlameTestSuite g_flameTestSuite;

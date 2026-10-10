@@ -1,41 +1,4 @@
-/*
- * Copyright (c) 2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: David Gross <gdavid.devel@gmail.com>
- */
 
-// Network topology
-// //
-// //
-// //                               +------------+
-// //  +------------+           |---|  Router 1  |---|
-// //  |   Host 0   |--|        |   [------------]   |
-// //  [------------]  |        |                    |
-// //                  |  +------------+             |
-// //                  +--|            |       +------------+
-// //                     |  Router 0  |       |  Router 2  |
-// //                  +--|            |       [------------]
-// //                  |  [------------]             |
-// //  +------------+  |        |                    |
-// //  |   Host 1   |--|        |   +------------+   |
-// //  [------------]           |---|  Router 3  |---|
-// //                               [------------]
-// //
-// //
-// // - Tracing of queues and packet receptions to file "loose-routing-ipv6.tr"
 
 #include "ns3/core-module.h"
 #include "ns3/csma-module.h"
@@ -57,7 +20,6 @@ int main(int argc, char **argv) {
   cmd.Parse(argc, argv);
 
   if (verbose) {
-    // LogComponentEnable("Ipv6ExtensionLooseRouting", LOG_LEVEL_ALL);
     LogComponentEnable("Ipv6Extension", LOG_LEVEL_ALL);
     LogComponentEnable("Ipv6L3Protocol", LOG_LEVEL_ALL);
     LogComponentEnable("Ipv6StaticRouting", LOG_LEVEL_ALL);
@@ -65,8 +27,6 @@ int main(int argc, char **argv) {
     LogComponentEnable("Ipv6Interface", LOG_LEVEL_ALL);
     LogComponentEnable("NdiscCache", LOG_LEVEL_ALL);
   }
-
-  // LogComponentEnable("Ping", LOG_LEVEL_INFO);
 
   NS_LOG_INFO("Create nodes.");
   Ptr<Node> h0 = CreateObject<Node>();
@@ -149,9 +109,6 @@ int main(int argc, char **argv) {
 
   NS_LOG_INFO("Create Applications.");
 
-  /**
-   * ICMPv6 Echo from h0 to h1 port 7
-   */
   uint32_t packetSize = 1024;
   uint32_t maxPacketCount = 1;
   Time interPacketInterval = Seconds(1.0);
@@ -163,7 +120,6 @@ int main(int argc, char **argv) {
   routersAddress.push_back(i6.GetAddress(1, 1));
   routersAddress.push_back(i2.GetAddress(0, 1));
 
-  // remote address is first routers in RH0 => source routing
   PingHelper client(i1.GetAddress(1, 1));
   client.SetAttribute("Count", UintegerValue(maxPacketCount));
   client.SetAttribute("Interval", TimeValue(interPacketInterval));

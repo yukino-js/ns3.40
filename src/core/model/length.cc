@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2019 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathew Bielejeski <bielejeski1@llnl.gov>
- */
 
 #include "length.h"
 
@@ -35,96 +17,29 @@
 #include <unordered_map>
 #include <vector>
 
-/**
- * \file
- * \ingroup length
- * ns3::Length implementation
- */
-
-/**
- * \ingroup length
- * Unnamed namespace
- */
 namespace {
-/**
- * Helper function to scale an input value by a given ratio
- *
- * \tparam R a std::ratio
- *
- * \param value Input value to scale by R
- *
- * \return The result of value * R::num / R::den
- */
 template <class R> double ScaleValue(double value) {
   return (value * R::num) / static_cast<double>(R::den);
 }
 
-/**
- * Convert a value in feet to the equivalent value in meters
- *
- * \param value Input value in feet
- *
- * \return Equivalent value in meters
- */
 double FootToMeter(double value) { return value * 0.3048; }
 
-/**
- * Convert a value in meters to the equivalent value in feet
- *
- * \param value Input value in meters
- *
- * \return Equivalent value in feet
- */
 double MeterToFoot(double value) { return value * 3.28084; }
 
-/**
- * Convert a value from a US Customary unit (inches, feet, yards etc.) to meters
- *
- * Value is scaled to feet then converted to meters
- *
- * \tparam R std::ratio needed to convert value to feet
- *
- * \param value Input value in some US Customary unit
- *
- * \return Equivalent value in meters
- */
 template <class R> double USToMeter(double value) {
   return FootToMeter(ScaleValue<R>(value));
 }
 
-/**
- * Convert a value from meters to a US Customary unit (inches, feet, yards etc.)
- *
- * Value is converted to feet then scaled to the desired US Customary unit
- *
- * \tparam R std::ratio needed to convert feet to desired US customary unit
- *
- * \param value Input value in meters
- *
- * \return Equivalent value in a US customary unit
- */
 template <class R> double MeterToUS(double value) {
   return ScaleValue<R>(MeterToFoot(value));
 }
 
-/**
- * Convert a value in one unit to the equivalent value in another unit
- *
- * \param value Length value in \p fromUnit units
- * \param fromUnit Unit of \p value
- * \param toUnit Target unit
- *
- * \return Result of converting value from \p fromUnit to \p toUnit
- */
 double Convert(double value, ns3::Length::Unit fromUnit,
                ns3::Length::Unit toUnit) {
   using Unit = ns3::Length::Unit;
   using Key = std::pair<Unit, Unit>;
   using Conversion = std::function<double(double)>;
 
-  /**
-   * Helper to generate hash values from pairs of Length::Units
-   */
   struct KeyHash {
     std::size_t operator()(const Key &key) const noexcept {
       static_assert(sizeof(Unit) < sizeof(std::size_t),
@@ -173,45 +88,23 @@ double Convert(double value, ns3::Length::Unit fromUnit,
   return iter->second(value);
 }
 
-/**
- * Convert a Length::Quantity to the equivalent value in another unit
- *
- * \param from Quantity with the current value and unit
- * \param toUnit Target unit
- *
- * \return Result of converting the quantity value to the requested units
- */
 double Convert(const ns3::Length::Quantity &from, ns3::Length::Unit toUnit) {
   return Convert(from.Value(), from.Unit(), toUnit);
 }
 
-/**
- * Functor for hashing Length::Unit values
- *
- * This classes exists as a work around for a C++11 defect.  c++11 doesn't
- * provide a std::hash implementation for enums
- */
 class EnumHash {
 public:
-  /**
-   * Produce a hash value for a Length::Unit
-   *
-   * \param u Length::Unit to hash
-   *
-   * \return Hash value for the Length::Unit
-   */
   std::size_t operator()(ns3::Length::Unit u) const noexcept {
     return static_cast<std::size_t>(u);
   }
 };
 
-} // unnamed namespace
+} // namespace
 
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Length");
 
-// Implement the attribute helper
 ATTRIBUTE_HELPER_CPP(Length);
 
 std::optional<Length> Length::TryParse(double value,
@@ -271,8 +164,7 @@ Length &Length::operator=(const Length::Quantity &q) {
   return *this;
 }
 
-bool Length::IsEqual(const Length &other,
-                     double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsEqual(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   if (m_value == other.m_value) {
@@ -284,36 +176,31 @@ bool Length::IsEqual(const Length &other,
   return diff <= tolerance;
 }
 
-bool Length::IsNotEqual(const Length &other,
-                        double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsNotEqual(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   return !IsEqual(other, tolerance);
 }
 
-bool Length::IsLess(const Length &other,
-                    double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsLess(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   return m_value < other.m_value && IsNotEqual(other, tolerance);
 }
 
-bool Length::IsLessOrEqual(const Length &other,
-                           double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsLessOrEqual(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   return m_value < other.m_value || IsEqual(other, tolerance);
 }
 
-bool Length::IsGreater(const Length &other,
-                       double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsGreater(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   return !IsLessOrEqual(other, tolerance);
 }
 
-bool Length::IsGreaterOrEqual(const Length &other,
-                              double tolerance /*=DEFAULT_TOLERANCE*/) const {
+bool Length::IsGreaterOrEqual(const Length &other, double tolerance) const {
   NS_LOG_FUNCTION(this << m_value << other.m_value << tolerance);
 
   return !IsLess(other, tolerance);
@@ -440,7 +327,7 @@ std::string ToSymbol(Length::Unit unit) {
   return iter->second;
 }
 
-std::string ToName(Length::Unit unit, bool plural /*=false*/) {
+std::string ToName(Length::Unit unit, bool plural) {
   using Entry = std::tuple<std::string, std::string>;
   using StringTable = std::unordered_map<Length::Unit, Entry, EnumHash>;
 
@@ -523,13 +410,11 @@ std::optional<Length::Unit> FromString(std::string unitString) {
       {"miles", Length::Unit::Mile},
   };
 
-  // function to trim whitespace and convert to lowercase in one pass
   static auto Normalize = [](const std::string &str) {
     std::string output;
     output.reserve(str.size());
 
     for (unsigned char c : str) {
-      // this strips all spaces not just beg/end but is fine for our purposes
       if (std::isspace(c)) {
         continue;
       }
@@ -569,22 +454,6 @@ std::ostream &operator<<(std::ostream &stream, Length::Unit unit) {
   return stream;
 }
 
-/**
- * This function provides a string parsing method that does not rely
- * on istream, which has been found to have different behaviors in different
- * implementations.
- *
- * The input string can either contain a double (for example, "5.5") or
- * a double and a string with no space between them (for example, "5.5m")
- *
- * \param input The input string
- * \return A three element tuple containing the result of parsing the string.
- * The first tuple element is a boolean indicating whether the parsing succeeded
- * or failed.  The second element contains the value of the double that was
- * extracted from the string.  The third element was the unit symbol that was
- * extracted from the string.  If the input string did not have a unit symbol,
- * the third element will contain an empty string.
- */
 std::tuple<bool, double, std::string>
 ParseLengthString(const std::string &input) {
   NS_LOG_FUNCTION(input);
@@ -601,7 +470,6 @@ ParseLengthString(const std::string &input) {
     return std::make_tuple(false, 0, "");
   }
 
-  // skip any whitespace between value and symbol
   while (pos < input.size() && std::isspace(input[pos])) {
     ++pos;
   }
@@ -609,7 +477,6 @@ ParseLengthString(const std::string &input) {
   if (pos < input.size()) {
     NS_LOG_LOGIC("String has value and symbol, extracting symbol");
 
-    // input has a double followed by a string
     symbol = input.substr(pos);
   }
 
@@ -622,11 +489,9 @@ std::istream &operator>>(std::istream &stream, Length &l) {
   std::string symbol;
   std::string temp;
 
-  // configure stream to skip whitespace in case it was disabled
   auto origFlags = stream.flags();
   std::skipws(stream);
 
-  // Read the contents into a temporary string and parse it manually
   stream >> temp;
 
   std::tie(success, value, symbol) = ParseLengthString(temp);
@@ -635,12 +500,9 @@ std::istream &operator>>(std::istream &stream, Length &l) {
     NS_LOG_LOGIC(
         "Temp string only contained value, extracting unit symbol from stream");
 
-    // temp only contained the double
-    // still need to read the symbol from the stream
     stream >> symbol;
   }
 
-  // special handling for nautical mile which is two words
   if (symbol == "nautical") {
     stream >> temp;
 
@@ -652,7 +514,6 @@ std::istream &operator>>(std::istream &stream, Length &l) {
 
   Length(value, symbol).swap(l);
 
-  // restore original flags
   stream.flags(origFlags);
 
   return stream;

@@ -1,25 +1,4 @@
-//
-// Copyright (c) 2006 Georgia Tech Research Corporation
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: George F. Riley<riley@ece.gatech.edu>
-//
 
-// ns3 - On/Off Data Source Application class
-// George F. Riley, Georgia Tech, Spring 2007
-// Adapted from ApplicationOnOff in GTNetS.
 
 #include "onoff-application.h"
 
@@ -101,7 +80,6 @@ TypeId OnOffApplication::GetTypeId() {
                         "a subclass of ns3::SocketFactory",
                         TypeIdValue(UdpSocketFactory::GetTypeId()),
                         MakeTypeIdAccessor(&OnOffApplication::m_tid),
-                        // This should check for SocketFactory as a parent
                         MakeTypeIdChecker())
           .AddAttribute(
               "EnableSeqTsSizeHeader",
@@ -156,16 +134,12 @@ void OnOffApplication::DoDispose() {
   CancelEvents();
   m_socket = nullptr;
   m_unsentPacket = nullptr;
-  // chain up
   Application::DoDispose();
 }
 
-// Application Methods
-void OnOffApplication::StartApplication() // Called at time specified by Start
-{
+void OnOffApplication::StartApplication() {
   NS_LOG_FUNCTION(this);
 
-  // Create the socket if not already
   if (!m_socket) {
     m_socket = Socket::CreateSocket(GetNode(), m_tid);
     int ret = -1;
@@ -200,20 +174,14 @@ void OnOffApplication::StartApplication() // Called at time specified by Start
   }
   m_cbrRateFailSafe = m_cbrRate;
 
-  // Ensure no pending event
   CancelEvents();
 
-  // If we are not yet connected, there is nothing to do here,
-  // the ConnectionComplete upcall will start timers at that time.
-  // If we are already connected, CancelEvents did remove the events,
-  // so we have to start them again.
   if (m_connected) {
     ScheduleStartEvent();
   }
 }
 
-void OnOffApplication::StopApplication() // Called at time specified by Stop
-{
+void OnOffApplication::StopApplication() {
   NS_LOG_FUNCTION(this);
 
   CancelEvents();
@@ -228,9 +196,7 @@ void OnOffApplication::StopApplication() // Called at time specified by Stop
 void OnOffApplication::CancelEvents() {
   NS_LOG_FUNCTION(this);
 
-  if (m_sendEvent.IsRunning() &&
-      m_cbrRateFailSafe == m_cbrRate) { // Cancel the pending send packet event
-    // Calculate residual bits since last packet sent
+  if (m_sendEvent.IsRunning() && m_cbrRateFailSafe == m_cbrRate) {
     Time delta(Simulator::Now() - m_lastStartTime);
     int64x64_t bits = delta.To(Time::S) * m_cbrRate.GetBitRate();
     m_residualBits += bits.GetHigh();
@@ -238,19 +204,16 @@ void OnOffApplication::CancelEvents() {
   m_cbrRateFailSafe = m_cbrRate;
   Simulator::Cancel(m_sendEvent);
   Simulator::Cancel(m_startStopEvent);
-  // Canceling events may cause discontinuity in sequence number if the
-  // SeqTsSizeHeader is header, and m_unsentPacket is true
   if (m_unsentPacket) {
     NS_LOG_DEBUG("Discarding cached packet upon CancelEvents ()");
   }
   m_unsentPacket = nullptr;
 }
 
-// Event handlers
 void OnOffApplication::StartSending() {
   NS_LOG_FUNCTION(this);
   m_lastStartTime = Simulator::Now();
-  ScheduleNextTx(); // Schedule the send packet event
+  ScheduleNextTx();
   ScheduleStopEvent();
 }
 
@@ -261,7 +224,6 @@ void OnOffApplication::StopSending() {
   ScheduleStartEvent();
 }
 
-// Private helpers
 void OnOffApplication::ScheduleNextTx() {
   NS_LOG_FUNCTION(this);
 
@@ -270,20 +232,16 @@ void OnOffApplication::ScheduleNextTx() {
                     "Calculation to compute next send time will overflow");
     uint32_t bits = m_pktSize * 8 - m_residualBits;
     NS_LOG_LOGIC("bits = " << bits);
-    Time nextTime(Seconds(
-        bits /
-        static_cast<double>(m_cbrRate.GetBitRate()))); // Time till next packet
+    Time nextTime(Seconds(bits / static_cast<double>(m_cbrRate.GetBitRate())));
     NS_LOG_LOGIC("nextTime = " << nextTime.As(Time::S));
     m_sendEvent =
         Simulator::Schedule(nextTime, &OnOffApplication::SendPacket, this);
-  } else { // All done, cancel any pending events
+  } else {
     StopApplication();
   }
 }
 
-void OnOffApplication::ScheduleStartEvent() { // Schedules the event to start
-                                              // sending data (switch to the
-                                              // "On" state)
+void OnOffApplication::ScheduleStartEvent() {
   NS_LOG_FUNCTION(this);
 
   Time offInterval = Seconds(m_offTime->GetValue());
@@ -292,9 +250,7 @@ void OnOffApplication::ScheduleStartEvent() { // Schedules the event to start
       Simulator::Schedule(offInterval, &OnOffApplication::StartSending, this);
 }
 
-void OnOffApplication::ScheduleStopEvent() { // Schedules the event to stop
-                                             // sending data (switch to "Off"
-                                             // state)
+void OnOffApplication::ScheduleStopEvent() {
   NS_LOG_FUNCTION(this);
 
   Time onInterval = Seconds(m_onTime->GetValue());
@@ -321,7 +277,6 @@ void OnOffApplication::SendPacket() {
     header.SetSize(m_pktSize);
     NS_ABORT_IF(m_pktSize < header.GetSerializedSize());
     packet = Create<Packet>(m_pktSize - header.GetSerializedSize());
-    // Trace before adding header, for consistency with PacketSink
     m_txTraceWithSeqTsSize(packet, from, to, header);
     packet->AddHeader(header);
   } else {
@@ -379,4 +334,4 @@ void OnOffApplication::ConnectionFailed(Ptr<Socket> socket) {
   NS_FATAL_ERROR("Can't connect");
 }
 
-} // Namespace ns3
+} // namespace ns3

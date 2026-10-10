@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Stefano Avallone <stavallo@unina.it>
- */
 
 #include "ns3/ap-wifi-mac.h"
 #include "ns3/boolean.h"
@@ -42,152 +24,30 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WifiPrimaryChannelsTest");
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test transmissions under different primary channel settings
- *
- * This test can be repeated for different widths of the operating channel. We
- * configure as many BSSes as the number of distinct 20 MHz subchannels in the
- * operating channel, so that each BSS is assigned a distinct primary20 channel.
- * For each BSS, we test the transmission of SU PPDUs, DL MU PPDUs and HE TB
- * PPDUs of all the widths (20 MHz, 40 MHz, etc.) allowed by the operating
- * channel. Transmissions of a given type take place simultaneously in BSSes
- * that do not operate on adjacent primary channels of the considered width (so
- * that transmissions do not interfere with each other). It is also possible to
- * select whether BSSes should be assigned (distinct) BSS colors or not.
- */
 class WifiPrimaryChannelsTest : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param channelWidth the operating channel width (in MHz)
-   * \param useDistinctBssColors whether to set distinct BSS colors to BSSes
-   */
   WifiPrimaryChannelsTest(uint16_t channelWidth, bool useDistinctBssColors);
   ~WifiPrimaryChannelsTest() override;
 
-  /**
-   * Callback invoked when PHY receives a PSDU to transmit. Used to print
-   * transmitted PSDUs for debug purposes.
-   *
-   * \param context the context
-   * \param psduMap the PSDU map
-   * \param txVector the TX vector
-   * \param txPowerW the tx power in Watts
-   */
   void Transmit(std::string context, WifiConstPsduMap psduMap,
                 WifiTxVector txVector, double txPowerW);
-  /**
-   * Have the AP of the given BSS transmit a SU PPDU using the given
-   * transmission channel width
-   *
-   * \param bss the given BSS
-   * \param txChannelWidth the given transmission channel width in MHz
-   */
   void SendDlSuPpdu(uint8_t bss, uint16_t txChannelWidth);
-  /**
-   * Have the AP of the given BSS transmit a MU PPDU using the given
-   * transmission channel width and RU type
-   *
-   * \param bss the given BSS
-   * \param txChannelWidth the given transmission channel width in MHz
-   * \param ruType the given RU type
-   * \param nRus the number of RUs
-   */
   void SendDlMuPpdu(uint8_t bss, uint16_t txChannelWidth, HeRu::RuType ruType,
                     std::size_t nRus);
-  /**
-   * Have the AP of the given BSS transmit a Basic Trigger Frame. This method
-   * calls DoSendHeTbPpdu to actually have STAs transmit HE TB PPDUs using the
-   * given transmission channel width and RU type
-   *
-   * \param bss the given BSS
-   * \param txChannelWidth the given transmission channel width in MHz
-   * \param ruType the given RU type
-   * \param nRus the number of RUs
-   */
   void SendHeTbPpdu(uint8_t bss, uint16_t txChannelWidth, HeRu::RuType ruType,
                     std::size_t nRus);
-  /**
-   * Have the STAs of the given BSS transmit an HE TB PPDU using the given
-   * transmission channel width and RU type
-   *
-   * \param bss the given BSS
-   * \param txChannelWidth the given transmission channel width in MHz
-   * \param ruType the given RU type
-   * \param nRus the number of RUs
-   */
   void DoSendHeTbPpdu(uint8_t bss, uint16_t txChannelWidth, HeRu::RuType ruType,
                       std::size_t nRus);
-  /**
-   * Callback invoked when a station receives a DL PPDU.
-   *
-   * \param bss the BSS the receiving STA belongs to
-   * \param station the receiving station
-   * \param psdu the received PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector TxVector of the received PSDU
-   * \param perMpduStatus per MPDU reception status
-   */
   void ReceiveDl(uint8_t bss, uint8_t station, Ptr<const WifiPsdu> psdu,
                  RxSignalInfo rxSignalInfo, WifiTxVector txVector,
                  std::vector<bool> perMpduStatus);
-  /**
-   * Callback invoked when an AP receives an UL PPDU.
-   *
-   * \param bss the BSS the receiving AP belongs to
-   * \param psdu the received PSDU
-   * \param rxSignalInfo the info on the received signal (\see RxSignalInfo)
-   * \param txVector TxVector of the received PSDU
-   * \param perMpduStatus per MPDU reception status
-   */
   void ReceiveUl(uint8_t bss, Ptr<const WifiPsdu> psdu,
                  RxSignalInfo rxSignalInfo, WifiTxVector txVector,
                  std::vector<bool> perMpduStatus);
-  /**
-   * Check that all stations associated with an AP.
-   */
   void CheckAssociation();
-  /**
-   * Check that (i) all stations belonging to the given BSSes received the SU
-   * PPDUs transmitted over the given channel width; and (ii) all stations
-   * belonging to the other BSSes did not receive any frame if BSS Color is set
-   * (due to BSS Color filtering) or if no transmission was performed on a
-   * channel adjacent to the one they operate on, otherwise.
-   *
-   * \param txBss the set of BSSes that transmitted an SU PPDU
-   * \param txChannelWidth the given transmission channel width in MHz
-   */
   void CheckReceivedSuPpdus(std::set<uint8_t> txBss, uint16_t txChannelWidth);
-  /**
-   * Check that (i) all stations/APs belonging to the given BSSes received the
-   * DL/UL MU PPDUs transmitted over the given channel width and RU width; and
-   * (ii) stations/APs belonging to the other BSSes did not receive any frame if
-   * BSS Color is set (due to BSS Color filtering) or if no transmission
-   * addressed to/from stations with the same AID was performed on a channel
-   * adjacent to the one they operate on, otherwise.
-   *
-   * \param txBss the set of BSSes that transmitted an SU PPDU
-   * \param txChannelWidth the given transmission channel width in MHz
-   * \param ruType the given RU type
-   * \param nRus the number of RUs
-   * \param isDlMu true for DL MU PPDU, false for HE TB PPDU
-   */
   void CheckReceivedMuPpdus(std::set<uint8_t> txBss, uint16_t txChannelWidth,
                             HeRu::RuType ruType, std::size_t nRus, bool isDlMu);
-  /**
-   * Check that (i) all stations belonging to the given BSSes received the
-   * transmitted Trigger Frame; and (ii) all stations belonging to the other
-   * BSSes did not receive any frame Trigger Frame (given that a Trigger Frame
-   * is transmitted on the primary20 channel and all the primary20 channels are
-   * distinct).
-   *
-   * \param txBss the set of BSSes that transmitted a Trigger Frame
-   * \param txChannelWidth the given transmission channel width in MHz
-   */
   void CheckReceivedTriggerFrames(std::set<uint8_t> txBss,
                                   uint16_t txChannelWidth);
 
@@ -195,23 +55,18 @@ private:
   void DoSetup() override;
   void DoRun() override;
 
-  uint16_t m_channelWidth;     ///< operating channel width in MHz
-  bool m_useDistinctBssColors; ///< true to set distinct BSS colors to BSSes
-  uint8_t m_nBss;              ///< number of BSSes
-  uint8_t m_nStationsPerBss;   ///< number of stations per AP
-  std::vector<NetDeviceContainer>
-      m_staDevices;               ///< containers for stations' NetDevices
-  NetDeviceContainer m_apDevices; ///< container for AP's NetDevice
-  std::vector<std::bitset<74>>
-      m_received; /**< whether the last packet transmitted to/from each
-                     of  the (up to 74 per BSS) stations was received */
-  std::vector<std::bitset<74>>
-      m_processed;         /**< whether the last packet transmitted to/from each
-                              of the (up to 74 per BSS) stations was processed */
-  Time m_time;             ///< the time when the current action is executed
-  Ptr<WifiPsdu> m_trigger; ///< Basic Trigger Frame
-  WifiTxVector m_triggerTxVector; ///< TX vector for Basic Trigger Frame
-  Time m_triggerTxDuration;       ///< TX duration for Basic Trigger Frame
+  uint16_t m_channelWidth;
+  bool m_useDistinctBssColors;
+  uint8_t m_nBss;
+  uint8_t m_nStationsPerBss;
+  std::vector<NetDeviceContainer> m_staDevices;
+  NetDeviceContainer m_apDevices;
+  std::vector<std::bitset<74>> m_received;
+  std::vector<std::bitset<74>> m_processed;
+  Time m_time;
+  Ptr<WifiPsdu> m_trigger;
+  WifiTxVector m_triggerTxVector;
+  Time m_triggerTxDuration;
 };
 
 WifiPrimaryChannelsTest::WifiPrimaryChannelsTest(uint16_t channelWidth,
@@ -251,12 +106,10 @@ void WifiPrimaryChannelsTest::ReceiveDl(uint8_t bss, uint8_t station,
     if (hdr.IsQosData() || hdr.IsTrigger()) {
       NS_LOG_INFO("RECEIVED BY BSS=" << +bss << " STA=" << +station << "  "
                                      << *psdu);
-      // the MAC received a PSDU from the PHY
       NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(station), false,
                             "Station [" << +bss << "][" << +station
                                         << "] received a frame twice");
       m_received[bss].set(station);
-      // check if we are the intended destination of the PSDU
       auto dev = DynamicCast<WifiNetDevice>(m_staDevices[bss].Get(station));
       if ((hdr.IsQosData() && hdr.GetAddr1() == dev->GetMac()->GetAddress()) ||
           (hdr.IsTrigger() && hdr.GetAddr1() == Mac48Address::GetBroadcast())) {
@@ -273,9 +126,6 @@ void WifiPrimaryChannelsTest::ReceiveUl(uint8_t bss, Ptr<const WifiPsdu> psdu,
                                         RxSignalInfo rxSignalInfo,
                                         WifiTxVector txVector,
                                         std::vector<bool> perMpduStatus) {
-  // if the BSS color is zero, this AP might receive the frame sent by another
-  // AP. Given that stations only send TB PPDUs, we ignore this frame if the TX
-  // vector is not UL MU.
   if (psdu->GetNMpdus() == 1 && psdu->GetHeader(0).IsQosData() &&
       txVector.IsUlMu()) {
     auto dev = DynamicCast<WifiNetDevice>(m_apDevices.Get(bss));
@@ -284,13 +134,11 @@ void WifiPrimaryChannelsTest::ReceiveUl(uint8_t bss, Ptr<const WifiPsdu> psdu,
     uint8_t station = staId - 1;
     NS_LOG_INFO("RECEIVED FROM BSSID=" << psdu->GetHeader(0).GetAddr3()
                                        << " STA=" << +station << "  " << *psdu);
-    // the MAC received a PSDU containing a QoS data frame from the PHY
     NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(station), false,
                           "AP of BSS " << +bss
                                        << " received a frame from station "
                                        << +station << " twice");
     m_received[bss].set(station);
-    // check if we are the intended destination of the PSDU
     if (psdu->GetHeader(0).GetAddr1() == dev->GetMac()->GetAddress()) {
       NS_TEST_EXPECT_MSG_EQ(m_processed[bss].test(station), false,
                             "AP of BSS " << +bss
@@ -307,8 +155,6 @@ void WifiPrimaryChannelsTest::DoSetup() {
   int64_t streamNumber = 100;
   uint8_t channelNum;
 
-  // we create as many stations per BSS as the number of 26-tone RUs in a
-  // channel of the configured width
   switch (m_channelWidth) {
   case 20:
     m_nStationsPerBss = 9;
@@ -330,7 +176,6 @@ void WifiPrimaryChannelsTest::DoSetup() {
     NS_ABORT_MSG("Channel width (" << m_channelWidth << ") not allowed");
   }
 
-  // we create as many BSSes as the number of 20 MHz subchannels
   m_nBss = m_channelWidth / 20;
 
   NodeContainer wifiApNodes;
@@ -360,12 +205,11 @@ void WifiPrimaryChannelsTest::DoSetup() {
   WifiMacHelper mac;
   mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(Ssid("non-existent-ssid")),
               "MaxMissedBeacons", UintegerValue(20), "WaitBeaconTimeout",
-              TimeValue(MicroSeconds(102400))); // same as BeaconInterval
+              TimeValue(MicroSeconds(102400)));
 
   TupleValue<UintegerValue, UintegerValue, EnumValue, UintegerValue>
       channelValue;
 
-  // Each BSS uses a distinct primary20 channel
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     channelValue.Set(WifiPhy::ChannelTuple{channelNum, m_channelWidth,
                                            WIFI_PHY_BAND_5GHZ, bss});
@@ -387,13 +231,11 @@ void WifiPrimaryChannelsTest::DoSetup() {
     m_apDevices.Add(wifi.Install(phy, mac, wifiApNodes.Get(bss)));
   }
 
-  // Assign fixed streams to random variables in use
   streamNumber = wifi.AssignStreams(m_apDevices, streamNumber);
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     streamNumber = wifi.AssignStreams(m_staDevices[bss], streamNumber);
   }
 
-  // set BSS color
   if (m_useDistinctBssColors) {
     for (uint8_t bss = 0; bss < m_nBss; bss++) {
       auto dev = DynamicCast<WifiNetDevice>(m_apDevices.Get(bss));
@@ -405,7 +247,7 @@ void WifiPrimaryChannelsTest::DoSetup() {
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
 
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0)); // all stations are co-located
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
   mobility.SetPositionAllocator(positionAlloc);
 
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -417,13 +259,11 @@ void WifiPrimaryChannelsTest::DoSetup() {
   m_received.resize(m_nBss);
   m_processed.resize(m_nBss);
 
-  // pre-compute the Basic Trigger Frame to send
   auto apDev = DynamicCast<WifiNetDevice>(m_apDevices.Get(0));
 
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_CTL_TRIGGER);
   hdr.SetAddr1(Mac48Address::GetBroadcast());
-  // Addr2 has to be set
   hdr.SetSequenceNumber(1);
 
   Ptr<Packet> pkt = Create<Packet>();
@@ -442,12 +282,8 @@ void WifiPrimaryChannelsTest::DoSetup() {
 }
 
 void WifiPrimaryChannelsTest::DoRun() {
-  // schedule association requests at different times. One station's SSID is
-  // set to the correct value before initialization, so that such a station
-  // starts the scanning procedure by looking for the correct SSID
   Ptr<WifiNetDevice> dev;
 
-  // association can be done in parallel over the multiple BSSes
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     dev = DynamicCast<WifiNetDevice>(m_staDevices[bss].Get(0));
     dev->GetMac()->SetSsid(Ssid("wifi-ssid-" + std::to_string(bss)));
@@ -460,9 +296,6 @@ void WifiPrimaryChannelsTest::DoRun() {
     }
   }
 
-  // just before sending the beacon preceding the last association, increase the
-  // beacon interval (to the max allowed value) so that beacons do not interfere
-  // with data frames
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     dev = DynamicCast<WifiNetDevice>(m_apDevices.Get(bss));
     auto mac = DynamicCast<ApWifiMac>(dev->GetMac());
@@ -476,8 +309,6 @@ void WifiPrimaryChannelsTest::DoRun() {
 
   Simulator::Schedule(m_time, &WifiPrimaryChannelsTest::CheckAssociation, this);
 
-  // we are done with association. We now intercept frames received by the
-  // PHY layer on stations and APs, which will no longer be passed to the FEM.
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     for (uint8_t i = 0; i < m_nStationsPerBss; i++) {
       auto dev = DynamicCast<WifiNetDevice>(m_staDevices[bss].Get(i));
@@ -491,82 +322,8 @@ void WifiPrimaryChannelsTest::DoRun() {
         MakeCallback(&WifiPrimaryChannelsTest::ReceiveUl, this).Bind(bss));
   }
 
-  /*
-   * We start generating (downlink) SU PPDUs.
-   * First, APs operating on non-adjacent primary20 channels send a frame
-   * simultaneously in their primary20. This is done in two rounds. As an
-   * example, we consider the case of an 160 MHz operating channel:
-   *
-   *   AP0         AP2         AP4         AP6
-   * |-----|     |-----|     |-----|     |-----|     |
-   *
-   *         AP1         AP3         AP5         AP7
-   * |     |-----|     |-----|     |-----|     |-----|
-   *
-   * Then, we double the transmission channel width. We will have four rounds
-   * of transmissions. We avoid using adjacent channels to avoid interfence
-   * among transmissions:
-   *
-   *      AP0                     AP4
-   * |-----------|           |-----------|           |
-   *      AP1                     AP5
-   * |-----------|           |-----------|           |
-   *                  AP2                     AP6
-   * |           |-----------|           |-----------|
-   *                  AP3                     AP7
-   * |           |-----------|           |-----------|
-   *
-   * We double the transmission channel width again. We will have eight rounds
-   * of transmissions:
-   *
-   *            AP0
-   * |-----------------------|                       |
-   *            AP1
-   * |-----------------------|                       |
-   *            AP2
-   * |-----------------------|                       |
-   *            AP3
-   * |-----------------------|                       |
-   *                                    AP4
-   * |                       |-----------------------|
-   *                                    AP5
-   * |                       |-----------------------|
-   *                                    AP6
-   * |                       |-----------------------|
-   *                                    AP7
-   * |                       |-----------------------|
-   *
-   * We double the transmission channel width again. We will have eight rounds
-   * of transmissions:
-   *
-   *                        AP0
-   * |-----------------------------------------------|
-   *                        AP1
-   * |-----------------------------------------------|
-   *                        AP2
-   * |-----------------------------------------------|
-   *                        AP3
-   * |-----------------------------------------------|
-   *                        AP4
-   * |-----------------------------------------------|
-   *                        AP5
-   * |-----------------------------------------------|
-   *                        AP6
-   * |-----------------------------------------------|
-   *                        AP7
-   * |-----------------------------------------------|
-   *
-   * The transmission channel width reached the operating channel width, we are
-   * done.
-   */
+  Time roundDuration = MilliSeconds(5);
 
-  Time roundDuration =
-      MilliSeconds(5); // upper bound on the duration of a round
-
-  // To have simultaneous transmissions on adjacent channels, just initialize
-  // nRounds to 1 and nApsPerRound to m_channelWidth / 20. Of course, the test
-  // will fail because some stations will not receive some frames due to
-  // interfence
   for (uint16_t txChannelWidth = 20, nRounds = 2,
                 nApsPerRound = m_channelWidth / 20 / 2;
        txChannelWidth <= m_channelWidth;
@@ -583,7 +340,6 @@ void WifiPrimaryChannelsTest::DoRun() {
         Simulator::Schedule(m_time, &WifiPrimaryChannelsTest::SendDlSuPpdu,
                             this, ap, txChannelWidth);
       }
-      // check that the SU frames were correctly received
       Simulator::Schedule(m_time + roundDuration,
                           &WifiPrimaryChannelsTest::CheckReceivedSuPpdus, this,
                           txBss, txChannelWidth);
@@ -591,12 +347,6 @@ void WifiPrimaryChannelsTest::DoRun() {
     }
   }
 
-  /*
-   * Repeat the same scheme as before with DL MU transmissions. For each
-   * transmission channel width, every round is repeated as many times as the
-   * number of ways in which we can partition the transmission channel width in
-   * equal sized RUs.
-   */
   for (uint16_t txChannelWidth = 20, nRounds = 2,
                 nApsPerRound = m_channelWidth / 20 / 2;
        txChannelWidth <= m_channelWidth;
@@ -616,23 +366,15 @@ void WifiPrimaryChannelsTest::DoRun() {
             Simulator::Schedule(m_time, &WifiPrimaryChannelsTest::SendDlMuPpdu,
                                 this, ap, txChannelWidth, ruType, nRus);
           }
-          // check that the MU frame was correctly received
           Simulator::Schedule(m_time + roundDuration,
                               &WifiPrimaryChannelsTest::CheckReceivedMuPpdus,
-                              this, txBss, txChannelWidth, ruType, nRus,
-                              /* isDlMu */ true);
+                              this, txBss, txChannelWidth, ruType, nRus, true);
           m_time += roundDuration;
         }
       }
     }
   }
 
-  /*
-   * Repeat the same scheme as before with UL MU transmissions. For each
-   * transmission channel width, every round is repeated as many times as the
-   * number of ways in which we can partition the transmission channel width in
-   * equal sized RUs.
-   */
   for (uint16_t txChannelWidth = 20, nRounds = 2,
                 nApsPerRound = m_channelWidth / 20 / 2;
        txChannelWidth <= m_channelWidth;
@@ -652,22 +394,19 @@ void WifiPrimaryChannelsTest::DoRun() {
             Simulator::Schedule(m_time, &WifiPrimaryChannelsTest::SendHeTbPpdu,
                                 this, ap, txChannelWidth, ruType, nRus);
           }
-          // check that Trigger Frames and TB PPDUs were correctly received
           Simulator::Schedule(
-              m_time + m_triggerTxDuration + MicroSeconds(10), /* during SIFS */
+              m_time + m_triggerTxDuration + MicroSeconds(10),
               &WifiPrimaryChannelsTest::CheckReceivedTriggerFrames, this, txBss,
               txChannelWidth);
           Simulator::Schedule(m_time + roundDuration,
                               &WifiPrimaryChannelsTest::CheckReceivedMuPpdus,
-                              this, txBss, txChannelWidth, ruType, nRus,
-                              /* isDlMu */ false);
+                              this, txBss, txChannelWidth, ruType, nRus, false);
           m_time += roundDuration;
         }
       }
     }
   }
 
-  // Trace PSDUs passed to the PHY on all devices
   Config::Connect(
       "/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxPsduBegin",
       MakeCallback(&WifiPrimaryChannelsTest::Transmit, this));
@@ -759,7 +498,6 @@ void WifiPrimaryChannelsTest::SendHeTbPpdu(uint8_t bss, uint16_t txChannelWidth,
 
   apDev->GetPhy()->Send(m_trigger, m_triggerTxVector);
 
-  // schedule the transmission of HE TB PPDUs
   Simulator::Schedule(m_triggerTxDuration + apDev->GetPhy()->GetSifs(),
                       &WifiPrimaryChannelsTest::DoSendHeTbPpdu, this, bss,
                       txChannelWidth, ruType, nRus);
@@ -807,7 +545,6 @@ void WifiPrimaryChannelsTest::DoSendHeTbPpdu(uint8_t bss,
         Create<const WifiPsdu>(Create<Packet>(1000), hdr);
 
     if (duration.IsZero()) {
-      // calculate just once
       duration = WifiPhy::CalculateTxDuration(
           psdu->GetSize(), txVector,
           staDev->GetMac()->GetWifiPhy()->GetPhyBand(), staId);
@@ -819,7 +556,6 @@ void WifiPrimaryChannelsTest::DoSendHeTbPpdu(uint8_t bss,
     staDev->GetPhy()->Send(WifiConstPsduMap{{staId, psdu}}, txVector);
   }
 
-  // AP's PHY expects to receive a TRIGVECTOR (just once)
   trigVector.SetLength(length);
   auto apHePhy = StaticCast<HePhy>(apDev->GetPhy()->GetLatestPhyEntity());
   apHePhy->SetTrigVector(trigVector, duration);
@@ -839,8 +575,6 @@ void WifiPrimaryChannelsTest::CheckReceivedSuPpdus(std::set<uint8_t> txBss,
                                                    uint16_t txChannelWidth) {
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     if (txBss.find(bss) != txBss.end()) {
-      // Every station in the BSS of an AP that transmitted the frame hears
-      // (i.e., passes to the MAC) the frame
       for (uint8_t sta = 0; sta < m_nStationsPerBss; sta++) {
         NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(sta), true,
                               "Station ["
@@ -848,7 +582,6 @@ void WifiPrimaryChannelsTest::CheckReceivedSuPpdus(std::set<uint8_t> txBss,
                                   << "] did not receive the SU frame on primary"
                                   << txChannelWidth << " channel");
       }
-      // only the first station actually processed the frames
       NS_TEST_EXPECT_MSG_EQ(m_processed[bss].test(0), true,
                             "Station ["
                                 << +bss << "][0]"
@@ -862,9 +595,6 @@ void WifiPrimaryChannelsTest::CheckReceivedSuPpdus(std::set<uint8_t> txBss,
                                   << txChannelWidth << " channel");
       }
     } else {
-      // There was no transmission in this BSS. If BSS Color filtering is
-      // enabled or no frame transmission overlaps with the primary20 channel of
-      // this BSS, stations in this BSS did not hear any frame.
       if (m_useDistinctBssColors ||
           std::none_of(txBss.begin(), txBss.end(), [&](const uint8_t &txAp) {
             auto txApPhy =
@@ -884,7 +614,6 @@ void WifiPrimaryChannelsTest::CheckReceivedSuPpdus(std::set<uint8_t> txBss,
                                     << txChannelWidth << " channel");
         }
       } else {
-        // all stations heard the frame but no station processed it
         for (uint8_t sta = 0; sta < m_nStationsPerBss; sta++) {
           NS_TEST_EXPECT_MSG_EQ(
               m_received[bss].test(sta), true,
@@ -899,7 +628,6 @@ void WifiPrimaryChannelsTest::CheckReceivedSuPpdus(std::set<uint8_t> txBss,
         }
       }
     }
-    // reset bitmaps
     m_received[bss].reset();
     m_processed[bss].reset();
   }
@@ -912,10 +640,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
                                                    bool isDlMu) {
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     if (txBss.find(bss) != txBss.end()) {
-      // There was a transmission in this BSS.
-      // [DL] Due to AID filtering, only stations that are addressed by the MU
-      // PPDU do hear the frame [UL] The AP hears a TB PPDU sent by all and only
-      // the solicited stations
       for (std::size_t sta = 0; sta < nRus; sta++) {
         NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(sta), true,
                               (isDlMu ? "A DL MU PPDU transmitted to"
@@ -934,9 +658,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
                                   << (isDlMu ? "by" : "from") << " station ["
                                   << +bss << "][" << +sta << "]");
       }
-      // [DL] Only the addressed stations actually processed the frames
-      // [UL] The AP processed the frames sent by all and only the addressed
-      // stations
       for (std::size_t sta = 0; sta < nRus; sta++) {
         NS_TEST_EXPECT_MSG_EQ(m_processed[bss].test(sta), true,
                               (isDlMu ? "A DL MU PPDU transmitted to"
@@ -956,11 +677,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
                                   << +bss << "][" << +sta << "] and processed");
       }
     } else {
-      // There was no transmission in this BSS.
-      // [DL] If BSS Color filtering is enabled or no frame transmission
-      // overlaps with the primary20 channel of this BSS, stations in this BSS
-      // did not hear any frame. [UL] The AP did not hear any TB PPDU because no
-      // TRIGVECTOR was passed to the PHY
       if (!isDlMu || m_useDistinctBssColors ||
           std::none_of(txBss.begin(), txBss.end(), [&](const uint8_t &txAp) {
             auto txApPhy =
@@ -982,8 +698,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
                                     << +bss << "][" << +sta << "]");
         }
       } else {
-        // [DL] Stations having the same AID of the stations addressed by the MU
-        // PPDU received the frame
         for (std::size_t sta = 0; sta < nRus; sta++) {
           NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(sta), true,
                                 (isDlMu ? "A DL MU PPDU transmitted to"
@@ -1002,7 +716,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
                                     << (isDlMu ? "by" : "from") << " station ["
                                     << +bss << "][" << +sta << "]");
         }
-        // no station processed the frame
         for (uint8_t sta = 0; sta < m_nStationsPerBss; sta++) {
           NS_TEST_EXPECT_MSG_EQ(
               m_processed[bss].test(sta), false,
@@ -1014,7 +727,6 @@ void WifiPrimaryChannelsTest::CheckReceivedMuPpdus(std::set<uint8_t> txBss,
         }
       }
     }
-    // reset bitmaps
     m_received[bss].reset();
     m_processed[bss].reset();
   }
@@ -1024,8 +736,6 @@ void WifiPrimaryChannelsTest::CheckReceivedTriggerFrames(
     std::set<uint8_t> txBss, uint16_t txChannelWidth) {
   for (uint8_t bss = 0; bss < m_nBss; bss++) {
     if (txBss.find(bss) != txBss.end()) {
-      // Every station in the BSS of an AP that transmitted the Trigger Frame
-      // hears (i.e., passes to the MAC) and processes the frame
       for (uint8_t sta = 0; sta < m_nStationsPerBss; sta++) {
         NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(sta), true,
                               "Station ["
@@ -1041,9 +751,6 @@ void WifiPrimaryChannelsTest::CheckReceivedTriggerFrames(
                                   << txChannelWidth << " channel");
       }
     } else {
-      // Given that a Trigger Frame is transmitted on the primary20 channel and
-      // all the primary20 channels are distinct, stations in other BSSes did
-      // not hear the frame
       for (uint8_t sta = 0; sta < m_nStationsPerBss; sta++) {
         NS_TEST_EXPECT_MSG_EQ(m_received[bss].test(sta), false,
                               "Station ["
@@ -1053,40 +760,16 @@ void WifiPrimaryChannelsTest::CheckReceivedTriggerFrames(
                                   << txChannelWidth << " channel");
       }
     }
-    // reset bitmaps
     m_received[bss].reset();
     m_processed[bss].reset();
   }
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test functions returning the indices of primary and secondary channels
- *        of different width.
- */
 class Wifi20MHzChannelIndicesTest : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   Wifi20MHzChannelIndicesTest();
   ~Wifi20MHzChannelIndicesTest() override = default;
 
-  /**
-   * Check that the indices of the 20 MHz channels included in all the primary
-   * and secondary channels are correct when setting the given primary20
-   * channel.
-   *
-   * \param primary20 the index of the primary20 channel to configure
-   * \param secondary20 the expected index of the secondary20 channel
-   * \param primary40 the expected indices of the 20 MHz channels in the
-   * primary40 channel \param secondary40 the expected indices of the 20 MHz
-   * channels in the secondary40 channel \param primary80 the expected indices
-   * of the 20 MHz channels in the primary80 channel \param secondary80 the
-   * expected indices of the 20 MHz channels in the secondary80 channel
-   */
   void RunOne(uint8_t primary20, const std::set<uint8_t> &secondary20,
               const std::set<uint8_t> &primary40,
               const std::set<uint8_t> &secondary40,
@@ -1096,7 +779,7 @@ public:
 private:
   void DoRun() override;
 
-  WifiPhyOperatingChannel m_channel; //!< operating channel
+  WifiPhyOperatingChannel m_channel;
 };
 
 Wifi20MHzChannelIndicesTest::Wifi20MHzChannelIndicesTest()
@@ -1164,23 +847,19 @@ void Wifi20MHzChannelIndicesTest::RunOne(uint8_t primary20,
 }
 
 void Wifi20MHzChannelIndicesTest::DoRun() {
-  /* 20 MHz channel */
   m_channel.SetDefault(20, WIFI_STANDARD_80211ax, WIFI_PHY_BAND_5GHZ);
   RunOne(0, {}, {}, {}, {}, {});
 
-  /* 40 MHz channel */
   m_channel.SetDefault(40, WIFI_STANDARD_80211ax, WIFI_PHY_BAND_5GHZ);
   RunOne(0, {1}, {0, 1}, {}, {}, {});
   RunOne(1, {0}, {0, 1}, {}, {}, {});
 
-  /* 80 MHz channel */
   m_channel.SetDefault(80, WIFI_STANDARD_80211ax, WIFI_PHY_BAND_5GHZ);
   RunOne(0, {1}, {0, 1}, {2, 3}, {0, 1, 2, 3}, {});
   RunOne(1, {0}, {0, 1}, {2, 3}, {0, 1, 2, 3}, {});
   RunOne(2, {3}, {2, 3}, {0, 1}, {0, 1, 2, 3}, {});
   RunOne(3, {2}, {2, 3}, {0, 1}, {0, 1, 2, 3}, {});
 
-  /* 160 MHz channel */
   m_channel.SetDefault(160, WIFI_STANDARD_80211ax, WIFI_PHY_BAND_5GHZ);
   RunOne(0, {1}, {0, 1}, {2, 3}, {0, 1, 2, 3}, {4, 5, 6, 7});
   RunOne(1, {0}, {0, 1}, {2, 3}, {0, 1, 2, 3}, {4, 5, 6, 7});
@@ -1192,12 +871,6 @@ void Wifi20MHzChannelIndicesTest::DoRun() {
   RunOne(7, {6}, {6, 7}, {4, 5}, {4, 5, 6, 7}, {0, 1, 2, 3});
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief wifi primary channels test suite
- */
 class WifiPrimaryChannelsTestSuite : public TestSuite {
 public:
   WifiPrimaryChannelsTestSuite();
@@ -1205,12 +878,9 @@ public:
 
 WifiPrimaryChannelsTestSuite::WifiPrimaryChannelsTestSuite()
     : TestSuite("wifi-primary-channels", UNIT) {
-  // Test cases for 20 MHz can be added, but are not that useful (there would be
-  // a single BSS)
   AddTestCase(new WifiPrimaryChannelsTest(40, true), TestCase::QUICK);
   AddTestCase(new WifiPrimaryChannelsTest(40, false), TestCase::QUICK);
 #if 0
-    // Tests disabled until issue #776 resolved
     AddTestCase(new WifiPrimaryChannelsTest(80, true), TestCase::EXTENSIVE);
     AddTestCase(new WifiPrimaryChannelsTest(80, false), TestCase::EXTENSIVE);
     AddTestCase(new WifiPrimaryChannelsTest(160, true), TestCase::TAKES_FOREVER);
@@ -1219,5 +889,4 @@ WifiPrimaryChannelsTestSuite::WifiPrimaryChannelsTestSuite()
   AddTestCase(new Wifi20MHzChannelIndicesTest(), TestCase::QUICK);
 }
 
-static WifiPrimaryChannelsTestSuite
-    g_wifiPrimaryChannelsTestSuite; ///< the test suite
+static WifiPrimaryChannelsTestSuite g_wifiPrimaryChannelsTestSuite;

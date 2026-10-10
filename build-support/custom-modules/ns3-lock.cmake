@@ -1,19 +1,3 @@
-# Copyright (c) 2017-2021 Universidade de Brasília
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by the Free
-# Software Foundation;
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-# Place, Suite 330, Boston, MA  02111-1307 USA
-#
-# Author: Gabriel Ferreira <gabrielcarvfer@gmail.com>
 
 function(cache_cmake_flag cmake_flag cache_entry output_string)
   if(${${cmake_flag}})
@@ -30,16 +14,14 @@ endfunction(cache_cmake_flag)
 function(write_lock)
   set(lock_contents "#! /usr/bin/env python3\n\n")
 
-  # Contents previously in ns-3-dev/.lock-waf_sys.platform_build
   string(APPEND lock_contents "launch_dir = '${PROJECT_SOURCE_DIR}'\n")
   string(APPEND lock_contents "run_dir = '${PROJECT_SOURCE_DIR}'\n")
   string(APPEND lock_contents "top_dir = '${PROJECT_SOURCE_DIR}'\n")
   string(APPEND lock_contents "out_dir = '${CMAKE_OUTPUT_DIRECTORY}'\n")
   string(APPEND lock_contents "\n\n")
 
-  # Contents previously in ns-3-dev/build/c4che/_cache.py
   string(APPEND lock_contents "NS3_ENABLED_MODULES = [")
-  foreach(module_library ${ns3-libs}) # fetch core module libraries
+  foreach(module_library ${ns3-libs})
     string(APPEND lock_contents "'")
     remove_lib_prefix("${module_library}" module_name)
     string(APPEND lock_contents "ns3-${module_name}', ")
@@ -47,32 +29,23 @@ function(write_lock)
   string(APPEND lock_contents "]\n")
 
   string(APPEND lock_contents "NS3_ENABLED_CONTRIBUTED_MODULES = [")
-  foreach(module_library ${ns3-contrib-libs}) # fetch core module libraries
+  foreach(module_library ${ns3-contrib-libs})
     string(APPEND lock_contents "'")
     remove_lib_prefix("${module_library}" module_name)
     string(APPEND lock_contents "ns3-${module_name}', ")
   endforeach()
   string(APPEND lock_contents "]\n")
 
-  # Windows variables are separated with ; which CMake also uses to separate
-  # list items
   set(PATH_LIST
       "$ENV{PATH};${CMAKE_OUTPUT_DIRECTORY};${CMAKE_LIBRARY_OUTPUT_DIRECTORY}"
   )
   if(WIN32)
-    # Windows to unix path conversions can be quite messy, so we replace forward
-    # slash with double backward slash
     string(REPLACE "/" "\\" PATH_LIST "${PATH_LIST}")
-    # And to print it out, we need to escape these backward slashes with more
-    # backward slashes
     string(REPLACE "\\" "\\\\" PATH_LIST "${PATH_LIST}")
   else()
-    # Unix variables are separated with :
     string(REPLACE ":" ";" PATH_LIST "${PATH_LIST}")
   endif()
 
-  # After getting all entries with their correct paths we replace the ; item
-  # separator into a Python list of strings written to the lock file
   string(REPLACE ";" "', '" PATH_LIST "${PATH_LIST}")
   string(APPEND lock_contents "NS3_MODULE_PATH = ['${PATH_LIST}']\n")
 
@@ -107,7 +80,6 @@ function(write_lock)
     string(APPEND lock_contents "VALGRIND_FOUND = True \n")
   endif()
 
-  # Contents previously in ns-3-dev/build/build-status.py
   string(APPEND lock_contents "\n\n")
   string(APPEND lock_contents "ns3_runnable_programs = [")
   foreach(executable ${ns3-execs})

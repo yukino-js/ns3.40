@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/ipv4-list-routing.h"
 #include "ns3/ipv4-routing-protocol.h"
@@ -22,11 +5,6 @@
 
 namespace ns3 {
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 dummy routing class (A)
- */
 class Ipv4ARouting : public Ipv4RoutingProtocol {
 public:
   Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p, const Ipv4Header &header,
@@ -59,11 +37,6 @@ public:
                          Time::Unit unit) const override {}
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 dummy routing class (B)
- */
 class Ipv4BRouting : public Ipv4RoutingProtocol {
 public:
   Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p, const Ipv4Header &header,
@@ -96,11 +69,6 @@ public:
                          Time::Unit unit) const override {}
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 ListRouting negative test.
- */
 class Ipv4ListRoutingNegativeTestCase : public TestCase {
 public:
   Ipv4ListRoutingNegativeTestCase();
@@ -114,8 +82,6 @@ void Ipv4ListRoutingNegativeTestCase::DoRun() {
   Ptr<Ipv4ListRouting> lr = CreateObject<Ipv4ListRouting>();
   Ptr<Ipv4RoutingProtocol> aRouting = CreateObject<Ipv4ARouting>();
   Ptr<Ipv4RoutingProtocol> bRouting = CreateObject<Ipv4BRouting>();
-  // The Ipv4BRouting should be added with higher priority (larger integer
-  // value)
   lr->AddRoutingProtocol(aRouting, -10);
   lr->AddRoutingProtocol(bRouting, -5);
   int16_t first = 3;
@@ -126,11 +92,6 @@ void Ipv4ListRoutingNegativeTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(firstRp, bRouting, "102");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 ListRouting positive test.
- */
 class Ipv4ListRoutingPositiveTestCase : public TestCase {
 public:
   Ipv4ListRoutingPositiveTestCase();
@@ -144,8 +105,6 @@ void Ipv4ListRoutingPositiveTestCase::DoRun() {
   Ptr<Ipv4ListRouting> lr = CreateObject<Ipv4ListRouting>();
   Ptr<Ipv4RoutingProtocol> aRouting = CreateObject<Ipv4ARouting>();
   Ptr<Ipv4RoutingProtocol> bRouting = CreateObject<Ipv4BRouting>();
-  // The Ipv4ARouting should be added with higher priority (larger integer
-  // value) and will be fetched first below
   lr->AddRoutingProtocol(aRouting, 10);
   lr->AddRoutingProtocol(bRouting, 5);
   int16_t first = 3;
@@ -160,11 +119,6 @@ void Ipv4ListRoutingPositiveTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(secondRp, bRouting, "204");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv4 ListRouting TestSuite
- */
 class Ipv4ListRoutingTestSuite : public TestSuite {
 public:
   Ipv4ListRoutingTestSuite() : TestSuite("ipv4-list-routing", UNIT) {
@@ -173,7 +127,6 @@ public:
   }
 };
 
-static Ipv4ListRoutingTestSuite
-    g_ipv4ListRoutingTestSuite; //!< Static variable for test initialization
+static Ipv4ListRoutingTestSuite g_ipv4ListRoutingTestSuite;
 
 } // namespace ns3

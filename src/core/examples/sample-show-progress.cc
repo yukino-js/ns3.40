@@ -1,34 +1,4 @@
-/*
- * Copyright (c) 2017 Lawrence Livermore National Laboratory
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo Carneiro <gjc@inescporto.pt>
- * Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
-/**
- * \file
- * \ingroup core-examples
- * \ingroup logging
- * Example program that demonstrates ShowProgress.
- */
-
-/**
- * Example program that demonstrates ShowProgress.
- *
- */
 
 #include "ns3/core-module.h"
 
@@ -43,21 +13,8 @@ NS_LOG_COMPONENT_DEFINE("SampleShowProgress");
 
 namespace {
 
-/**
- * Execute a function periodically,
- * which takes more or less time to run.
- *
- * Inspired by PHOLD.
- */
 class Hold : public SimpleRefCount<Hold> {
 public:
-  /**
-   * Create a Hold with mean inter-event time \pname{wait},
-   * changing workload every \pname{interval}.
-   * \param wait The mean inter-event time.
-   * \param interval How often to change work load.  This
-   *                 should be an order of magnitude larger than \pname{wait}.
-   */
   Hold(Time wait, Time interval) {
     m_wait = wait;
     m_interval = interval;
@@ -66,14 +23,8 @@ public:
     m_rng->SetAttribute("Mean", DoubleValue(m_wait.GetSeconds()));
   }
 
-  /**
-   * Create a hold with a specified random number generator for the
-   * \pname{wait} time.  The RNG value will be interpreted as seconds.
-   * \param rng The random variable generator to use for the inter-event time.
-   */
   Hold(Ptr<RandomVariableStream> rng) : m_rng(rng) {}
 
-  /** The Hold event. */
   void Event() {
     double delta = m_rng->GetValue();
     Time delay = Seconds(delta);
@@ -81,7 +32,6 @@ public:
 
     Simulator::Schedule(delay, &Hold::Event, this);
 
-    // Switch work load every 10 * m_interval of simulation time
     int64x64_t ratio = (Simulator::Now() / m_interval) / 10;
     bool even = (ratio.GetHigh() % 2);
     Time work = m_wait * (even ? 3 : 1);
@@ -90,16 +40,12 @@ public:
   }
 
 private:
-  /** The random number generator for the interval between events. */
   Ptr<RandomVariableStream> m_rng;
-  /** Mean inter-event time. */
   Time m_wait;
-  /** Time between switching workloads. */
   Time m_interval;
+};
 
-}; // class HOLD
-
-} // unnamed namespace
+} // namespace
 
 int main(int argc, char **argv) {
   Time stop = Seconds(100);

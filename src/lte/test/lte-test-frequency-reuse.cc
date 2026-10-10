@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-test-frequency-reuse.h"
 
@@ -52,14 +33,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("LteFrequencyReuseTest");
 
-/**
- * TestSuite
- */
-
 LteFrequencyReuseTestSuite::LteFrequencyReuseTestSuite()
     : TestSuite("lte-frequency-reuse", SYSTEM) {
-  //  LogLevel logLevel = (LogLevel)(LOG_PREFIX_FUNC | LOG_PREFIX_TIME |
-  //  LOG_LEVEL_DEBUG); LogComponentEnable ("LteFrequencyReuseTest", logLevel);
 
   std::vector<bool> availableDlRb;
   std::vector<bool> availableUlRb;
@@ -260,15 +235,8 @@ LteFrequencyReuseTestSuite::LteFrequencyReuseTestSuite()
       TestCase::QUICK);
 }
 
-/**
- * \ingroup lte-test
- * Static variable for test initialization
- */
 static LteFrequencyReuseTestSuite lteFrequencyReuseTestSuite;
 
-/**
- * TestCase Data
- */
 void DlDataRxStartNofitication(LteFrTestCase *testcase,
                                Ptr<const SpectrumValue> spectrumValue) {
   testcase->DlDataRxStart(spectrumValue);
@@ -347,10 +315,6 @@ void LteHardFrTestCase::DoRun() {
   Config::Reset();
   Config::SetDefault("ns3::LteHelper::UseIdealRrc", BooleanValue(false));
 
-  /**
-   * Simulation Topology
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   lteHelper->SetFfrAlgorithmType("ns3::LteFrHardAlgorithm");
 
@@ -364,32 +328,24 @@ void LteHardFrTestCase::DoRun() {
   lteHelper->SetFfrAlgorithmAttribute("UlSubBandwidth",
                                       UintegerValue(m_ulSubBandwidth));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(m_userNum);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType(m_schedulerType);
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
 
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
   qos.mbrDl = 1e6;
@@ -400,7 +356,6 @@ void LteHardFrTestCase::DoRun() {
   EpsBearer bearer(q, qos);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -419,7 +374,6 @@ void LteHardFrTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofitication, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -476,10 +430,6 @@ void LteStrictFrTestCase::DoRun() {
   Config::Reset();
   Config::SetDefault("ns3::LteHelper::UseIdealRrc", BooleanValue(false));
 
-  /**
-   * Simulation Topology
-   */
-
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   lteHelper->SetFfrAlgorithmType("ns3::LteFrStrictAlgorithm");
 
@@ -497,32 +447,23 @@ void LteStrictFrTestCase::DoRun() {
   lteHelper->SetFfrAlgorithmAttribute("UlEdgeSubBandwidth",
                                       UintegerValue(m_ulEdgeSubBandwidth));
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes;
   enbNodes.Create(1);
   ueNodes.Create(m_userNum);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes);
 
-  // Install Mobility Model
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs;
   lteHelper->SetSchedulerType(m_schedulerType);
   enbDevs = lteHelper->InstallEnbDevice(enbNodes);
   ueDevs = lteHelper->InstallUeDevice(ueNodes);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs, enbDevs.Get(0));
-
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
 
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
@@ -534,7 +475,6 @@ void LteStrictFrTestCase::DoRun() {
   EpsBearer bearer(q, qos);
   lteHelper->ActivateDataRadioBearer(ueDevs, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -553,7 +493,6 @@ void LteStrictFrTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofitication, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -605,7 +544,6 @@ LteFrAreaTestCase::LteFrAreaTestCase(std::string name,
 LteFrAreaTestCase::~LteFrAreaTestCase() {}
 
 void LteFrAreaTestCase::DlDataRxStart(Ptr<const SpectrumValue> spectrumValue) {
-  // need time to report new UE measurements, and wait because of filtering
   if ((Simulator::Now() - m_teleportTime) < MilliSeconds(400)) {
     return;
   }
@@ -632,7 +570,6 @@ void LteFrAreaTestCase::DlDataRxStart(Ptr<const SpectrumValue> spectrumValue) {
 }
 
 void LteFrAreaTestCase::UlDataRxStart(Ptr<const SpectrumValue> spectrumValue) {
-  // need time to report new UE measurements, and wait because of filtering
   if ((Simulator::Now() - m_teleportTime) < MilliSeconds(400)) {
     return;
   }
@@ -641,22 +578,14 @@ void LteFrAreaTestCase::UlDataRxStart(Ptr<const SpectrumValue> spectrumValue) {
   uint32_t i = 0;
   uint32_t numActiveRbs = 0;
 
-  // At the moment I could not find a better way to find total number
-  // of active RBs. This method is independent of the bandwidth
-  // configuration done in a test scenario, thus, it requires
-  // minimum change to the script.
   for (auto it = spectrumValue->ConstValuesBegin();
        it != spectrumValue->ConstValuesEnd(); it++) {
-    // Count the RB as active if it is part of
-    // the expected UL RBs and has Power Spectral Density (PSD) > 0
     if (m_expectedUlRb[numActiveRbs] && (*it) > 0) {
       numActiveRbs++;
     }
   }
   NS_LOG_DEBUG("Total number of active RBs = " << numActiveRbs);
 
-  // The uplink power control and the uplink PSD
-  // calculation only consider active resource blocks.
   for (auto it = spectrumValue->ConstValuesBegin();
        it != spectrumValue->ConstValuesEnd(); it++) {
     double power = (*it) * (numActiveRbs * 180000);
@@ -749,7 +678,6 @@ void LteStrictFrAreaTestCase::DoRun() {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -758,33 +686,21 @@ void LteStrictFrAreaTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  /*
-   * The topology is the following:
-   *
-   *  eNB1            UE1                                      eNB2
-   *    |              |                                         |
-   *    x ------------ x ------------------------ x ------------ x----UE2
-   *         200 m               600 m                  200 m      20 m
-   *
-   */
-
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // eNB1
-  positionAlloc->Add(Vector(1000, 0.0, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // UE1
-  positionAlloc->Add(Vector(1020, 0.0, 0.0)); // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1000, 0.0, 0.0));
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1020, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
   m_ueMobility = ueNodes1.Get(0)->GetObject<MobilityModel>();
 
-  // Disable layer-3 filtering
   Config::SetDefault("ns3::LteEnbRrc::RsrpFilterCoefficient", UintegerValue(0));
   Config::SetDefault("ns3::LteEnbRrc::RsrqFilterCoefficient", UintegerValue(0));
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -812,14 +728,9 @@ void LteStrictFrAreaTestCase::DoRun() {
   ueDevs1 = lteHelper->InstallUeDevice(ueNodes1);
   ueDevs2 = lteHelper->InstallUeDevice(ueNodes2);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
   qos.mbrDl = 1e6;
@@ -832,7 +743,6 @@ void LteStrictFrAreaTestCase::DoRun() {
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -853,7 +763,6 @@ void LteStrictFrAreaTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofiticationArea, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs1.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -949,7 +858,6 @@ void LteSoftFrAreaTestCase::DoRun() {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -958,33 +866,21 @@ void LteSoftFrAreaTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  /*
-   * The topology is the following:
-   *
-   *  eNB1            UE1                                      eNB2
-   *    |              |                                         |
-   *    x ------------ x ------------------------ x ------------ x----UE2
-   *         200 m               600 m                  200 m      20 m
-   *
-   */
-
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // eNB1
-  positionAlloc->Add(Vector(1000, 0.0, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // UE1
-  positionAlloc->Add(Vector(1020, 0.0, 0.0)); // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1000, 0.0, 0.0));
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1020, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
   m_ueMobility = ueNodes1.Get(0)->GetObject<MobilityModel>();
 
-  // Disable layer-3 filtering
   Config::SetDefault("ns3::LteEnbRrc::RsrpFilterCoefficient", UintegerValue(0));
   Config::SetDefault("ns3::LteEnbRrc::RsrqFilterCoefficient", UintegerValue(0));
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -1011,14 +907,9 @@ void LteSoftFrAreaTestCase::DoRun() {
   ueDevs1 = lteHelper->InstallUeDevice(ueNodes1);
   ueDevs2 = lteHelper->InstallUeDevice(ueNodes2);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
   qos.mbrDl = 1e6;
@@ -1030,7 +921,6 @@ void LteSoftFrAreaTestCase::DoRun() {
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -1051,7 +941,6 @@ void LteSoftFrAreaTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofiticationArea, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs1.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -1153,7 +1042,6 @@ void LteSoftFfrAreaTestCase::DoRun() {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -1162,33 +1050,21 @@ void LteSoftFfrAreaTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  /*
-   * The topology is the following:
-   *
-   *  eNB1            UE1                                      eNB2
-   *    |              |                                         |
-   *    x ------------ x ------------------------ x ------------ x----UE2
-   *         200 m               600 m                  200 m      20 m
-   *
-   */
-
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // eNB1
-  positionAlloc->Add(Vector(1000, 0.0, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // UE1
-  positionAlloc->Add(Vector(1020, 0.0, 0.0)); // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1000, 0.0, 0.0));
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1020, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
   m_ueMobility = ueNodes1.Get(0)->GetObject<MobilityModel>();
 
-  // Disable layer-3 filtering
   Config::SetDefault("ns3::LteEnbRrc::RsrpFilterCoefficient", UintegerValue(0));
   Config::SetDefault("ns3::LteEnbRrc::RsrqFilterCoefficient", UintegerValue(0));
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -1222,14 +1098,9 @@ void LteSoftFfrAreaTestCase::DoRun() {
   ueDevs1 = lteHelper->InstallUeDevice(ueNodes1);
   ueDevs2 = lteHelper->InstallUeDevice(ueNodes2);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
   qos.mbrDl = 1e6;
@@ -1241,7 +1112,6 @@ void LteSoftFfrAreaTestCase::DoRun() {
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -1262,7 +1132,6 @@ void LteSoftFfrAreaTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofiticationArea, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs1.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -1393,7 +1262,6 @@ void LteEnhancedFfrAreaTestCase::DoRun() {
 
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -1402,33 +1270,21 @@ void LteEnhancedFfrAreaTestCase::DoRun() {
   ueNodes2.Create(1);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  /*
-   * The topology is the following:
-   *
-   *  eNB1            UE1                                      eNB2
-   *    |              |                                         |
-   *    x ------------ x ------------------------ x ------------ x----UE2
-   *         200 m               600 m                  200 m      20 m
-   *
-   */
-
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // eNB1
-  positionAlloc->Add(Vector(1000, 0.0, 0.0)); // eNB2
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // UE1
-  positionAlloc->Add(Vector(1020, 0.0, 0.0)); // UE2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1000, 0.0, 0.0));
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1020, 0.0, 0.0));
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.SetPositionAllocator(positionAlloc);
   mobility.Install(allNodes);
   m_ueMobility = ueNodes1.Get(0)->GetObject<MobilityModel>();
 
-  // Disable layer-3 filtering
   Config::SetDefault("ns3::LteEnbRrc::RsrpFilterCoefficient", UintegerValue(0));
   Config::SetDefault("ns3::LteEnbRrc::RsrqFilterCoefficient", UintegerValue(0));
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -1465,14 +1321,9 @@ void LteEnhancedFfrAreaTestCase::DoRun() {
   ueDevs1 = lteHelper->InstallUeDevice(ueNodes1);
   ueDevs2 = lteHelper->InstallUeDevice(ueNodes2);
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Activate the default EPS bearer
-  // Since this test includes the Token Bank Fair Queue Scheduler
-  //(ns3::FdTbfqFfMacScheduler) we have to treat the default
-  // bearer as the dedicated bearer with QoS.
   GbrQosInformation qos;
   qos.mbrUl = 1e6;
   qos.mbrDl = 1e6;
@@ -1484,7 +1335,6 @@ void LteEnhancedFfrAreaTestCase::DoRun() {
   lteHelper->ActivateDataRadioBearer(ueDevs1, bearer);
   lteHelper->ActivateDataRadioBearer(ueDevs2, bearer);
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -1505,7 +1355,6 @@ void LteEnhancedFfrAreaTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofiticationArea, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs1.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()
@@ -1639,7 +1488,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   Config::SetDefault("ns3::LteUePowerControl::AccumulationEnabled",
                      BooleanValue(false));
 
-  // Disable layer-3 filtering
   Config::SetDefault("ns3::LteEnbRrc::RsrpFilterCoefficient", UintegerValue(0));
   Config::SetDefault("ns3::LteEnbRrc::RsrqFilterCoefficient", UintegerValue(0));
 
@@ -1648,19 +1496,16 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper>();
   Ptr<PointToPointEpcHelper> epcHelper = CreateObject<PointToPointEpcHelper>();
   lteHelper->SetEpcHelper(epcHelper);
-  lteHelper->SetHandoverAlgorithmType(
-      "ns3::NoOpHandoverAlgorithm"); // disable automatic handover
+  lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
 
   Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-  // Create a single RemoteHost
   NodeContainer remoteHostContainer;
   remoteHostContainer.Create(1);
   Ptr<Node> remoteHost = remoteHostContainer.Get(0);
   InternetStackHelper internet;
   internet.Install(remoteHostContainer);
 
-  // Create the Internet
   PointToPointHelper p2ph;
   p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
   p2ph.SetDeviceAttribute("Mtu", UintegerValue(1500));
@@ -1671,15 +1516,12 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
   Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
 
-  // Routing of the Internet Host (towards the LTE network)
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
       ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-  // interface 0 is localhost, 1 is the p2p device
   remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
                                              Ipv4Mask("255.0.0.0"), 1);
 
-  // Create Nodes: eNodeB and UE
   NodeContainer enbNodes;
   NodeContainer ueNodes1;
   NodeContainer ueNodes2;
@@ -1689,25 +1531,14 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   NodeContainer ueNodes = NodeContainer(ueNodes1, ueNodes2);
   NodeContainer allNodes = NodeContainer(enbNodes, ueNodes1, ueNodes2);
 
-  /*
-   * The topology is the following:
-   *
-   *  eNB1            UE1                        UE2            eNB2
-   *    |              |                          |              |
-   *    x ------------ x ------------------------ x ------------ x
-   *         200 m               600 m                  200 m
-   *
-   */
-
-  // Install Mobility Model
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
-  positionAlloc->Add(Vector(0.0, 0.0, 0.0));  // eNB1
-  positionAlloc->Add(Vector(1000, 0.0, 0.0)); // eNB2
+  positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+  positionAlloc->Add(Vector(1000, 0.0, 0.0));
 
-  positionAlloc->Add(Vector(200, 0.0, 0.0)); // UE1
-  positionAlloc->Add(Vector(200, 0.0, 0.0)); // UE1
-  positionAlloc->Add(Vector(800, 0.0, 0.0)); // UE2
+  positionAlloc->Add(Vector(200, 0.0, 0.0));
+  positionAlloc->Add(Vector(200, 0.0, 0.0));
+  positionAlloc->Add(Vector(800, 0.0, 0.0));
 
   MobilityHelper mobility;
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -1715,7 +1546,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   mobility.Install(allNodes);
   m_ueMobility = ueNodes2.Get(0)->GetObject<MobilityModel>();
 
-  // Create Devices and install them in the Nodes (eNB and UE)
   NetDeviceContainer enbDevs;
   NetDeviceContainer ueDevs1;
   NetDeviceContainer ueDevs2;
@@ -1744,34 +1574,25 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   ueLteDevs.Add(ueDevs1);
   ueLteDevs.Add(ueDevs2);
 
-  // Add X2 interface
   lteHelper->AddX2Interface(enbNodes);
 
-  // Install the IP stack on the UEs
   internet.Install(ueNodes);
   Ipv4InterfaceContainer ueIpIfaces;
   ueIpIfaces = epcHelper->AssignUeIpv4Address(NetDeviceContainer(ueLteDevs));
-  // Assign IP address to UEs, and install applications
   for (uint32_t u = 0; u < ueNodes.GetN(); ++u) {
     Ptr<Node> ueNode = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
                                      1);
   }
 
-  // Attach a UE to a eNB
   lteHelper->Attach(ueDevs1, enbDevs.Get(0));
   lteHelper->Attach(ueDevs2, enbDevs.Get(1));
 
-  // Install and start applications on UEs and remote host
   uint16_t dlPort = 10000;
   uint16_t ulPort = 20000;
 
-  // randomize a bit start times to avoid simulation artifacts
-  // (e.g., buffer overflows due to packet transmissions happening
-  // exactly at the same time)
   Ptr<UniformRandomVariable> startTimeSeconds =
       CreateObject<UniformRandomVariable>();
   startTimeSeconds->SetAttribute("Min", DoubleValue(0));
@@ -1779,7 +1600,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
 
   for (uint32_t u = 0; u < ueNodes.GetN(); ++u) {
     Ptr<Node> ue = ueNodes.Get(u);
-    // Set the default gateway for the UE
     Ptr<Ipv4StaticRouting> ueStaticRouting =
         ipv4RoutingHelper.GetStaticRouting(ue->GetObject<Ipv4>());
     ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
@@ -1821,9 +1641,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
       ulpf.remotePortStart = ulPort;
       ulpf.remotePortEnd = ulPort;
       tft->Add(ulpf);
-      // Since this test includes the Token Bank Fair Queue Scheduler
-      //(ns3::FdTbfqFfMacScheduler) we have to use GBR bearer with
-      // certain QoS.
       GbrQosInformation qos;
       qos.mbrUl = 1e6;
       qos.mbrDl = 1e6;
@@ -1840,7 +1657,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
     }
   }
 
-  // Test SpectrumPhy to get signals form DL channel
   Ptr<LteSpectrumPhy> enbDlSpectrumPhy = enbDevs.Get(0)
                                              ->GetObject<LteEnbNetDevice>()
                                              ->GetPhy()
@@ -1861,7 +1677,6 @@ void LteDistributedFfrAreaTestCase::DoRun() {
   testDlSpectrumPhy->TraceConnectWithoutContext(
       "RxStart", MakeBoundCallback(&DlDataRxStartNofiticationArea, this));
 
-  // Test SpectrumPhy to get signals form UL channel
   Ptr<LteSpectrumPhy> ueUlSpectrumPhy = ueDevs1.Get(0)
                                             ->GetObject<LteUeNetDevice>()
                                             ->GetPhy()

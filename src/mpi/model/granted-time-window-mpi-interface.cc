@@ -1,43 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: George Riley <riley@ece.gatech.edu>
- */
-
-/**
- * \file
- * \ingroup mpi
- * Implementation of classes ns3::SentBuffer and
- * ns3::GrantedTimeWindowMpiInterface.
- */
-
-// This object contains static methods that provide an easy interface
-// to the necessary MPI information.
 
 #include "granted-time-window-mpi-interface.h"
 
@@ -147,7 +108,6 @@ void GrantedTimeWindowMpiInterface::Enable(int *pargc, char ***pargv) {
 
   NS_ASSERT(g_enabled == false);
 
-  // Initialize the MPI interface
   MPI_Init(pargc, pargv);
   Enable(MPI_COMM_WORLD);
   g_mpiInitCalled = true;
@@ -159,9 +119,6 @@ void GrantedTimeWindowMpiInterface::Enable(MPI_Comm communicator) {
 
   NS_ASSERT(g_enabled == false);
 
-  // Standard MPI practice is to duplicate the communicator for
-  // library to use.  Library communicates in isolated communication
-  // context.
   MPI_Comm_dup(communicator, &g_communicator);
   g_freeCommunicator = true;
 
@@ -175,7 +132,6 @@ void GrantedTimeWindowMpiInterface::Enable(MPI_Comm communicator) {
   g_size = mpiSize;
 
   g_enabled = true;
-  // Post a non-blocking receive for all peers
   g_pRxBuffers = new char *[g_size];
   g_requests = new MPI_Request[g_size];
   for (uint32_t i = 0; i < GetSize(); ++i) {
@@ -197,22 +153,19 @@ void GrantedTimeWindowMpiInterface::SendPacket(Ptr<Packet> p,
 
   SentBuffer sendBuf;
   g_pendingTx.push_back(sendBuf);
-  auto i = g_pendingTx.rbegin(); // Points to the last element
+  auto i = g_pendingTx.rbegin();
 
   uint32_t serializedSize = p->GetSerializedSize();
   auto buffer = new uint8_t[serializedSize + 16];
   i->SetBuffer(buffer);
-  // Add the time, dest node and dest device
   uint64_t t = rxTime.GetInteger();
   auto pTime = reinterpret_cast<uint64_t *>(buffer);
   *pTime++ = t;
   auto pData = reinterpret_cast<uint32_t *>(pTime);
   *pData++ = node;
   *pData++ = dev;
-  // Serialize the packet
   p->Serialize(reinterpret_cast<uint8_t *>(pData), serializedSize);
 
-  // Find the system id for the destination node
   Ptr<Node> destNode = NodeList::GetNode(node);
 #ifdef NS3_MTP
   uint32_t nodeSysId = destNode->GetSystemId() & 0xFFFF;
@@ -232,7 +185,6 @@ void GrantedTimeWindowMpiInterface::SendPacket(Ptr<Packet> p,
 void GrantedTimeWindowMpiInterface::ReceiveMessages() {
   NS_LOG_FUNCTION_NOARGS();
 
-  // Poll the non-block reads to see if data arrived
   while (true) {
     int flag = 0;
     int index = 0;
@@ -240,13 +192,12 @@ void GrantedTimeWindowMpiInterface::ReceiveMessages() {
 
     MPI_Testany(MpiInterface::GetSize(), g_requests, &index, &flag, &status);
     if (!flag) {
-      break; // No more messages
+      break;
     }
     int count;
     MPI_Get_count(&status, MPI_CHAR, &count);
-    g_rxCount++; // Count this receive
+    g_rxCount++;
 
-    // Get the meta data first
     auto pTime = reinterpret_cast<uint64_t *>(g_pRxBuffers[index]);
     uint64_t time = *pTime++;
     auto pData = reinterpret_cast<uint32_t *>(pTime);
@@ -260,7 +211,6 @@ void GrantedTimeWindowMpiInterface::ReceiveMessages() {
     Ptr<Packet> p =
         Create<Packet>(reinterpret_cast<uint8_t *>(pData), count, true);
 
-    // Find the correct node/device to schedule receive event
     Ptr<Node> pNode = NodeList::GetNode(node);
     Ptr<MpiReceiver> pMpiRec = nullptr;
     uint32_t nDevices = pNode->GetNDevices();
@@ -274,7 +224,6 @@ void GrantedTimeWindowMpiInterface::ReceiveMessages() {
 
     NS_ASSERT(pNode && pMpiRec);
 
-    // Schedule the rx event
 #ifdef NS3_MTP
     MtpInterface::GetSystem(pNode->GetSystemId() >> 16)
         ->ScheduleAt(pNode->GetId(), rxTime,
@@ -284,7 +233,6 @@ void GrantedTimeWindowMpiInterface::ReceiveMessages() {
                                    &MpiReceiver::Receive, pMpiRec, p);
 #endif
 
-    // Re-queue the next read
     MPI_Irecv(g_pRxBuffers[index], MAX_MPI_MSG_SIZE, MPI_CHAR, MPI_ANY_SOURCE,
               0, g_communicator, &g_requests[index]);
   }
@@ -298,9 +246,9 @@ void GrantedTimeWindowMpiInterface::TestSendComplete() {
     MPI_Status status;
     int flag = 0;
     MPI_Test(i->GetRequest(), &flag, &status);
-    auto current = i; // Save current for erasing
-    i++;              // Advance to next
-    if (flag) {       // This message is complete
+    auto current = i;
+    i++;
+    if (flag) {
       g_pendingTx.erase(current);
     }
   }
@@ -314,7 +262,6 @@ void GrantedTimeWindowMpiInterface::Disable() {
     g_freeCommunicator = false;
   }
 
-  // ns-3 should MPI finalize only if ns-3 was used to initialize
   if (g_mpiInitCalled) {
     int flag = 0;
     MPI_Initialized(&flag);

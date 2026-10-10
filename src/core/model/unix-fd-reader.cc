@@ -1,22 +1,4 @@
 
-/*
- * Copyright (c) 2010 The Boeing Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tom Goff <thomas.goff@boeing.com>
- */
 
 #include "fatal-error.h"
 #include "fd-reader.h"
@@ -29,13 +11,7 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <thread>
-#include <unistd.h> // close()
-
-/**
- * \file
- * \ingroup system
- * ns3::FdReader implementation.
- */
+#include <unistd.h>
 
 namespace ns3 {
 
@@ -58,13 +34,11 @@ void FdReader::Start(int fd, Callback<void, uint8_t *, ssize_t> readCallback) {
 
   NS_ASSERT_MSG(!m_readThread.joinable(), "read thread already exists");
 
-  // create a pipe for inter-thread event notification
   tmp = pipe(m_evpipe);
   if (tmp == -1) {
     NS_FATAL_ERROR("pipe() failed: " << std::strerror(errno));
   }
 
-  // make the read end non-blocking
   tmp = fcntl(m_evpipe[0], F_GETFL);
   if (tmp == -1) {
     NS_FATAL_ERROR("fcntl() failed: " << std::strerror(errno));
@@ -76,22 +50,11 @@ void FdReader::Start(int fd, Callback<void, uint8_t *, ssize_t> readCallback) {
   m_fd = fd;
   m_readCallback = readCallback;
 
-  //
-  // We're going to spin up a thread soon, so we need to make sure we have
-  // a way to tear down that thread when the simulation stops.  Do this by
-  // scheduling a "destroy time" method to make sure the thread exits before
-  // proceeding.
-  //
   if (!m_destroyEvent.IsRunning()) {
-    // hold a reference to ensure that this object is not
-    // deallocated before the destroy-time event fires
     this->Ref();
     m_destroyEvent = Simulator::ScheduleDestroy(&FdReader::DestroyEvent, this);
   }
 
-  //
-  // Now spin up a thread to read from the fd
-  //
   NS_LOG_LOGIC("Spinning up read thread");
 
   m_readThread = std::thread(&FdReader::Run, this);
@@ -107,7 +70,6 @@ void FdReader::Stop() {
   NS_LOG_FUNCTION(this);
   m_stop = true;
 
-  // signal the read thread
   if (m_evpipe[1] != -1) {
     char zero = 0;
     ssize_t len = write(m_evpipe[1], &zero, sizeof(zero));
@@ -116,30 +78,25 @@ void FdReader::Stop() {
     }
   }
 
-  // join the read thread
   if (m_readThread.joinable()) {
     m_readThread.join();
   }
 
-  // close the write end of the event pipe
   if (m_evpipe[1] != -1) {
     close(m_evpipe[1]);
     m_evpipe[1] = -1;
   }
 
-  // close the read end of the event pipe
   if (m_evpipe[0] != -1) {
     close(m_evpipe[0]);
     m_evpipe[0] = -1;
   }
 
-  // reset everything else
   m_fd = -1;
   m_readCallback.Nullify();
   m_stop = false;
 }
 
-// This runs in a separate thread
 void FdReader::Run() {
   NS_LOG_FUNCTION(this);
   int nfds;
@@ -161,7 +118,6 @@ void FdReader::Run() {
     }
 
     if (FD_ISSET(m_evpipe[0], &readfds)) {
-      // drain the event pipe
       for (;;) {
         char buf[1024];
         ssize_t len = read(m_evpipe[0], buf, sizeof(buf));
@@ -179,19 +135,14 @@ void FdReader::Run() {
     }
 
     if (m_stop) {
-      // this thread is done
       break;
     }
 
     if (FD_ISSET(m_fd, &readfds)) {
       FdReader::Data data = DoRead();
-      // reading stops when m_len is zero
       if (data.m_len == 0) {
         break;
-      }
-      // the callback is only called when m_len is positive (data
-      // is ignored if m_len is negative)
-      else if (data.m_len > 0) {
+      } else if (data.m_len > 0) {
         m_readCallback(data.m_buf, data.m_len);
       }
     }

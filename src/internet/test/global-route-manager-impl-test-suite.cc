@@ -1,46 +1,13 @@
-/*
- * Copyright 2007 University of Washington
- * Copyright (C) 1999, 2000 Kunihiro Ishiguro, Toshiaki Takada
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:  Tom Henderson (tomhend@u.washington.edu)
- *
- * Kunihiro Ishigura, Toshiaki Takada (GNU Zebra) are attributed authors
- * of the quagga 0.99.7/src/ospfd/ospf_spf.c code which was ported here
- */
 
 #include "ns3/candidate-queue.h"
 #include "ns3/global-route-manager-impl.h"
 #include "ns3/simulator.h"
 #include "ns3/test.h"
 
-#include <cstdlib> // for rand()
+#include <cstdlib>
 
 using namespace ns3;
 
-/**
- * \ingroup internet
- * \ingroup tests
- * \defgroup internet-test internet module tests
- */
-
-/**
- * \ingroup internet-test
- *
- * \brief Global Route Manager Test
- */
 class GlobalRouteManagerImplTestCase : public TestCase {
 public:
   GlobalRouteManagerImplTestCase();
@@ -65,26 +32,8 @@ void GlobalRouteManagerImplTestCase::DoRun() {
     v = nullptr;
   }
 
-  // Build fake link state database; four routers (0-3), 3 point-to-point
-  // links
-  //
-  //   n0
-  //      \ link 0
-  //       \          link 2
-  //        n2 -------------------------n3
-  //       /
-  //      / link 1
-  //    n1
-  //
-  //  link0:  10.1.1.1/30, 10.1.1.2/30
-  //  link1:  10.1.2.1/30, 10.1.2.2/30
-  //  link2:  10.1.3.1/30, 10.1.3.2/30
-  //
-  // Router 0
   auto lr0 = new GlobalRoutingLinkRecord(GlobalRoutingLinkRecord::PointToPoint,
-                                         "0.0.0.2",  // router ID 0.0.0.2
-                                         "10.1.1.1", // local ID
-                                         1);         // metric
+                                         "0.0.0.2", "10.1.1.1", 1);
 
   auto lr1 = new GlobalRoutingLinkRecord(GlobalRoutingLinkRecord::StubNetwork,
                                          "10.1.1.1", "255.255.255.252", 1);
@@ -96,7 +45,6 @@ void GlobalRouteManagerImplTestCase::DoRun() {
   lsa0->AddLinkRecord(lr0);
   lsa0->AddLinkRecord(lr1);
 
-  // Router 1
   auto lr2 = new GlobalRoutingLinkRecord(GlobalRoutingLinkRecord::PointToPoint,
                                          "0.0.0.2", "10.1.2.1", 1);
 
@@ -110,7 +58,6 @@ void GlobalRouteManagerImplTestCase::DoRun() {
   lsa1->AddLinkRecord(lr2);
   lsa1->AddLinkRecord(lr3);
 
-  // Router 2
   auto lr4 = new GlobalRoutingLinkRecord(GlobalRoutingLinkRecord::PointToPoint,
                                          "0.0.0.0", "10.1.1.2", 1);
 
@@ -140,7 +87,6 @@ void GlobalRouteManagerImplTestCase::DoRun() {
   lsa2->AddLinkRecord(lr8);
   lsa2->AddLinkRecord(lr9);
 
-  // Router 3
   auto lr10 = new GlobalRoutingLinkRecord(GlobalRoutingLinkRecord::PointToPoint,
                                           "0.0.0.2", "10.1.2.1", 1);
 
@@ -154,7 +100,6 @@ void GlobalRouteManagerImplTestCase::DoRun() {
   lsa3->AddLinkRecord(lr10);
   lsa3->AddLinkRecord(lr11);
 
-  // Test the database
   auto srmlsdb = new GlobalRouteManagerLSDB();
   srmlsdb->Insert(lsa0->GetLinkStateId(), lsa0);
   srmlsdb->Insert(lsa1->GetLinkStateId(), lsa1);
@@ -163,33 +108,17 @@ void GlobalRouteManagerImplTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(lsa2, srmlsdb->GetLSA(lsa2->GetLinkStateId()),
                         "The Ipv4Address is not stored as the link state ID");
 
-  // next, calculate routes based on the manually created LSDB
   auto srm = new GlobalRouteManagerImpl();
-  srm->DebugUseLsdb(srmlsdb); // manually add in an LSDB
-  // Note-- this will succeed without any nodes in the topology
-  // because the NodeList is empty
-  srm->DebugSPFCalculate(lsa0->GetLinkStateId()); // node n0
+  srm->DebugUseLsdb(srmlsdb);
+  srm->DebugSPFCalculate(lsa0->GetLinkStateId());
 
   Simulator::Run();
 
-  /// \todo here we should do some verification of the routes built
-
   Simulator::Destroy();
 
-  // This delete clears the srm, which deletes the LSDB, which clears
-  // all of the LSAs, which each destroys the attached LinkRecords.
   delete srm;
-
-  /// \todo Testing
-  // No testing has actually been done other than making sure that this code
-  // does not crash
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Global Route Manager TestSuite
- */
 class GlobalRouteManagerImplTestSuite : public TestSuite {
 public:
   GlobalRouteManagerImplTestSuite();
@@ -202,6 +131,4 @@ GlobalRouteManagerImplTestSuite::GlobalRouteManagerImplTestSuite()
   AddTestCase(new GlobalRouteManagerImplTestCase(), TestCase::QUICK);
 }
 
-static GlobalRouteManagerImplTestSuite
-    g_globalRoutingManagerImplTestSuite; //!< Static variable for test
-                                         //!< initialization
+static GlobalRouteManagerImplTestSuite g_globalRoutingManagerImplTestSuite;

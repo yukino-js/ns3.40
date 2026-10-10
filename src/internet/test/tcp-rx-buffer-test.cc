@@ -1,32 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/log.h"
 #include "ns3/packet.h"
@@ -37,12 +9,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpRxBufferTestSuite");
 
-/**
- * \ingroup internet-tests
- * \ingroup tests
- *
- * \brief The TcpRxBuffer Test
- */
 class TcpRxBufferTestCase : public TestCase {
 public:
   TcpRxBufferTestCase();
@@ -51,9 +17,6 @@ private:
   void DoRun() override;
   void DoTeardown() override;
 
-  /**
-   * \brief Test the SACK list update.
-   */
   void TestUpdateSACKList();
 };
 
@@ -67,7 +30,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   Ptr<Packet> p = Create<Packet>(100);
   TcpHeader h;
 
-  // In order sequence
   h.SetSequenceNumber(SequenceNumber32(1));
   rxBuf.SetNextRxSequence(SequenceNumber32(1));
   rxBuf.Add(p, h);
@@ -77,7 +39,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(sackList.size(), 0,
                         "SACK list with an element, while should be empty");
 
-  // Out-of-order sequence (SACK generated)
   h.SetSequenceNumber(SequenceNumber32(501));
   rxBuf.Add(p, h);
 
@@ -92,8 +53,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(601),
                         "SACK block different than expected");
 
-  // In order sequence, not greater than the previous (the old SACK still in
-  // place)
   h.SetSequenceNumber(SequenceNumber32(101));
   rxBuf.Add(p, h);
 
@@ -108,7 +67,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(601),
                         "SACK block different than expected");
 
-  // Out of order sequence, merge on the right
   h.SetSequenceNumber(SequenceNumber32(401));
   rxBuf.Add(p, h);
 
@@ -123,7 +81,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(601),
                         "SACK block different than expected");
 
-  // Out of order sequence, merge on the left
   h.SetSequenceNumber(SequenceNumber32(601));
   rxBuf.Add(p, h);
 
@@ -138,7 +95,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(701),
                         "SACK block different than expected");
 
-  // out of order sequence, different block, check also the order (newer first)
   h.SetSequenceNumber(SequenceNumber32(901));
   rxBuf.Add(p, h);
 
@@ -158,7 +114,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(701),
                         "SACK block different than expected");
 
-  // another out of order seq, different block, check the order (newer first)
   h.SetSequenceNumber(SequenceNumber32(1201));
   rxBuf.Add(p, h);
 
@@ -183,7 +138,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(701),
                         "SACK block different than expected");
 
-  // another out of order seq, different block, check the order (newer first)
   h.SetSequenceNumber(SequenceNumber32(1401));
   rxBuf.Add(p, h);
 
@@ -213,7 +167,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(701),
                         "SACK block different than expected");
 
-  // in order block! See if something get stripped off..
   h.SetSequenceNumber(SequenceNumber32(201));
   rxBuf.Add(p, h);
 
@@ -223,7 +176,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(sackList.size(), 4,
                         "SACK list should contain four element");
 
-  // in order block! See if something get stripped off..
   h.SetSequenceNumber(SequenceNumber32(301));
   rxBuf.Add(p, h);
 
@@ -249,7 +201,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(1001),
                         "SACK block different than expected");
 
-  // out of order block, I'm expecting a left-merge with a move on the top
   h.SetSequenceNumber(SequenceNumber32(801));
   rxBuf.Add(p, h);
 
@@ -275,7 +226,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(1301),
                         "SACK block different than expected");
 
-  // In order block! Strip things away..
   h.SetSequenceNumber(SequenceNumber32(701));
   rxBuf.Add(p, h);
 
@@ -296,7 +246,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(1301),
                         "SACK block different than expected");
 
-  // out of order... I'm expecting a right-merge with a move on top
   h.SetSequenceNumber(SequenceNumber32(1301));
   rxBuf.Add(p, h);
 
@@ -312,7 +261,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(1501),
                         "SACK block different than expected");
 
-  // In order
   h.SetSequenceNumber(SequenceNumber32(1001));
   rxBuf.Add(p, h);
 
@@ -328,7 +276,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
   NS_TEST_ASSERT_MSG_EQ(it->second, SequenceNumber32(1501),
                         "SACK block different than expected");
 
-  // In order, empty the list
   h.SetSequenceNumber(SequenceNumber32(1101));
   rxBuf.Add(p, h);
 
@@ -341,11 +288,6 @@ void TcpRxBufferTestCase::TestUpdateSACKList() {
 
 void TcpRxBufferTestCase::DoTeardown() {}
 
-/**
- * \ingroup internet-test
- *
- * \brief the TestSuite for the TcpRxBuffer test case
- */
 class TcpRxBufferTestSuite : public TestSuite {
 public:
   TcpRxBufferTestSuite() : TestSuite("tcp-rx-buffer", UNIT) {

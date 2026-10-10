@@ -1,21 +1,5 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2022 Eduardo Nuno Almeida.
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 2 as
-# published by the Free Software Foundation;
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# Author: Eduardo Nuno Almeida <enmsa@outlook.pt> [INESC TEC and FEUP, Portugal]
 
 """
 Check and apply the ns-3 coding style to all files in the PATH argument.
@@ -45,9 +29,6 @@ import sys
 
 from typing import Callable, Dict, List, Tuple
 
-###########################################################
-# PARAMETERS
-###########################################################
 CLANG_FORMAT_VERSIONS = [
     16,
     15,
@@ -66,8 +47,6 @@ DIRECTORIES_TO_SKIP = [
     "testpy-output",
 ]
 
-# List of files entirely copied from elsewhere that should not be checked,
-# in order to optimize the performance of this script
 FILES_TO_SKIP = [
     "valgrind.h",
 ]
@@ -128,9 +107,6 @@ FILE_EXTENSIONS_TO_CHECK_TABS = [
 TAB_SIZE = 4
 
 
-###########################################################
-# AUXILIARY FUNCTIONS
-###########################################################
 def should_analyze_directory(dirpath: str) -> bool:
     """
     Check whether a directory should be analyzed.
@@ -193,7 +169,6 @@ def find_files_to_check_style(
     elif os.path.isdir(abs_path):
         for dirpath, dirnames, filenames in os.walk(path, topdown=True):
             if not should_analyze_directory(dirpath):
-                # Remove directory and its subdirectories
                 dirnames[:] = []
                 continue
 
@@ -240,14 +215,12 @@ def find_clang_format_path() -> str:
     @return Path to clang-format.
     """
 
-    # Find exact version
     for version in CLANG_FORMAT_VERSIONS:
         clang_format_path = shutil.which(f"clang-format-{version}")
 
         if clang_format_path:
             return clang_format_path
 
-    # Find default version and check if it is supported
     clang_format_path = shutil.which("clang-format")
 
     if clang_format_path:
@@ -264,16 +237,12 @@ def find_clang_format_path() -> str:
         if major_version in CLANG_FORMAT_VERSIONS:
             return clang_format_path
 
-    # No supported version of clang-format found
     raise RuntimeError(
         f"Could not find any supported version of clang-format installed on this system. "
         f"List of supported versions: {CLANG_FORMAT_VERSIONS}."
     )
 
 
-###########################################################
-# CHECK STYLE MAIN FUNCTIONS
-###########################################################
 def check_style_clang_format(
     path: str,
     enable_check_include_prefixes: bool,
@@ -389,7 +358,6 @@ def check_style_file(
     @return Whether all files are compliant with the style.
     """
 
-    # Check files
     non_compliant_files: List[str] = []
     files_verbose_infos: Dict[str, List[str]] = {}
 
@@ -412,7 +380,6 @@ def check_style_file(
             if verbose:
                 files_verbose_infos[filename] = verbose_infos
 
-    # Output results
     if not non_compliant_files:
         print(f"- No files detected with {style_check_str}")
         return True
@@ -433,13 +400,9 @@ def check_style_file(
             else:
                 print(f"    - {f}")
 
-        # If all files were fixed, there are no more non-compliant files
         return fix
 
 
-###########################################################
-# CHECK STYLE FUNCTIONS
-###########################################################
 def check_include_prefixes_file(
     filename: str,
     fix: bool,
@@ -465,7 +428,6 @@ def check_include_prefixes_file(
         file_lines = f.readlines()
 
     for i, line in enumerate(file_lines):
-        # Check clang-format guards
         line_stripped = line.strip()
 
         if line_stripped == CLANG_FORMAT_GUARD_ON:
@@ -479,13 +441,11 @@ def check_include_prefixes_file(
         ):
             continue
 
-        # Check if the line is an #include and extract its header file
         header_file = re.findall(r'^#include ["<]ns3/(.*\.h)[">]', line_stripped)
 
         if not header_file:
             continue
 
-        # Check if the header file belongs to the same module and remove the "ns3/" prefix
         header_file = header_file[0]
         parent_path = os.path.split(filename)[0]
 
@@ -511,11 +471,9 @@ def check_include_prefixes_file(
                 ]
             )
 
-        # Optimization: If running in non-verbose check mode, only one error is needed to check that the file is not compliant
         if not fix and not verbose:
             break
 
-    # Update file with the fixed lines
     if fix and not is_file_compliant:
         with open(filename, "w", encoding="utf-8") as f:
             f.writelines(file_lines)
@@ -543,7 +501,6 @@ def check_formatting_file(
 
     verbose_infos: List[str] = []
 
-    # Check if the file is well formatted
     process = subprocess.run(
         [
             clang_format_path,
@@ -551,7 +508,6 @@ def check_formatting_file(
             "-style=file",
             "--dry-run",
             "--Werror",
-            # Optimization: In non-verbose mode, only one error is needed to check that the file is not compliant
             f"--ferror-limit={0 if verbose else 1}",
         ],
         check=False,
@@ -564,7 +520,6 @@ def check_formatting_file(
     if verbose:
         verbose_infos = process.stderr.splitlines()
 
-    # Fix file
     if fix and not is_file_compliant:
         process = subprocess.run(
             [
@@ -603,7 +558,6 @@ def check_trailing_whitespace_file(
     with open(filename, "r", encoding="utf-8") as f:
         file_lines = f.readlines()
 
-    # Check if there are trailing whitespace and fix them
     for i, line in enumerate(file_lines):
         line_fixed = line.rstrip() + "\n"
 
@@ -624,11 +578,9 @@ def check_trailing_whitespace_file(
                 ]
             )
 
-        # Optimization: If running in non-verbose check mode, only one error is needed to check that the file is not compliant
         if not fix and not verbose:
             break
 
-    # Update file with the fixed lines
     if fix and not is_file_compliant:
         with open(filename, "w", encoding="utf-8") as f:
             f.writelines(file_lines)
@@ -661,7 +613,6 @@ def check_tabs_file(
         file_lines = f.readlines()
 
     for i, line in enumerate(file_lines):
-        # Check clang-format guards
         line_stripped = line.strip()
 
         if line_stripped == CLANG_FORMAT_GUARD_ON:
@@ -675,7 +626,6 @@ def check_tabs_file(
         ):
             continue
 
-        # Check if there are tabs and fix them
         tab_index = line.find("\t")
 
         if tab_index == -1:
@@ -693,11 +643,9 @@ def check_tabs_file(
                 ]
             )
 
-        # Optimization: If running in non-verbose check mode, only one error is needed to check that the file is not compliant
         if not fix and not verbose:
             break
 
-    # Update file with the fixed lines
     if fix and not is_file_compliant:
         with open(filename, "w", encoding="utf-8") as f:
             f.writelines(file_lines)
@@ -705,9 +653,6 @@ def check_tabs_file(
     return (filename, is_file_compliant, verbose_infos)
 
 
-###########################################################
-# MAIN
-###########################################################
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Check and apply the ns-3 coding style to all files in a given PATH. "

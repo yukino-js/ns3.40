@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017-2018 Centre Tecnologic de Telecomunicacions de Catalunya
- * (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Manuel Requena <manuel.requena@cttc.es>
- */
 
 #include "epc-mme-application.h"
 
@@ -32,9 +13,7 @@ NS_LOG_COMPONENT_DEFINE("EpcMmeApplication");
 
 NS_OBJECT_ENSURE_REGISTERED(EpcMmeApplication);
 
-EpcMmeApplication::EpcMmeApplication()
-    : m_gtpcUdpPort(2123) // fixed by the standard
-{
+EpcMmeApplication::EpcMmeApplication() : m_gtpcUdpPort(2123) {
   NS_LOG_FUNCTION(this);
   m_s1apSapMme = new MemberEpcS1apSapMme<EpcMmeApplication>(this);
 }
@@ -101,8 +80,6 @@ uint8_t EpcMmeApplication::AddBearer(uint64_t imsi, Ptr<EpcTft> tft,
   return bearerInfo.bearerId;
 }
 
-// S1-AP SAP MME forwarded methods
-
 void EpcMmeApplication::DoInitialUeMessage(uint64_t mmeUeS1Id,
                                            uint16_t enbUeS1Id, uint64_t imsi,
                                            uint16_t gci) {
@@ -120,7 +97,7 @@ void EpcMmeApplication::DoInitialUeMessage(uint64_t mmeUeS1Id,
   mmeS11Fteid.interfaceType = GtpcHeader::S11_MME_GTPC;
   mmeS11Fteid.teid = imsi;
   mmeS11Fteid.addr = m_mmeS11Addr;
-  msg.SetSenderCpFteid(mmeS11Fteid); // S11 MME GTP-C F-TEID
+  msg.SetSenderCpFteid(mmeS11Fteid);
 
   std::list<GtpcCreateSessionRequestMessage::BearerContextToBeCreated>
       bearerContexts;
@@ -292,7 +269,7 @@ void EpcMmeApplication::DoRecvCreateSessionResponse(GtpcHeader &header,
     EpcS1apSapEnb::ErabToBeSetupItem erab;
     erab.erabId = bearerContext.epsBearerId;
     erab.erabLevelQosParameters = bearerContext.bearerLevelQos;
-    erab.transportLayerAddress = bearerContext.fteid.addr; // SGW S1U address
+    erab.transportLayerAddress = bearerContext.fteid.addr;
     erab.sgwTeid = bearerContext.fteid.teid;
     NS_LOG_DEBUG("SGW " << erab.transportLayerAddress << " TEID "
                         << erab.sgwTeid);
@@ -324,7 +301,7 @@ void EpcMmeApplication::DoRecvModifyBearerResponse(GtpcHeader &header,
   NS_LOG_DEBUG("cellId " << cellId << " mmeUeS1Id " << mmeUeS1Id
                          << " enbUeS1Id " << enbUeS1Id);
   std::list<EpcS1apSapEnb::ErabSwitchedInUplinkItem>
-      erabToBeSwitchedInUplinkList; // unused for now
+      erabToBeSwitchedInUplinkList;
   auto jt = m_enbInfoMap.find(cellId);
   NS_ASSERT_MSG(jt != m_enbInfoMap.end(),
                 "could not find any eNB with CellId " << cellId);
@@ -352,18 +329,8 @@ void EpcMmeApplication::DoRecvDeleteBearerRequest(GtpcHeader &header,
   std::list<uint8_t> epsBearerIds;
   for (auto &ebid : msg.GetEpsBearerIds()) {
     epsBearerIds.push_back(ebid);
-    /*
-     * This condition is added to not remove bearer info at MME
-     * when UE gets disconnected since the bearers are only added
-     * at beginning of simulation at MME and if it is removed the
-     * bearers cannot be activated again unless scheduled for
-     * addition of the bearer during simulation
-     *
-     */
     if (it->second->cellId == 0) {
-      RemoveBearer(
-          it->second,
-          ebid); // schedules function to erase, context of de-activated bearer
+      RemoveBearer(it->second, ebid);
     }
   }
   msgOut.SetEpsBearerIds(epsBearerIds);

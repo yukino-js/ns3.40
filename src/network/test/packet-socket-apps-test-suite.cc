@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ns3/packet-socket-client.h"
 #include "ns3/packet-socket-helper.h"
@@ -30,25 +12,14 @@
 
 using namespace ns3;
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief PacketSocket apps Unit Test
- */
 class PacketSocketAppsTest : public TestCase {
-  uint32_t m_receivedPacketSize;   //!< Received packet size
-  uint32_t m_receivedPacketNumber; //!< Number of received packets
+  uint32_t m_receivedPacketSize;
+  uint32_t m_receivedPacketNumber;
 
 public:
   void DoRun() override;
   PacketSocketAppsTest();
 
-  /**
-   * Receive a packet
-   * \param packet The packet
-   * \param from Address of the sender
-   */
   void ReceivePkt(Ptr<const Packet> packet, const Address &from);
 };
 
@@ -67,14 +38,12 @@ void PacketSocketAppsTest::ReceivePkt(Ptr<const Packet> packet,
 }
 
 void PacketSocketAppsTest::DoRun() {
-  // Create topology
 
   NodeContainer nodes;
   nodes.Create(2);
 
   PacketSocketHelper packetSocket;
 
-  // give packet socket powers to nodes.
   packetSocket.Install(nodes);
 
   Ptr<SimpleNetDevice> txDev;
@@ -115,12 +84,6 @@ void PacketSocketAppsTest::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(m_receivedPacketSize, 1000, "Size of packet received");
 }
 
-/**
- * \ingroup network-test
- * \ingroup tests
- *
- * \brief PacketSocket apps TestSuite
- */
 class PacketSocketAppsTestSuite : public TestSuite {
 public:
   PacketSocketAppsTestSuite() : TestSuite("packet-socket-apps", UNIT) {
@@ -128,5 +91,4 @@ public:
   }
 };
 
-static PacketSocketAppsTestSuite
-    g_packetSocketAppsTestSuite; //!< Static variable for test initialization
+static PacketSocketAppsTestSuite g_packetSocketAppsTestSuite;

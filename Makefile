@@ -2,6 +2,7 @@
 DURATION := 20
 N_LEAF := 3
 SIM_SEED := 42
+JOBS := 1
 .PHONY: feat
 feat:
 	git add -A
@@ -36,11 +37,11 @@ kill:
 
 .PHONY: tcp
 tcp: build
-	node ./main.js sim --duration $(DURATION) --n-leaf $(N_LEAF) --sim-seed $(SIM_SEED)
+	node ./main.js sim --duration $(DURATION) --n-leaf $(N_LEAF) --sim-seed $(SIM_SEED) --jobs $(JOBS)
 
 .PHONY: udp
 udp: build
-	node ./main.js sim --udp --duration $(DURATION) --n-leaf $(N_LEAF) --sim-seed $(SIM_SEED)
+	node ./main.js sim --udp --duration $(DURATION) --n-leaf $(N_LEAF) --sim-seed $(SIM_SEED) --jobs $(JOBS)
 
 .PHONY: gen
 gen:

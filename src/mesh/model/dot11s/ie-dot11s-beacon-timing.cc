@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "ie-dot11s-beacon-timing.h"
 
@@ -23,9 +5,6 @@
 
 namespace ns3 {
 namespace dot11s {
-/*******************************************
- * IeBeaconTimingUnit
- *******************************************/
 IeBeaconTimingUnit::IeBeaconTimingUnit()
     : m_aid(0), m_lastBeacon(0), m_beaconInterval(0) {}
 
@@ -47,9 +26,6 @@ uint16_t IeBeaconTimingUnit::GetBeaconInterval() const {
   return m_beaconInterval;
 }
 
-/*******************************************
- * IeBeaconTiming
- *******************************************/
 WifiInformationElementId IeBeaconTiming::ElementId() const {
   return IE_BEACON_TIMING;
 }
@@ -67,7 +43,6 @@ void IeBeaconTiming::AddNeighboursTimingElementUnit(uint16_t aid,
   if (m_numOfUnits == 50) {
     return;
   }
-  // First we lookup if this element already exists
   for (auto i = m_neighbours.begin(); i != m_neighbours.end(); i++) {
     if (((*i)->GetAid() == AidToU8(aid)) &&
         ((*i)->GetLastBeacon() == TimestampToU16(last_beacon)) &&

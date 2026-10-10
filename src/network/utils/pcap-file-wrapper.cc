@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "pcap-file-wrapper.h"
 
@@ -86,11 +70,6 @@ void PcapFileWrapper::Open(const std::string &filename,
 
 void PcapFileWrapper::Init(uint32_t dataLinkType, uint32_t snapLen,
                            int32_t tzCorrection) {
-  //
-  // If the user doesn't provide a snaplen, the default value will come in.  If
-  // this happens, we use the "CaptureSize" Attribute.  If the user does provide
-  // a snaplen, we use the one provided.
-  //
   NS_LOG_FUNCTION(this << dataLinkType << snapLen << tzCorrection);
   if (snapLen != std::numeric_limits<uint32_t>::max()) {
     m_file.Init(dataLinkType, snapLen, tzCorrection, false, m_nanosecMode);

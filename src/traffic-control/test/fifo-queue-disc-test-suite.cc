@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Stefano Avallone <stavallo@unina.it>
- *
- */
 
 #include "ns3/double.h"
 #include "ns3/fifo-queue-disc.h"
@@ -33,24 +14,11 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Fifo Queue Disc Test Item
- */
 class FifoQueueDiscTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p the packet
-   * \param addr the address
-   */
   FifoQueueDiscTestItem(Ptr<Packet> p, const Address &addr);
   ~FifoQueueDiscTestItem() override;
 
-  // Delete default constructor, copy constructor and assignment operator to
-  // avoid misuse
   FifoQueueDiscTestItem() = delete;
   FifoQueueDiscTestItem(const FifoQueueDiscTestItem &) = delete;
   FifoQueueDiscTestItem &operator=(const FifoQueueDiscTestItem &) = delete;
@@ -68,28 +36,13 @@ void FifoQueueDiscTestItem::AddHeader() {}
 
 bool FifoQueueDiscTestItem::Mark() { return false; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Fifo Queue Disc Test Case
- */
 class FifoQueueDiscTestCase : public TestCase {
 public:
   FifoQueueDiscTestCase();
   void DoRun() override;
 
 private:
-  /**
-   * Run test function
-   * \param mode the test mode
-   */
   void RunFifoTest(QueueSizeUnit mode);
-  /**
-   * Run test function
-   * \param q the queue disc
-   * \param qSize the expected size of the queue disc
-   * \param pktSize the packet size
-   */
   void DoRunFifoTest(Ptr<FifoQueueDisc> q, uint32_t qSize, uint32_t pktSize);
 };
 
@@ -109,8 +62,6 @@ void FifoQueueDiscTestCase::DoRunFifoTest(Ptr<FifoQueueDisc> q, uint32_t qSize,
   NS_TEST_ASSERT_MSG_EQ(q->GetCurrentSize().GetValue(), 0,
                         "The queue disc should be empty");
 
-  // create and enqueue numPackets packets and store their UIDs; check they are
-  // all enqueued
   for (uint32_t i = 1; i <= numPackets; i++) {
     p = Create<Packet>(pktSize);
     uids.push_back(p->GetUid());
@@ -119,11 +70,9 @@ void FifoQueueDiscTestCase::DoRunFifoTest(Ptr<FifoQueueDisc> q, uint32_t qSize,
                           "There should be " << i << " packet(s) in there");
   }
 
-  // no room for another packet
   NS_TEST_ASSERT_MSG_EQ(q->Enqueue(Create<FifoQueueDiscTestItem>(p, dest)),
                         false, "There should be no room for another packet");
 
-  // dequeue and check packet order
   for (uint32_t i = 1; i <= numPackets; i++) {
     item = q->Dequeue();
     NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet should have been dequeued");
@@ -144,7 +93,6 @@ void FifoQueueDiscTestCase::RunFifoTest(QueueSizeUnit mode) {
   uint32_t pktSize = 1000;
   uint32_t modeSize = (mode == QueueSizeUnit::PACKETS ? 1 : pktSize);
 
-  // test 1: set the limit on the queue disc before initialization
   queue = CreateObject<FifoQueueDisc>();
 
   NS_TEST_ASSERT_MSG_EQ(queue->GetNInternalQueues(), 0,
@@ -159,7 +107,6 @@ void FifoQueueDiscTestCase::RunFifoTest(QueueSizeUnit mode) {
 
   DoRunFifoTest(queue, numPackets * modeSize, pktSize);
 
-  // test 2: set the limit on the queue disc after initialization
   queue = CreateObject<FifoQueueDisc>();
 
   NS_TEST_ASSERT_MSG_EQ(queue->GetNInternalQueues(), 0,
@@ -174,7 +121,6 @@ void FifoQueueDiscTestCase::RunFifoTest(QueueSizeUnit mode) {
 
   DoRunFifoTest(queue, numPackets * modeSize, pktSize);
 
-  // test 3: set the limit on the internal queue before initialization
   queue = CreateObject<FifoQueueDisc>();
 
   NS_TEST_ASSERT_MSG_EQ(queue->GetNInternalQueues(), 0,
@@ -195,7 +141,6 @@ void FifoQueueDiscTestCase::RunFifoTest(QueueSizeUnit mode) {
 
   DoRunFifoTest(queue, numPackets * modeSize, pktSize);
 
-  // test 4: set the limit on the internal queue after initialization
   queue = CreateObject<FifoQueueDisc>();
 
   NS_TEST_ASSERT_MSG_EQ(queue->GetNInternalQueues(), 0,
@@ -235,14 +180,9 @@ void FifoQueueDiscTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Fifo Queue Disc Test Suite
- */
 static class FifoQueueDiscTestSuite : public TestSuite {
 public:
   FifoQueueDiscTestSuite() : TestSuite("fifo-queue-disc", UNIT) {
     AddTestCase(new FifoQueueDiscTestCase(), TestCase::QUICK);
   }
-} g_fifoQueueTestSuite; ///< the test suite
+} g_fifoQueueTestSuite;

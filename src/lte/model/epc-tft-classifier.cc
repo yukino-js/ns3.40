@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2011 CTTC
- * Copyright (c) 2010 TELEMATICS LAB, DEE - Politecnico di Bari
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors:
- *   Nicola Baldo <nbaldo@cttc.es> (the EpcTftClassifier class)
- *   Giuseppe Piro <g.piro@poliba.it> (part of the code in
- * EpcTftClassifier::Classify () which comes from RrcEntity::Classify of the
- * GSoC 2010 LTE module)
- *
- */
 
 #include "epc-tft-classifier.h"
 
@@ -50,8 +26,6 @@ void EpcTftClassifier::Add(Ptr<EpcTft> tft, uint32_t id) {
   NS_LOG_FUNCTION(this << tft << id);
   m_tftMap[id] = tft;
 
-  // simple sanity check: there shouldn't be more than 16 bearers (hence TFTs)
-  // per UE
   NS_ASSERT(m_tftMap.size() <= 16);
 }
 
@@ -97,17 +71,9 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
     uint16_t fragmentOffset = ipv4Header.GetFragmentOffset();
     bool isLastFragment = ipv4Header.IsLastFragment();
 
-    // NS_LOG_DEBUG ("PayloadSize = " << payloadSize);
-    // NS_LOG_DEBUG ("fragmentOffset " << fragmentOffset << " isLastFragment "
-    // << isLastFragment);
-
     protocol = ipv4Header.GetProtocol();
     tos = ipv4Header.GetTos();
 
-    // Port info only can be get if it is the first fragment and
-    // there is enough data in the payload
-    // We keep the port info for fragmented packets,
-    // i.e. it is the first one but it is not the last one
     if (fragmentOffset == 0) {
       if (protocol == UdpL4Protocol::PROT_NUMBER && payloadSize >= 8) {
         UdpHeader udpHeader;
@@ -150,13 +116,7 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
         }
       }
 
-      // else
-      //   First fragment but not enough data for port info or not UDP/TCP
-      //   protocol. Nothing can be done, i.e. we cannot get port info from
-      //   packet.
     } else {
-      // Not first fragment, so port info is not available but
-      // port info should already be known (if there is not fragment reordering)
       std::tuple<uint32_t, uint32_t, uint8_t, uint16_t> fragmentKey =
           std::make_tuple(ipv4Header.GetSource().Get(),
                           ipv4Header.GetDestination().Get(), protocol,
@@ -224,10 +184,6 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
                                       << " remotePort=" << remotePort
                                       << " tos=0x" << (uint16_t)tos);
 
-    // now it is possible to classify the packet!
-    // we use a reverse iterator since filter priority is not implemented
-    // properly. This way, since the default bearer is expected to be added
-    // first, it will be evaluated last.
     std::map<uint32_t, Ptr<EpcTft>>::const_reverse_iterator it;
     NS_LOG_LOGIC("TFT MAP size: " << m_tftMap.size());
 
@@ -238,7 +194,7 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
       if (tft->Matches(direction, remoteAddressIpv4, localAddressIpv4,
                        remotePort, localPort, tos)) {
         NS_LOG_LOGIC("matches with TFT ID = " << it->first);
-        return it->first; // the id of the matching TFT
+        return it->first;
       }
     }
   } else if (protocolNumber == Ipv6L3Protocol::PROT_NUMBER) {
@@ -248,10 +204,6 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
                                       << " remotePort=" << remotePort
                                       << " tos=0x" << (uint16_t)tos);
 
-    // now it is possible to classify the packet!
-    // we use a reverse iterator since filter priority is not implemented
-    // properly. This way, since the default bearer is expected to be added
-    // first, it will be evaluated last.
     std::map<uint32_t, Ptr<EpcTft>>::const_reverse_iterator it;
     NS_LOG_LOGIC("TFT MAP size: " << m_tftMap.size());
 
@@ -262,12 +214,12 @@ uint32_t EpcTftClassifier::Classify(Ptr<Packet> p, EpcTft::Direction direction,
       if (tft->Matches(direction, remoteAddressIpv6, localAddressIpv6,
                        remotePort, localPort, tos)) {
         NS_LOG_LOGIC("matches with TFT ID = " << it->first);
-        return it->first; // the id of the matching TFT
+        return it->first;
       }
     }
   }
   NS_LOG_LOGIC("no match");
-  return 0; // no match
+  return 0;
 }
 
 } // namespace ns3

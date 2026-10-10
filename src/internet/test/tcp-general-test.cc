@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2015 Natale Patriciello <natale.patriciello@gmail.com>
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 #define __STDC_LIMIT_MACROS
 #include "tcp-general-test.h"
 
@@ -53,7 +36,7 @@ void TcpGeneralTest::ReceivePacket(Ptr<Socket> socket) {
   Address from;
 
   while ((packet = socket->RecvFrom(from))) {
-    if (packet->GetSize() == 0) { // EOF
+    if (packet->GetSize() == 0) {
       break;
     }
   }
@@ -144,10 +127,8 @@ void TcpGeneralTest::DoRun() {
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer i = ipv4.Assign(net);
   Ipv4Address serverAddress = i.GetAddress(1);
-  // Ipv4Address clientAddress = i.GetAddress (0);
 
   NS_LOG_INFO("Create sockets.");
-  // Receiver socket on n1
   m_receiverSocket = CreateReceiverSocket(nodes.Get(1));
 
   m_receiverSocket->SetRecvCallback(
@@ -317,7 +298,7 @@ void TcpGeneralTest::QueueDropCb(std::string context, Ptr<const Packet> p) {
   }
 }
 
-void TcpGeneralTest::PhyDropCb(std::string context, Ptr<const Packet> /* p */) {
+void TcpGeneralTest::PhyDropCb(std::string context, Ptr<const Packet>) {
   if (context == "SENDER") {
     PhyDrop(SENDER);
   } else if (context == "RECEIVER") {
@@ -815,24 +796,11 @@ TypeId TcpSocketSmallAcks::GetTypeId() {
   return tid;
 }
 
-/*
- * Send empty packet, copied/pasted from TcpSocketBase
- *
- * The rationale for copying/pasting is that we need to edit a little the
- * code inside. Since there isn't a well-defined division of duties,
- * we are forced to do this.
- */
 void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
   Ptr<Packet> p = Create<Packet>();
   TcpHeader header;
   SequenceNumber32 s = m_tcb->m_nextTxSequence;
 
-  /*
-   * Add tags for each socket option.
-   * Note that currently the socket adds both IPv4 tag and IPv6 tag
-   * if both options are set. Once the packet got to layer three, only
-   * the corresponding tags will be read.
-   */
   if (GetIpTos()) {
     SocketIpTosTag ipTosTag;
     ipTosTag.SetTos(GetIpTos());
@@ -875,7 +843,6 @@ void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
   header.SetFlags(flags);
   header.SetSequenceNumber(s);
 
-  // Actual division in small acks.
   if (hasSyn || hasFin) {
     header.SetAckNumber(m_tcb->m_rxBuffer->NextRxSequence());
   } else {
@@ -903,8 +870,6 @@ void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
     m_lastAckedSeq = ackSeq;
   }
 
-  // end of division in small acks
-
   if (m_endPoint != nullptr) {
     header.SetSourcePort(m_endPoint->GetLocalPort());
     header.SetDestinationPort(m_endPoint->GetPeerPort());
@@ -915,18 +880,17 @@ void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
   AddOptions(header);
   header.SetWindowSize(AdvertisedWindowSize());
 
-  // RFC 6298, clause 2.4
   m_rto = Max(m_rtt->GetEstimate() +
                   Max(m_clockGranularity, m_rtt->GetVariation() * 4),
               m_minRto);
 
   if (hasSyn) {
-    if (m_synCount == 0) { // No more connection retries, give up
+    if (m_synCount == 0) {
       NS_LOG_LOGIC("Connection failed.");
-      m_rtt->Reset(); // According to recommendation -> RFC 6298
+      m_rtt->Reset();
       CloseAndNotify();
       return;
-    } else { // Exponential backoff of connection time out
+    } else {
       int backoffCount = 0x1 << (m_synRetries - m_synCount);
       m_rto = m_cnTimeout * backoffCount;
       m_synCount--;
@@ -942,14 +906,11 @@ void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
 
   m_txTrace(p, header, this);
 
-  if (flags &
-      TcpHeader::ACK) { // If sending an ACK, cancel the delay ACK as well
+  if (flags & TcpHeader::ACK) {
     m_delAckEvent.Cancel();
     m_delAckCount = 0;
   }
-  if (m_retxEvent.IsExpired() && (hasSyn || hasFin) &&
-      !isAck) { // Retransmit SYN / SYN+ACK / FIN / FIN+ACK to guard against
-                // lost
+  if (m_retxEvent.IsExpired() && (hasSyn || hasFin) && !isAck) {
     NS_LOG_LOGIC("Schedule retransmission timeout at time "
                  << Simulator::Now().GetSeconds() << " to expire at time "
                  << (Simulator::Now() + m_rto.Get()).GetSeconds());
@@ -957,7 +918,6 @@ void TcpSocketSmallAcks::SendEmptyPacket(uint8_t flags) {
         m_rto, &TcpSocketSmallAcks::SendEmptyPacket, this, flags);
   }
 
-  // send another ACK if bytes remain
   if (m_bytesLeftToBeAcked > m_bytesToAck &&
       m_tcb->m_rxBuffer->NextRxSequence() > m_lastAckedSeq && !hasFin) {
     NS_LOG_DEBUG(

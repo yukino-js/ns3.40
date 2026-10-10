@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 #include "flame-header.h"
 
 #include "ns3/address-utils.h"
@@ -49,20 +31,14 @@ void FlameHeader::Print(std::ostream &os) const {
 }
 
 uint32_t FlameHeader::GetSerializedSize() const {
-  return 1   // Reserved
-         + 1 // Cost
-         + 2 // Seqno
-         + 6 // Orig Dst
-         + 6 // Orig Src
-         + 2 // Flame Port
-      ;
+  return 1 + 1 + 2 + 6 + 6 + 2;
 }
 
 void FlameHeader::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
-  i.WriteU8(0);            // Reserved
-  i.WriteU8(m_cost);       // Cost
-  i.WriteHtonU16(m_seqno); // Seqno
+  i.WriteU8(0);
+  i.WriteU8(m_cost);
+  i.WriteHtonU16(m_seqno);
   WriteTo(i, m_origDst);
   WriteTo(i, m_origSrc);
   i.WriteHtonU16(m_protocol);

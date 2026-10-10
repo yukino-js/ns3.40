@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2020 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Rediet <getachew.redieteab@orange.com>
- *         Muhammad Iqbal Rochman <muhiqbalcr@uchicago.edu>
- *         Sébastien Deronne <sebastien.deronne@gmail.com> (DsssSigHeader)
- */
 
 #include "dsss-ppdu.h"
 
@@ -81,12 +61,6 @@ Ptr<WifiPpdu> DsssPpdu::Copy() const {
 DsssPpdu::DsssSigHeader::DsssSigHeader() : m_rate(0b00001010), m_length(0) {}
 
 void DsssPpdu::DsssSigHeader::SetRate(uint64_t rate) {
-  /* Here is the binary representation for a given rate:
-   * 1 Mbit/s: 00001010
-   * 2 Mbit/s: 00010100
-   * 5.5 Mbit/s: 00110111
-   * 11 Mbit/s: 01101110
-   */
   switch (rate) {
   case 1000000:
     m_rate = 0b00001010;

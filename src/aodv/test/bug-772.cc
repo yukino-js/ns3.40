@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "bug-772.h"
 
@@ -44,9 +26,6 @@
 
 using namespace ns3;
 
-//-----------------------------------------------------------------------------
-// UdpChainTest
-//-----------------------------------------------------------------------------
 Bug772ChainTest::Bug772ChainTest(const char *const prefix,
                                  const char *const proto, Time t, uint32_t size)
     : TestCase("Bug 772 UDP and TCP chain regression test"), m_nodes(nullptr),
@@ -69,13 +48,12 @@ void Bug772ChainTest::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(2);
 
-  // Default of 3 will cause packet loss
   Config::SetDefault("ns3::ArpCache::PendingQueueSize", UintegerValue(10));
 
   CreateNodes();
   CreateDevices();
 
-  Simulator::Stop(m_time + Seconds(1)); // Allow buffered packets to clear
+  Simulator::Stop(m_time + Seconds(1));
   Simulator::Run();
   Simulator::Destroy();
 
@@ -99,22 +77,16 @@ void Bug772ChainTest::CreateNodes() {
 
 void Bug772ChainTest::CreateDevices() {
   int64_t streamsUsed = 0;
-  // 1. Setup WiFi
   WifiMacHelper wifiMac;
   wifiMac.SetType("ns3::AdhocWifiMac");
   YansWifiPhyHelper wifiPhy;
   wifiPhy.DisablePreambleDetectionModel();
-  // This test suite output was originally based on YansErrorRateModel
   wifiPhy.SetErrorRateModel("ns3::YansErrorRateModel");
   YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
   Ptr<YansWifiChannel> chan = wifiChannel.Create();
   wifiPhy.SetChannel(chan);
-  wifiPhy.Set("TxGain",
-              DoubleValue(1.0)); // this configuration should go away in future
-                                 // revision to the test
-  wifiPhy.Set("RxGain",
-              DoubleValue(1.0)); // this configuration should go away in future
-                                 // revision to the test
+  wifiPhy.Set("TxGain", DoubleValue(1.0));
+  wifiPhy.Set("RxGain", DoubleValue(1.0));
   WifiHelper wifi;
   wifi.SetStandard(WIFI_STANDARD_80211a);
   wifi.SetRemoteStationManager(
@@ -122,27 +94,21 @@ void Bug772ChainTest::CreateDevices() {
       "RtsCtsThreshold", StringValue("2200"), "MaxSlrc", UintegerValue(7));
   NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, *m_nodes);
 
-  // Assign fixed stream numbers to wifi and channel random variables
   streamsUsed += wifi.AssignStreams(devices, streamsUsed);
-  // Assign 6 streams per device
   NS_TEST_ASSERT_MSG_EQ(streamsUsed, (devices.GetN() * 2),
                         "Stream assignment mismatch");
   streamsUsed += wifiChannel.AssignStreams(chan, streamsUsed);
-  // Assign 0 streams per channel for this configuration
   NS_TEST_ASSERT_MSG_EQ(streamsUsed, (devices.GetN() * 2),
                         "Stream assignment mismatch");
 
-  // 2. Setup TCP/IP & AODV
-  AodvHelper aodv; // Use default parameters here
+  AodvHelper aodv;
   InternetStackHelper internetStack;
   internetStack.SetRoutingHelper(aodv);
   internetStack.Install(*m_nodes);
   streamsUsed += internetStack.AssignStreams(*m_nodes, streamsUsed);
-  // Expect to use (3*m_size) more streams for internet stack random variables
   NS_TEST_ASSERT_MSG_EQ(streamsUsed, ((devices.GetN() * 3) + (3 * m_size)),
                         "Stream assignment mismatch");
   streamsUsed += aodv.AssignStreams(*m_nodes, streamsUsed);
-  // Expect to use m_size more streams for AODV
   NS_TEST_ASSERT_MSG_EQ(streamsUsed,
                         ((devices.GetN() * 3) + (3 * m_size) + m_size),
                         "Stream assignment mismatch");
@@ -150,7 +116,6 @@ void Bug772ChainTest::CreateDevices() {
   address.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-  // 3. Setup UDP source and sink
   m_sendSocket =
       Socket::CreateSocket(m_nodes->Get(0), TypeId::LookupByName(m_proto));
   m_sendSocket->Bind();
@@ -171,8 +136,6 @@ void Bug772ChainTest::CreateDevices() {
 }
 
 void Bug772ChainTest::CheckResults() {
-  // We should have sent 8 packets (every 0.25 seconds from time 1 to time 3)
-  // Check that the received packet count is 8
   NS_TEST_EXPECT_MSG_EQ(m_receivedPackets, 8,
                         "Did not receive expected 8 packets");
 }

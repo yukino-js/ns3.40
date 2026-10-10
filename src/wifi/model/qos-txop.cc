@@ -1,24 +1,3 @@
-/*
- * Copyright (c) 2006, 2009 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- *          Stefano Avallone <stavalli@unina.it>
- */
 
 #include "qos-txop.h"
 
@@ -150,7 +129,6 @@ QosTxop::QosLinkEntity &QosTxop::GetLink(uint8_t linkId) const {
 uint8_t QosTxop::GetQosQueueSize(uint8_t tid, Mac48Address receiver) const {
   WifiContainerQueueId queueId{WIFI_QOSDATA_QUEUE, WIFI_UNICAST, receiver, tid};
   uint32_t bufferSize = m_queue->GetNBytes(queueId);
-  // A queue size value of 254 is used for all sizes greater than 64 768 octets.
   uint8_t queueSize =
       static_cast<uint8_t>(std::ceil(std::min(bufferSize, 64769U) / 256.0));
   NS_LOG_DEBUG("Buffer size=" << bufferSize << " Queue Size=" << +queueSize);
@@ -267,7 +245,6 @@ bool QosTxop::UseExplicitBarAfterMissedBlockAck() const {
 }
 
 bool QosTxop::HasFramesToTransmit(uint8_t linkId) {
-  // remove MSDUs with expired lifetime starting from the head of the queue
   m_queue->WipeAllExpiredMpdus();
   bool queueIsNotEmpty = (bool)(m_queue->PeekFirstAvailable(linkId));
 
@@ -306,10 +283,8 @@ Ptr<WifiMpdu> QosTxop::PeekNextMpdu(uint8_t linkId, uint8_t tid,
                                     Ptr<const WifiMpdu> mpdu) {
   NS_LOG_FUNCTION(this << +linkId << +tid << recipient << mpdu);
 
-  // lambda to peek the next frame
   auto peek = [this, &linkId, &tid, &recipient, &mpdu]() -> Ptr<WifiMpdu> {
-    if (tid == 8 && recipient.IsBroadcast()) // undefined TID and recipient
-    {
+    if (tid == 8 && recipient.IsBroadcast()) {
       return m_queue->PeekFirstAvailable(linkId, mpdu);
     }
     WifiContainerQueueId queueId(WIFI_QOSDATA_QUEUE, WIFI_UNICAST, recipient,
@@ -323,8 +298,6 @@ Ptr<WifiMpdu> QosTxop::PeekNextMpdu(uint8_t linkId, uint8_t tid,
   };
 
   auto item = peek();
-  // remove old packets (must be retransmissions or in flight, otherwise they
-  // did not get a sequence number assigned)
   while (item && !item->IsFragment()) {
     if (item->GetHeader().IsCtl()) {
       NS_LOG_DEBUG("Skipping control frame: " << *item);
@@ -344,18 +317,11 @@ Ptr<WifiMpdu> QosTxop::PeekNextMpdu(uint8_t linkId, uint8_t tid,
       continue;
     }
 
-    if (auto linkIds = item->GetInFlightLinkIds();
-        !linkIds.empty()) // MPDU is in-flight
-    {
-      // if the MPDU is not already in-flight on the link for which we are
-      // requesting an MPDU and the number of links on which the MPDU is
-      // in-flight is less than the maximum number, then we can transmit this
-      // MPDU
+    if (auto linkIds = item->GetInFlightLinkIds(); !linkIds.empty()) {
       if (linkIds.count(linkId) == 0 && linkIds.size() < m_nMaxInflights) {
         break;
       }
 
-      // if no BA agreement, we cannot have multiple MPDUs in-flight
       if (item->GetHeader().IsQosData() &&
           !m_mac->GetBaAgreementEstablishedAsOriginator(
               item->GetHeader().GetAddr1(), item->GetHeader().GetQosTid())) {
@@ -385,8 +351,6 @@ Ptr<WifiMpdu> QosTxop::PeekNextMpdu(uint8_t linkId, uint8_t tid,
 
   WifiMacHeader &hdr = item->GetHeader();
 
-  // peek the next sequence number and check if it is within the transmit window
-  // in case of QoS data frame
   uint16_t sequence = item->HasSeqNoAssigned()
                           ? hdr.GetSequenceNumber()
                           : m_txMiddle->PeekNextSequenceNumberFor(&hdr);
@@ -402,8 +366,6 @@ Ptr<WifiMpdu> QosTxop::PeekNextMpdu(uint8_t linkId, uint8_t tid,
     }
   }
 
-  // Assign a sequence number if this is not a fragment nor it already has one
-  // assigned
   if (!item->IsFragment() && !item->HasSeqNoAssigned()) {
     hdr.SetSequenceNumber(sequence);
   }
@@ -420,9 +382,6 @@ Ptr<WifiMpdu> QosTxop::GetNextMpdu(uint8_t linkId, Ptr<WifiMpdu> peekedItem,
 
   Mac48Address recipient = peekedItem->GetHeader().GetAddr1();
 
-  // The TXOP limit can be exceeded by the TXOP holder if it does not transmit
-  // more than one Data or Management frame in the TXOP and the frame is not in
-  // an A-MPDU consisting of more than one MPDU (Sec. 10.22.2.8 of 802.11-2016)
   Time actualAvailableTime =
       (initialFrame && txParams.GetSize(recipient) == 0 ? Time::Min()
                                                         : availableTime);
@@ -436,14 +395,9 @@ Ptr<WifiMpdu> QosTxop::GetNextMpdu(uint8_t linkId, Ptr<WifiMpdu> peekedItem,
   NS_ASSERT(peekedItem->IsQueued());
   Ptr<WifiMpdu> mpdu;
 
-  // If it is a non-broadcast QoS Data frame and it is not a retransmission nor
-  // a fragment, attempt A-MSDU aggregation
   if (peekedItem->GetHeader().IsQosData()) {
     uint8_t tid = peekedItem->GetHeader().GetQosTid();
 
-    // we should not be asked to dequeue an MPDU that is beyond the transmit
-    // window. Note that PeekNextMpdu() temporarily assigns the next available
-    // sequence number to the peeked frame
     NS_ASSERT(!m_mac->GetBaAgreementEstablishedAsOriginator(recipient, tid) ||
               IsInWindow(
                   peekedItem->GetHeader().GetSequenceNumber(),
@@ -452,7 +406,6 @@ Ptr<WifiMpdu> QosTxop::GetNextMpdu(uint8_t linkId, Ptr<WifiMpdu> peekedItem,
                   GetBaBufferSize(
                       peekedItem->GetOriginal()->GetHeader().GetAddr1(), tid)));
 
-    // try A-MSDU aggregation
     if (m_mac->GetHtSupported() && !recipient.IsBroadcast() &&
         !peekedItem->HasSeqNoAssigned() && !peekedItem->IsFragment()) {
       auto htFem = StaticCast<HtFrameExchangeManager>(qosFem);
@@ -463,14 +416,12 @@ Ptr<WifiMpdu> QosTxop::GetNextMpdu(uint8_t linkId, Ptr<WifiMpdu> peekedItem,
     if (mpdu) {
       NS_LOG_DEBUG("Prepared an MPDU containing an A-MSDU");
     }
-    // else aggregation was not attempted or failed
   }
 
   if (!mpdu) {
     mpdu = peekedItem;
   }
 
-  // Assign a sequence number if this is not a fragment nor a retransmission
   AssignSequenceNumber(mpdu);
   NS_LOG_DEBUG("Got MPDU from EDCA queue: " << *mpdu);
 
@@ -481,7 +432,6 @@ void QosTxop::AssignSequenceNumber(Ptr<WifiMpdu> mpdu) const {
   NS_LOG_FUNCTION(this << *mpdu);
 
   if (!mpdu->IsFragment() && !mpdu->HasSeqNoAssigned()) {
-    // in case of 11be MLDs, sequence numbers refer to the MLD address
     auto origMpdu = m_queue->GetOriginal(mpdu);
     uint16_t sequence =
         m_txMiddle->GetNextSequenceNumberFor(&origMpdu->GetHeader());
@@ -537,13 +487,6 @@ void QosTxop::GotAddBaResponse(const MgtAddBaResponseHeader &respHdr,
   if (respHdr.GetStatusCode().IsSuccess()) {
     NS_LOG_DEBUG("block ack agreement established with " << recipient << " tid "
                                                          << +tid);
-    // A (destination, TID) pair is "blocked" (i.e., no more packets are sent)
-    // when an Add BA Request is sent to the destination. However, when the
-    // Add BA Request timer expires, the (destination, TID) pair is "unblocked"
-    // and packets to the destination are sent again (under normal ack policy).
-    // Thus, there may be a packet needing to be retransmitted when the
-    // Add BA Response is received. In this case, the starting sequence number
-    // shall be set equal to the sequence number of such packet.
     uint16_t startingSeq =
         m_txMiddle->GetNextSeqNumberByTidAndAddress(tid, recipient);
     auto peekedItem = m_queue->PeekByTidAndAddress(tid, recipient);
@@ -573,8 +516,6 @@ void QosTxop::NotifyOriginatorAgreementNoReply(const Mac48Address &recipient,
   NS_LOG_FUNCTION(this << recipient << tid);
 
   m_baManager->NotifyOriginatorAgreementNoReply(recipient, tid);
-  // the recipient has been "unblocked" and transmissions can resume using
-  // normal acknowledgment, hence start access (if needed) on all the links
   for (const auto &[id, link] : GetLinks()) {
     StartAccessIfNeeded(id);
   }
@@ -582,8 +523,6 @@ void QosTxop::NotifyOriginatorAgreementNoReply(const Mac48Address &recipient,
 
 void QosTxop::CompleteMpduTx(Ptr<WifiMpdu> mpdu) {
   NS_ASSERT(mpdu->GetHeader().IsQosData());
-  // If there is an established BA agreement, store the packet in the queue of
-  // outstanding packets
   if (m_mac->GetBaAgreementEstablishedAsOriginator(
           mpdu->GetHeader().GetAddr1(), mpdu->GetHeader().GetQosTid())) {
     NS_ASSERT(mpdu->IsQueued());
@@ -614,7 +553,6 @@ uint16_t QosTxop::GetBlockAckInactivityTimeout() const {
 
 void QosTxop::AddBaResponseTimeout(Mac48Address recipient, uint8_t tid) {
   NS_LOG_FUNCTION(this << recipient << +tid);
-  // If agreement is still pending, ADDBA response is not received
   if (auto agreement = m_baManager->GetAgreementAsOriginator(recipient, tid);
       agreement && agreement->get().IsPending()) {
     NotifyOriginatorAgreementNoReply(recipient, tid);
@@ -625,10 +563,6 @@ void QosTxop::AddBaResponseTimeout(Mac48Address recipient, uint8_t tid) {
 
 void QosTxop::ResetBa(Mac48Address recipient, uint8_t tid) {
   NS_LOG_FUNCTION(this << recipient << +tid);
-  // This function is scheduled when waiting for an ADDBA response. However,
-  // before this function is called, a DELBA request may arrive, which causes
-  // the agreement to be deleted. Hence, check if an agreement exists before
-  // notifying that the agreement has to be reset.
   if (auto agreement = m_baManager->GetAgreementAsOriginator(recipient, tid);
       agreement && !agreement->get().IsEstablished()) {
     m_baManager->NotifyOriginatorAgreementReset(recipient, tid);

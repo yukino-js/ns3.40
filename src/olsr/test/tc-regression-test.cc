@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "tc-regression-test.h"
 
@@ -62,11 +44,9 @@ void TcRegressionTest::DoRun() {
 }
 
 void TcRegressionTest::CreateNodes() {
-  // create 3 nodes
   NodeContainer c;
   c.Create(3);
 
-  // install TCP/IP & OLSR
   OlsrHelper olsr;
   InternetStackHelper internet;
   internet.SetRoutingHelper(olsr);
@@ -74,25 +54,21 @@ void TcRegressionTest::CreateNodes() {
   int64_t streamsUsed = olsr.AssignStreams(c, 0);
   NS_TEST_EXPECT_MSG_EQ(streamsUsed, 3, "Should have assigned 3 streams");
 
-  // create channel & devices
   SimpleNetDeviceHelper simpleNetHelper;
   simpleNetHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
   simpleNetHelper.SetChannelAttribute("Delay", StringValue("2ms"));
   NetDeviceContainer nd = simpleNetHelper.Install(c);
 
-  // Blacklist some devices (equivalent to Wireless out of range)
   Ptr<SimpleNetDevice> nd0 = DynamicCast<SimpleNetDevice>(nd.Get(0));
   Ptr<SimpleNetDevice> nd2 = DynamicCast<SimpleNetDevice>(nd.Get(2));
   Ptr<SimpleChannel> ch = DynamicCast<SimpleChannel>(nd.Get(0)->GetChannel());
   ch->BlackList(nd0, nd2);
   ch->BlackList(nd2, nd0);
 
-  // setup IP addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   ipv4.Assign(nd);
 
-  // Create the sockets
   Ptr<SocketFactory> rxSocketFactoryA =
       c.Get(0)->GetObject<Ipv4RawSocketFactory>();
   m_rxSocketA =
@@ -118,8 +94,6 @@ void TcRegressionTest::CreateNodes() {
       MakeCallback(&TcRegressionTest::ReceivePktProbeC, this));
 }
 
-// Note: this is identical to ReceivePktProbeC, but the packet counter needs to
-// be different.
 void TcRegressionTest::ReceivePktProbeA(Ptr<Socket> socket) {
   uint32_t availableData;
   availableData = socket->GetRxAvailable();
@@ -260,8 +234,6 @@ void TcRegressionTest::ReceivePktProbeB(Ptr<Socket> socket) {
   m_countB++;
 }
 
-// Note: this is identical to ReceivePktProbeA, but the packet counter needs to
-// be different.
 void TcRegressionTest::ReceivePktProbeC(Ptr<Socket> socket) {
   uint32_t availableData;
   availableData = socket->GetRxAvailable();

@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2009 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
 
 #include "ns3/ipv6-list-routing.h"
 #include "ns3/ipv6-route.h"
@@ -23,11 +6,6 @@
 
 namespace ns3 {
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 dummy routing class (A)
- */
 class Ipv6ARouting : public Ipv6RoutingProtocol {
 public:
   Ptr<Ipv6Route> RouteOutput(Ptr<Packet> p, const Ipv6Header &header,
@@ -69,11 +47,6 @@ public:
                          Time::Unit unit) const override {};
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 dummy routing class (B)
- */
 class Ipv6BRouting : public Ipv6RoutingProtocol {
 public:
   Ptr<Ipv6Route> RouteOutput(Ptr<Packet> p, const Ipv6Header &header,
@@ -115,11 +88,6 @@ public:
                          Time::Unit unit) const override {};
 };
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 ListRouting negative test.
- */
 class Ipv6ListRoutingNegativeTestCase : public TestCase {
 public:
   Ipv6ListRoutingNegativeTestCase();
@@ -133,8 +101,6 @@ void Ipv6ListRoutingNegativeTestCase::DoRun() {
   Ptr<Ipv6ListRouting> lr = CreateObject<Ipv6ListRouting>();
   Ptr<Ipv6RoutingProtocol> aRouting = CreateObject<Ipv6ARouting>();
   Ptr<Ipv6RoutingProtocol> bRouting = CreateObject<Ipv6BRouting>();
-  // The Ipv6BRouting should be added with higher priority (larger integer
-  // value)
   lr->AddRoutingProtocol(aRouting, -10);
   lr->AddRoutingProtocol(bRouting, -5);
   int16_t first = 3;
@@ -145,11 +111,6 @@ void Ipv6ListRoutingNegativeTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(firstRp, bRouting, "102");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 ListRouting positive test.
- */
 class Ipv6ListRoutingPositiveTestCase : public TestCase {
 public:
   Ipv6ListRoutingPositiveTestCase();
@@ -163,8 +124,6 @@ void Ipv6ListRoutingPositiveTestCase::DoRun() {
   Ptr<Ipv6ListRouting> lr = CreateObject<Ipv6ListRouting>();
   Ptr<Ipv6RoutingProtocol> aRouting = CreateObject<Ipv6ARouting>();
   Ptr<Ipv6RoutingProtocol> bRouting = CreateObject<Ipv6BRouting>();
-  // The Ipv6ARouting should be added with higher priority (larger integer
-  // value) and will be fetched first below
   lr->AddRoutingProtocol(aRouting, 10);
   lr->AddRoutingProtocol(bRouting, 5);
   int16_t first = 3;
@@ -179,11 +138,6 @@ void Ipv6ListRoutingPositiveTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_EQ(secondRp, bRouting, "204");
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief IPv6 ListRouting TestSuite
- */
 class Ipv6ListRoutingTestSuite : public TestSuite {
 public:
   Ipv6ListRoutingTestSuite() : TestSuite("ipv6-list-routing", UNIT) {
@@ -192,7 +146,6 @@ public:
   }
 };
 
-static Ipv6ListRoutingTestSuite
-    g_ipv6ListRoutingTestSuite; //!< Static variable for test initialization
+static Ipv6ListRoutingTestSuite g_ipv6ListRoutingTestSuite;
 
 } // namespace ns3

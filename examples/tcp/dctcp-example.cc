@@ -1,94 +1,4 @@
-/*
- * Copyright (c) 2017-20 NITK Surathkal
- * Copyright (c) 2020 Tom Henderson (better alignment with experiment)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Shravya K.S. <shravya.ks0@gmail.com>
- *          Apoorva Bhargava <apoorvabhargava13@gmail.com>
- *          Shikha Bakshi <shikhabakshi912@gmail.com>
- *          Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *          Tom Henderson <tomh@tomh.org>
- */
 
-// The network topology used in this example is based on Fig. 17 described in
-// Mohammad Alizadeh, Albert Greenberg, David A. Maltz, Jitendra Padhye,
-// Parveen Patel, Balaji Prabhakar, Sudipta Sengupta, and Murari Sridharan.
-// "Data Center TCP (DCTCP)." In ACM SIGCOMM Computer Communication Review,
-// Vol. 40, No. 4, pp. 63-74. ACM, 2010.
-
-// The topology is roughly as follows
-//
-//  S1         S3
-//  |           |  (1 Gbps)
-//  T1 ------- T2 -- R1
-//  |           |  (1 Gbps)
-//  S2         R2
-//
-// The link between switch T1 and T2 is 10 Gbps.  All other
-// links are 1 Gbps.  In the SIGCOMM paper, there is a Scorpion switch
-// between T1 and T2, but it doesn't contribute another bottleneck.
-//
-// S1 and S3 each have 10 senders sending to receiver R1 (20 total)
-// S2 (20 senders) sends traffic to R2 (20 receivers)
-//
-// This sets up two bottlenecks: 1) T1 -> T2 interface (30 senders
-// using the 10 Gbps link) and 2) T2 -> R1 (20 senders using 1 Gbps link)
-//
-// RED queues configured for ECN marking are used at the bottlenecks.
-//
-// Figure 17 published results are that each sender in S1 gets 46 Mbps
-// and each in S3 gets 54 Mbps, while each S2 sender gets 475 Mbps, and
-// that these are within 10% of their fair-share throughputs (Jain index
-// of 0.99).
-//
-// This program runs the program by default for five seconds.  The first
-// second is devoted to flow startup (all 40 TCP flows are stagger started
-// during this period).  There is a three second convergence time where
-// no measurement data is taken, and then there is a one second measurement
-// interval to gather raw throughput for each flow.  These time intervals
-// can be changed at the command line.
-//
-// The program outputs six files.  The first three:
-// * dctcp-example-s1-r1-throughput.dat
-// * dctcp-example-s2-r2-throughput.dat
-// * dctcp-example-s3-r1-throughput.dat
-// provide per-flow throughputs (in Mb/s) for each of the forty flows, summed
-// over the measurement window.  The fourth file,
-// * dctcp-example-fairness.dat
-// provides average throughputs for the three flow paths, and computes
-// Jain's fairness index for each flow group (i.e. across each group of
-// 10, 20, and 10 flows).  It also sums the throughputs across each bottleneck.
-// The fifth and sixth:
-// * dctcp-example-t1-length.dat
-// * dctcp-example-t2-length.dat
-// report on the bottleneck queue length (in packets and microseconds
-// of delay) at 10 ms intervals during the measurement window.
-//
-// By default, the throughput averages are 23 Mbps for S1 senders, 471 Mbps
-// for S2 senders, and 74 Mbps for S3 senders, and the Jain index is greater
-// than 0.99 for each group of flows.  The average queue delay is about 1ms
-// for the T2->R2 bottleneck, and about 200us for the T1->T2 bottleneck.
-//
-// The RED parameters (min_th and max_th) are set to the same values as
-// reported in the paper, but we observed that throughput distributions
-// and queue delays are very sensitive to these parameters, as was also
-// observed in the paper; it is likely that the paper's throughput results
-// could be achieved by further tuning of the RED parameters.  However,
-// the default results show that DCTCP is able to achieve high link
-// utilization and low queueing delay and fairness across competing flows
-// sharing the same path.
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -166,7 +76,6 @@ void PrintThroughput(Time measurementWindow) {
   }
 }
 
-// Jain's fairness index:  https://en.wikipedia.org/wiki/Fairness_measure
 void PrintFairness(Time measurementWindow) {
   double average = 0;
   uint64_t sumSquares = 0;
@@ -231,26 +140,20 @@ void PrintFairness(Time measurementWindow) {
 }
 
 void CheckT1QueueSize(Ptr<QueueDisc> queue) {
-  // 1500 byte packets
   uint32_t qSize = queue->GetNPackets();
-  Time backlog =
-      Seconds(static_cast<double>(qSize * 1500 * 8) / 1e10); // 10 Gb/s
-  // report size in units of packets and ms
+  Time backlog = Seconds(static_cast<double>(qSize * 1500 * 8) / 1e10);
   t1QueueLength << std::fixed << std::setprecision(2)
                 << Simulator::Now().GetSeconds() << " " << qSize << " "
                 << backlog.GetMicroSeconds() << std::endl;
-  // check queue size every 1/100 of a second
   Simulator::Schedule(MilliSeconds(10), &CheckT1QueueSize, queue);
 }
 
 void CheckT2QueueSize(Ptr<QueueDisc> queue) {
   uint32_t qSize = queue->GetNPackets();
-  Time backlog = Seconds(static_cast<double>(qSize * 1500 * 8) / 1e9); // 1 Gb/s
-  // report size in units of packets and ms
+  Time backlog = Seconds(static_cast<double>(qSize * 1500 * 8) / 1e9);
   t2QueueLength << std::fixed << std::setprecision(2)
                 << Simulator::Now().GetSeconds() << " " << qSize << " "
                 << backlog.GetMicroSeconds() << std::endl;
-  // check queue size every 1/100 of a second
   Simulator::Schedule(MilliSeconds(10), &CheckT2QueueSize, queue);
 }
 
@@ -298,20 +201,12 @@ int main(int argc, char *argv[]) {
   Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(2));
   GlobalValue::Bind("ChecksumEnabled", BooleanValue(false));
 
-  // Set default parameters for RED queue disc
   Config::SetDefault("ns3::RedQueueDisc::UseEcn",
                      BooleanValue(enableSwitchEcn));
-  // ARED may be used but the queueing delays will increase; it is disabled
-  // here because the SIGCOMM paper did not mention it
-  // Config::SetDefault ("ns3::RedQueueDisc::ARED", BooleanValue (true));
-  // Config::SetDefault ("ns3::RedQueueDisc::Gentle", BooleanValue (true));
   Config::SetDefault("ns3::RedQueueDisc::UseHardDrop", BooleanValue(false));
   Config::SetDefault("ns3::RedQueueDisc::MeanPktSize", UintegerValue(1500));
-  // Triumph and Scorpion switches used in DCTCP Paper have 4 MB of buffer
-  // If every packet is 1500 bytes, 2666 packets can be stored in 4 MB
   Config::SetDefault("ns3::RedQueueDisc::MaxSize",
                      QueueSizeValue(QueueSize("2666p")));
-  // DCTCP tracks instantaneous queue length only; so set QW = 1
   Config::SetDefault("ns3::RedQueueDisc::QW", DoubleValue(1));
   Config::SetDefault("ns3::RedQueueDisc::MinTh", DoubleValue(20));
   Config::SetDefault("ns3::RedQueueDisc::MaxTh", DoubleValue(60));
@@ -324,7 +219,6 @@ int main(int argc, char *argv[]) {
   pointToPointT.SetDeviceAttribute("DataRate", StringValue("10Gbps"));
   pointToPointT.SetChannelAttribute("Delay", StringValue("10us"));
 
-  // Create a total of 62 links.
   std::vector<NetDeviceContainer> S1T1;
   S1T1.reserve(10);
   std::vector<NetDeviceContainer> S2T1;
@@ -357,16 +251,12 @@ int main(int argc, char *argv[]) {
   stack.InstallAll();
 
   TrafficControlHelper tchRed10;
-  // MinTh = 50, MaxTh = 150 recommended in ACM SIGCOMM 2010 DCTCP Paper
-  // This yields a target (MinTh) queue depth of 60us at 10 Gb/s
   tchRed10.SetRootQueueDisc(
       "ns3::RedQueueDisc", "LinkBandwidth", StringValue("10Gbps"), "LinkDelay",
       StringValue("10us"), "MinTh", DoubleValue(50), "MaxTh", DoubleValue(150));
   QueueDiscContainer queueDiscs1 = tchRed10.Install(T1T2);
 
   TrafficControlHelper tchRed1;
-  // MinTh = 20, MaxTh = 60 recommended in ACM SIGCOMM 2010 DCTCP Paper
-  // This yields a target queue depth of 250us at 1 Gb/s
   tchRed1.SetRootQueueDisc(
       "ns3::RedQueueDisc", "LinkBandwidth", StringValue("1Gbps"), "LinkDelay",
       StringValue("10us"), "MinTh", DoubleValue(20), "MaxTh", DoubleValue(60));
@@ -420,7 +310,6 @@ int main(int argc, char *argv[]) {
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-  // Each sender in S2 sends to a receiver in R2
   std::vector<Ptr<PacketSink>> r2Sinks;
   r2Sinks.reserve(20);
   for (std::size_t i = 0; i < 20; i++) {
@@ -451,7 +340,6 @@ int main(int argc, char *argv[]) {
     clientApps1.Stop(stopTime);
   }
 
-  // Each sender in S1 and S3 sends to R1
   std::vector<Ptr<PacketSink>> s1r1Sinks;
   std::vector<Ptr<PacketSink>> s3r1Sinks;
   s1r1Sinks.reserve(10);

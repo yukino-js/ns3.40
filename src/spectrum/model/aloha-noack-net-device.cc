@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "aloha-noack-net-device.h"
 
@@ -36,12 +18,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("AlohaNoackNetDevice");
 
-/**
- * \brief Output stream operator
- * \param os output stream
- * \param state the state to print
- * \return an output stream
- */
 std::ostream &operator<<(std::ostream &os, AlohaNoackNetDevice::State state) {
   switch (state) {
   case AlohaNoackNetDevice::IDLE:
@@ -294,10 +270,6 @@ bool AlohaNoackNetDevice::SendFrom(Ptr<Packet> packet, const Address &src,
   m_macTxTrace(packet);
 
   bool sendOk = true;
-  //
-  // If the device is idle, transmission starts immediately. Otherwise,
-  // the transmission will be started by NotifyTransmissionEnd
-  //
   NS_LOG_LOGIC(this << " state=" << m_state);
   if (m_state == IDLE) {
     if (m_queue->IsEmpty()) {

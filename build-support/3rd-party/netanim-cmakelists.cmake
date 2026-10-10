@@ -1,19 +1,3 @@
-# Copyright (c) 2017-2021 Universidade de Brasília
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License version 2 as published by the Free
-# Software Foundation;
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, write to the Free Software Foundation, Inc., 59 Temple
-# Place, Suite 330, Boston, MA  02111-1307 USA
-#
-# Author: Gabriel Ferreira <gabrielcarvfer@gmail.com>
 
 find_package(Qt4 COMPONENTS QtGui QUIET)
 find_package(Qt5 COMPONENTS Core Widgets PrintSupport Gui QUIET)
@@ -24,14 +8,12 @@ if((NOT ${Qt4_FOUND}) AND (NOT ${Qt5_FOUND}))
   message(FATAL_ERROR "You need Qt installed to build NetAnim")
 endif()
 
-# Qt 4 requires these inclusions
 if(NOT ${Qt5_found})
   include(${QT_USE_FILE})
   add_definitions(${QT_DEFINITIONS})
   include_directories(${QT_INCLUDES})
 endif()
 
-# Used by qt
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)

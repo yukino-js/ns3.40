@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007-2008 Louis Pasteur University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-address.h"
 
@@ -40,17 +22,9 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("Ipv6Address");
 
 #ifdef __cplusplus
-extern "C" { /* } */
+extern "C" {
 #endif
 
-/**
- * \brief Get a hash key.
- * \param k the key
- * \param length the length of the key
- * \param level the previous hash, or an arbitrary value
- * \return hash
- * \note Adapted from Jens Jakobsen implementation (chillispot).
- */
 static uint32_t lookuphash(unsigned char *k, uint32_t length, uint32_t level) {
   NS_LOG_FUNCTION(k << length << level);
 #define mix(a, b, c)                                                           \
@@ -84,18 +58,16 @@ static uint32_t lookuphash(unsigned char *k, uint32_t length, uint32_t level) {
     (c) ^= ((b) >> 15);                                                        \
   })
 
-  typedef uint32_t ub4; /* unsigned 4-byte quantities */
+  typedef uint32_t ub4;
   uint32_t a = 0;
   uint32_t b = 0;
   uint32_t c = 0;
   uint32_t len = 0;
 
-  /* Set up the internal state */
   len = length;
-  a = b = 0x9e3779b9; /* the golden ratio; an arbitrary value */
-  c = level;          /* the previous hash value */
+  a = b = 0x9e3779b9;
+  c = level;
 
-  /* handle most of the key */
   while (len >= 12) {
     a += (k[0] + ((ub4)k[1] << 8) + ((ub4)k[2] << 16) + ((ub4)k[3] << 24));
     b += (k[4] + ((ub4)k[5] << 8) + ((ub4)k[6] << 16) + ((ub4)k[7] << 24));
@@ -105,16 +77,14 @@ static uint32_t lookuphash(unsigned char *k, uint32_t length, uint32_t level) {
     len -= 12;
   }
 
-  /* handle the last 11 bytes */
   c += length;
-  switch (len) /* all the case statements fall through */
-  {
+  switch (len) {
   case 11:
     c += ((ub4)k[10] << 24);
   case 10:
     c += ((ub4)k[9] << 16);
   case 9:
-    c += ((ub4)k[8] << 8); /* the first byte of c is reserved for the length */
+    c += ((ub4)k[8] << 8);
   case 8:
     b += ((ub4)k[7] << 24);
   case 7:
@@ -131,13 +101,11 @@ static uint32_t lookuphash(unsigned char *k, uint32_t length, uint32_t level) {
     a += ((ub4)k[1] << 8);
   case 1:
     a += k[0];
-    /* case 0: nothing left to add */
   }
   mix(a, b, c);
 
 #undef mix
 
-  /* report the result */
   return c;
 }
 
@@ -152,13 +120,11 @@ Ipv6Address::Ipv6Address() {
 }
 
 Ipv6Address::Ipv6Address(const Ipv6Address &addr) {
-  // Do not add function logging here, to avoid stack overflow
   memcpy(m_address, addr.m_address, 16);
   m_initialized = true;
 }
 
 Ipv6Address::Ipv6Address(const Ipv6Address *addr) {
-  // Do not add function logging here, to avoid stack overflow
   memcpy(m_address, addr->m_address, 16);
   m_initialized = true;
 }
@@ -178,15 +144,11 @@ Ipv6Address::Ipv6Address(const char *address) {
 
 Ipv6Address::Ipv6Address(uint8_t address[16]) {
   NS_LOG_FUNCTION(this << &address);
-  /* 128 bit => 16 bytes */
   memcpy(m_address, address, 16);
   m_initialized = true;
 }
 
-Ipv6Address::~Ipv6Address() {
-  /* do nothing */
-  NS_LOG_FUNCTION(this);
-}
+Ipv6Address::~Ipv6Address() { NS_LOG_FUNCTION(this); }
 
 void Ipv6Address::Set(const char *address) {
   NS_LOG_FUNCTION(this << address);
@@ -201,7 +163,6 @@ void Ipv6Address::Set(const char *address) {
 }
 
 void Ipv6Address::Set(uint8_t address[16]) {
-  /* 128 bit => 16 bytes */
   NS_LOG_FUNCTION(this << &address);
   memcpy(m_address, address, 16);
   m_initialized = true;
@@ -511,7 +472,6 @@ Ipv6Address Ipv6Address::CombinePrefix(const Ipv6Prefix &prefix) const {
   memcpy(addr, m_address, 16);
   ((Ipv6Prefix)prefix).GetBytes(pref);
 
-  /* a little bit ugly... */
   for (i = 0; i < 16; i++) {
     addr[i] = addr[i] & pref[i];
   }
@@ -724,8 +684,6 @@ Ipv6Prefix::Ipv6Prefix(uint8_t prefix) {
   nb = prefix / 8;
   mod = prefix % 8;
 
-  // protect memset with 'nb > 0' check to suppress
-  // __warn_memset_zero_len compiler errors in some gcc>4.5.x
   if (nb > 0) {
     memset(m_prefix, 0xff, nb);
   }
@@ -751,10 +709,7 @@ Ipv6Prefix::Ipv6Prefix(const Ipv6Prefix *prefix) {
   m_prefixLength = prefix->m_prefixLength;
 }
 
-Ipv6Prefix::~Ipv6Prefix() {
-  /* do nothing */
-  NS_LOG_FUNCTION(this);
-}
+Ipv6Prefix::~Ipv6Prefix() { NS_LOG_FUNCTION(this); }
 
 bool Ipv6Prefix::IsMatch(Ipv6Address a, Ipv6Address b) const {
   NS_LOG_FUNCTION(this << a << b);
@@ -765,7 +720,6 @@ bool Ipv6Prefix::IsMatch(Ipv6Address a, Ipv6Address b) const {
   a.GetBytes(addrA);
   b.GetBytes(addrB);
 
-  /* a little bit ugly... */
   for (i = 0; i < 16; i++) {
     if ((addrA[i] & m_prefix[i]) != (addrB[i] & m_prefix[i])) {
       return false;
@@ -866,4 +820,4 @@ size_t Ipv6AddressHash::operator()(const Ipv6Address &x) const {
 ATTRIBUTE_HELPER_CPP(Ipv6Address);
 ATTRIBUTE_HELPER_CPP(Ipv6Prefix);
 
-} /* namespace ns3 */
+} // namespace ns3

@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *         Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *
- */
 
 #include "wimax-tlv.h"
 
@@ -24,9 +5,6 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Tlv");
 
-// NS_OBJECT_ENSURE_REGISTERED ("Tlv");
-
-/* static */
 TypeId Tlv::GetTypeId() {
   static TypeId tid = TypeId("ns3::Tlv")
                           .SetParent<Header>()
@@ -113,10 +91,8 @@ void Tlv::Serialize(Buffer::Iterator i) const {
 }
 
 uint32_t Tlv::Deserialize(Buffer::Iterator i) {
-  // read the type of tlv
   m_type = i.ReadU8();
 
-  // read the length
   uint8_t lenSize = i.ReadU8();
   uint32_t serializedSize = 2;
   if (lenSize < 127) {
@@ -131,15 +107,12 @@ uint32_t Tlv::Deserialize(Buffer::Iterator i) {
   }
   switch (m_type) {
   case HMAC_TUPLE:
-    /// \todo implement Deserialize HMAC_TUPLE
     NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
     break;
   case MAC_VERSION_ENCODING:
-    /// \todo implement Deserialize MAC_VERSION_ENCODING
     NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
     break;
   case CURRENT_TRANSMIT_POWER:
-    /// \todo implement Deserialize CURRENT_TRANSMIT_POWER
     NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
     break;
   case DOWNLINK_SERVICE_FLOW: {
@@ -155,11 +128,9 @@ uint32_t Tlv::Deserialize(Buffer::Iterator i) {
     break;
   }
   case VENDOR_ID_EMCODING:
-    /// \todo implement Deserialize VENDOR_ID_EMCODING
     NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
     break;
   case VENDOR_SPECIFIC_INFORMATION:
-    /// \todo implement Deserialize  VENDOR_SPECIFIC_INFORMATION
     NS_FATAL_ERROR("Not implemented-- please implement and contribute a patch");
     break;
   default:
@@ -178,7 +149,6 @@ TlvValue *Tlv::PeekValue() { return m_value; }
 
 Tlv *Tlv::Copy() const { return new Tlv(m_type, m_length, *m_value); }
 
-// ==============================================================================
 VectorTlvValue::VectorTlvValue() { m_tlvList = new std::vector<Tlv *>; }
 
 VectorTlvValue::~VectorTlvValue() {
@@ -214,7 +184,6 @@ VectorTlvValue::Iterator VectorTlvValue::End() const {
 
 void VectorTlvValue::Add(const Tlv &val) { m_tlvList->push_back(val.Copy()); }
 
-// ==============================================================================
 SfVectorTlvValue::SfVectorTlvValue() {}
 
 SfVectorTlvValue *SfVectorTlvValue::Copy() const {
@@ -230,7 +199,6 @@ uint32_t SfVectorTlvValue::Deserialize(Buffer::Iterator i, uint64_t valueLen) {
   uint64_t serializedSize = 0;
   while (serializedSize < valueLen) {
     uint8_t type = i.ReadU8();
-    // read the length
     uint8_t lenSize = i.ReadU8();
     serializedSize += 2;
     uint64_t length = 0;
@@ -262,7 +230,6 @@ uint32_t SfVectorTlvValue::Deserialize(Buffer::Iterator i, uint64_t valueLen) {
           "Not implemented-- please implement and contribute a patch");
       break;
     case reserved1:
-      // NOTHING
       break;
     case QoS_Parameter_Set_Type: {
       U8TlvValue val;
@@ -392,8 +359,6 @@ uint32_t SfVectorTlvValue::Deserialize(Buffer::Iterator i, uint64_t valueLen) {
   return serializedSize;
 }
 
-// ==============================================================================
-
 U8TlvValue::U8TlvValue(uint8_t value) { m_value = value; }
 
 U8TlvValue::U8TlvValue() { m_value = 0; }
@@ -420,7 +385,6 @@ U8TlvValue *U8TlvValue::Copy() const {
   return tmp;
 }
 
-// ==============================================================================
 U16TlvValue::U16TlvValue(uint16_t value) { m_value = value; }
 
 U16TlvValue::U16TlvValue() { m_value = 0; }
@@ -449,7 +413,6 @@ U16TlvValue *U16TlvValue::Copy() const {
   return tmp;
 }
 
-// ==============================================================================
 U32TlvValue::U32TlvValue(uint32_t value) { m_value = value; }
 
 U32TlvValue::U32TlvValue() { m_value = 0; }
@@ -478,7 +441,6 @@ U32TlvValue *U32TlvValue::Copy() const {
   return tmp;
 }
 
-// ==============================================================================
 uint32_t CsParamVectorTlvValue::Deserialize(Buffer::Iterator i,
                                             uint64_t valueLength) {
   uint64_t serializedSize = 0;
@@ -486,7 +448,6 @@ uint32_t CsParamVectorTlvValue::Deserialize(Buffer::Iterator i,
   uint8_t type = 0;
   while (serializedSize < valueLength) {
     type = i.ReadU8();
-    // read the length
     lenSize = i.ReadU8();
     serializedSize += 2;
     uint64_t length = 0;
@@ -530,8 +491,6 @@ CsParamVectorTlvValue *CsParamVectorTlvValue::Copy() const {
   return tmp;
 }
 
-// ==============================================================================
-
 ClassificationRuleVectorTlvValue::ClassificationRuleVectorTlvValue() {}
 
 ClassificationRuleVectorTlvValue *
@@ -551,7 +510,6 @@ uint32_t ClassificationRuleVectorTlvValue::Deserialize(Buffer::Iterator i,
   uint8_t type = 0;
   while (serializedSize < valueLength) {
     type = i.ReadU8();
-    // read the length
     lenSize = i.ReadU8();
     serializedSize += 2;
     uint64_t length = 0;
@@ -620,7 +578,6 @@ uint32_t ClassificationRuleVectorTlvValue::Deserialize(Buffer::Iterator i,
   return serializedSize;
 }
 
-// ==============================================================================
 TosTlvValue::TosTlvValue() {
   m_low = 0;
   m_high = 0;
@@ -660,7 +617,6 @@ TosTlvValue *TosTlvValue::Copy() const {
   return new TosTlvValue(m_low, m_high, m_mask);
 }
 
-// ==============================================================================
 PortRangeTlvValue::PortRangeTlvValue() {
   m_portRange = new std::vector<PortRange>;
 }
@@ -671,8 +627,7 @@ PortRangeTlvValue::~PortRangeTlvValue() {
 }
 
 uint32_t PortRangeTlvValue::GetSerializedSize() const {
-  return m_portRange->size() *
-         4; // a port range is defined by 2 ports, each using 2 bytes
+  return m_portRange->size() * 4;
 }
 
 void PortRangeTlvValue::Serialize(Buffer::Iterator i) const {
@@ -716,8 +671,6 @@ PortRangeTlvValue *PortRangeTlvValue::Copy() const {
   }
   return tmp;
 }
-
-// ==============================================================================
 
 ProtocolTlvValue::ProtocolTlvValue() { m_protocol = new std::vector<uint8_t>; }
 
@@ -769,8 +722,6 @@ ProtocolTlvValue *ProtocolTlvValue::Copy() const {
   return tmp;
 }
 
-// ==============================================================================
-
 Ipv4AddressTlvValue::Ipv4AddressTlvValue() {
   m_ipv4Addr = new std::vector<Ipv4Addr>;
 }
@@ -784,7 +735,7 @@ Ipv4AddressTlvValue::~Ipv4AddressTlvValue() {
 }
 
 uint32_t Ipv4AddressTlvValue::GetSerializedSize() const {
-  return m_ipv4Addr->size() * 8; // IPv4 address and mask are 4 bytes each
+  return m_ipv4Addr->size() * 8;
 }
 
 void Ipv4AddressTlvValue::Serialize(Buffer::Iterator i) const {

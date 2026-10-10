@@ -1,21 +1,3 @@
-//
-// Copyright (c) 2009 INESC Porto
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt> <gjcarneiro@gmail.com>
-//
 
 #include "ipv4-flow-probe.h"
 
@@ -33,25 +15,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Ipv4FlowProbe");
 
-//////////////////////////////////////
-// Ipv4FlowProbeTag class implementation //
-//////////////////////////////////////
-
-/**
- * \ingroup flow-monitor
- *
- * \brief Tag used to allow a fast identification of the packet
- *
- * This tag is added by FlowMonitor when a packet is seen for
- * the first time, and it is then used to classify the packet in
- * the following hops.
- */
 class Ipv4FlowProbeTag : public Tag {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
   uint32_t GetSerializedSize() const override;
@@ -59,64 +24,22 @@ public:
   void Deserialize(TagBuffer buf) override;
   void Print(std::ostream &os) const override;
   Ipv4FlowProbeTag();
-  /**
-   * \brief Constructor
-   * \param flowId the flow identifier
-   * \param packetId the packet identifier
-   * \param packetSize the packet size
-   * \param src packet source address
-   * \param dst packet destination address
-   */
   Ipv4FlowProbeTag(uint32_t flowId, uint32_t packetId, uint32_t packetSize,
                    Ipv4Address src, Ipv4Address dst);
-  /**
-   * \brief Set the flow identifier
-   * \param flowId the flow identifier
-   */
   void SetFlowId(uint32_t flowId);
-  /**
-   * \brief Set the packet identifier
-   * \param packetId the packet identifier
-   */
   void SetPacketId(uint32_t packetId);
-  /**
-   * \brief Set the packet size
-   * \param packetSize the packet size
-   */
   void SetPacketSize(uint32_t packetSize);
-  /**
-   * \brief Set the flow identifier
-   * \returns the flow identifier
-   */
   uint32_t GetFlowId() const;
-  /**
-   * \brief Set the packet identifier
-   * \returns the packet identifier
-   */
   uint32_t GetPacketId() const;
-  /**
-   * \brief Get the packet size
-   * \returns the packet size
-   */
   uint32_t GetPacketSize() const;
-  /**
-   * \brief Checks if the addresses stored in tag are matching
-   * the arguments.
-   *
-   * This check is important for IP over IP encapsulation.
-   *
-   * \param src Source address.
-   * \param dst Destination address.
-   * \returns True if the addresses are matching.
-   */
   bool IsSrcDstValid(Ipv4Address src, Ipv4Address dst) const;
 
 private:
-  uint32_t m_flowId;     //!< flow identifier
-  uint32_t m_packetId;   //!< packet identifier
-  uint32_t m_packetSize; //!< packet size
-  Ipv4Address m_src;     //!< IP source
-  Ipv4Address m_dst;     //!< IP destination
+  uint32_t m_flowId;
+  uint32_t m_packetId;
+  uint32_t m_packetSize;
+  Ipv4Address m_src;
+  Ipv4Address m_dst;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(Ipv4FlowProbeTag);
@@ -187,10 +110,6 @@ bool Ipv4FlowProbeTag::IsSrcDstValid(Ipv4Address src, Ipv4Address dst) const {
   return ((m_src == src) && (m_dst == dst));
 }
 
-////////////////////////////////////////
-// Ipv4FlowProbe class implementation //
-////////////////////////////////////////
-
 Ipv4FlowProbe::Ipv4FlowProbe(Ptr<FlowMonitor> monitor,
                              Ptr<Ipv4FlowClassifier> classifier, Ptr<Node> node)
     : FlowProbe(monitor), m_classifier(classifier) {
@@ -227,7 +146,6 @@ Ipv4FlowProbe::Ipv4FlowProbe(Ptr<FlowMonitor> monitor,
       qd.str(), MakeCallback(&Ipv4FlowProbe::QueueDiscDropLogger,
                              Ptr<Ipv4FlowProbe>(this)));
 
-  // code copied from point-to-point-helper.cc
   std::ostringstream oss;
   oss << "/NodeList/" << node->GetId() << "/DeviceList/*/TxQueue/Drop";
   Config::ConnectWithoutContextFailSafe(
@@ -237,13 +155,10 @@ Ipv4FlowProbe::Ipv4FlowProbe(Ptr<FlowMonitor> monitor,
 
 Ipv4FlowProbe::~Ipv4FlowProbe() {}
 
-/* static */
 TypeId Ipv4FlowProbe::GetTypeId() {
   static TypeId tid = TypeId("ns3::Ipv4FlowProbe")
                           .SetParent<FlowProbe>()
-                          .SetGroupName("FlowMonitor")
-      // No AddConstructor because this class has no default constructor.
-      ;
+                          .SetGroupName("FlowMonitor");
 
   return tid;
 }
@@ -261,7 +176,6 @@ void Ipv4FlowProbe::SendOutgoingLogger(const Ipv4Header &ipHeader,
   FlowPacketId packetId;
 
   if (!m_ipv4->IsUnicast(ipHeader.GetDestination())) {
-    // we are not prepared to handle broadcast yet
     return;
   }
 
@@ -278,9 +192,6 @@ void Ipv4FlowProbe::SendOutgoingLogger(const Ipv4Header &ipHeader,
                                    << *ipPayload);
     m_flowMonitor->ReportFirstTx(this, flowId, packetId, size);
 
-    // tag the packet with the flow id and packet id, so that the packet can be
-    // identified even when Ipv4Header is not accessible at some non-IPv4
-    // protocol layer
     Ipv4FlowProbeTag fTag(flowId, packetId, size, ipHeader.GetSource(),
                           ipHeader.GetDestination());
     ipPayload->AddByteTag(fTag);
@@ -351,7 +262,7 @@ void Ipv4FlowProbe::DropLogger(const Ipv4Header &ipHeader,
       Ipv4Address addri = m_ipv4->GetAddress (ifIndex);
       Ipv4Mask maski = m_ipv4->GetNetworkMask (ifIndex);
       Ipv4Address bcast = addri.GetSubnetDirectedBroadcast (maski);
-      if (ipHeader.GetDestination () == bcast) // we don't want broadcast packets
+      if (ipHeader.GetDestination () == bcast)
         {
           return;
         }

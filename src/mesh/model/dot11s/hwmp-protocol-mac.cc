@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "hwmp-protocol-mac.h"
 
@@ -66,7 +48,6 @@ bool HwmpProtocolMac::ReceiveData(Ptr<Packet> packet,
   m_stats.rxData++;
   m_stats.rxDataBytes += packet->GetSize();
 
-  /// \todo address extension
   Mac48Address destination;
   Mac48Address source;
   switch (meshHdr.GetAddressExt()) {
@@ -104,8 +85,6 @@ bool HwmpProtocolMac::ReceiveAction(Ptr<Packet> packet,
     return true;
   }
   MeshInformationElementVector elements;
-  // To determine header size here, we can rely on the knowledge that
-  // this is the last header to remove.
   packet->RemoveHeader(elements, packet->GetSize());
   std::vector<HwmpProtocol::FailedDestination> failedDestinations;
   for (auto i = elements.Begin(); i != elements.End(); i++) {
@@ -166,7 +145,7 @@ bool HwmpProtocolMac::Receive(Ptr<Packet> packet, const WifiMacHeader &header) {
     if (header.IsAction()) {
       return ReceiveAction(packet, header);
     } else {
-      return true; // don't care
+      return true;
     }
   }
 }
@@ -218,14 +197,12 @@ void HwmpProtocolMac::SendPreqVector(std::vector<IePreq> preq) {
   }
   packet->AddHeader(elements);
   packet->AddHeader(GetWifiActionHeader());
-  // create 802.11 header:
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_MGT_ACTION);
   hdr.SetDsNotFrom();
   hdr.SetDsNotTo();
   hdr.SetAddr2(m_parent->GetAddress());
   hdr.SetAddr3(m_protocol->GetAddress());
-  // Send Management frame
   std::vector<Mac48Address> receivers = m_protocol->GetPreqReceivers(m_ifIndex);
   for (auto i = receivers.begin(); i != receivers.end(); i++) {
     hdr.SetAddr1(*i);
@@ -269,7 +246,6 @@ void HwmpProtocolMac::SendMyPreq() {
   if (m_myPreq.empty()) {
     return;
   }
-  // reschedule sending PREQ
   NS_ASSERT(!m_preqTimer.IsRunning());
   m_preqTimer = Simulator::Schedule(m_protocol->GetPreqMinInterval(),
                                     &HwmpProtocolMac::SendMyPreq, this);
@@ -279,13 +255,11 @@ void HwmpProtocolMac::SendMyPreq() {
 
 void HwmpProtocolMac::SendPrep(IePrep prep, Mac48Address receiver) {
   NS_LOG_FUNCTION(this << receiver);
-  // Create packet
   Ptr<Packet> packet = Create<Packet>();
   MeshInformationElementVector elements;
   elements.AddInformationElement(Ptr<IePrep>(&prep));
   packet->AddHeader(elements);
   packet->AddHeader(GetWifiActionHeader());
-  // create 802.11 header:
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_MGT_ACTION);
   hdr.SetDsNotFrom();
@@ -293,7 +267,6 @@ void HwmpProtocolMac::SendPrep(IePrep prep, Mac48Address receiver) {
   hdr.SetAddr1(receiver);
   hdr.SetAddr2(m_parent->GetAddress());
   hdr.SetAddr3(m_protocol->GetAddress());
-  // Send Management frame
   m_stats.txPrep++;
   m_stats.txMgt++;
   m_stats.txMgtBytes += packet->GetSize();
@@ -321,7 +294,6 @@ void HwmpProtocolMac::ForwardPerr(
   }
   packet->AddHeader(elements);
   packet->AddHeader(GetWifiActionHeader());
-  // create 802.11 header:
   WifiMacHeader hdr;
   hdr.SetType(WIFI_MAC_MGT_ACTION);
   hdr.SetDsNotFrom();
@@ -332,12 +304,7 @@ void HwmpProtocolMac::ForwardPerr(
     receivers.clear();
     receivers.push_back(Mac48Address::GetBroadcast());
   }
-  // Send Management frame
   for (auto i = receivers.begin(); i != receivers.end(); i++) {
-    //
-    // 64-bit Intel valgrind complains about hdr.SetAddr1 (*i).  It likes this
-    // just fine.
-    //
     Mac48Address address = *i;
     hdr.SetAddr1(address);
     m_stats.txPerr++;
@@ -351,8 +318,6 @@ void HwmpProtocolMac::InitiatePerr(
     std::vector<HwmpProtocol::FailedDestination> failedDestinations,
     std::vector<Mac48Address> receivers) {
   NS_LOG_FUNCTION(this);
-  // All duplicates in PERR are checked here, and there is no reason to
-  // check it at any other place
   {
     for (auto i = receivers.begin(); i != receivers.end(); i++) {
       bool should_add = true;

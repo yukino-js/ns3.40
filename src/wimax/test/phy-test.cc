@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 #include "ns3/log.h"
 #include "ns3/net-device-container.h"
 #include "ns3/node-container.h"
@@ -29,19 +10,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("WimaxPhyTest");
 
-/*
- * Configure a network with 3 SS and 1 BS
- * Install a SIMPLE OFDM PHY layer on all nodes and check that all SSs
- * could register with the BS
- *
- */
-
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Ns3 Wimax Simple OFDM Test Case
- */
 class Ns3WimaxSimpleOFDMTestCase : public TestCase {
 public:
   Ns3WimaxSimpleOFDMTestCase();
@@ -49,11 +17,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Run once function
-   * \param FrameDuration the frame duration
-   * \returns true if successful
-   */
   bool DoRunOnce(double FrameDuration);
 };
 
@@ -88,11 +51,11 @@ bool Ns3WimaxSimpleOFDMTestCase::DoRunOnce(double FrameDuration) {
              ->GetObject<SubscriberStationNetDevice>()
              ->IsRegistered()) {
       NS_LOG_DEBUG("SS[" << i << "] not registered");
-      return true; // Test fail because SS[i] is not registered
+      return true;
     }
   }
   Simulator::Destroy();
-  return (false); // Test was ok, all the SSs are registered
+  return (false);
 }
 
 void Ns3WimaxSimpleOFDMTestCase::DoRun() {
@@ -105,12 +68,6 @@ void Ns3WimaxSimpleOFDMTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief Test the SNr tom block error rate module
- */
 class Ns3WimaxSNRtoBLERTestCase : public TestCase {
 public:
   Ns3WimaxSNRtoBLERTestCase();
@@ -118,11 +75,6 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * Run once function
-   * \param modulationType the modulation type
-   * \returns true if successful
-   */
   bool DoRunOnce(uint8_t modulationType);
 };
 
@@ -150,12 +102,6 @@ void Ns3WimaxSNRtoBLERTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup wimax-test
- * \ingroup tests
- *
- * \brief The test suite
- */
 class Ns3WimaxPhyTestSuite : public TestSuite {
 public:
   Ns3WimaxPhyTestSuite();
@@ -167,4 +113,4 @@ Ns3WimaxPhyTestSuite::Ns3WimaxPhyTestSuite()
   AddTestCase(new Ns3WimaxSimpleOFDMTestCase, TestCase::QUICK);
 }
 
-static Ns3WimaxPhyTestSuite ns3WimaxPhyTestSuite; ///< the test suite
+static Ns3WimaxPhyTestSuite ns3WimaxPhyTestSuite;

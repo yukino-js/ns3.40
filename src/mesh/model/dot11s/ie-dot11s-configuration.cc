@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2008,2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Kirill Andreev <andreev@iitp.ru>
- *          Aleksey Kovalenko <kovalenko@iitp.ru>
- */
 
 #include "ie-dot11s-configuration.h"
 
@@ -32,19 +13,12 @@ Dot11sMeshCapability::Dot11sMeshCapability()
 
 uint8_t Dot11sMeshCapability::GetSerializedSize() const { return 1; }
 
-uint8_t Dot11sMeshCapability::GetUint8()
-    const // IEEE 802.11-2012 8.4.2.100.8 Mesh Capability
-{
+uint8_t Dot11sMeshCapability::GetUint8() const {
   uint8_t result = 0;
   if (acceptPeerLinks) {
-    result |=
-        1 << 0; // The Accepting Additional Mesh Peerings subfield is set to 1
-                // if the mesh STA is willing to establish additional mesh
-                // peerings   with other mesh STAs and set to 0 otherwise
+    result |= 1 << 0;
   }
-  if (MCCASupported) // The MCCA Supported subfield is set to 1 if the mesh STA
-                     // implements MCCA and set to 0 otherwise
-  {
+  if (MCCASupported) {
     result |= 1 << 1;
   }
   if (MCCAEnabled) {
@@ -97,26 +71,14 @@ IeConfiguration::IeConfiguration()
       m_APId(AUTH_NULL), m_neighbors(0) {}
 
 uint16_t IeConfiguration::GetInformationFieldSize() const {
-  return 0   // Version
-         + 1 // APSPId
-         + 1 // APSMId
-         + 1 // CCMId
-         + 1 // SPId
-         + 1 // APId
-         + 1 // Mesh formation info (see 7.3.2.86.6 of 802.11s draft 3.0)
-         + m_meshCap.GetSerializedSize();
+  return 0 + 1 + 1 + 1 + 1 + 1 + 1 + m_meshCap.GetSerializedSize();
 }
 
 void IeConfiguration::SerializeInformationField(Buffer::Iterator i) const {
-  // Active Path Selection Protocol ID:
   i.WriteU8(m_APSPId);
-  // Active Path Metric ID:
   i.WriteU8(m_APSMId);
-  // Congestion Control Mode ID:
   i.WriteU8(m_CCMId);
-  // Sync:
   i.WriteU8(m_SPId);
-  // Auth:
   i.WriteU8(m_APId);
   i.WriteU8(m_neighbors << 1);
   m_meshCap.Serialize(i);
@@ -125,11 +87,8 @@ void IeConfiguration::SerializeInformationField(Buffer::Iterator i) const {
 uint16_t IeConfiguration::DeserializeInformationField(Buffer::Iterator i,
                                                       uint16_t length) {
   Buffer::Iterator start = i;
-  // Active Path Selection Protocol ID:
   m_APSPId = (Dot11sPathSelectionProtocol)i.ReadU8();
-  // Active Path Metric ID:
   m_APSMId = (Dot11sPathSelectionMetric)i.ReadU8();
-  // Congestion Control Mode ID:
   m_CCMId = (Dot11sCongestionControlMode)i.ReadU8();
   m_SPId = (Dot11sSynchronizationProtocolIdentifier)i.ReadU8();
   m_APId = (Dot11sAuthenticationProtocol)i.ReadU8();

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Denis Fakhriev <fakhriev@iitp.ru>
- */
 #include "ns3/boolean.h"
 #include "ns3/config.h"
 #include "ns3/double.h"
@@ -28,11 +10,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup mobility-test
- *
- * \brief Steady State Random Waypoint Test
- */
 class SteadyStateRandomWaypointTest : public TestCase {
 public:
   SteadyStateRandomWaypointTest()
@@ -42,12 +19,12 @@ public:
   ~SteadyStateRandomWaypointTest() override {}
 
 private:
-  std::vector<Ptr<MobilityModel>> mobilityStack; ///< modility model
-  double count;                                  ///< count
+  std::vector<Ptr<MobilityModel>> mobilityStack;
+  double count;
+
 private:
   void DoRun() override;
   void DoTeardown() override;
-  /// Distribution compare function
   void DistribCompare();
 };
 
@@ -56,7 +33,6 @@ void SteadyStateRandomWaypointTest::DoTeardown() { mobilityStack.clear(); }
 void SteadyStateRandomWaypointTest::DoRun() {
   SeedManager::SetSeed(123);
 
-  // Total simulation time, seconds
   double totalTime = 1000;
 
   ObjectFactory mobilityFactory;
@@ -70,14 +46,11 @@ void SteadyStateRandomWaypointTest::DoRun() {
   mobilityFactory.Set("MinY", DoubleValue(0));
   mobilityFactory.Set("MaxY", DoubleValue(600));
 
-  // Populate the vector of mobility models.
   count = 10000;
   for (uint32_t i = 0; i < count; i++) {
-    // Create a new mobility model.
     Ptr<MobilityModel> model =
         mobilityFactory.Create()->GetObject<MobilityModel>();
     model->AssignStreams(100 * (i + 1));
-    // Add this mobility model to the stack.
     mobilityStack.push_back(model);
     Simulator::Schedule(Seconds(0.0), &Object::Initialize, model);
   }
@@ -142,14 +115,9 @@ void SteadyStateRandomWaypointTest::DistribCompare() {
                             "Got unexpected velocity standard deviation");
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Steady State Random Waypoint Test Suite
- */
 struct SteadyStateRandomWaypointTestSuite : public TestSuite {
   SteadyStateRandomWaypointTestSuite()
       : TestSuite("steady-state-rwp-mobility-model", UNIT) {
     AddTestCase(new SteadyStateRandomWaypointTest, TestCase::QUICK);
   }
-} g_steadyStateRandomWaypointTestSuite; ///< the test suite
+} g_steadyStateRandomWaypointTestSuite;

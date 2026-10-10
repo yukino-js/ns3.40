@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "ns3/calendar-scheduler.h"
 #include "ns3/heap-scheduler.h"
 #include "ns3/list-scheduler.h"
@@ -26,70 +8,28 @@
 
 using namespace ns3;
 
-/**
- * \file
- * \ingroup simulator-tests
- * Simulator class test suite
- */
-
-/**
- * \ingroup core-tests
- * \defgroup simulator-tests Simulator class tests
- */
-
-/**
- * \ingroup simulator-tests
- *
- * \brief Check that basic event handling is working with different Simulator
- * implementations.
- */
 class SimulatorEventsTestCase : public TestCase {
 public:
-  /**
-   * Constructor.
-   * \param schedulerFactory Scheduler factory.
-   */
   SimulatorEventsTestCase(ObjectFactory schedulerFactory);
   void DoRun() override;
-  /**
-   * Test Event.
-   * \param value Event parameter.
-   * @{
-   */
   void EventA(int value);
   void EventB(int value);
   void EventC(int value);
   void EventD(int value);
-  /** @} */
 
-  /**
-   * Test Event.
-   */
   void Eventfoo0();
 
-  /**
-   * Get the simulator time.
-   * \return The actual time [ms].
-   */
   uint64_t NowUs();
-  /**
-   * Checks that the events has been destroyed.
-   */
   void Destroy();
-  /**
-   * Checks that events are properly handled.
-   * @{
-   */
   bool m_a;
   bool m_b;
   bool m_c;
   bool m_d;
   bool m_destroy;
-  /** @} */
 
-  EventId m_idC;                    //!< Event C.
-  EventId m_destroyId;              //!< Event to check event lifetime.
-  ObjectFactory m_schedulerFactory; //!< Scheduler factory.
+  EventId m_idC;
+  EventId m_destroyId;
+  ObjectFactory m_schedulerFactory;
 };
 
 SimulatorEventsTestCase::SimulatorEventsTestCase(ObjectFactory schedulerFactory)
@@ -102,7 +42,7 @@ uint64_t SimulatorEventsTestCase::NowUs() {
   return ns / 1000;
 }
 
-void SimulatorEventsTestCase::EventA(int /* a */) { m_a = false; }
+void SimulatorEventsTestCase::EventA(int) { m_a = false; }
 
 void SimulatorEventsTestCase::EventB(int b) {
   m_b = !(b != 2 || NowUs() != 11);
@@ -111,7 +51,7 @@ void SimulatorEventsTestCase::EventB(int b) {
                       4);
 }
 
-void SimulatorEventsTestCase::EventC(int /* c */) { m_c = false; }
+void SimulatorEventsTestCase::EventC(int) { m_c = false; }
 
 void SimulatorEventsTestCase::EventD(int d) {
   m_d = !(d != 4 || NowUs() != (11 + 10));
@@ -153,7 +93,6 @@ void SimulatorEventsTestCase::DoRun() {
   EventId anId =
       Simulator::ScheduleNow(&SimulatorEventsTestCase::Eventfoo0, this);
 
-  // Test copy assignment operator
   // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
   EventId anotherId = anId;
 
@@ -199,33 +138,15 @@ void SimulatorEventsTestCase::DoRun() {
   NS_TEST_EXPECT_MSG_EQ(m_destroy, true, "Event should have run");
 }
 
-/**
- * \ingroup simulator-tests
- *
- * \brief Check that all templates are instantiated correctly.
- *
- * This is a compilation test, it cannot fail at runtime.
- */
 class SimulatorTemplateTestCase : public TestCase {
 public:
   SimulatorTemplateTestCase();
-  /**
-   * Ref and Unref - only here for testing of Ptr<>
-   *
-   * @{
-   */
   void Ref() const {};
   void Unref() const {};
-  /** @} */
 
 private:
   void DoRun() override;
 
-  /**
-   * Function used for scheduling.
-   *
-   * @{
-   */
   void bar0() {};
   void bar1(int) {};
   void bar2(int, int) {};
@@ -261,14 +182,8 @@ private:
   void cbaz4c(const int &, const int &, const int &, const int &) const {};
   void cbaz5c(const int &, const int &, const int &, const int &,
               const int &) const {};
-  /** @} */
 };
 
-/**
- * Function used for scheduling.
- *
- * @{
- */
 static void foo0() {}
 
 static void foo1(int) {}
@@ -302,15 +217,12 @@ static void cber4(const int &, const int &, const int &, const int &) {}
 static void cber5(const int &, const int &, const int &, const int &,
                   const int &) {}
 
-/** @} */
-
 SimulatorTemplateTestCase::SimulatorTemplateTestCase()
     : TestCase("Check that all templates are instantiated correctly. This is a "
                "compilation test, "
                "it cannot fail at runtime.") {}
 
 void SimulatorTemplateTestCase::DoRun() {
-  // Test schedule of const methods
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar0c, this);
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar1c, this, 0);
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar2c, this, 0,
@@ -382,7 +294,6 @@ void SimulatorTemplateTestCase::DoRun() {
   Simulator::ScheduleDestroy(&SimulatorTemplateTestCase::baz5c, this, 0, 0, 0,
                              0, 0);
 
-  // Test of schedule const methods with Ptr<> pointers
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar0c,
                       Ptr<const SimulatorTemplateTestCase>(this));
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar1c,
@@ -426,7 +337,6 @@ void SimulatorTemplateTestCase::DoRun() {
                              Ptr<const SimulatorTemplateTestCase>(this), 0, 0,
                              0, 0, 0);
 
-  // Test schedule of raw functions
   Simulator::Schedule(Seconds(0.0), &foo0);
   Simulator::Schedule(Seconds(0.0), &foo1, 0);
   Simulator::Schedule(Seconds(0.0), &foo2, 0, 0);
@@ -461,7 +371,6 @@ void SimulatorTemplateTestCase::DoRun() {
   Simulator::ScheduleDestroy(&cber4, 0, 0, 0, 0);
   Simulator::ScheduleDestroy(&cber5, 0, 0, 0, 0, 0);
 
-  // Test schedule of normal member methods
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar0, this);
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar1, this, 0);
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar2, this, 0,
@@ -509,7 +418,6 @@ void SimulatorTemplateTestCase::DoRun() {
   Simulator::ScheduleDestroy(&SimulatorTemplateTestCase::cbaz5, this, 0, 0, 0,
                              0, 0);
 
-  // test schedule of normal methods with Ptr<> pointers
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar0,
                       Ptr<SimulatorTemplateTestCase>(this));
   Simulator::Schedule(Seconds(0.0), &SimulatorTemplateTestCase::bar1,
@@ -548,10 +456,6 @@ void SimulatorTemplateTestCase::DoRun() {
                              Ptr<SimulatorTemplateTestCase>(this), 0, 0, 0, 0,
                              0);
 
-  // the code below does not compile, as expected.
-  // Simulator::Schedule (Seconds (0.0), &cber1, 0.0);
-
-  // This code appears to be duplicate test code.
   Simulator::Schedule(Seconds(0.0), &ber1, 0);
   Simulator::Schedule(Seconds(0.0), &ber2, 0, 0);
   Simulator::Schedule(Seconds(0.0), &ber3, 0, 0, 0);
@@ -593,11 +497,6 @@ void SimulatorTemplateTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup simulator-tests
- *
- * \brief The simulator Test Suite.
- */
 class SimulatorTestSuite : public TestSuite {
 public:
   SimulatorTestSuite() : TestSuite("simulator") {
@@ -616,5 +515,4 @@ public:
   }
 };
 
-static SimulatorTestSuite
-    g_simulatorTestSuite; //!< Static variable for test initialization
+static SimulatorTestSuite g_simulatorTestSuite;

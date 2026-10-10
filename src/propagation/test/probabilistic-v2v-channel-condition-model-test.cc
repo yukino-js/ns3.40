@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2020 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/boolean.h"
@@ -34,64 +18,31 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ProbabilisticV2vChannelConditionModelsTest");
 
-/**
- * \ingroup propagation-tests
- *
- * Test case for the V2V Urban channel condition models using a fully
- * probabilistic model to determine LOS, NLOS and NLOSv states. The test
- * determines the channel condition multiple times,
- * estimates the LOS and NLOSv probabilities and compares them with the values
- * given by M. Boban,  X.Gong, and  W. Xu, “Modeling the evolution of
- * line-of-sight blockage for V2V channels,” in IEEE 84th Vehicular Technology
- * Conference (VTC-Fall), 2016. Methodology from channel-condition-model-
- * test-suite.cc is used, extended to a system with three states.
- */
 class V2vUrbanProbChCondModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   V2vUrbanProbChCondModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~V2vUrbanProbChCondModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Evaluates the channel condition between two nodes by calling the method
-   * GetChannelCondition on m_condModel. If the channel condition is LOS it
-   * increments m_numLos, if NLOSv it increments m_numNlosv
-   * \param a the mobility model of the first node
-   * \param b the mobility model of the second node
-   */
   void EvaluateChannelCondition(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA;    //!< the position of the first node
-    Vector m_positionB;    //!< the position of the second node
-    double m_pLos{0.0};    //!< LOS probability
-    double m_pNlosv{0.0};  //!< NLOSv probability
-    std::string m_density; //!< the vehicles density
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    double m_pLos{0.0};
+    double m_pNlosv{0.0};
+    std::string m_density;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
-  Ptr<ProbabilisticV2vUrbanChannelConditionModel>
-      m_condModel;        //!< the channel condition model
-  uint64_t m_numLos{0};   //!< the number of LOS occurrences
-  uint64_t m_numNlosv{0}; //!< the number of NLOSv occurrences
-  double m_tolerance;     //!< tolerance
+  TestVectors<TestVector> m_testVectors;
+  Ptr<ProbabilisticV2vUrbanChannelConditionModel> m_condModel;
+  uint64_t m_numLos{0};
+  uint64_t m_numNlosv{0};
+  double m_tolerance;
 };
 
 V2vUrbanProbChCondModelTestCase::V2vUrbanProbChCondModelTestCase()
@@ -116,10 +67,8 @@ void V2vUrbanProbChCondModelTestCase::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(1);
 
-  // create the test vector
   TestVector testVector;
 
-  // tests for the V2v Urban scenario
   testVector.m_positionA = Vector(0, 0, 1.6);
   testVector.m_positionB = Vector(10, 0, 1.6);
   testVector.m_pLos =
@@ -191,31 +140,24 @@ void V2vUrbanProbChCondModelTestCase::DoRun() {
   testVector.m_density = "High";
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // create the two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // create the mobility models
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
 
-  // aggregate the nodes and the mobility models
   nodes.Get(0)->AggregateObject(a);
   nodes.Get(1)->AggregateObject(b);
 
-  // Get the channel condition multiple times and compute the LOS probability
   uint32_t numberOfReps = 500000;
   for (uint32_t i = 0; i < m_testVectors.GetN(); ++i) {
     testVector = m_testVectors.Get(i);
 
-    // set the distance between the two nodes
     a->SetPosition(testVector.m_positionA);
     b->SetPosition(testVector.m_positionB);
 
-    // create the channel condition model
     condModelFactory.SetTypeId(testVector.m_typeId);
     m_condModel =
         condModelFactory.Create<ProbabilisticV2vUrbanChannelConditionModel>();
@@ -254,64 +196,31 @@ void V2vUrbanProbChCondModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup propagation-tests
- *
- * Test case for the V2V Highway channel condition models using a fully
- * probabilistic model to determine LOS, NLOS and NLOSv states. The test
- * determines the channel condition multiple times,
- * estimates the LOS and NLOS probabilities and compares them with the values
- * given by M. Boban,  X.Gong, and  W. Xu, “Modeling the evolution of
- * line-of-sight blockage for V2V channels,” in IEEE 84th Vehicular Technology
- * Conference (VTC-Fall), 2016. Methodology from channel-condition-model-
- * test-suite.cc is used, extended to a system with three states.
- */
 class V2vHighwayProbChCondModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   V2vHighwayProbChCondModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~V2vHighwayProbChCondModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Evaluates the channel condition between two nodes by calling the method
-   * GetChannelCondition on m_condModel. If the channel condition is LOS it
-   * increments m_numLos, if NLOS it increments m_numNlos
-   * \param a the mobility model of the first node
-   * \param b the mobility model of the second node
-   */
   void EvaluateChannelCondition(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA;    //!< the position of the first node
-    Vector m_positionB;    //!< the position of the second node
-    double m_pLos{0.0};    //!< LOS probability
-    double m_pNlos{0.0};   //!< NLOS probability
-    std::string m_density; //!< the vehicles density
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    double m_pLos{0.0};
+    double m_pNlos{0.0};
+    std::string m_density;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
-  Ptr<ProbabilisticV2vHighwayChannelConditionModel>
-      m_condModel;       //!< the channel condition model
-  uint64_t m_numLos{0};  //!< the number of LOS occurrences
-  uint64_t m_numNlos{0}; //!< the number of NLOS occurrences
-  double m_tolerance;    //!< tolerance
+  TestVectors<TestVector> m_testVectors;
+  Ptr<ProbabilisticV2vHighwayChannelConditionModel> m_condModel;
+  uint64_t m_numLos{0};
+  uint64_t m_numNlos{0};
+  double m_tolerance;
 };
 
 V2vHighwayProbChCondModelTestCase::V2vHighwayProbChCondModelTestCase()
@@ -336,10 +245,8 @@ void V2vHighwayProbChCondModelTestCase::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(1);
 
-  // create the test vector
   TestVector testVector;
 
-  // tests for the V2v Highway scenario
   testVector.m_positionA = Vector(0, 0, 1.6);
   testVector.m_positionB = Vector(10, 0, 1.6);
   double aLos = 1.5e-6;
@@ -424,31 +331,24 @@ void V2vHighwayProbChCondModelTestCase::DoRun() {
   testVector.m_density = "High";
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // create the two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // create the mobility models
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
 
-  // aggregate the nodes and the mobility models
   nodes.Get(0)->AggregateObject(a);
   nodes.Get(1)->AggregateObject(b);
 
-  // Get the channel condition multiple times and compute the LOS probability
   uint32_t numberOfReps = 500000;
   for (uint32_t i = 0; i < m_testVectors.GetN(); ++i) {
     testVector = m_testVectors.Get(i);
 
-    // set the distance between the two nodes
     a->SetPosition(testVector.m_positionA);
     b->SetPosition(testVector.m_positionB);
 
-    // create the channel condition model
     condModelFactory.SetTypeId(testVector.m_typeId);
     m_condModel =
         condModelFactory.Create<ProbabilisticV2vHighwayChannelConditionModel>();
@@ -487,20 +387,6 @@ void V2vHighwayProbChCondModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup propagation-tests
- *
- * Test suite for the probabilistic V2V channel condition model
- *
- * The tests V2vUrbanProbChCondModelTestCase and
- * V2vHighwayProbChCondModelTestCase test a fully probabilistic
- * model for V2V channel condition, for Urban and Highway V2V scenarios,
- * respectively. Basically, the model determines NLOS/LOS/NLOSv state based
- * on probability formulas, derived from: M. Boban,  X.Gong, and  W. Xu,
- * “Modeling the evolution of line-of-sight blockage for V2V channels,”
- * in IEEE 84th Vehicular Technology Conference (VTC-Fall), 2016.
- *
- */
 class ProbabilisticV2vChCondModelsTestSuite : public TestSuite {
 public:
   ProbabilisticV2vChCondModelsTestSuite();
@@ -508,14 +394,9 @@ public:
 
 ProbabilisticV2vChCondModelsTestSuite::ProbabilisticV2vChCondModelsTestSuite()
     : TestSuite("probabilistic-v2v-channel-condition-model", SYSTEM) {
-  AddTestCase(new V2vUrbanProbChCondModelTestCase,
-              TestCase::QUICK); // test for a fully probabilistic model (NLOS vs
-                                // LOS vs NLOSv), in V2V urban scenario
-  AddTestCase(new V2vHighwayProbChCondModelTestCase,
-              TestCase::QUICK); // test for a fully probabilistic model (NLOS vs
-                                // LOS vs NLOSv), in V2V highway scenario*/
+  AddTestCase(new V2vUrbanProbChCondModelTestCase, TestCase::QUICK);
+  AddTestCase(new V2vHighwayProbChCondModelTestCase, TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static ProbabilisticV2vChCondModelsTestSuite
     g_probabilisticV2vChCondModelsTestSuite;

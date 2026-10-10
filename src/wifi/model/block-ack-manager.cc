@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009, 2010 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "block-ack-manager.h"
 
@@ -93,8 +75,6 @@ void BlockAckManager::CreateOriginatorAgreement(
   const uint8_t tid = reqHdr.GetTid();
   OriginatorBlockAckAgreement agreement(recipient, tid);
   agreement.SetStartingSequence(reqHdr.GetStartingSequence());
-  /* For now we assume that originator doesn't use this field. Use of this field
-     is mandatory only for recipient */
   agreement.SetBufferSize(reqHdr.GetBufferSize());
   agreement.SetTimeout(reqHdr.GetTimeout());
   agreement.SetAmsduSupport(reqHdr.IsAmsduSupported());
@@ -183,7 +163,6 @@ void BlockAckManager::DestroyRecipientAgreement(const Mac48Address &originator,
 
   if (auto agreementIt = m_recipientAgreements.find({originator, tid});
       agreementIt != m_recipientAgreements.end()) {
-    // forward up the buffered MPDUs before destroying the agreement
     agreementIt->second.Flush();
     m_recipientAgreements.erase(agreementIt);
   }
@@ -207,8 +186,6 @@ void BlockAckManager::StorePacket(Ptr<WifiMpdu> mpdu) {
     return;
   }
 
-  // store the packet and keep the list sorted in increasing order of sequence
-  // number with respect to the starting sequence number
   auto it = agreementIt->second.second.rbegin();
   while (it != agreementIt->second.second.rend()) {
     if (mpdu->GetHeader().GetSequenceControl() ==
@@ -253,14 +230,11 @@ BlockAckManager::PacketQueueI BlockAckManager::HandleInFlightMpdu(
   NS_LOG_FUNCTION(this << linkId << **mpduIt << +static_cast<uint8_t>(status));
 
   if (!(*mpduIt)->IsQueued()) {
-    // MPDU is not in the EDCA queue (e.g., its lifetime expired and it was
-    // removed by another method), remove from the queue of in flight MPDUs
     NS_LOG_DEBUG("MPDU is not stored in the EDCA queue, drop MPDU");
     return it->second.second.erase(mpduIt);
   }
 
   if (status == ACKNOWLEDGED) {
-    // the MPDU has to be dequeued from the EDCA queue
     return it->second.second.erase(mpduIt);
   }
 
@@ -285,24 +259,18 @@ BlockAckManager::PacketQueueI BlockAckManager::HandleInFlightMpdu(
   }
 
   if (m_queue->TtlExceeded(*mpduIt, now)) {
-    // WifiMacQueue::TtlExceeded() has removed the MPDU from the EDCA queue
-    // and fired the Expired trace source, which called NotifyDiscardedMpdu,
-    // which removed this MPDU (and possibly others) from the in flight queue as
-    // well
     NS_LOG_DEBUG("MSDU lifetime expired, drop MPDU");
     return (prevIt.has_value() ? std::next(prevIt.value())
                                : it->second.second.begin());
   }
 
   if (status == STAY_INFLIGHT) {
-    // the MPDU has to stay in flight, do nothing
     return ++mpduIt;
   }
 
   NS_ASSERT(status == TO_RETRANSMIT);
   (*mpduIt)->GetHeader().SetRetry();
-  (*mpduIt)->ResetInFlight(
-      linkId); // no longer in flight; will be if retransmitted
+  (*mpduIt)->ResetInFlight(linkId);
 
   return it->second.second.erase(mpduIt);
 }
@@ -320,7 +288,6 @@ void BlockAckManager::NotifyGotAck(uint8_t linkId, Ptr<const WifiMpdu> mpdu) {
 
   it->second.first.NotifyAckedMpdu(mpdu);
 
-  // remove the acknowledged frame from the queue of outstanding packets
   for (auto queueIt = it->second.second.begin();
        queueIt != it->second.second.end(); ++queueIt) {
     if ((*queueIt)->GetHeader().GetSequenceNumber() ==
@@ -343,8 +310,6 @@ void BlockAckManager::NotifyMissedAck(uint8_t linkId, Ptr<WifiMpdu> mpdu) {
   NS_ASSERT(it != m_originatorAgreements.end());
   NS_ASSERT(it->second.first.IsEstablished());
 
-  // remove the frame from the queue of outstanding packets (it will be
-  // re-inserted if retransmitted)
   for (auto queueIt = it->second.second.begin();
        queueIt != it->second.second.end(); ++queueIt) {
     if ((*queueIt)->GetHeader().GetSequenceNumber() ==
@@ -366,8 +331,6 @@ std::pair<uint16_t, uint16_t> BlockAckManager::NotifyGotBlockAck(
                   "Multi-TID Block Ack is not supported");
 
   uint8_t tid = blockAck.GetTidInfo(index);
-  // If this is a Multi-STA Block Ack with All-ack context (TID equal to 14),
-  // use the TID passed by the caller.
   if (tid == 14) {
     NS_ASSERT(blockAck.GetAckType(index) && tids.size() == 1);
     tid = *tids.begin();
@@ -382,9 +345,6 @@ std::pair<uint16_t, uint16_t> BlockAckManager::NotifyGotBlockAck(
   uint16_t nFailedMpdus = 0;
 
   if (it->second.first.m_inactivityEvent.IsRunning()) {
-    /* Upon reception of a BlockAck frame, the inactivity timer at the
-        originator must be reset.
-        For more details see section 11.5.3 in IEEE802.11e standard */
     it->second.first.m_inactivityEvent.Cancel();
     Time timeout = MicroSeconds(1024 * it->second.first.GetTimeout());
     it->second.first.m_inactivityEvent = Simulator::Schedule(
@@ -413,14 +373,10 @@ std::pair<uint16_t, uint16_t> BlockAckManager::NotifyGotBlockAck(
     }
   }
 
-  // Dequeue all acknowledged MPDUs at once
   m_queue->DequeueIfQueued(acked);
 
-  // Remaining outstanding MPDUs have not been acknowledged
   for (auto queueIt = it->second.second.begin();
        queueIt != it->second.second.end();) {
-    // transmission actually failed if the MPDU is inflight only on the same
-    // link on which we received the BlockAck frame
     auto linkIds = (*queueIt)->GetInFlightLinkIds();
 
     if (linkIds.size() == 1 && *linkIds.begin() == linkId) {
@@ -450,11 +406,8 @@ void BlockAckManager::NotifyMissedBlockAck(uint8_t linkId,
 
   Time now = Simulator::Now();
 
-  // remove all packets from the queue of outstanding packets (they will be
-  // re-inserted if retransmitted)
   for (auto mpduIt = it->second.second.begin();
        mpduIt != it->second.second.end();) {
-    // MPDUs that were transmitted on another link shall stay inflight
     auto linkIds = (*mpduIt)->GetInFlightLinkIds();
     if (linkIds.count(linkId) == 0) {
       mpduIt = HandleInFlightMpdu(linkId, mpduIt, STAY_INFLIGHT, it, now);
@@ -492,12 +445,8 @@ void BlockAckManager::NotifyDiscardedMpdu(Ptr<const WifiMpdu> mpdu) {
     return;
   }
 
-  // actually advance the transmit window
   it->second.first.NotifyDiscardedMpdu(mpdu);
 
-  // remove old MPDUs from the EDCA queue and from the in flight queue
-  // (including the given MPDU which became old after advancing the transmit
-  // window)
   for (auto mpduIt = it->second.second.begin();
        mpduIt != it->second.second.end();) {
     if (it->second.first.GetDistance(
@@ -510,12 +459,10 @@ void BlockAckManager::NotifyDiscardedMpdu(Ptr<const WifiMpdu> mpdu) {
       }
       mpduIt = it->second.second.erase(mpduIt);
     } else {
-      break; // MPDUs are in increasing order of sequence number in the in
-             // flight queue
+      break;
     }
   }
 
-  // schedule a BlockAckRequest
   NS_LOG_DEBUG("Schedule a Block Ack Request for agreement ("
                << recipient << ", " << +tid << ")");
 
@@ -581,7 +528,6 @@ void BlockAckManager::ScheduleBar(const CtrlBAckRequestHeader &reqHdr,
   pkt->AddHeader(reqHdr);
   Ptr<WifiMpdu> item = nullptr;
 
-  // if a BAR for the given agreement is present, replace it with the new one
   while ((item = m_queue->PeekByQueueId(queueId, item))) {
     if (item->GetHeader().IsBlockAckReq() &&
         item->GetHeader().GetAddr1() == hdr.GetAddr1()) {
@@ -589,7 +535,6 @@ void BlockAckManager::ScheduleBar(const CtrlBAckRequestHeader &reqHdr,
       item->GetPacket()->PeekHeader(otherHdr);
       if (otherHdr.GetTidInfo() == tid) {
         auto bar = Create<WifiMpdu>(pkt, hdr, item->GetTimestamp());
-        // replace item with bar
         m_queue->Replace(item, bar);
         return;
       }
@@ -607,7 +552,6 @@ BlockAckManager::GetSendBarIfDataQueuedList() const {
 void BlockAckManager::AddToSendBarIfDataQueuedList(
     const Mac48Address &recipient, uint8_t tid) {
   NS_LOG_FUNCTION(this << recipient << tid);
-  // do nothing if the given pair is already in the list
   if (std::find(m_sendBarIfDataQueued.begin(), m_sendBarIfDataQueued.end(),
                 BlockAckManager::AgreementKey{recipient, tid}) ==
       m_sendBarIfDataQueued.end()) {
@@ -686,24 +630,17 @@ bool BlockAckManager::NeedBarRetransmission(uint8_t tid,
                                             const Mac48Address &recipient) {
   auto it = m_originatorAgreements.find({recipient, tid});
   if (it == m_originatorAgreements.end() || !it->second.first.IsEstablished()) {
-    // If the inactivity timer has expired, QosTxop::SendDelbaFrame has been
-    // called and has destroyed the agreement, hence we get here and correctly
-    // return false
     return false;
   }
 
   Time now = Simulator::Now();
 
-  // A BAR needs to be retransmitted if there is at least a non-expired in
-  // flight MPDU
   for (auto mpduIt = it->second.second.begin();
        mpduIt != it->second.second.end();) {
-    // remove MPDU if old or with expired lifetime
     mpduIt =
         HandleInFlightMpdu(SINGLE_LINK_OP_ID, mpduIt, STAY_INFLIGHT, it, now);
 
     if (mpduIt != it->second.second.begin()) {
-      // the MPDU has not been removed
       return true;
     }
   }

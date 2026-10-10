@@ -1,53 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- */
-
-//
-// Simple example of OLSR routing over some point-to-point links
-//
-// Network topology
-//
-//   n0
-//     \ 5 Mb/s, 2ms
-//      \          1.5Mb/s, 10ms
-//       n2 -------------------------n3---------n4
-//      /
-//     / 5 Mb/s, 2ms
-//   n1
-//
-// - all links are point-to-point links with indicated one-way BW/delay
-// - CBR/UDP flows from n0 to n4, and from n3 to n1
-// - UDP packet size of 210 bytes, with per-packet interval 0.00375 sec.
-//   (i.e., DataRate of 448,000 bps)
-// - DropTail queues
-// - Tracing of queues and packet receptions to file
-// "simple-point-to-point-olsr.tr"
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -68,26 +19,16 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("SimplePointToPointOlsrExample");
 
 int main(int argc, char *argv[]) {
-  // Users may find it convenient to turn on explicit debugging
-  // for selected modules; the below lines suggest how to do this
 #if 0
   LogComponentEnable ("SimpleGlobalRoutingExample", LOG_LEVEL_INFO);
 #endif
 
-  // Set up some default values for the simulation.  Use the
-
   Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(210));
   Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("448kb/s"));
 
-  // DefaultValue::Bind ("DropTailQueue::m_maxPackets", 30);
-
-  // Allow the user to override any of the defaults and the above
-  // DefaultValue::Bind ()s at run-time, via command-line arguments
   CommandLine cmd(__FILE__);
   cmd.Parse(argc, argv);
 
-  // Here, we will explicitly create four nodes.  In more sophisticated
-  // topologies, we could configure a node factory.
   NS_LOG_INFO("Create nodes.");
   NodeContainer c;
   c.Create(5);
@@ -96,7 +37,6 @@ int main(int argc, char *argv[]) {
   NodeContainer n32 = NodeContainer(c.Get(3), c.Get(2));
   NodeContainer n34 = NodeContainer(c.Get(3), c.Get(4));
 
-  // Enable OLSR
   NS_LOG_INFO("Enabling OLSR Routing.");
   OlsrHelper olsr;
 
@@ -107,10 +47,9 @@ int main(int argc, char *argv[]) {
   list.Add(olsr, 10);
 
   InternetStackHelper internet;
-  internet.SetRoutingHelper(list); // has effect on the next Install ()
+  internet.SetRoutingHelper(list);
   internet.Install(c);
 
-  // We create the channels first without any IP addressing information
   NS_LOG_INFO("Create channels.");
   PointToPointHelper p2p;
   p2p.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
@@ -122,7 +61,6 @@ int main(int argc, char *argv[]) {
   NetDeviceContainer nd32 = p2p.Install(n32);
   NetDeviceContainer nd34 = p2p.Install(n34);
 
-  // Later, we add IP addresses.
   NS_LOG_INFO("Assign IP Addresses.");
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
@@ -137,10 +75,8 @@ int main(int argc, char *argv[]) {
   ipv4.SetBase("10.1.4.0", "255.255.255.0");
   Ipv4InterfaceContainer i34 = ipv4.Assign(nd34);
 
-  // Create the OnOff application to send UDP datagrams of size
-  // 210 bytes at a rate of 448 Kb/s from n0 to n4
   NS_LOG_INFO("Create Applications.");
-  uint16_t port = 9; // Discard port (RFC 863)
+  uint16_t port = 9;
 
   OnOffHelper onoff1("ns3::UdpSocketFactory",
                      InetSocketAddress(i34.GetAddress(1), port));
@@ -150,7 +86,6 @@ int main(int argc, char *argv[]) {
   onOffApp1.Start(Seconds(10.0));
   onOffApp1.Stop(Seconds(20.0));
 
-  // Create a similar flow from n3 to n1, starting at time 1.1 seconds
   OnOffHelper onoff2("ns3::UdpSocketFactory",
                      InetSocketAddress(i12.GetAddress(0), port));
   onoff2.SetConstantRate(DataRate("448kb/s"));
@@ -159,7 +94,6 @@ int main(int argc, char *argv[]) {
   onOffApp2.Start(Seconds(10.1));
   onOffApp2.Stop(Seconds(20.0));
 
-  // Create packet sinks to receive these packets
   PacketSinkHelper sink("ns3::UdpSocketFactory",
                         InetSocketAddress(Ipv4Address::GetAny(), port));
   NodeContainer sinks = NodeContainer(c.Get(4), c.Get(1));

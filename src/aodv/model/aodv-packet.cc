@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Based on
- *      NS-2 AODV model developed by the CMU/MONARCH group and optimized and
- *      tuned by Samir Das and Mahesh Marina, University of Cincinnati;
- *
- *      AODV-UU implementation by Erik Nordström of Uppsala University
- *      https://web.archive.org/web/20100527072022/http://core.it.uu.se/core/index.php/AODV-UU
- *
- * Authors: Elena Buchatskaia <borovkovaes@iitp.ru>
- *          Pavel Boyko <boyko@iitp.ru>
- */
 #include "aodv-packet.h"
 
 #include "ns3/address-utils.h"
@@ -104,9 +78,6 @@ std::ostream &operator<<(std::ostream &os, const TypeHeader &h) {
   return os;
 }
 
-//-----------------------------------------------------------------------------
-// RREQ
-//-----------------------------------------------------------------------------
 RreqHeader::RreqHeader(uint8_t flags, uint8_t reserved, uint8_t hopCount,
                        uint32_t requestID, Ipv4Address dst, uint32_t dstSeqNo,
                        Ipv4Address origin, uint32_t originSeqNo)
@@ -205,10 +176,6 @@ bool RreqHeader::operator==(const RreqHeader &o) const {
           m_dst == o.m_dst && m_dstSeqNo == o.m_dstSeqNo &&
           m_origin == o.m_origin && m_originSeqNo == o.m_originSeqNo);
 }
-
-//-----------------------------------------------------------------------------
-// RREP
-//-----------------------------------------------------------------------------
 
 RrepHeader::RrepHeader(uint8_t prefixSize, uint8_t hopCount, Ipv4Address dst,
                        uint32_t dstSeqNo, Ipv4Address origin, Time lifeTime)
@@ -310,10 +277,6 @@ std::ostream &operator<<(std::ostream &os, const RrepHeader &h) {
   return os;
 }
 
-//-----------------------------------------------------------------------------
-// RREP-ACK
-//-----------------------------------------------------------------------------
-
 RrepAckHeader::RrepAckHeader() : m_reserved(0) {}
 
 NS_OBJECT_ENSURE_REGISTERED(RrepAckHeader);
@@ -353,9 +316,6 @@ std::ostream &operator<<(std::ostream &os, const RrepAckHeader &h) {
   return os;
 }
 
-//-----------------------------------------------------------------------------
-// RERR
-//-----------------------------------------------------------------------------
 RerrHeader::RerrHeader() : m_flag(0), m_reserved(0) {}
 
 NS_OBJECT_ENSURE_REGISTERED(RerrHeader);
@@ -428,8 +388,7 @@ bool RerrHeader::AddUnDestination(Ipv4Address dst, uint32_t seqNo) {
     return true;
   }
 
-  NS_ASSERT(GetDestCount() <
-            255); // can't support more than 255 destinations in single RERR
+  NS_ASSERT(GetDestCount() < 255);
   m_unreachableDstSeqNo.insert(std::make_pair(dst, seqNo));
   return true;
 }

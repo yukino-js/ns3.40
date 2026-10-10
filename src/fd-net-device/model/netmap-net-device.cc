@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Pasquale Imputato <p.imputato@gmail.com>
- */
 
 #include "netmap-net-device.h"
 
@@ -79,9 +61,7 @@ void NetDeviceQueueLock::NotifyTransmittedBytes(uint32_t bytes) {
 }
 
 NetmapNetDeviceFdReader::NetmapNetDeviceFdReader()
-    : m_bufferSize(65536),
-      // Defaults to maximum TCP window size
-      m_nifp(nullptr) {}
+    : m_bufferSize(65536), m_nifp(nullptr) {}
 
 void NetmapNetDeviceFdReader::SetBufferSize(uint32_t bufferSize) {
   NS_LOG_FUNCTION(this << bufferSize);
@@ -105,8 +85,6 @@ FdReader::Data NetmapNetDeviceFdReader::DoRead() {
   uint16_t len = 0;
   uint32_t rxRingIndex = 0;
 
-  // we have a packet in one of the receiver rings
-  // we check for the first non empty receiver ring
   while (rxRingIndex < m_nifp->ni_rx_rings) {
     rxring = NETMAP_RXRING(m_nifp, rxRingIndex);
 
@@ -116,10 +94,8 @@ FdReader::Data NetmapNetDeviceFdReader::DoRead() {
       len = rxring->slot[i].len;
       NS_LOG_DEBUG("Received a packet of " << len << " bytes");
 
-      // copy buffer in the destination memory area
       memcpy(buf, buffer, len);
 
-      // advance the netmap pointers and sync the fd
       rxring->head = rxring->cur = nm_ring_next(rxring, i);
 
       ioctl(m_fd, NIOCRXSYNC, nullptr);
@@ -180,7 +156,6 @@ Ptr<FdReader> NetmapNetDevice::DoCreateFdReader() {
   NS_LOG_FUNCTION(this);
 
   Ptr<NetmapNetDeviceFdReader> fdReader = Create<NetmapNetDeviceFdReader>();
-  // 22 bytes covers 14 bytes Ethernet header with possible 8 bytes LLC/SNAP
   fdReader->SetBufferSize(GetMtu() + 22);
   fdReader->SetNetmapIfp(m_nifp);
   return fdReader;
@@ -214,7 +189,6 @@ uint32_t NetmapNetDevice::GetBytesInNetmapTxRing() {
 
   int tail = txring->tail;
 
-  // the netmap ring has one slot reserved
   int inQueue = (m_nTxRingsSlots - 1) - nm_ring_space(txring);
 
   uint32_t bytesInQueue = 0;
@@ -265,7 +239,6 @@ int NetmapNetDevice::GetSpaceInNetmapTxRing() const {
   return nm_ring_space(txring);
 }
 
-// This function runs in a separate thread.
 void NetmapNetDevice::SyncAndNotifyQueue() {
   NS_LOG_FUNCTION(this);
 
@@ -274,13 +247,8 @@ void NetmapNetDevice::SyncAndNotifyQueue() {
   uint32_t prevTotalTransmittedBytes = 0;
 
   while (m_syncAndNotifyQueueThreadRun == true) {
-    // we sync the netmap ring periodically.
-    // the traffic control layer can write packets during the period between two
-    // syncs.
     ioctl(GetFileDescriptor(), NIOCTXSYNC, nullptr);
 
-    // we need of a nearly periodic notification to queue limits of the
-    // transmitted bytes.
     uint32_t totalTransmittedBytes =
         m_totalQueuedBytes - GetBytesInNetmapTxRing();
     uint32_t deltaBytes = totalTransmittedBytes - prevTotalTransmittedBytes;
@@ -289,8 +257,7 @@ void NetmapNetDevice::SyncAndNotifyQueue() {
     if (m_queue) {
       m_queue->NotifyTransmittedBytes(deltaBytes);
 
-      if (GetSpaceInNetmapTxRing() >= 32) // WAKE_THRESHOLD
-      {
+      if (GetSpaceInNetmapTxRing() >= 32) {
         if (m_queue->IsStopped()) {
           m_queue->Wake();
         }
@@ -311,14 +278,11 @@ ssize_t NetmapNetDevice::Write(uint8_t *buffer, size_t length) {
 
   struct netmap_ring *txring;
 
-  // we use one ring also in case of multiqueue device to perform an accurate
-  // flow control on that ring
   txring = NETMAP_TXRING(m_nifp, 0);
 
   uint16_t ret = -1;
 
   if (m_queue->IsStopped()) {
-    // the device queue is stopped and we cannot write other packets
     return ret;
   }
 
@@ -333,12 +297,9 @@ ssize_t NetmapNetDevice::Write(uint8_t *buffer, size_t length) {
 
     ret = length;
 
-    // we update the total transmitted bytes counter and notify queue limits of
-    // the queued bytes
     m_totalQueuedBytes += length;
     m_queue->NotifyQueuedBytes(length);
 
-    // if there is no room for other packets then stop the queue.
     if (nm_ring_space(txring) == 0) {
       m_queue->Stop();
     }

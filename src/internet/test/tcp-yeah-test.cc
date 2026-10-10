@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -33,24 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpYeahTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing TcpYeah additive increase algorithm.
- */
 class TcpYeahIncrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param ssThresh Slow Start Threshold.
-   * \param segmentSize Segment size.
-   * \param nextTxSeq Next Tx sequence number.
-   * \param lastAckedSeq Last ACKed sequence number.
-   * \param segmentsAcked Number of segments ACKed.
-   * \param minRtt Minimum RTT.
-   * \param name Test description.
-   */
   TcpYeahIncrementTest(uint32_t cWnd, uint32_t ssThresh, uint32_t segmentSize,
                        SequenceNumber32 nextTxSeq,
                        SequenceNumber32 lastAckedSeq, uint32_t segmentsAcked,
@@ -58,23 +18,19 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * \brief Increases the TCP window.
-   * \param cong The congestion control.
-   */
   void IncreaseWindow(Ptr<TcpYeah> cong);
 
-  uint32_t m_cWnd;                 //!< Congestion window.
-  uint32_t m_ssThresh;             //!< Slow Start Threshold.
-  uint32_t m_segmentSize;          //!< Segment size.
-  SequenceNumber32 m_nextTxSeq;    //!< Next Tx sequence number.
-  SequenceNumber32 m_lastAckedSeq; //!< Last ACKed sequence number.
-  uint32_t m_segmentsAcked;        //!< Number of segments ACKed.
-  Time m_baseRtt;                  //!< Base RTT.
-  Time m_minRtt;                   //!< Min RTT.
-  uint32_t m_doingRenoNow;         //!< TCP Reno fallback.
-  uint32_t m_cntRtt;               //!< RTT counter.
-  uint32_t m_renoCount;            //!< Reno counter.
+  uint32_t m_cWnd;
+  uint32_t m_ssThresh;
+  uint32_t m_segmentSize;
+  SequenceNumber32 m_nextTxSeq;
+  SequenceNumber32 m_lastAckedSeq;
+  uint32_t m_segmentsAcked;
+  Time m_baseRtt;
+  Time m_minRtt;
+  uint32_t m_doingRenoNow;
+  uint32_t m_cntRtt;
+  uint32_t m_renoCount;
 };
 
 TcpYeahIncrementTest::TcpYeahIncrementTest(uint32_t cWnd, uint32_t ssThresh,
@@ -100,14 +56,11 @@ void TcpYeahIncrementTest::DoRun() {
 
   Ptr<TcpYeah> cong = CreateObject<TcpYeah>();
 
-  // Set baseRtt to 100 ms
   cong->PktsAcked(state, m_segmentsAcked, m_baseRtt);
 
-  // Reset YeAH to assign a new value of minRtt
   cong->CongestionStateSet(state, TcpSocketState::CA_OPEN);
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
 
-  // 2 more calls to PktsAcked to increment cntRtt beyond 2
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
 
@@ -121,14 +74,14 @@ void TcpYeahIncrementTest::DoRun() {
 void TcpYeahIncrementTest::IncreaseWindow(Ptr<TcpYeah> cong) {
   uint32_t segCwnd = m_cWnd / m_segmentSize;
 
-  if (m_cWnd < m_ssThresh) { // NewReno slow start
+  if (m_cWnd < m_ssThresh) {
     if (m_segmentsAcked >= 1) {
       m_cWnd += m_segmentSize;
       m_segmentsAcked -= 1;
       NS_LOG_INFO("In SlowStart, updated to cwnd " << m_cWnd << " ssthresh "
                                                    << m_ssThresh);
     }
-  } else if (!m_doingRenoNow) { // Fast mode, follow STCP increment rule
+  } else if (!m_doingRenoNow) {
     UintegerValue aiFactor;
     cong->GetAttribute("StcpAiFactor", aiFactor);
     uint32_t w = std::min(segCwnd, (uint32_t)aiFactor.Get());
@@ -136,7 +89,7 @@ void TcpYeahIncrementTest::IncreaseWindow(Ptr<TcpYeah> cong) {
     m_cWnd += delta * m_segmentSize;
     NS_LOG_INFO("In Fast mode, updated to cwnd " << m_cWnd << " ssthresh "
                                                  << m_ssThresh);
-  } else { // NewReno congestion avoidance
+  } else {
     if (m_segmentsAcked > 0) {
       double adder =
           static_cast<double>(m_segmentSize * m_segmentSize) / m_cWnd;
@@ -148,14 +101,10 @@ void TcpYeahIncrementTest::IncreaseWindow(Ptr<TcpYeah> cong) {
   }
   if (m_lastAckedSeq >= m_nextTxSeq) {
     if (m_cntRtt > 2) {
-      /*
-       * Calculate the extra number of packets in queue
-       */
       Time rttQueue = m_minRtt - m_baseRtt;
       double bw = segCwnd / m_minRtt.GetSeconds();
       uint32_t queue = bw * rttQueue.GetSeconds();
 
-      // Calculate network congestion level
       double L = rttQueue.GetSeconds() / m_baseRtt.GetSeconds();
 
       UintegerValue alpha;
@@ -169,10 +118,9 @@ void TcpYeahIncrementTest::IncreaseWindow(Ptr<TcpYeah> cong) {
       UintegerValue zeta;
       cong->GetAttribute("Zeta", zeta);
 
-      if (queue > alpha.Get() || L > (1 / phy.Get())) { // Slow mode
+      if (queue > alpha.Get() || L > (1 / phy.Get())) {
         NS_LOG_INFO("Enter Slow mode");
-        if (queue > alpha.Get() &&
-            segCwnd > m_renoCount) { // Precautionary decongestion
+        if (queue > alpha.Get() && segCwnd > m_renoCount) {
           uint32_t reduction = std::min(queue / (uint32_t)gamma.Get(),
                                         segCwnd >> (uint32_t)epsilon.Get());
           segCwnd -= reduction;
@@ -188,24 +136,8 @@ void TcpYeahIncrementTest::IncreaseWindow(Ptr<TcpYeah> cong) {
   }
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief Testing TcpYeah multiplicative decrease algorithm
- */
 class TcpYeahDecrementTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param ssThresh Slow Start Threshold.
-   * \param segmentSize Segment size.
-   * \param nextTxSeq Next Tx sequence number.
-   * \param lastAckedSeq Last ACKed sequence number.
-   * \param minRtt Minimum RTT.
-   * \param rho TCP Yeah rho param.
-   * \param name Test description.
-   */
   TcpYeahDecrementTest(uint32_t cWnd, uint32_t ssThresh, uint32_t segmentSize,
                        SequenceNumber32 nextTxSeq,
                        SequenceNumber32 lastAckedSeq, Time minRtt,
@@ -213,23 +145,18 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * \brief Calculate the Slow Start threshold.
-   * \param cong The TCP state.
-   * \returns The SshThreshold.
-   */
   uint32_t CalculateSsThresh(Ptr<TcpYeah> cong);
 
-  uint32_t m_cWnd;                 //!< Congestion window.
-  uint32_t m_ssThresh;             //!< Slow Start Threshold.
-  uint32_t m_segmentSize;          //!< Segment size.
-  uint32_t m_doingRenoNow;         //!< TCP Reno fallback.
-  SequenceNumber32 m_nextTxSeq;    //!< Next Tx sequence number.
-  SequenceNumber32 m_lastAckedSeq; //!< Last ACKed sequence number.
-  Time m_minRtt;                   //!< Min RTT.
-  Time m_baseRtt;                  //!< Base RTT.
-  uint32_t m_segmentsAcked;        //!< Number of segments ACKed.
-  UintegerValue m_rho;             //!< TCP Yeah rho param.
+  uint32_t m_cWnd;
+  uint32_t m_ssThresh;
+  uint32_t m_segmentSize;
+  uint32_t m_doingRenoNow;
+  SequenceNumber32 m_nextTxSeq;
+  SequenceNumber32 m_lastAckedSeq;
+  Time m_minRtt;
+  Time m_baseRtt;
+  uint32_t m_segmentsAcked;
+  UintegerValue m_rho;
 };
 
 TcpYeahDecrementTest::TcpYeahDecrementTest(uint32_t cWnd, uint32_t ssThresh,
@@ -253,27 +180,20 @@ void TcpYeahDecrementTest::DoRun() {
 
   Ptr<TcpYeah> cong = CreateObject<TcpYeah>();
 
-  // Re-set rho to 1 for this unit test
   cong->SetAttribute("Rho", UintegerValue(m_rho));
 
-  // Set baseRtt to 100 ms
   cong->PktsAcked(state, m_segmentsAcked, m_baseRtt);
 
-  // Set minRtt to a different value
   cong->CongestionStateSet(state, TcpSocketState::CA_OPEN);
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
 
-  // 2 more calls to PktsAcked to increment cntRtt beyond 2
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
   cong->PktsAcked(state, m_segmentsAcked, m_minRtt);
 
-  // Calculate queue backlog
   cong->IncreaseWindow(state, m_segmentsAcked);
 
-  // Now get the value of ssThresh
   uint32_t ssThresh = cong->GetSsThresh(state, m_cWnd);
 
-  // Our calculation of ssThresh
   uint32_t ssThreshVal = CalculateSsThresh(cong);
 
   NS_TEST_ASSERT_MSG_EQ(ssThresh, ssThreshVal,
@@ -281,7 +201,6 @@ void TcpYeahDecrementTest::DoRun() {
 }
 
 uint32_t TcpYeahDecrementTest::CalculateSsThresh(Ptr<TcpYeah> cong) {
-  // Calculate queue backlog
   uint32_t segCwnd = m_cWnd / m_segmentSize;
   uint32_t reduction;
 
@@ -290,7 +209,6 @@ uint32_t TcpYeahDecrementTest::CalculateSsThresh(Ptr<TcpYeah> cong) {
 
   Time rttQueue = m_minRtt - m_baseRtt;
 
-  // queue = rttQueue * bw = rttQueue * (cwnd/RTTmin)
   double bw = segCwnd / m_minRtt.GetSeconds();
   uint32_t queue = bw * rttQueue.GetSeconds();
 
@@ -308,11 +226,6 @@ uint32_t TcpYeahDecrementTest::CalculateSsThresh(Ptr<TcpYeah> cong) {
   return (m_cWnd - (reduction * m_segmentSize));
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Yeah TestSuite
- */
 class TcpYeahTestSuite : public TestSuite {
 public:
   TcpYeahTestSuite() : TestSuite("tcp-yeah-test", UNIT) {
@@ -353,5 +266,4 @@ public:
   }
 };
 
-static TcpYeahTestSuite
-    g_tcpYeahTest; //!< Static variable for test initialization
+static TcpYeahTestSuite g_tcpYeahTest;

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Benjamin Cizdziel <ben.cizdziel@gmail.com>
- */
 
 #include "tv-spectrum-transmitter-helper.h"
 
@@ -35,9 +17,7 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("TvSpectrumTransmitterHelper");
 
-/// NORTH AMERICA: 84 elements (index 0 - 83); valid channels = 2 - 83
 const int northAmericaArrayLength = 84;
-/// NORTH AMERICA start frequencies
 const double northAmericaStartFrequencies[84] = {
     0,     0,     54e6,  60e6,  66e6,  76e6,  82e6,  174e6, 180e6, 186e6, 192e6,
     198e6, 204e6, 210e6, 470e6, 476e6, 482e6, 488e6, 494e6, 500e6, 506e6, 512e6,
@@ -48,7 +28,6 @@ const double northAmericaStartFrequencies[84] = {
     782e6, 788e6, 794e6, 800e6, 806e6, 812e6, 818e6, 824e6, 830e6, 836e6, 842e6,
     848e6, 854e6, 860e6, 866e6, 872e6, 878e6, 884e6,
 };
-/// NORTH AMERICA end frequencies
 const double northAmericaEndFrequencies[84] = {
     0,     0,     60e6,  66e6,  72e6,  82e6,  88e6,  180e6, 186e6, 192e6, 198e6,
     204e6, 210e6, 216e6, 476e6, 482e6, 488e6, 494e6, 500e6, 506e6, 512e6, 518e6,
@@ -60,9 +39,7 @@ const double northAmericaEndFrequencies[84] = {
     854e6, 860e6, 866e6, 872e6, 878e6, 884e6, 890e6,
 };
 
-/// EUROPE: 70 elements (index 0 - 69); valid channels = 5 - 12, 21 - 69
 const int europeArrayLength = 70;
-/// EUROPE start frequencies
 const double europeStartFrequencies[70] = {
     0,     0,     0,     0,     0,     174e6, 181e6, 188e6, 195e6, 202e6,
     209e6, 216e6, 223e6, 0,     0,     0,     0,     0,     0,     0,
@@ -72,7 +49,6 @@ const double europeStartFrequencies[70] = {
     702e6, 710e6, 718e6, 726e6, 734e6, 742e6, 750e6, 758e6, 766e6, 774e6,
     782e6, 790e6, 798e6, 806e6, 814e6, 822e6, 830e6, 838e6, 846e6, 854e6,
 };
-/// EUROPE end frequencies
 const double europeEndFrequencies[70] = {
     0,     0,     0,     0,     0,     181e6, 188e6, 195e6, 202e6, 209e6,
     216e6, 223e6, 230e6, 0,     0,     0,     0,     0,     0,     0,
@@ -83,9 +59,7 @@ const double europeEndFrequencies[70] = {
     790e6, 798e6, 806e6, 814e6, 822e6, 830e6, 838e6, 846e6, 854e6, 862e6,
 };
 
-/// JAPAN: 63 elements (index 0 - 62); valid channels = 1 - 62
 const int japanArrayLength = 63;
-/// JAPAN start frequencies
 const double japanStartFrequencies[63] = {
     0,     90e6,  96e6,  102e6, 170e6, 176e6, 182e6, 188e6, 192e6, 198e6, 204e6,
     210e6, 216e6, 470e6, 476e6, 482e6, 488e6, 494e6, 500e6, 506e6, 512e6, 518e6,
@@ -94,7 +68,6 @@ const double japanStartFrequencies[63] = {
     656e6, 662e6, 668e6, 674e6, 680e6, 686e6, 692e6, 698e6, 704e6, 710e6, 716e6,
     722e6, 728e6, 734e6, 740e6, 746e6, 752e6, 758e6, 764e6,
 };
-/// JAPAN end frequencies
 const double japanEndFrequencies[63] = {
     0,     96e6,  102e6, 108e6, 176e6, 182e6, 188e6, 194e6, 198e6, 204e6, 210e6,
     216e6, 222e6, 476e6, 482e6, 488e6, 494e6, 500e6, 506e6, 512e6, 518e6, 524e6,
@@ -130,7 +103,6 @@ NetDeviceContainer
 TvSpectrumTransmitterHelper::Install(NodeContainer nodeCont) {
   NS_LOG_FUNCTION(this);
   NetDeviceContainer devCont;
-  // iterate over node container to make one transmitter for each given node
   for (auto i = nodeCont.Begin(); i != nodeCont.End(); ++i) {
     Ptr<Node> node = *i;
     Ptr<TvSpectrumTransmitter> phy =
@@ -192,7 +164,6 @@ TvSpectrumTransmitterHelper::Install(NodeContainer nodeCont, Region region,
     channelBandwidth = japanEndFrequencies[channelNumber] -
                        japanStartFrequencies[channelNumber];
   }
-  // iterate over node container to make one transmitter for each given node
   for (auto i = nodeCont.Begin(); i != nodeCont.End(); ++i) {
     Ptr<Node> node = *i;
     Ptr<TvSpectrumTransmitter> phy =
@@ -225,7 +196,6 @@ TvSpectrumTransmitterHelper::InstallAdjacent(NodeContainer nodeCont) {
   int index = 0;
   DoubleValue startFrequency;
   DoubleValue channelBandwidth;
-  // iterate over node container to make one transmitter for each given node
   for (auto i = nodeCont.Begin(); i != nodeCont.End(); ++i) {
     Ptr<Node> node = *i;
     Ptr<TvSpectrumTransmitter> phy =
@@ -263,7 +233,6 @@ NetDeviceContainer TvSpectrumTransmitterHelper::InstallAdjacent(
   double channelBandwidth;
   uint16_t currChannelNumber;
   int index = 0;
-  // iterate over node container to make one transmitter for each given node
   for (auto i = nodeCont.Begin(); i != nodeCont.End(); ++i) {
     currChannelNumber = channelNumber + index;
     if (region == REGION_NORTH_AMERICA) {
@@ -353,32 +322,24 @@ void TvSpectrumTransmitterHelper::CreateRegionalTvTransmitters(
 std::list<int> TvSpectrumTransmitterHelper::GenerateRegionalTransmitterIndices(
     const double startFrequencies[], const int startFrequenciesLength,
     Density density) {
-  std::vector<double> startFreqVector; // stores all non-zero start frequencies
+  std::vector<double> startFreqVector;
   for (int i = 0; i < startFrequenciesLength; i++) {
     double element = startFrequencies[i];
-    // add all non-zero frequencies to vector (0 means unused channel)
     if (element != 0) {
       startFreqVector.push_back(element);
     }
   }
 
-  // randomly generate number of transmitters to create based on density
   uint32_t freqVectorSize = startFreqVector.size();
   int randNumTransmitters = GetRandomNumTransmitters(density, freqVectorSize);
 
-  // stores start frequencies that transmitters will be created to transmit
   std::vector<double> transmitterStartFreqsToCreate;
   for (int i = 0; i < randNumTransmitters; i++) {
-    // get random index from start frequency vector
     uint32_t randIndex = m_uniRand->GetInteger(0, startFreqVector.size() - 1);
-    // add start frequency corresponding to random index to vector
     transmitterStartFreqsToCreate.push_back(startFreqVector[randIndex]);
-    // remove selected start frequency from vector so it is not selected again
     startFreqVector.erase(startFreqVector.begin() + randIndex);
   }
 
-  // find indices on startFrequencies[] containing each start frequency that is
-  // selected to be transmitted and add to list
   std::list<int> transmitterIndicesToCreate;
   for (int i = 0; i < (int)transmitterStartFreqsToCreate.size(); i++) {
     for (int channelNumberIndex = 0;
@@ -415,19 +376,17 @@ void TvSpectrumTransmitterHelper::InstallRandomRegionalTransmitters(
   for (int transNum = 0; transNum < numTransmitters; transNum++) {
     Ptr<ListPositionAllocator> nodePosition =
         CreateObject<ListPositionAllocator>();
-    // add generated coordinate point to node position
     nodePosition->Add(transmitterLocations.front());
     MobilityHelper mobility;
     mobility.SetPositionAllocator(nodePosition);
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    NodeContainer tvNode; // contains position of transmitter to be created
+    NodeContainer tvNode;
     tvNode.Create(1);
     mobility.Install(tvNode);
-    // set channel number for this transmitter
     auto channelNumber = (uint16_t)transmitterIndicesToCreate.front();
-    Install(tvNode, region, channelNumber); // install tv transmitter
-    transmitterLocations.pop_front(); // remove created transmitter location
-    transmitterIndicesToCreate.pop_front(); // remove created transmitter index
+    Install(tvNode, region, channelNumber);
+    transmitterLocations.pop_front();
+    transmitterIndicesToCreate.pop_front();
   }
 }
 

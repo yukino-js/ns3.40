@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3tcp-socket-writer.h"
 
@@ -53,37 +26,21 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("Ns3TcpNoDelayTest");
 
-/**
- * \ingroup system-tests-tcp
- *
- * \brief Tests of Nagle's algorithm and the TCP no delay option.
- */
 class Ns3TcpNoDelayTestCase : public TestCase {
 public:
-  /**
-   * Constructor.
-   *
-   * \param noDelay Enable or disable TCP no delay option.
-   */
   Ns3TcpNoDelayTestCase(bool noDelay);
 
   ~Ns3TcpNoDelayTestCase() override {}
 
 private:
   void DoRun() override;
-  bool m_noDelay;      //!< Enable or disable TCP no delay option.
-  bool m_writeResults; //!< True if write PCAP files.
+  bool m_noDelay;
+  bool m_writeResults;
 
-  /**
-   * Receive a TCP packet.
-   * \param path The callback context (unused).
-   * \param p The received packet.
-   * \param address The sender's address (unused).
-   */
   void SinkRx(std::string path, Ptr<const Packet> p, const Address &address);
 
-  TestVectors<uint32_t> m_inputs;    //!< Sent packets test vector.
-  TestVectors<uint32_t> m_responses; //!< Received packets test vector.
+  TestVectors<uint32_t> m_inputs;
+  TestVectors<uint32_t> m_responses;
 };
 
 Ns3TcpNoDelayTestCase::Ns3TcpNoDelayTestCase(bool noDelay)
@@ -98,9 +55,9 @@ void Ns3TcpNoDelayTestCase::SinkRx(std::string, Ptr<const Packet> p,
 
 void Ns3TcpNoDelayTestCase::DoRun() {
   uint16_t sinkPort = 50000;
-  double sinkStopTime = 8;   // sec; will trigger Socket::Close
-  double writerStopTime = 5; // sec; will trigger Socket::Close
-  double simStopTime = 10;   // sec
+  double sinkStopTime = 8;
+  double writerStopTime = 5;
+  double simStopTime = 10;
   Time sinkStopTimeObj = Seconds(sinkStopTime);
   Time writerStopTimeObj = Seconds(writerStopTime);
   Time simStopTimeObj = Seconds(simStopTime);
@@ -132,22 +89,17 @@ void Ns3TcpNoDelayTestCase::DoRun() {
   PacketSinkHelper sink("ns3::TcpSocketFactory",
                         InetSocketAddress(Ipv4Address::GetAny(), sinkPort));
   ApplicationContainer apps = sink.Install(n1);
-  // Start the sink application at time zero, and stop it at sinkStopTime
   apps.Start(Seconds(0.0));
   apps.Stop(sinkStopTimeObj);
 
   Config::Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/Rx",
                   MakeCallback(&Ns3TcpNoDelayTestCase::SinkRx, this));
 
-  // Enable or disable TCP no delay option
   Config::SetDefault("ns3::TcpSocket::TcpNoDelay", BooleanValue(m_noDelay));
-  // This test was written with initial window of 1 segment
   Config::SetDefault("ns3::TcpSocket::InitialCwnd", UintegerValue(1));
 
-  // Connect the socket writer
   Simulator::Schedule(Seconds(1), &SocketWriter::Connect, socketWriter);
 
-  // Write 5 packets to get some bytes in flight and some acks going
   Simulator::Schedule(Seconds(2), &SocketWriter::Write, socketWriter, 2680);
   m_inputs.Add(536);
   m_inputs.Add(536);
@@ -155,28 +107,20 @@ void Ns3TcpNoDelayTestCase::DoRun() {
   m_inputs.Add(536);
   m_inputs.Add(536);
 
-  // Write one byte after 10 ms to ensure that some data is outstanding
-  // and the window is big enough
   Simulator::Schedule(Seconds(2.010), &SocketWriter::Write, socketWriter, 1);
 
-  // If Nagle is not enabled, i.e. no delay is on, add an input for a 1-byte
-  // packet to be received
   if (m_noDelay) {
     m_inputs.Add(1);
   }
 
-  // One ms later, write 535 bytes, i.e. one segment size - 1
   Simulator::Schedule(Seconds(2.012), &SocketWriter::Write, socketWriter, 535);
 
-  // If Nagle is not enabled, add an input for a 535 byte packet,
-  // otherwise, we should get a single "full" packet of 536 bytes
   if (m_noDelay) {
     m_inputs.Add(535);
   } else {
     m_inputs.Add(536);
   }
 
-  // Close down the socket
   Simulator::Schedule(writerStopTimeObj, &SocketWriter::Close, socketWriter);
 
   if (m_writeResults) {
@@ -194,7 +138,6 @@ void Ns3TcpNoDelayTestCase::DoRun() {
   Simulator::Run();
   Simulator::Destroy();
 
-  // Compare inputs and outputs
   NS_TEST_ASSERT_MSG_EQ(m_inputs.GetN(), m_responses.GetN(),
                         "Incorrect number of expected receive events");
   for (uint32_t i = 0; i < m_responses.GetN(); i++) {
@@ -206,11 +149,6 @@ void Ns3TcpNoDelayTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup system-tests-tcp
- *
- * TCP Nagle's algorithm and the TCP no delay option TestSuite.
- */
 class Ns3TcpNoDelayTestSuite : public TestSuite {
 public:
   Ns3TcpNoDelayTestSuite();
@@ -222,5 +160,4 @@ Ns3TcpNoDelayTestSuite::Ns3TcpNoDelayTestSuite()
   AddTestCase(new Ns3TcpNoDelayTestCase(false), TestCase::QUICK);
 }
 
-/// Do not forget to allocate an instance of this TestSuite.
 static Ns3TcpNoDelayTestSuite g_ns3TcpNoDelayTestSuite;

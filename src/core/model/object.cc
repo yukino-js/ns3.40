@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA, Gustavo Carneiro
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Gustavo Carneiro <gjcarneiro@gmail.com>,
- *          Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "object.h"
 
@@ -31,19 +12,9 @@
 #include <sstream>
 #include <vector>
 
-/**
- * \file
- * \ingroup object
- * ns3::Object class implementation.
- */
-
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("Object");
-
-/*********************************************************************
- *         The Object implementation
- *********************************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(Object);
 
@@ -90,7 +61,6 @@ Object::Object()
 }
 
 Object::~Object() {
-  // remove this object from the aggregate list
   NS_LOG_FUNCTION(this);
   uint32_t n = m_aggregates->n;
   for (uint32_t i = 0; i < n; i++) {
@@ -101,8 +71,6 @@ Object::~Object() {
       m_aggregates->n--;
     }
   }
-  // finally, if all objects have been removed from the list,
-  // delete the aggregate list
   if (m_aggregates->n == 0) {
     std::free(m_aggregates);
   }
@@ -136,18 +104,10 @@ Ptr<Object> Object::DoGetObject(TypeId tid) const {
     }
     if (cur == tid) {
 #ifndef NS3_MTP
-      // This is an attempt to 'cache' the result of this lookup.
-      // the idea is that if we perform a lookup for a TypeId on this object,
-      // we are likely to perform the same lookup later so, we make sure
-      // that the aggregate array is sorted by the number of accesses
-      // to each object.
 
-      // first, increment the access count
       current->m_getObjectCount++;
-      // then, update the sort
       UpdateSortedArray(m_aggregates, i);
 #endif
-      // finally, return the match
       return const_cast<Object *>(current);
     }
   }
@@ -155,14 +115,6 @@ Ptr<Object> Object::DoGetObject(TypeId tid) const {
 }
 
 void Object::Initialize() {
-  /**
-   * Note: the code here is a bit tricky because we need to protect ourselves
-   * from modifications in the aggregate array while DoInitialize is called. The
-   * user's implementation of the DoInitialize method could call GetObject
-   * (which could reorder the array) and it could call AggregateObject which
-   * would add an object at the end of the array. To be safe, we restart
-   * iteration over the array whenever we call some user code, just in case.
-   */
   NS_LOG_FUNCTION(this);
 restart:
   uint32_t n = m_aggregates->n;
@@ -182,14 +134,6 @@ bool Object::IsInitialized() const {
 }
 
 void Object::Dispose() {
-  /**
-   * Note: the code here is a bit tricky because we need to protect ourselves
-   * from modifications in the aggregate array while DoDispose is called. The
-   * user's DoDispose implementation could call GetObject (which could reorder
-   * the array) and it could call AggregateObject which would add an object at
-   * the end of the array. So, to be safe, we restart the iteration over the
-   * array whenever we call some user code.
-   */
   NS_LOG_FUNCTION(this);
 restart:
   uint32_t n = m_aggregates->n;
@@ -222,17 +166,14 @@ void Object::AggregateObject(Ptr<Object> o) {
   NS_ASSERT(o->CheckLoose());
 
   Object *other = PeekPointer(o);
-  // first create the new aggregate buffer.
   uint32_t total = m_aggregates->n + other->m_aggregates->n;
   auto aggregates = (Aggregates *)std::malloc(sizeof(Aggregates) +
                                               (total - 1) * sizeof(Object *));
   aggregates->n = total;
 
-  // copy our buffer to the new buffer
   std::memcpy(&aggregates->buffer[0], &m_aggregates->buffer[0],
               m_aggregates->n * sizeof(Object *));
 
-  // append the other buffer into the new buffer too
   for (uint32_t i = 0; i < other->m_aggregates->n; i++) {
     aggregates->buffer[m_aggregates->n + i] = other->m_aggregates->buffer[i];
     const TypeId typeId = other->m_aggregates->buffer[i]->GetInstanceTypeId();
@@ -245,23 +186,15 @@ void Object::AggregateObject(Ptr<Object> o) {
     UpdateSortedArray(aggregates, m_aggregates->n + i);
   }
 
-  // keep track of the old aggregate buffers for the iteration
-  // of NotifyNewAggregates
   Aggregates *a = m_aggregates;
   Aggregates *b = other->m_aggregates;
 
-  // Then, assign the new aggregation buffer to every object
   uint32_t n = aggregates->n;
   for (uint32_t i = 0; i < n; i++) {
     Object *current = aggregates->buffer[i];
     current->m_aggregates = aggregates;
   }
 
-  // Finally, call NotifyNewAggregate on all the objects aggregates together.
-  // We purposely use the old aggregate buffers to iterate over the objects
-  // because this allows us to assume that they will not change from under
-  // our feet, even if our users call AggregateObject from within their
-  // NotifyNewAggregate method.
   for (uint32_t i = 0; i < a->n; i++) {
     Object *current = a->buffer[i];
     current->NotifyNewAggregate();
@@ -271,15 +204,10 @@ void Object::AggregateObject(Ptr<Object> o) {
     current->NotifyNewAggregate();
   }
 
-  // Now that we are done with them, we can free our old aggregate buffers
   std::free(a);
   std::free(b);
 }
 
-/**
- * This function must be implemented in the stack that needs to notify
- * other stacks connected to the node of their presence in the node.
- */
 void Object::NotifyNewAggregate() { NS_LOG_FUNCTION(this); }
 
 Object::AggregateIterator Object::GetAggregateIterator() const {
@@ -308,13 +236,6 @@ bool Object::Check() const {
   return (GetReferenceCount() > 0);
 }
 
-/* In some cases, when an event is scheduled against a subclass of
- * Object, and if no one owns a reference directly to this object, the
- * object is alive, has a refcount of zero and the method ran when the
- * event expires runs against the raw pointer which means that we are
- * manipulating an object with a refcount of zero.  So, instead we
- * check the aggregate reference count.
- */
 bool Object::CheckLoose() const {
   NS_LOG_FUNCTION(this);
   bool nonZeroRefCount = false;
@@ -330,7 +251,6 @@ bool Object::CheckLoose() const {
 }
 
 void Object::DoDelete() {
-  // check if we really need to die
   NS_LOG_FUNCTION(this);
   for (uint32_t i = 0; i < m_aggregates->n; i++) {
     Object *current = m_aggregates->buffer[i];
@@ -339,11 +259,7 @@ void Object::DoDelete() {
     }
   }
 
-  // Now, we know that we are alone to use this aggregate so,
-  // we can dispose and delete everything safely.
-
   uint32_t n = m_aggregates->n;
-  // Ensure we are disposed.
   for (uint32_t i = 0; i < n; i++) {
     Object *current = m_aggregates->buffer[i];
     if (!current->m_disposed) {
@@ -351,13 +267,8 @@ void Object::DoDelete() {
     }
   }
 
-  // Now, actually delete all objects
   Aggregates *aggregates = m_aggregates;
   for (uint32_t i = 0; i < n; i++) {
-    // There is a trick here: each time we call delete below,
-    // the deleted object is removed from the aggregate buffer
-    // in the destructor so, the index of the next element to
-    // lookup is always zero
     Object *current = aggregates->buffer[0];
     delete current;
   }

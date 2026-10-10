@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008-2009 Strasbourg University
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Sebastien Vincent <vincent@clarinet.u-strasbg.fr>
- */
 
 #include "ipv6-address-helper.h"
 
@@ -110,18 +92,11 @@ Ipv6Address Ipv6AddressHelper::NewAddress(Address addr) {
     NS_FATAL_ERROR(
         "Did not pass in a valid Mac Address (8, 16, 48 or 64 bits)");
   }
-  /* never reached */
   return Ipv6Address("::");
 }
 
 Ipv6Address Ipv6AddressHelper::NewAddress() {
   NS_LOG_FUNCTION(this);
-  //
-  // The way this is expected to be used is that an address and network number
-  // are initialized, and then NewAddress() is called repeatedly to allocate and
-  // get new addresses on a given subnet.  The client will expect that the first
-  // address she gets back is the one she used to initialize the generator with.
-  // This implies that this operation is a post-increment.
 
   uint8_t netBuf[16];
   uint8_t hostBuf[16];
@@ -140,7 +115,6 @@ Ipv6Address Ipv6AddressHelper::NewAddress() {
 
   Ipv6Address addr = Ipv6Address(addrBuf);
 
-  // Remember: hostBuf[15] is the Least Significant Byte.
   uint16_t sum;
   sum = static_cast<uint16_t>(hostBuf[15]) + 1;
   hostBuf[15] += 1;
@@ -229,8 +203,6 @@ Ipv6AddressHelper::Assign(const NetDeviceContainer &c,
     NS_ASSERT_MSG(ifIndex >= 0, "Ipv6AddressHelper::Allocate (): "
                                 "Interface index not found");
 
-    // the first round is to make sure that the interface is set up, including
-    // its link-local addresses.
     ipv6->SetUp(ifIndex);
 
     ipv6->SetMetric(ifIndex, 1);
@@ -244,18 +216,11 @@ Ipv6AddressHelper::Assign(const NetDeviceContainer &c,
     ipv6->SetUp(ifIndex);
     retval.Add(ipv6, ifIndex);
 
-    // Install the default traffic control configuration if the traffic
-    // control layer has been aggregated, if this is not
-    // a loopback interface, and there is no queue disc installed already
     Ptr<TrafficControlLayer> tc = node->GetObject<TrafficControlLayer>();
     if (tc && !DynamicCast<LoopbackNetDevice>(device) &&
         !tc->GetRootQueueDiscOnDevice(device)) {
       Ptr<NetDeviceQueueInterface> ndqi =
           device->GetObject<NetDeviceQueueInterface>();
-      // It is useless to install a queue disc if the device has no
-      // NetDeviceQueueInterface attached: the device queue is never
-      // stopped and every packet enqueued in the queue disc is
-      // immediately dequeued, hence there will never be backlog
       if (ndqi) {
         std::size_t nTxQueues = ndqi->GetNTxQueues();
         NS_LOG_LOGIC("Installing default traffic control configuration ("
@@ -269,7 +234,6 @@ Ipv6AddressHelper::Assign(const NetDeviceContainer &c,
   return retval;
 }
 
-// Helper API that is redundant with Assign (c, false);
 Ipv6InterfaceContainer
 Ipv6AddressHelper::AssignWithoutAddress(const NetDeviceContainer &c) {
   NS_LOG_FUNCTION(this);
@@ -287,4 +251,4 @@ Ipv6AddressHelper::AssignWithoutOnLink(const NetDeviceContainer &c) {
   return Assign(c, withConfiguration, onLink);
 }
 
-} /* namespace ns3 */
+} // namespace ns3

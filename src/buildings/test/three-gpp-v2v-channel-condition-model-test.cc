@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2020 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- * Copyright (c) 2020 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/abort.h"
 #include "ns3/boolean.h"
@@ -36,47 +19,23 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("ThreeGppV2vChannelConditionModelsTest");
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * Test case for the classes ThreeGppV2vUrbanChannelConditionModel,
- * and ThreeGppV2vHighwayChannelConditionModel to test their code to
- * deterministically determine NLOS state. The test checks if the
- * channel condition is correctly determined when a building is deployed in the
- * scenario. Methodology from buildings-channel-condition-model-test.cc is used.
- */
 class ThreeGppV2vBuildingsChCondModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   ThreeGppV2vBuildingsChCondModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~ThreeGppV2vBuildingsChCondModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA; //!< the position of the first node
-    Vector m_positionB; //!< the position of the second node
-    ChannelCondition::LosConditionValue
-        m_losCond;   //!< the correct channel condition
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    ChannelCondition::LosConditionValue m_losCond;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
+  TestVectors<TestVector> m_testVectors;
 };
 
 ThreeGppV2vBuildingsChCondModelTestCase::
@@ -94,7 +53,6 @@ void ThreeGppV2vBuildingsChCondModelTestCase::DoRun() {
   RngSeedManager::SetRun(1);
 
   TestVector testVector;
-  // Add vectors for ThreeGppV2vUrbanChannelConditionModel
   testVector.m_positionA = Vector(-5.0, 5.0, 1.5);
   testVector.m_positionB = Vector(20.0, 5.0, 1.5);
   testVector.m_losCond = ChannelCondition::LosConditionValue::NLOS;
@@ -113,7 +71,6 @@ void ThreeGppV2vBuildingsChCondModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppV2vUrbanChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // Now add same vectors for ThreeGppV2vHighwayChannelConditionModel
   testVector.m_positionA = Vector(-5.0, 5.0, 1.5);
   testVector.m_positionB = Vector(20.0, 5.0, 1.5);
   testVector.m_losCond = ChannelCondition::LosConditionValue::NLOS;
@@ -132,10 +89,8 @@ void ThreeGppV2vBuildingsChCondModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppV2vHighwayChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // Deploy nodes and building and get the channel condition
   NodeContainer nodes;
   nodes.Create(2);
 
@@ -180,56 +135,28 @@ void ThreeGppV2vBuildingsChCondModelTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * Test case for the 3GPP V2V Urban channel condition models (probabilistic
- * model for LOS/NLOSv states). It determines the channel condition multiple
- * times, estimates the LOS probability and compares it with the value given by
- * the formulas in 3GPP TR 37.885, Table 6.2-1. Methodology from
- * channel-condition-model- test-suite.cc is used.
- */
 class ThreeGppV2vUrbanLosNlosvChCondModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   ThreeGppV2vUrbanLosNlosvChCondModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~ThreeGppV2vUrbanLosNlosvChCondModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Evaluates the channel condition between two nodes by calling the method
-   * GetChannelCondition on m_condModel. If the channel condition is LOS it
-   * increments m_numLos
-   * \param a the mobility model of the first node
-   * \param b the mobility model of the second node
-   */
   void EvaluateChannelCondition(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA; //!< the position of the first node
-    Vector m_positionB; //!< the position of the second node
-    double m_pLos;      //!< LOS probability
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    double m_pLos;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
-  Ptr<ThreeGppV2vUrbanChannelConditionModel>
-      m_condModel;      //!< the channel condition model
-  uint64_t m_numLos{0}; //!< the number of LOS occurrences
-  double m_tolerance;   //!< tolerance
+  TestVectors<TestVector> m_testVectors;
+  Ptr<ThreeGppV2vUrbanChannelConditionModel> m_condModel;
+  uint64_t m_numLos{0};
+  double m_tolerance;
 };
 
 ThreeGppV2vUrbanLosNlosvChCondModelTestCase::
@@ -252,10 +179,8 @@ void ThreeGppV2vUrbanLosNlosvChCondModelTestCase::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(1);
 
-  // create the test vector
   TestVector testVector;
 
-  // tests for the V2v Urban scenario
   testVector.m_positionA = Vector(0, 0, 1.6);
   testVector.m_positionB = Vector(10, 0, 1.6);
   testVector.m_pLos = std::min(1.0, 1.05 * exp(-0.0114 * 10.0));
@@ -274,29 +199,23 @@ void ThreeGppV2vUrbanLosNlosvChCondModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppV2vUrbanChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // create the two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // create the mobility models
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
 
-  // aggregate the nodes and the mobility models
   nodes.Get(0)->AggregateObject(a);
   nodes.Get(1)->AggregateObject(b);
 
   BuildingsHelper::Install(nodes);
 
-  // Get the channel condition multiple times and compute the LOS probability
   uint32_t numberOfReps = 500000;
   for (uint32_t i = 0; i < m_testVectors.GetN(); ++i) {
     testVector = m_testVectors.Get(i);
 
-    // set the distance between the two nodes
     a->SetPosition(testVector.m_positionA);
     b->SetPosition(testVector.m_positionB);
     Ptr<MobilityBuildingInfo> buildingInfoA =
@@ -306,7 +225,6 @@ void ThreeGppV2vUrbanLosNlosvChCondModelTestCase::DoRun() {
         b->GetObject<MobilityBuildingInfo>();
     buildingInfoB->MakeConsistent(b);
 
-    // create the channel condition model
     condModelFactory.SetTypeId(testVector.m_typeId);
     m_condModel =
         condModelFactory.Create<ThreeGppV2vUrbanChannelConditionModel>();
@@ -335,56 +253,28 @@ void ThreeGppV2vUrbanLosNlosvChCondModelTestCase::DoRun() {
   }
 }
 
-/**
- * Test case for the 3GPP V2V Highway channel condition models (probabilistic
- * model for LOS/NLOSv states). It determines the channel condition multiple
- * times, estimates the LOS probability and compares it with the value given by
- * the formulas in 3GPP TR 37.885, Table 6.2-1. Methodology from
- * channel-condition-model- test-suite.cc is used.
- */
 class ThreeGppV2vHighwayLosNlosvChCondModelTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   */
   ThreeGppV2vHighwayLosNlosvChCondModelTestCase();
 
-  /**
-   * Destructor
-   */
   ~ThreeGppV2vHighwayLosNlosvChCondModelTestCase() override;
 
 private:
-  /**
-   * Builds the simulation scenario and perform the tests
-   */
   void DoRun() override;
 
-  /**
-   * Evaluates the channel condition between two nodes by calling the method
-   * GetChannelCondition on m_condModel. If the channel condition is LOS it
-   * increments m_numLos
-   * \param a the mobility model of the first node
-   * \param b the mobility model of the second node
-   */
   void EvaluateChannelCondition(Ptr<MobilityModel> a, Ptr<MobilityModel> b);
 
-  /**
-   * Struct containing the parameters for each test
-   */
   struct TestVector {
-    Vector m_positionA; //!< the position of the first node
-    Vector m_positionB; //!< the position of the second node
-    double m_pLos;      //!< LOS probability
-    TypeId m_typeId; //!< the type ID of the channel condition model to be used
+    Vector m_positionA;
+    Vector m_positionB;
+    double m_pLos;
+    TypeId m_typeId;
   };
 
-  TestVectors<TestVector>
-      m_testVectors; //!< array containing all the test vectors
-  Ptr<ThreeGppV2vHighwayChannelConditionModel>
-      m_condModel;      //!< the channel condition model
-  uint64_t m_numLos{0}; //!< the number of LOS occurrences
-  double m_tolerance;   //!< tolerance
+  TestVectors<TestVector> m_testVectors;
+  Ptr<ThreeGppV2vHighwayChannelConditionModel> m_condModel;
+  uint64_t m_numLos{0};
+  double m_tolerance;
 };
 
 ThreeGppV2vHighwayLosNlosvChCondModelTestCase::
@@ -408,10 +298,8 @@ void ThreeGppV2vHighwayLosNlosvChCondModelTestCase::DoRun() {
   RngSeedManager::SetSeed(1);
   RngSeedManager::SetRun(1);
 
-  // create the test vector
   TestVector testVector;
 
-  // tests for the V2v Highway scenario
   testVector.m_positionA = Vector(0, 0, 1.6);
   testVector.m_positionB = Vector(10, 0, 1.6);
   testVector.m_pLos =
@@ -432,33 +320,26 @@ void ThreeGppV2vHighwayLosNlosvChCondModelTestCase::DoRun() {
   testVector.m_typeId = ThreeGppV2vHighwayChannelConditionModel::GetTypeId();
   m_testVectors.Add(testVector);
 
-  // create the factory for the channel condition models
   ObjectFactory condModelFactory;
 
-  // create the two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
-  // create the mobility models
   Ptr<MobilityModel> a = CreateObject<ConstantPositionMobilityModel>();
   Ptr<MobilityModel> b = CreateObject<ConstantPositionMobilityModel>();
 
-  // aggregate the nodes and the mobility models
   nodes.Get(0)->AggregateObject(a);
   nodes.Get(1)->AggregateObject(b);
 
   BuildingsHelper::Install(nodes);
 
-  // Get the channel condition multiple times and compute the LOS probability
   uint32_t numberOfReps = 500000;
   for (uint32_t i = 0; i < m_testVectors.GetN(); ++i) {
     testVector = m_testVectors.Get(i);
 
-    // set the distance between the two nodes
     a->SetPosition(testVector.m_positionA);
     b->SetPosition(testVector.m_positionB);
 
-    // create the channel condition model
     condModelFactory.SetTypeId(testVector.m_typeId);
     m_condModel =
         condModelFactory.Create<ThreeGppV2vHighwayChannelConditionModel>();
@@ -488,29 +369,6 @@ void ThreeGppV2vHighwayLosNlosvChCondModelTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup building-test
- * \ingroup tests
- *
- * Test suite for the 3GPP V2V channel condition model
- *
- * Note that, in 3GPP V2V scenarios, the channel condition model is
- * determined based on a two step procedure: 1st) NLOS state is determined
- * based on a deterministic model (using buildings), and 2nd) the LOS or NLOSv
- * state is determined based on a probabilistic model (using 3GPP formulas), in
- * case that the vehicles are not in NLOS condition.
- *
- * The test ThreeGppV2vBuildingsChCondModelTestCase checks the
- * 1st step of the procedure, the deterministic one, using buildings for
- * both \link ns3::ThreeGppV2vUrbanChannelConditionModel \endlink and
- * \link ns3::ThreeGppV2vHighwayChannelConditionModel \endlink .
- *
- * The tests ThreeGppV2vUrbanLosNlosvChCondModelTestCase and
- * ThreeGppV2vHighwayLosNlosvChCondModelTestCase check the
- * 2nd step of the procedure, the probabilistic one, without buildings, for
- * the V2V Urban and V2V Highway scenarios, respectively.
- *
- */
 class ThreeGppV2vChCondModelsTestSuite : public TestSuite {
 public:
   ThreeGppV2vChCondModelsTestSuite();
@@ -518,16 +376,10 @@ public:
 
 ThreeGppV2vChCondModelsTestSuite::ThreeGppV2vChCondModelsTestSuite()
     : TestSuite("three-gpp-v2v-channel-condition-model", SYSTEM) {
-  AddTestCase(new ThreeGppV2vBuildingsChCondModelTestCase,
-              TestCase::QUICK); // test for the deterministic procedure (NLOS vs
-                                // LOS/NLOSv), based on buildings
-  AddTestCase(new ThreeGppV2vUrbanLosNlosvChCondModelTestCase,
-              TestCase::QUICK); // test for the probabilistic procedure (LOS vs
-                                // NLOSv), in V2V urban scenario
+  AddTestCase(new ThreeGppV2vBuildingsChCondModelTestCase, TestCase::QUICK);
+  AddTestCase(new ThreeGppV2vUrbanLosNlosvChCondModelTestCase, TestCase::QUICK);
   AddTestCase(new ThreeGppV2vHighwayLosNlosvChCondModelTestCase,
-              TestCase::QUICK); // test for the probabilistic procedure (LOS vs
-                                // NLOSv), in V2V highway scenario
+              TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static ThreeGppV2vChCondModelsTestSuite ThreeGppV2vChCondModelsTestSuite;

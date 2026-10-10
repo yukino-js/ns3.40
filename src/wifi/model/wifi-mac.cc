@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "wifi-mac.h"
 
@@ -71,9 +53,7 @@ TypeId WifiMac::GetTypeId() {
               "This Boolean attribute is set to enable 802.11e/WMM-style QoS "
               "support "
               "at this STA.",
-              TypeId::ATTR_GET |
-                  TypeId::ATTR_CONSTRUCT, // prevent setting after construction
-              BooleanValue(false),
+              TypeId::ATTR_GET | TypeId::ATTR_CONSTRUCT, BooleanValue(false),
               MakeBooleanAccessor(&WifiMac::SetQosSupported,
                                   &WifiMac::GetQosSupported),
               MakeBooleanChecker())
@@ -443,7 +423,6 @@ void WifiMac::DoDispose() {
 }
 
 WifiMac::LinkEntity::~LinkEntity() {
-  // WifiMac owns pointers to ChannelAccessManager and FrameExchangeManager
   if (channelAccessManager) {
     channelAccessManager->Dispose();
   }
@@ -495,13 +474,6 @@ void WifiMac::SetPromisc() {
 Ptr<Txop> WifiMac::GetTxop() const { return m_txop; }
 
 Ptr<QosTxop> WifiMac::GetQosTxop(AcIndex ac) const {
-  // Use std::find_if() instead of std::map::find() because the latter compares
-  // the given AC index with the AC index of an element in the map by using the
-  // operator< defined for AcIndex, which aborts if an operand is not a QoS AC
-  // (the AC index passed to this method may not be a QoS AC).
-  // The performance penalty is limited because std::map::find() performs 3
-  // comparisons in the worst case, while std::find_if() performs 4 comparisons
-  // in the worst case.
   const auto it =
       std::find_if(m_edca.cbegin(), m_edca.cend(),
                    [ac](const auto &pair) { return pair.first == ac; });
@@ -558,13 +530,8 @@ Ptr<WifiMacQueueScheduler> WifiMac::GetMacQueueScheduler() const {
 void WifiMac::NotifyChannelSwitching(uint8_t linkId) {
   NS_LOG_FUNCTION(this << +linkId);
 
-  // we may have changed PHY band, in which case it is necessary to re-configure
-  // the PHY dependent parameters. In any case, this makes no harm
   ConfigurePhyDependentParameters(linkId);
 
-  // SetupPhy not only resets the remote station manager, but also sets the
-  // default TX mode and MCS, which is required when switching to a channel
-  // in a different band
   GetLink(linkId).stationManager->SetupPhy(GetLink(linkId).phy);
 }
 
@@ -587,8 +554,6 @@ void WifiMac::NotifyRxDrop(Ptr<const Packet> packet) {
 void WifiMac::SetupEdcaQueue(AcIndex ac) {
   NS_LOG_FUNCTION(this << ac);
 
-  // Our caller shouldn't be attempting to setup a queue that is
-  // already configured.
   NS_ASSERT(m_edca.find(ac) == m_edca.end());
 
   Ptr<QosTxop> edca = CreateObject<QosTxop>(ac);
@@ -610,12 +575,9 @@ void WifiMac::ConfigureContentionWindow(uint32_t cwMin, uint32_t cwMax) {
   }
 
   if (m_txop) {
-    // The special value of AC_BE_NQOS which exists in the Access
-    // Category enumeration allows us to configure plain old DCF.
     ConfigureDcf(m_txop, cwMin, cwMax, isDsssOnly, AC_BE_NQOS);
   }
 
-  // Now we configure the EDCA functions
   for (auto it = m_edca.begin(); it != m_edca.end(); ++it) {
     ConfigureDcf(it->second, cwMin, cwMax, isDsssOnly, it->first);
   }
@@ -631,8 +593,6 @@ void WifiMac::ConfigureDcf(Ptr<Txop> dcf, uint32_t cwmin, uint32_t cwmax,
   Time txopLimitDsss(0);
   Time txopLimitNoDsss(0);
 
-  /* see IEEE 802.11-2020 Table 9-155 "Default EDCA Parameter Set element
-   * parameter values" */
   switch (ac) {
   case AC_VO:
     cwMinValue = (cwmin + 1) / 4 - 1;
@@ -652,15 +612,15 @@ void WifiMac::ConfigureDcf(Ptr<Txop> dcf, uint32_t cwmin, uint32_t cwmax,
     cwMinValue = cwmin;
     cwMaxValue = cwmax;
     aifsnValue = 3;
-    txopLimitDsss = MicroSeconds(0);   // TODO should be MicroSeconds (3264)
-    txopLimitNoDsss = MicroSeconds(0); // TODO should be MicroSeconds (2528)
+    txopLimitDsss = MicroSeconds(0);
+    txopLimitNoDsss = MicroSeconds(0);
     break;
   case AC_BK:
     cwMinValue = cwmin;
     cwMaxValue = cwmax;
     aifsnValue = 7;
-    txopLimitDsss = MicroSeconds(0);   // TODO should be MicroSeconds (3264)
-    txopLimitNoDsss = MicroSeconds(0); // TODO should be MicroSeconds (2528)
+    txopLimitDsss = MicroSeconds(0);
+    txopLimitNoDsss = MicroSeconds(0);
     break;
   case AC_BE_NQOS:
     cwMinValue = cwmin;
@@ -669,7 +629,6 @@ void WifiMac::ConfigureDcf(Ptr<Txop> dcf, uint32_t cwmin, uint32_t cwmax,
     txopLimitDsss = txopLimitNoDsss = MicroSeconds(0);
     break;
   case AC_BEACON:
-    // done by ApWifiMac
     break;
   case AC_UNDEF:
     NS_FATAL_ERROR("I don't know what to do with this");
@@ -704,8 +663,6 @@ void WifiMac::ConfigureStandard(WifiStandard standard) {
                                << "] PHY must have been set and an operating "
                                   "channel must have been set");
 
-    // do not create a ChannelAccessManager and a FrameExchangeManager if they
-    // already exist (this function may be called after ResetWifiPhys)
     if (!link->channelAccessManager) {
       link->channelAccessManager = CreateObject<ChannelAccessManager>();
     }
@@ -820,7 +777,6 @@ void WifiMac::SetWifiRemoteStationManagers(
           << m_links.size() << ")");
 
   for (std::size_t i = 0; i < stationManagers.size(); i++) {
-    // the link may already exist in case PHY objects were configured first
     auto [it, inserted] = m_links.emplace(i, CreateLinkEntity());
     m_linkIds.insert(i);
     it->second->stationManager = stationManagers[i];
@@ -844,7 +800,7 @@ WifiMac::GetLinks() const {
 WifiMac::LinkEntity &WifiMac::GetLink(uint8_t linkId) const {
   auto it = m_links.find(linkId);
   NS_ASSERT(it != m_links.cend());
-  NS_ASSERT(it->second); // check that the pointer owns an object
+  NS_ASSERT(it->second);
   return *it->second;
 }
 
@@ -899,20 +855,18 @@ void WifiMac::SwapLinks(std::map<uint8_t, uint8_t> links) {
     auto to = links.cbegin()->second;
 
     if (from == to) {
-      // nothing to do
       links.erase(links.cbegin());
       continue;
     }
 
     std::unique_ptr<LinkEntity> linkToMove;
     NS_ASSERT(m_links.find(from) != m_links.cend());
-    linkToMove.swap(m_links.at(from)); // from is now out of m_links
-    auto empty = from;                 // track empty cell in m_links
+    linkToMove.swap(m_links.at(from));
+    auto empty = from;
 
     do {
-      auto [it, inserted] = m_links.emplace(
-          to, nullptr); // insert an element with key to if not present
-      m_links[to].swap(linkToMove); // to is the link to move now
+      auto [it, inserted] = m_links.emplace(to, nullptr);
+      m_links[to].swap(linkToMove);
       actualPairs.emplace(from, to);
       UpdateLinkId(to);
       links.erase(from);
@@ -925,7 +879,6 @@ void WifiMac::SwapLinks(std::map<uint8_t, uint8_t> links) {
 
       auto nextTo = links.find(to);
       if (nextTo == links.cend()) {
-        // no new position specified for 'to', use the current empty cell
         m_links[empty].swap(linkToMove);
         actualPairs.emplace(to, empty);
         break;
@@ -964,13 +917,10 @@ void WifiMac::UpdateTidToLinkMapping(const Mac48Address &mldAddr,
   auto [it, inserted] = mappings.emplace(mldAddr, mapping);
 
   if (inserted) {
-    // we are done
     return;
   }
 
-  // a previous mapping is stored for this MLD
   if (mapping.empty()) {
-    // the default mapping has been now negotiated
     it->second.clear();
     return;
   }
@@ -1005,8 +955,6 @@ bool WifiMac::TidMappedOnLink(Mac48Address mldAddr, WifiDirection dir,
   const auto it = mappings.find(mldAddr);
 
   if (it == mappings.cend()) {
-    // TID-to-link mapping was not negotiated, TIDs are mapped to all setup
-    // links
     return GetWifiRemoteStationManager(linkId)
         ->GetMldAddress(mldAddr)
         .has_value();
@@ -1015,9 +963,6 @@ bool WifiMac::TidMappedOnLink(Mac48Address mldAddr, WifiDirection dir,
   auto linkSetIt = it->second.find(tid);
 
   if (linkSetIt == it->second.cend()) {
-    // If there is no successfully negotiated TID-to-link mapping for a TID,
-    // then the TID is mapped to all setup links for DL and UL (Sec. 35.3.7.1.3
-    // of 802.11be D3.1)
     return GetWifiRemoteStationManager(linkId)
         ->GetMldAddress(mldAddr)
         .has_value();
@@ -1041,9 +986,6 @@ void WifiMac::SetWifiPhys(const std::vector<Ptr<WifiPhy>> &phys) {
           << m_links.size() << ")");
 
   for (std::size_t i = 0; i < phys.size(); i++) {
-    // the link may already exist in case we are setting new PHY objects
-    // (ResetWifiPhys just nullified the PHY(s) but left the links)
-    // or the remote station managers were configured first
     auto [it, inserted] = m_links.emplace(i, CreateLinkEntity());
     m_linkIds.insert(i);
     it->second->phy = phys[i];
@@ -1073,15 +1015,11 @@ void WifiMac::SetQosSupported(bool enable) {
   m_qosSupported = enable;
 
   if (!m_qosSupported) {
-    // create a non-QoS TXOP
     m_txop = CreateObject<Txop>();
     m_txop->SetTxMiddle(m_txMiddle);
     m_txop->SetDroppedMpduCallback(MakeCallback(
         &DroppedMpduTracedCallback::operator(), &m_droppedMpduCallback));
   } else {
-    // Construct the EDCAFs. The ordering is important - highest
-    // priority (Table 9-1 UP-to-AC mapping; IEEE 802.11-2012) must be created
-    // first.
     SetupEdcaQueue(AC_VO);
     SetupEdcaQueue(AC_VI);
     SetupEdcaQueue(AC_BE);
@@ -1157,14 +1095,11 @@ void WifiMac::ApplyTidLinkMapping(const Mac48Address &mldAddr,
   auto it = mappings.find(mldAddr);
 
   if (it == mappings.cend()) {
-    // no mapping has been ever negotiated with the given MLD, the default
-    // mapping is used
     return;
   }
 
   std::set<uint8_t> setupLinks;
 
-  // find the IDs of the links setup with the given MLD
   for (const auto &[id, link] : m_links) {
     if (link->stationManager->GetMldAddress(mldAddr)) {
       setupLinks.insert(id);
@@ -1174,25 +1109,22 @@ void WifiMac::ApplyTidLinkMapping(const Mac48Address &mldAddr,
   auto linkMapping = it->second;
 
   if (linkMapping.empty()) {
-    // default link mapping, each TID mapped on all setup links
     for (uint8_t tid = 0; tid < 8; tid++) {
       linkMapping.emplace(tid, setupLinks);
     }
   }
 
   for (const auto &[tid, linkSet] : linkMapping) {
-    decltype(setupLinks) mappedLinks; // empty
-    auto notMappedLinks = setupLinks; // all setup links
+    decltype(setupLinks) mappedLinks;
+    auto notMappedLinks = setupLinks;
 
     for (const auto id : linkSet) {
       if (setupLinks.find(id) != setupLinks.cend()) {
-        // link is mapped
         mappedLinks.insert(id);
         notMappedLinks.erase(id);
       }
     }
 
-    // unblock mapped links
     NS_ABORT_MSG_IF(mappedLinks.empty(),
                     "Every TID must be mapped to at least a link");
 
@@ -1200,7 +1132,6 @@ void WifiMac::ApplyTidLinkMapping(const Mac48Address &mldAddr,
                                QosUtilsMapTidToAc(tid), {WIFI_QOSDATA_QUEUE},
                                mldAddr, GetAddress(), {tid}, mappedLinks);
 
-    // block unmapped links
     if (!notMappedLinks.empty()) {
       m_scheduler->BlockQueues(WifiQueueBlockedReason::TID_NOT_MAPPED,
                                QosUtilsMapTidToAc(tid), {WIFI_QOSDATA_QUEUE},
@@ -1228,13 +1159,9 @@ void WifiMac::BlockUnicastTxOnLinks(WifiQueueBlockedReason reason,
     }
 
     for (const auto [acIndex, ac] : wifiAcList) {
-      // block queues storing QoS data frames and control frames that use MLD
-      // addresses
       m_scheduler->BlockQueues(
           reason, acIndex, {WIFI_QOSDATA_QUEUE, WIFI_CTL_QUEUE}, address,
           GetAddress(), {ac.GetLowTid(), ac.GetHighTid()}, {linkId});
-      // block queues storing management and control frames that use link
-      // addresses
       m_scheduler->BlockQueues(reason, acIndex,
                                {WIFI_MGT_QUEUE, WIFI_CTL_QUEUE}, linkAddr,
                                link.feManager->GetAddress(), {}, {linkId});
@@ -1261,18 +1188,12 @@ void WifiMac::UnblockUnicastTxOnLinks(WifiQueueBlockedReason reason,
     }
 
     for (const auto [acIndex, ac] : wifiAcList) {
-      // unblock queues storing QoS data frames and control frames that use MLD
-      // addresses
       m_scheduler->UnblockQueues(
           reason, acIndex, {WIFI_QOSDATA_QUEUE, WIFI_CTL_QUEUE}, address,
           GetAddress(), {ac.GetLowTid(), ac.GetHighTid()}, {linkId});
-      // unblock queues storing management and control frames that use link
-      // addresses
       m_scheduler->UnblockQueues(reason, acIndex,
                                  {WIFI_MGT_QUEUE, WIFI_CTL_QUEUE}, linkAddr,
                                  link.feManager->GetAddress(), {}, {linkId});
-      // request channel access if needed (schedule now because multiple
-      // invocations of this method may be done in a loop at the caller)
       auto qosTxop = GetQosTxop(acIndex);
       Simulator::ScheduleNow([=]() {
         if (qosTxop->GetAccessStatus(linkId) == Txop::NOT_REQUESTED &&
@@ -1285,10 +1206,6 @@ void WifiMac::UnblockUnicastTxOnLinks(WifiQueueBlockedReason reason,
 }
 
 void WifiMac::Enqueue(Ptr<Packet> packet, Mac48Address to, Mac48Address from) {
-  // We expect WifiMac subclasses which do support forwarding (e.g.,
-  // AP) to override this method. Therefore, we throw a fatal error if
-  // someone tries to invoke this method on a class which has not done
-  // this.
   NS_FATAL_ERROR("This MAC entity ("
                  << this << ", " << GetAddress()
                  << ") does not support Enqueue() with from address");
@@ -1310,24 +1227,15 @@ void WifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
                     ? Mac48Address::ConvertFrom(GetDevice()->GetAddress())
                     : GetFrameExchangeManager(linkId)->GetAddress();
 
-  // We don't know how to deal with any frame that is not addressed to
-  // us (and odds are there is nothing sensible we could do anyway),
-  // so we ignore such frames.
-  //
-  // The derived class may also do some such filtering, but it doesn't
-  // hurt to have it here too as a backstop.
   if (to != myAddr) {
     return;
   }
 
-  // Nothing to do with (QoS) Null Data frames
   if (hdr->IsData() && !hdr->HasData()) {
     return;
   }
 
   if (hdr->IsMgt() && hdr->IsAction()) {
-    // There is currently only any reason for Management Action
-    // frames to be flying about if we are a QoS STA.
     NS_ASSERT(GetQosSupported());
 
     auto &link = GetLink(linkId);
@@ -1343,27 +1251,17 @@ void WifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
         MgtAddBaRequestHeader reqHdr;
         packet->RemoveHeader(reqHdr);
 
-        // We've received an ADDBA Request. Our policy here is
-        // to automatically accept it, so we get the ADDBA
-        // Response on it's way immediately.
         NS_ASSERT(link.feManager);
         auto htFem = DynamicCast<HtFrameExchangeManager>(link.feManager);
         if (htFem) {
           htFem->SendAddBaResponse(&reqHdr, from);
         }
-        // This frame is now completely dealt with, so we're done.
         return;
       }
       case WifiActionHeader::BLOCK_ACK_ADDBA_RESPONSE: {
         MgtAddBaResponseHeader respHdr;
         packet->RemoveHeader(respHdr);
 
-        // We've received an ADDBA Response. We assume that it
-        // indicates success after an ADDBA Request we have
-        // sent (we could, in principle, check this, but it
-        // seems a waste given the level of the current model)
-        // and act by locally establishing the agreement on
-        // the appropriate queue.
         auto recipientMld = link.stationManager->GetMldAddress(from);
         auto recipient = (recipientMld ? *recipientMld : from);
         GetQosTxop(respHdr.GetTid())->GotAddBaResponse(respHdr, recipient);
@@ -1374,7 +1272,6 @@ void WifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
               ->SetBlockAckInactivityCallback(
                   MakeCallback(&HtFrameExchangeManager::SendDelbaFrame, htFem));
         }
-        // This frame is now completely dealt with, so we're done.
         return;
       }
       case WifiActionHeader::BLOCK_ACK_DELBA: {
@@ -1384,20 +1281,12 @@ void WifiMac::Receive(Ptr<const WifiMpdu> mpdu, uint8_t linkId) {
         auto recipient = (recipientMld ? *recipientMld : from);
 
         if (delBaHdr.IsByOriginator()) {
-          // This DELBA frame was sent by the originator, so
-          // this means that an ingoing established
-          // agreement exists in BlockAckManager and we need to
-          // destroy it.
           GetQosTxop(delBaHdr.GetTid())
               ->GetBaManager()
               ->DestroyRecipientAgreement(recipient, delBaHdr.GetTid());
         } else {
-          // We must have been the originator. We need to
-          // tell the correct queue that the agreement has
-          // been torn down
           GetQosTxop(delBaHdr.GetTid())->GotDelBaFrame(&delBaHdr, recipient);
         }
-        // This frame is now completely dealt with, so we're done.
         return;
       }
       default:
@@ -1433,23 +1322,15 @@ WifiMac::GetMldAddress(const Mac48Address &remoteAddr) const {
 Mac48Address WifiMac::GetLocalAddress(const Mac48Address &remoteAddr) const {
   for (const auto &[id, link] : m_links) {
     if (auto mldAddress = link->stationManager->GetMldAddress(remoteAddr)) {
-      // this is a link setup with remote MLD
       if (mldAddress != remoteAddr) {
-        // the remote address is the address of a STA affiliated with the remote
-        // MLD
         return link->feManager->GetAddress();
       }
-      // we have to return our MLD address
       return m_address;
     }
   }
-  // we get here if no ML setup was established between this device and the
-  // remote device, i.e., they are not both multi-link devices
   if (GetNLinks() == 1) {
-    // this is a single link device
     return m_address;
   }
-  // this is an MLD (hence the remote device is single link)
   return DoGetLocalAddress(remoteAddr);
 }
 
@@ -1461,7 +1342,6 @@ Mac48Address WifiMac::DoGetLocalAddress(const Mac48Address &remoteAddr
 WifiMac::OriginatorAgreementOptConstRef
 WifiMac::GetBaAgreementEstablishedAsOriginator(Mac48Address recipient,
                                                uint8_t tid) const {
-  // BA agreements are indexed by the MLD address if ML setup was performed
   recipient = GetMldAddress(recipient).value_or(recipient);
 
   auto agreement =
@@ -1475,7 +1355,6 @@ WifiMac::GetBaAgreementEstablishedAsOriginator(Mac48Address recipient,
 WifiMac::RecipientAgreementOptConstRef
 WifiMac::GetBaAgreementEstablishedAsRecipient(Mac48Address originator,
                                               uint8_t tid) const {
-  // BA agreements are indexed by the MLD address if ML setup was performed
   originator = GetMldAddress(originator).value_or(originator);
   return GetQosTxop(tid)->GetBaManager()->GetAgreementAsRecipient(originator,
                                                                   tid);
@@ -1643,7 +1522,6 @@ ExtendedCapabilities WifiMac::GetExtendedCapabilities() const {
   ExtendedCapabilities capabilities;
   capabilities.SetHtSupported(GetHtSupported());
   capabilities.SetVhtSupported(GetVhtSupported(SINGLE_LINK_OP_ID));
-  // TODO: to be completed
   return capabilities;
 }
 
@@ -1661,7 +1539,6 @@ HtCapabilities WifiMac::GetHtCapabilities(uint8_t linkId) const {
   capabilities.SetShortGuardInterval20(sgiSupported);
   capabilities.SetShortGuardInterval40(phy->GetChannelWidth() >= 40 &&
                                        sgiSupported);
-  // Set Maximum A-MSDU Length subfield
   uint16_t maxAmsduSize = std::max(
       {m_voMaxAmsduSize, m_viMaxAmsduSize, m_beMaxAmsduSize, m_bkMaxAmsduSize});
   if (maxAmsduSize <= 3839) {
@@ -1671,17 +1548,14 @@ HtCapabilities WifiMac::GetHtCapabilities(uint8_t linkId) const {
   }
   uint32_t maxAmpduLength = std::max(
       {m_voMaxAmpduSize, m_viMaxAmpduSize, m_beMaxAmpduSize, m_bkMaxAmpduSize});
-  // round to the next power of two minus one
   maxAmpduLength =
       (1UL << static_cast<uint32_t>(std::ceil(std::log2(maxAmpduLength + 1)))) -
       1;
-  // The maximum A-MPDU length in HT capabilities elements ranges from 2^13-1 to
-  // 2^16-1
   capabilities.SetMaxAmpduLength(
       std::min(std::max(maxAmpduLength, 8191U), 65535U));
 
   capabilities.SetLSigProtectionSupport(true);
-  uint64_t maxSupportedRate = 0; // in bit/s
+  uint64_t maxSupportedRate = 0;
   for (const auto &mcs : phy->GetMcsList(WIFI_MOD_CLASS_HT)) {
     capabilities.SetRxMcsBitmask(mcs.GetMcsValue());
     uint8_t nss = (mcs.GetMcsValue() / 8) + 1;
@@ -1694,10 +1568,9 @@ HtCapabilities WifiMac::GetHtCapabilities(uint8_t linkId) const {
     }
   }
   capabilities.SetRxHighestSupportedDataRate(
-      static_cast<uint16_t>(maxSupportedRate / 1e6)); // in Mbit/s
+      static_cast<uint16_t>(maxSupportedRate / 1e6));
   capabilities.SetTxMcsSetDefined(phy->GetNMcs() > 0);
   capabilities.SetTxMaxNSpatialStreams(phy->GetMaxSupportedTxSpatialStreams());
-  // we do not support unequal modulations
   capabilities.SetTxRxMcsSetUnequal(0);
   capabilities.SetTxUnequalModulation(0);
 
@@ -1717,7 +1590,6 @@ VhtCapabilities WifiMac::GetVhtCapabilities(uint8_t linkId) const {
   bool sgiSupported = htConfiguration->GetShortGuardIntervalSupported();
   capabilities.SetSupportedChannelWidthSet(
       vhtConfiguration->Get160MHzOperationSupported() ? 1 : 0);
-  // Set Maximum MPDU Length subfield
   uint16_t maxAmsduSize = std::max(
       {m_voMaxAmsduSize, m_viMaxAmsduSize, m_beMaxAmsduSize, m_bkMaxAmsduSize});
   if (maxAmsduSize <= 3839) {
@@ -1729,12 +1601,9 @@ VhtCapabilities WifiMac::GetVhtCapabilities(uint8_t linkId) const {
   }
   uint32_t maxAmpduLength = std::max(
       {m_voMaxAmpduSize, m_viMaxAmpduSize, m_beMaxAmpduSize, m_bkMaxAmpduSize});
-  // round to the next power of two minus one
   maxAmpduLength =
       (1UL << static_cast<uint32_t>(std::ceil(std::log2(maxAmpduLength + 1)))) -
       1;
-  // The maximum A-MPDU length in VHT capabilities elements ranges from 2^13-1
-  // to 2^20-1
   capabilities.SetMaxAmpduLength(
       std::min(std::max(maxAmpduLength, 8191U), 1048575U));
 
@@ -1749,14 +1618,13 @@ VhtCapabilities WifiMac::GetVhtCapabilities(uint8_t linkId) const {
       maxMcs = mcs.GetMcsValue();
     }
   }
-  // Support same MaxMCS for each spatial stream
   for (uint8_t nss = 1; nss <= phy->GetMaxSupportedRxSpatialStreams(); nss++) {
     capabilities.SetRxMcsMap(maxMcs, nss);
   }
   for (uint8_t nss = 1; nss <= phy->GetMaxSupportedTxSpatialStreams(); nss++) {
     capabilities.SetTxMcsMap(maxMcs, nss);
   }
-  uint64_t maxSupportedRateLGI = 0; // in bit/s
+  uint64_t maxSupportedRateLGI = 0;
   for (const auto &mcs : phy->GetMcsList(WIFI_MOD_CLASS_VHT)) {
     if (!mcs.IsAllowed(phy->GetChannelWidth(), 1)) {
       continue;
@@ -1767,10 +1635,9 @@ VhtCapabilities WifiMac::GetVhtCapabilities(uint8_t linkId) const {
     }
   }
   capabilities.SetRxHighestSupportedLgiDataRate(
-      static_cast<uint16_t>(maxSupportedRateLGI / 1e6)); // in Mbit/s
+      static_cast<uint16_t>(maxSupportedRateLGI / 1e6));
   capabilities.SetTxHighestSupportedLgiDataRate(
-      static_cast<uint16_t>(maxSupportedRateLGI / 1e6)); // in Mbit/s
-  // To be filled in once supported
+      static_cast<uint16_t>(maxSupportedRateLGI / 1e6));
   capabilities.SetRxStbc(0);
   capabilities.SetTxStbc(0);
 
@@ -1803,21 +1670,15 @@ HeCapabilities WifiMac::GetHeCapabilities(uint8_t linkId) const {
   capabilities.SetChannelWidthSet(channelWidthSet);
   capabilities.SetLdpcCodingInPayload(htConfiguration->GetLdpcSupported());
   if (heConfiguration->GetGuardInterval() == NanoSeconds(800)) {
-    // todo: We assume for now that if we support 800ns GI then 1600ns GI is
-    // supported as well todo: Assuming reception support for both 1x HE LTF and
-    // 4x HE LTF 800 ns
     capabilities.SetHeSuPpdu1xHeLtf800nsGi(true);
     capabilities.SetHePpdu4xHeLtf800nsGi(true);
   }
 
   uint32_t maxAmpduLength = std::max(
       {m_voMaxAmpduSize, m_viMaxAmpduSize, m_beMaxAmpduSize, m_bkMaxAmpduSize});
-  // round to the next power of two minus one
   maxAmpduLength =
       (1UL << static_cast<uint32_t>(std::ceil(std::log2(maxAmpduLength + 1)))) -
       1;
-  // The maximum A-MPDU length in HE capabilities elements ranges from 2^20-1 to
-  // 2^23-1
   capabilities.SetMaxAmpduLength(
       std::min(std::max(maxAmpduLength, 1048575U), 8388607U));
 
@@ -1840,13 +1701,9 @@ EhtCapabilities WifiMac::GetEhtCapabilities(uint8_t linkId) const {
 
   Ptr<WifiPhy> phy = GetLink(linkId).phy;
 
-  // Set Maximum MPDU Length subfield (Reserved when transmitted in 5 GHz or 6
-  // GHz band)
   if (phy->GetPhyBand() == WIFI_PHY_BAND_2_4GHZ) {
     uint16_t maxAmsduSize = std::max({m_voMaxAmsduSize, m_viMaxAmsduSize,
                                       m_beMaxAmsduSize, m_bkMaxAmsduSize});
-    // Table 9-34—Maximum data unit sizes (in octets) and durations (in
-    // microseconds)
     if (maxAmsduSize <= 3839) {
       capabilities.SetMaxMpduLength(3895);
     } else if (maxAmsduSize <= 7935) {
@@ -1856,19 +1713,14 @@ EhtCapabilities WifiMac::GetEhtCapabilities(uint8_t linkId) const {
     }
   }
 
-  // Set Maximum A-MPDU Length Exponent Extension subfield
   uint32_t maxAmpduLength = std::max(
       {m_voMaxAmpduSize, m_viMaxAmpduSize, m_beMaxAmpduSize, m_bkMaxAmpduSize});
-  // round to the next power of two minus one
   maxAmpduLength =
       (1UL << static_cast<uint32_t>(std::ceil(std::log2(maxAmpduLength + 1)))) -
       1;
-  // The maximum A-MPDU length in EHT capabilities elements ranges from 2^23-1
-  // to 2^24-1
   capabilities.SetMaxAmpduLength(
       std::min(std::max(maxAmpduLength, 8388607U), 16777215U));
 
-  // Set the PHY capabilities
   const bool support4096Qam = phy->IsMcsSupported(WIFI_MOD_CLASS_EHT, 12);
   capabilities.m_phyCapabilities
       .supportTx1024And4096QamForRuSmallerThan242Tones = support4096Qam ? 1 : 0;
@@ -1906,7 +1758,6 @@ EhtCapabilities WifiMac::GetEhtCapabilities(uint8_t linkId) const {
           phy->IsMcsSupported(WIFI_MOD_CLASS_EHT, maxMcs) ? maxTxNss : 0);
     }
   }
-  // 320 MHz not supported yet
 
   return capabilities;
 }

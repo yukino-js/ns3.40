@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2013 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- *         Michele Muccio <michelemuccio@virgilio.it>
- */
 
 #include "sixlowpan-header.h"
 
@@ -28,10 +9,6 @@
 #include "ns3/mac64-address.h"
 
 namespace ns3 {
-
-/*
- * SixLowPanDispatch
- */
 
 SixLowPanDispatch::SixLowPanDispatch() {}
 
@@ -67,9 +44,6 @@ SixLowPanDispatch::GetNhcDispatchType(uint8_t dispatch) {
   return LOWPAN_NHCUNSUPPORTED;
 }
 
-/*
- * SixLowPanHc1
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanHc1);
 
 SixLowPanHc1::SixLowPanHc1() : m_hopLimit(0) {}
@@ -214,7 +188,6 @@ void SixLowPanHc1::Serialize(Buffer::Iterator start) const {
     i.WriteU8(m_nextHeader);
   }
 
-  // TODO: HC2 is not yet supported. Should be.
   NS_ASSERT_MSG(m_hc2HeaderPresent != true,
                 "Can not compress HC2, exiting. Very sorry.");
 }
@@ -411,9 +384,6 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanHc1 &h) {
   return os;
 }
 
-/*
- * SixLowPanFrag1
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanFrag1);
 
 SixLowPanFrag1::SixLowPanFrag1() : m_datagramSize(0), m_datagramTag(0) {}
@@ -476,18 +446,11 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanFrag1 &h) {
   return os;
 }
 
-/*
- * SixLowPanFragN
- */
-
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanFragN);
 
 SixLowPanFragN::SixLowPanFragN()
     : m_datagramSize(0), m_datagramTag(0), m_datagramOffset(0) {}
 
-/*
- * SixLowPanFragmentOffset
- */
 TypeId SixLowPanFragN::GetTypeId() {
   static TypeId tid = TypeId("ns3::SixLowPanFragN")
                           .SetParent<Header>()
@@ -556,10 +519,6 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanFragN &h) {
   return os;
 }
 
-/*
- * SixLowPanIpv6
- */
-
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanIpv6);
 
 SixLowPanIpv6::SixLowPanIpv6() {}
@@ -596,19 +555,14 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanIpv6 &h) {
   return os;
 }
 
-/*
- * SixLowPanIphcHeader
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanIphc);
 
 SixLowPanIphc::SixLowPanIphc() {
-  // 011x xxxx xxxx xxxx
   m_baseFormat = 0x6000;
   m_srcdstContextId = 0;
 }
 
 SixLowPanIphc::SixLowPanIphc(uint8_t dispatch) {
-  // 011x xxxx xxxx xxxx
   m_baseFormat = dispatch;
   m_baseFormat <<= 8;
   m_srcdstContextId = 0;
@@ -764,7 +718,6 @@ void SixLowPanIphc::Serialize(Buffer::Iterator start) const {
   if (GetCid()) {
     i.WriteU8(m_srcdstContextId);
   }
-  // Traffic Class and Flow Label
   switch (GetTf()) {
     uint8_t temp;
   case TF_FULL:
@@ -792,15 +745,12 @@ void SixLowPanIphc::Serialize(Buffer::Iterator start) const {
   default:
     break;
   }
-  // Next Header
   if (!GetNh()) {
     i.WriteU8(m_nextHeader);
   }
-  // Hop Limit
   if (GetHlim() == HLIM_INLINE) {
     i.WriteU8(m_hopLimit);
   }
-  // Source Address
   switch (GetSam()) {
   case HC_INLINE:
     if (!GetSac()) {
@@ -817,9 +767,7 @@ void SixLowPanIphc::Serialize(Buffer::Iterator start) const {
   default:
     break;
   }
-  // Destination Address
   if (!GetM()) {
-    // unicast
     switch (GetDam()) {
     case HC_INLINE:
       i.Write(m_dstInlinePart, 16);
@@ -835,7 +783,6 @@ void SixLowPanIphc::Serialize(Buffer::Iterator start) const {
       break;
     }
   } else {
-    // multicast
     switch (GetDam()) {
     case HC_INLINE:
       i.Write(m_dstInlinePart, 16);
@@ -865,7 +812,6 @@ uint32_t SixLowPanIphc::Deserialize(Buffer::Iterator start) {
   } else {
     m_srcdstContextId = 0;
   }
-  // Traffic Class and Flow Label
   switch (GetTf()) {
     uint8_t temp;
   case TF_FULL:
@@ -896,11 +842,9 @@ uint32_t SixLowPanIphc::Deserialize(Buffer::Iterator start) {
   default:
     break;
   }
-  // Next Header
   if (!GetNh()) {
     m_nextHeader = i.ReadU8();
   }
-  // Hop Limit
   switch (GetHlim()) {
   case HLIM_INLINE:
     m_hopLimit = i.ReadU8();
@@ -916,7 +860,6 @@ uint32_t SixLowPanIphc::Deserialize(Buffer::Iterator start) {
     m_hopLimit = 255;
     break;
   }
-  // Source Address
   memset(m_srcInlinePart, 0x00, sizeof(m_srcInlinePart));
   switch (GetSam()) {
   case HC_INLINE:
@@ -935,10 +878,8 @@ uint32_t SixLowPanIphc::Deserialize(Buffer::Iterator start) {
     break;
   }
 
-  // Destination Address
   memset(m_dstInlinePart, 0x00, sizeof(m_dstInlinePart));
   if (!GetM()) {
-    // unicast
     switch (GetDam()) {
     case HC_INLINE:
       i.Read(m_dstInlinePart, 16);
@@ -954,7 +895,6 @@ uint32_t SixLowPanIphc::Deserialize(Buffer::Iterator start) {
       break;
     }
   } else {
-    // multicast
     switch (GetDam()) {
     case HC_INLINE:
       i.Read(m_dstInlinePart, 16);
@@ -1121,13 +1061,9 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanIphc &h) {
   return os;
 }
 
-/*
- * SixLowPanNhcExtensionHeader
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanNhcExtension);
 
 SixLowPanNhcExtension::SixLowPanNhcExtension() {
-  // 1110 xxxx
   m_nhcExtensionHeader = 0xE0;
   m_nhcNextHeader = 0;
   m_nhcBlobLength = 0;
@@ -1226,13 +1162,9 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanNhcExtension &h) {
   return os;
 }
 
-/*
- * SixLowPanUdpNhcExtension
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanUdpNhcExtension);
 
 SixLowPanUdpNhcExtension::SixLowPanUdpNhcExtension() {
-  // 1111 0xxx
   m_baseFormat = 0xF0;
   m_checksum = 0;
   m_srcPort = 0;
@@ -1282,7 +1214,6 @@ void SixLowPanUdpNhcExtension::Serialize(Buffer::Iterator start) const {
   i.WriteU8(m_baseFormat);
   uint8_t temp;
 
-  // Ports
   switch (GetPorts()) {
   case PORTS_INLINE:
     i.WriteHtonU16(m_srcPort);
@@ -1304,7 +1235,6 @@ void SixLowPanUdpNhcExtension::Serialize(Buffer::Iterator start) const {
     break;
   }
 
-  // Checksum
   if (!GetC()) {
     i.WriteU16(m_checksum);
   }
@@ -1315,7 +1245,6 @@ uint32_t SixLowPanUdpNhcExtension::Deserialize(Buffer::Iterator start) {
   m_baseFormat = i.ReadU8();
   uint8_t temp;
 
-  // Ports
   switch (GetPorts()) {
   case PORTS_INLINE:
     m_srcPort = i.ReadNtohU16();
@@ -1338,7 +1267,6 @@ uint32_t SixLowPanUdpNhcExtension::Deserialize(Buffer::Iterator start) {
     break;
   }
 
-  // Checksum
   if (!GetC()) {
     m_checksum = i.ReadU16();
   }
@@ -1392,9 +1320,6 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanUdpNhcExtension &h) {
   return os;
 }
 
-/*
- * SixLowPanBc0
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanBc0);
 
 SixLowPanBc0::SixLowPanBc0() { m_seqNumber = 66; }
@@ -1445,9 +1370,6 @@ std::ostream &operator<<(std::ostream &os, const SixLowPanBc0 &h) {
   return os;
 }
 
-/*
- * SixLowPanMesh
- */
 NS_OBJECT_ENSURE_REGISTERED(SixLowPanMesh);
 
 SixLowPanMesh::SixLowPanMesh() {

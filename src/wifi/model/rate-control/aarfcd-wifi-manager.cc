@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2004,2005,2006 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Federico Maguolo <maguolof@dei.unipd.it>
- */
 
 #include "aarfcd-wifi-manager.h"
 
@@ -30,25 +12,19 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("AarfcdWifiManager");
 
-/**
- * \brief hold per-remote-station state for AARF-CD Wifi manager.
- *
- * This struct extends from WifiRemoteStation struct to hold additional
- * information required by the AARF-CD Wifi manager
- */
 struct AarfcdWifiRemoteStation : public WifiRemoteStation {
-  uint32_t m_timer;            ///< timer
-  uint32_t m_success;          ///< success
-  uint32_t m_failed;           ///< failed
-  bool m_recovery;             ///< recovery
-  bool m_justModifyRate;       ///< just modify rate
-  uint32_t m_successThreshold; ///< success threshold
-  uint32_t m_timerTimeout;     ///< timer timeout
-  uint8_t m_rate;              ///< rate
-  bool m_rtsOn;                ///< RTS on
-  uint32_t m_rtsWnd;           ///< RTS window
-  uint32_t m_rtsCounter;       ///< RTS counter
-  bool m_haveASuccess;         ///< have a success
+  uint32_t m_timer;
+  uint32_t m_success;
+  uint32_t m_failed;
+  bool m_recovery;
+  bool m_justModifyRate;
+  uint32_t m_successThreshold;
+  uint32_t m_timerTimeout;
+  uint8_t m_rate;
+  bool m_rtsOn;
+  uint32_t m_rtsWnd;
+  uint32_t m_rtsCounter;
+  bool m_haveASuccess;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(AarfcdWifiManager);
@@ -147,7 +123,6 @@ WifiRemoteStation *AarfcdWifiManager::DoCreateStation() const {
   NS_LOG_FUNCTION(this);
   auto station = new AarfcdWifiRemoteStation();
 
-  // AARF fields below
   station->m_successThreshold = m_minSuccessThreshold;
   station->m_timerTimeout = m_minTimerThreshold;
   station->m_rate = 0;
@@ -156,7 +131,6 @@ WifiRemoteStation *AarfcdWifiManager::DoCreateStation() const {
   station->m_recovery = false;
   station->m_timer = 0;
 
-  // AARF-CD specific fields below
   station->m_rtsOn = false;
   station->m_rtsWnd = m_minRtsWnd;
   station->m_rtsCounter = 0;
@@ -193,7 +167,6 @@ void AarfcdWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
     station->m_justModifyRate = false;
     station->m_rtsCounter = station->m_rtsWnd;
     if (station->m_failed == 1) {
-      // need recovery fallback
       if (m_turnOffRtsAfterRateDecrease) {
         TurnOffRts(station);
       }
@@ -212,7 +185,6 @@ void AarfcdWifiManager::DoReportDataFailed(WifiRemoteStation *st) {
     station->m_justModifyRate = false;
     station->m_rtsCounter = station->m_rtsWnd;
     if (((station->m_failed - 1) % 2) == 1) {
-      // need normal fallback
       if (m_turnOffRtsAfterRateDecrease) {
         TurnOffRts(station);
       }
@@ -307,8 +279,6 @@ WifiTxVector AarfcdWifiManager::DoGetDataTxVector(WifiRemoteStation *st,
 
 WifiTxVector AarfcdWifiManager::DoGetRtsTxVector(WifiRemoteStation *st) {
   NS_LOG_FUNCTION(this << st);
-  /// \todo we could/should implement the AARF algorithm for
-  /// RTS only by picking a single rate within the BasicRateSet.
   auto station = static_cast<AarfcdWifiRemoteStation *>(st);
   uint16_t channelWidth = GetChannelWidth(station);
   if (channelWidth > 20 && channelWidth != 22) {

@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@cutebugs.net>
- */
 
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
@@ -25,16 +7,6 @@
 
 using namespace ns3;
 
-/**
- * Generates traffic.
- *
- * The first call sends a packet of the specified size, and then
- * the function is scheduled to send a packet of (size-50) after 0.5s.
- * The process is iterated until the packet size is zero.
- *
- * \param socket output socket
- * \param size packet size
- */
 static void GenerateTraffic(Ptr<Socket> socket, int32_t size) {
   if (size <= 0) {
     socket->Close();
@@ -47,10 +19,6 @@ static void GenerateTraffic(Ptr<Socket> socket, int32_t size) {
   Simulator::Schedule(Seconds(0.5), &GenerateTraffic, socket, size - 50);
 }
 
-/**
- * Prints the packets received by a socket
- * \param socket input socket
- */
 static void SocketPrinter(Ptr<Socket> socket) {
   Ptr<Packet> packet;
   while ((packet = socket->Recv())) {

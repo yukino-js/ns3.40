@@ -1,28 +1,8 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "lte-rlc.h"
 
 #include "lte-rlc-sap.h"
 #include "lte-rlc-tag.h"
-// #include "lte-mac-sap.h"
-// #include "ff-mac-sched-sap.h"
 
 #include "ns3/log.h"
 #include "ns3/simulator.h"
@@ -31,17 +11,10 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("LteRlc");
 
-/// LteRlcSpecificLteMacSapUser class
 class LteRlcSpecificLteMacSapUser : public LteMacSapUser {
 public:
-  /**
-   * Constructor
-   *
-   * \param rlc the RLC
-   */
   LteRlcSpecificLteMacSapUser(LteRlc *rlc);
 
-  // Interface implemented from LteMacSapUser
   void
   NotifyTxOpportunity(LteMacSapUser::TxOpportunityParameters params) override;
   void NotifyHarqDeliveryFailure() override;
@@ -49,7 +22,7 @@ public:
 
 private:
   LteRlcSpecificLteMacSapUser();
-  LteRlc *m_rlc; ///< the RLC
+  LteRlc *m_rlc;
 };
 
 LteRlcSpecificLteMacSapUser::LteRlcSpecificLteMacSapUser(LteRlc *rlc)
@@ -70,8 +43,6 @@ void LteRlcSpecificLteMacSapUser::ReceivePdu(
     LteMacSapUser::ReceivePduParameters params) {
   m_rlc->DoReceivePdu(params);
 }
-
-///////////////////////////////////////
 
 NS_OBJECT_ENSURE_REGISTERED(LteRlc);
 
@@ -144,8 +115,6 @@ LteMacSapUser *LteRlc::GetLteMacSapUser() {
   return m_macSapUser;
 }
 
-////////////////////////////////////////
-
 NS_OBJECT_ENSURE_REGISTERED(LteRlcSm);
 
 LteRlcSm::LteRlcSm() { NS_LOG_FUNCTION(this); }
@@ -174,7 +143,6 @@ void LteRlcSm::DoTransmitPdcpPdu(Ptr<Packet> p) { NS_LOG_FUNCTION(this << p); }
 
 void LteRlcSm::DoReceivePdu(LteMacSapUser::ReceivePduParameters rxPduParams) {
   NS_LOG_FUNCTION(this << rxPduParams.p);
-  // RLC Performance evaluation
   RlcTag rlcTag;
   Time delay;
   bool ret = rxPduParams.p->FindFirstMatchingByteTag(rlcTag);
@@ -194,10 +162,6 @@ void LteRlcSm::DoNotifyTxOpportunity(
 
   params.pdu = Create<Packet>(txOpParams.bytes);
   NS_ABORT_MSG_UNLESS(txOpParams.bytes > 0, "Bytes must be > 0");
-  /**
-   * For RLC SM, the packets are not passed to the upper layers, therefore,
-   * in the absence of an header we can safely byte tag the entire packet.
-   */
   params.pdu->AddByteTag(tag, 1, params.pdu->GetSize());
 
   params.rnti = m_rnti;
@@ -206,7 +170,6 @@ void LteRlcSm::DoNotifyTxOpportunity(
   params.harqProcessId = txOpParams.harqId;
   params.componentCarrierId = txOpParams.componentCarrierId;
 
-  // RLC Performance evaluation
   NS_LOG_LOGIC(" RNTI=" << m_rnti << " LCID=" << (uint32_t)m_lcid
                         << " size=" << txOpParams.bytes);
   m_txPdu(m_rnti, m_lcid, txOpParams.bytes);
@@ -229,23 +192,5 @@ void LteRlcSm::ReportBufferStatus() {
   p.statusPduSize = 0;
   m_macSapProvider->ReportBufferStatus(p);
 }
-
-//////////////////////////////////////////
-
-// LteRlcTm::~LteRlcTm ()
-// {
-// }
-
-//////////////////////////////////////////
-
-// LteRlcUm::~LteRlcUm ()
-// {
-// }
-
-//////////////////////////////////////////
-
-// LteRlcAm::~LteRlcAm ()
-// {
-// }
 
 } // namespace ns3

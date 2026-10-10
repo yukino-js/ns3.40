@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2020 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Rohan Patidar <rpatidar@uw.edu>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "table-based-error-rate-model.h"
 
@@ -35,9 +16,8 @@
 
 namespace ns3 {
 
-static const double SNR_PRECISION = 2; //!< precision for SNR
-static const double TABLED_BASED_ERROR_MODEL_PRECISION =
-    1e-5; //!< precision for PER
+static const double SNR_PRECISION = 2;
+static const double TABLED_BASED_ERROR_MODEL_PRECISION = 1e-5;
 
 NS_OBJECT_ENSURE_REGISTERED(TableBasedErrorRateModel);
 
@@ -88,30 +68,25 @@ std::optional<uint8_t> TableBasedErrorRateModel::GetMcsForMode(WifiMode mode) {
 
   if (modulationClass == WIFI_MOD_CLASS_OFDM ||
       modulationClass == WIFI_MOD_CLASS_ERP_OFDM) {
-    if (constellationSize == 2) // BPSK
-    {
+    if (constellationSize == 2) {
       if (codeRate == WIFI_CODE_RATE_1_2) {
         mcs = 0;
       }
       if (codeRate == WIFI_CODE_RATE_3_4) {
-        // No MCS uses BPSK and a Coding Rate of 3/4
       }
-    } else if (constellationSize == 4) // QPSK
-    {
+    } else if (constellationSize == 4) {
       if (codeRate == WIFI_CODE_RATE_1_2) {
         mcs = 1;
       } else if (codeRate == WIFI_CODE_RATE_3_4) {
         mcs = 2;
       }
-    } else if (constellationSize == 16) // 16-QAM
-    {
+    } else if (constellationSize == 16) {
       if (codeRate == WIFI_CODE_RATE_1_2) {
         mcs = 3;
       } else if (codeRate == WIFI_CODE_RATE_3_4) {
         mcs = 4;
       }
-    } else if (constellationSize == 64) // 64-QAM
-    {
+    } else if (constellationSize == 64) {
       if (codeRate == WIFI_CODE_RATE_2_3) {
         mcs = 5;
       } else if (codeRate == WIFI_CODE_RATE_3_4) {
@@ -143,7 +118,6 @@ double TableBasedErrorRateModel::DoGetChunkSuccessRate(
   bool ldpc = txVector.IsLdpc();
   NS_LOG_FUNCTION(this << +mcs << roundedSnr << size << ldpc);
 
-  // HT: for MCS greater than 7, use 0 - 7 curves for data rate
   if (mode.GetModulationClass() == WIFI_MOD_CLASS_HT) {
     mcs = mcs % 8;
   }
@@ -201,7 +175,6 @@ double TableBasedErrorRateModel::DoGetChunkSuccessRate(
             : (size < m_threshold ? ERROR_TABLE_BCC_SMALL_FRAME_SIZE
                                   : ERROR_TABLE_BCC_LARGE_FRAME_SIZE));
   if (size != tableSize) {
-    // From IEEE document 11-14/0803r1 (Packet Length for Box 0 Calibration)
     per = (1.0 - std::pow((1 - per), (static_cast<double>(size) / tableSize)));
   }
 

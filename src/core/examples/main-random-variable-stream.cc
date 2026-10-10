@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 Timo Bingmann
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Timo Bingmann <timo.bingmann@student.kit.edu>
- */
 #include "ns3/command-line.h"
 #include "ns3/double.h"
 #include "ns3/gnuplot.h"
@@ -29,25 +11,10 @@
 #include <iostream>
 #include <map>
 
-/**
- * \file
- * \ingroup core-examples
- * \ingroup randomvariable
- * Example program illustrating use of RandomVariableStream
- */
-
 using namespace ns3;
 
 namespace {
 
-/**
- * Round a double number to the given precision.
- * For example, `dround(0.234, 0.1) = 0.2`
- * and `dround(0.257, 0.1) = 0.3`
- * \param [in] number The number to round.
- * \param [in] precision The least significant digit to keep in the rounding.
- * \returns \pname{number} rounded to \pname{precision}.
- */
 double dround(double number, double precision) {
   number /= precision;
   if (number >= 0) {
@@ -59,15 +26,6 @@ double dround(double number, double precision) {
   return number;
 }
 
-/**
- * Generate a histogram from a RandomVariableStream.
- * \param [in] rndvar The RandomVariableStream to sample.
- * \param [in] probes The number of samples.
- * \param [in] precision The precision to round samples to.
- * \param [in] title The title for the histogram.
- * \param [in] impulses Set the plot style to IMPULSES.
- * \return The histogram as a GnuPlot data set.
- */
 GnuplotDataset Histogram(Ptr<RandomVariableStream> rndvar, unsigned int probes,
                          double precision, const std::string &title,
                          bool impulses = false) {
@@ -94,7 +52,7 @@ GnuplotDataset Histogram(Ptr<RandomVariableStream> rndvar, unsigned int probes,
   return data;
 }
 
-} // unnamed namespace
+} // namespace
 
 int main(int argc, char *argv[]) {
   CommandLine cmd(__FILE__);

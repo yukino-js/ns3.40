@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2010 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 #include "adhoc-aloha-noack-ideal-phy-helper.h"
 
 #include "ns3/aloha-noack-net-device.h"
@@ -86,11 +68,6 @@ AdhocAlohaNoackIdealPhyHelper::Install(NodeContainer c) const {
     dev->SetAddress(Mac48Address::Allocate());
     Ptr<Queue<Packet>> q = (m_queue.Create())->GetObject<Queue<Packet>>();
     dev->SetQueue(q);
-
-    // note that we could have used a SpectrumPhyHelper here, but
-    // given that it is straightforward to handle the configuration
-    // in this helper here, we avoid asking the user to pass us a
-    // SpectrumPhyHelper, so to spare him some typing.
 
     Ptr<HalfDuplexIdealPhy> phy =
         (m_phy.Create())->GetObject<HalfDuplexIdealPhy>();

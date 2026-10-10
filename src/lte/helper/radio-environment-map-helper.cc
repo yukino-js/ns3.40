@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2012 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "radio-environment-map-helper.h"
 
@@ -206,9 +188,7 @@ void RadioEnvironmentMapHelper::Install() {
         "only one REM supported per instance of RadioEnvironmentMapHelper");
   }
 
-  if (!m_channel) // if Channel attribute is not set, then use the ChannelPath
-                  // attribute
-  {
+  if (!m_channel) {
     Config::MatchContainer match = Config::LookupMatches(m_channelPath);
     if (match.GetN() != 1) {
       NS_FATAL_ERROR("Lookup " << m_channelPath
@@ -229,7 +209,6 @@ void RadioEnvironmentMapHelper::Install() {
   double startDelay = 0.0026;
 
   if (m_useDataChannel) {
-    // need time to start transmission of data channel
     startDelay = 0.5001;
   }
 
@@ -252,8 +231,7 @@ void RadioEnvironmentMapHelper::DelayedInstall() {
     p.bmm = CreateObject<ConstantPositionMobilityModel>();
     Ptr<MobilityBuildingInfo> buildingInfo =
         CreateObject<MobilityBuildingInfo>();
-    p.bmm->AggregateObject(
-        buildingInfo); // operation usually done by BuildingsHelper::Install
+    p.bmm->AggregateObject(buildingInfo);
     p.phy->SetRxSpectrumModel(
         LteSpectrumValueHelper::GetSpectrumModel(m_earfcn, m_bandwidth));
     p.phy->SetMobility(p.bmm);
@@ -330,8 +308,6 @@ void RadioEnvironmentMapHelper::PrintAndReset() {
 
   for (auto it = m_rem.begin(); it != m_rem.end(); ++it) {
     if (!(it->phy->IsActive())) {
-      // should occur only upon last iteration when some RemPoint
-      // at the end of the list can be unused
       break;
     }
     Vector pos = it->bmm->GetPosition();

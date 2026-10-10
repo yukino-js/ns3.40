@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2006, 2009 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "wifi-mac-header.h"
 
@@ -28,14 +8,10 @@ namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED(WifiMacHeader);
 
-/// type enumeration
 enum { TYPE_MGT = 0, TYPE_CTL = 1, TYPE_DATA = 2 };
 
-/// subtype enumeration
 enum {
-  // Reserved: 0 - 1
   SUBTYPE_CTL_TRIGGER = 2,
-  // Reserved: 3
   SUBTYPE_CTL_BEAMFORMINGRPOLL = 4,
   SUBTYPE_CTL_NDPANNOUNCE = 5,
   SUBTYPE_CTL_CTLFRAMEEXT = 6,
@@ -53,7 +29,7 @@ enum {
 WifiMacHeader::WifiMacHeader()
     : m_ctrlMoreFrag(0), m_ctrlRetry(0), m_ctrlPowerManagement(0),
       m_ctrlMoreData(0), m_ctrlWep(0), m_ctrlOrder(0), m_duration(0),
-      m_seqFrag(0), m_seqSeq(0), m_qosEosp(0), m_qosAckPolicy(0), // Normal Ack
+      m_seqFrag(0), m_seqSeq(0), m_qosEosp(0), m_qosAckPolicy(0),
       m_amsduPresent(0) {}
 
 WifiMacHeader::WifiMacHeader(WifiMacType type) : WifiMacHeader() {
@@ -310,15 +286,11 @@ void WifiMacHeader::SetQosQueueSize(uint8_t size) {
 }
 
 void WifiMacHeader::SetQosMeshControlPresent() {
-  // Mark bit 0 of this variable instead of bit 8, since m_qosStuff is
-  // shifted by one byte when serialized
-  m_qosStuff = m_qosStuff | 0x01; // bit 8 of QoS Control Field
+  m_qosStuff = m_qosStuff | 0x01;
 }
 
 void WifiMacHeader::SetQosNoMeshControlPresent() {
-  // Clear bit 0 of this variable instead of bit 8, since m_qosStuff is
-  // shifted by one byte when serialized
-  m_qosStuff = m_qosStuff & 0xfe; // bit 8 of QoS Control Field
+  m_qosStuff = m_qosStuff & 0xfe;
 }
 
 Mac48Address WifiMacHeader::GetAddr1() const { return m_addr1; }
@@ -418,7 +390,6 @@ WifiMacType WifiMacHeader::GetType() const {
     }
     break;
   }
-  // NOTREACHED
   NS_ASSERT(false);
   return (WifiMacType)-1;
 }
@@ -786,7 +757,6 @@ const char *WifiMacHeader::GetTypeString() const {
   }
 #undef CASE_WIFI_MAC_TYPE
 #ifndef _WIN32
-  // needed to make gcc 4.0.1 ppc darwin happy.
   return "BIG_ERROR";
 #endif
 }
@@ -926,7 +896,6 @@ void WifiMacHeader::Serialize(Buffer::Iterator i) const {
     case SUBTYPE_CTL_ACK:
       break;
     default:
-      // NOTREACHED
       NS_ASSERT(false);
       break;
     }
@@ -943,7 +912,6 @@ void WifiMacHeader::Serialize(Buffer::Iterator i) const {
     }
   } break;
   default:
-    // NOTREACHED
     NS_ASSERT(false);
     break;
   }

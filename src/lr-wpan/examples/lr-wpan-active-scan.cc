@@ -1,45 +1,4 @@
-/*
- * Copyright (c) 2022 Tokushima University, Japan.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author:  Alberto Gallegos Ramonet <alramonet@is.tokushima-u.ac.jp>
- */
 
-/*
- *      [00:01]                   [00:02] [00:03] PAN Coordinator 1 (PAN: 5) End
- * Device                        PAN Coordinator 2 (PAN: 7)
- *       |--------100 m----------------|----------106 m -----------------------|
- *  Channel 12               (Active Scan channels 11-14) Channel 14
- *
- *
- * This example demonstrate the usage of the MAC MLME-SCAN.request (ACTIVE scan)
- * primitive as described by IEEE 802.15.4-2011. At the beginning of the
- * simulation, PAN coordinators are set to non-beacon enabled mode and wait for
- * any beacon requests.
- *
- * The end device initiate an Active scan where a beacon request command is
- * transmitted on on each channel. If a beacon coordinator is present and in
- * range in the channel, it responds with a beacon which contains the PAN
- * descriptor with useful information for the association process (channel
- * number, Pan ID, coord address, link quality indicator).
- *
- * LQI range: 0 - 255
- * Where 255 is the MAX possible value used to described how clearly the packet
- * was heard. Typically, a value below 127 is considered a link with poor
- * quality.
- */
 
 #include <ns3/constant-position-mobility-model.h>
 #include <ns3/core-module.h>
@@ -86,7 +45,6 @@ static void ScanConfirm(Ptr<LrWpanNetDevice> device,
 int main(int argc, char *argv[]) {
   LogComponentEnableAll(LogLevel(LOG_PREFIX_TIME | LOG_PREFIX_FUNC));
 
-  // Create 2 PAN coordinator nodes, and 1 end device
   Ptr<Node> coord1 = CreateObject<Node>();
   Ptr<Node> endNode = CreateObject<Node>();
   Ptr<Node> coord2 = CreateObject<Node>();
@@ -99,7 +57,6 @@ int main(int argc, char *argv[]) {
   endNodeNetDevice->SetAddress(Mac16Address("00:02"));
   coord2NetDevice->SetAddress(Mac16Address("00:03"));
 
-  // Configure Spectrum channel
   Ptr<SingleModelSpectrumChannel> channel =
       CreateObject<SingleModelSpectrumChannel>();
   Ptr<LogDistancePropagationLossModel> propModel =
@@ -117,7 +74,6 @@ int main(int argc, char *argv[]) {
   endNode->AddDevice(endNodeNetDevice);
   coord2->AddDevice(coord2NetDevice);
 
-  // Mobility
   Ptr<ConstantPositionMobilityModel> coord1Mobility =
       CreateObject<ConstantPositionMobilityModel>();
   coord1Mobility->SetPosition(Vector(0, 0, 0));
@@ -133,16 +89,9 @@ int main(int argc, char *argv[]) {
   coord2Mobility->SetPosition(Vector(206, 0, 0));
   coord2NetDevice->GetPhy()->SetMobility(coord2Mobility);
 
-  // MAC layer Callbacks hooks
   endNodeNetDevice->GetMac()->SetMlmeScanConfirmCallback(
       MakeBoundCallback(&ScanConfirm, endNodeNetDevice));
 
-  /////////////////
-  // ACTIVE SCAN //
-  /////////////////
-
-  // PAN coordinator N0 (PAN 5) is set to channel 12 in non-beacon mode but
-  // answer to beacon requests.
   MlmeStartRequestParams params;
   params.m_panCoor = true;
   params.m_PanId = 5;
@@ -152,8 +101,6 @@ int main(int argc, char *argv[]) {
   Simulator::ScheduleWithContext(1, Seconds(2.0), &LrWpanMac::MlmeStartRequest,
                                  coord1NetDevice->GetMac(), params);
 
-  // PAN coordinator N2 (PAN 7) is set to channel 14 in non-beacon mode but
-  // answer to beacon requests.
   MlmeStartRequestParams params2;
   params2.m_panCoor = true;
   params2.m_PanId = 7;
@@ -163,12 +110,6 @@ int main(int argc, char *argv[]) {
   Simulator::ScheduleWithContext(2, Seconds(2.0), &LrWpanMac::MlmeStartRequest,
                                  coord2NetDevice->GetMac(), params2);
 
-  // End device N1 broadcast a single BEACON REQUEST for each channel (11, 12,
-  // 13, and 14). If a coordinator is present and in range, it will respond with
-  // a beacon broadcast. Scan Channels are represented by bits 0-26  (27 LSB)
-  //                       ch 14  ch 11
-  //                           |  |
-  // 0x7800  = 0000000000000000111100000000000
   MlmeScanRequestParams scanParams;
   scanParams.m_chPage = 0;
   scanParams.m_scanChannels = 0x7800;

@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 
 #include "simple-ofdm-wimax-phy.h"
 
@@ -171,9 +152,9 @@ void SimpleOfdmWimaxPhy::InitSimpleOfdmWimaxPhy() {
   m_fecBlocks = new std::list<Bvec>;
   m_receivedFecBlocks = new std::list<Bvec>;
   m_currentBurstSize = 0;
-  m_noiseFigure = 5;      // dB
-  m_txPower = 30;         // dBm
-  SetBandwidth(10000000); // 10Mhz
+  m_noiseFigure = 5;
+  m_txPower = 30;
+  SetBandwidth(10000000);
   m_nbErroneousBlock = 0;
   m_nrReceivedFecBlocks = 0;
   m_snrToBlockErrorRateManager = new SNRToBlockErrorRateManager();
@@ -291,7 +272,6 @@ void SimpleOfdmWimaxPhy::EndSendFecBlock(
 
   if (m_nrFecBlocksSent * m_blockSize ==
       m_currentBurstSize * 8 + m_paddingBits) {
-    // this is the last FEC block of the burst
     NS_ASSERT_MSG(m_nrRemainingBlocksToSend == 0,
                   "Error while sending a burst");
     NotifyTxEnd(m_currentBurst);
@@ -370,7 +350,6 @@ void SimpleOfdmWimaxPhy::StartReceive(uint32_t burstSize, bool isFirstBlock,
     }
     break;
   case PHY_STATE_RX:
-    // drop
     break;
   case PHY_STATE_TX:
     if (IsDuplex() && frequency == GetRxFrequency()) {
@@ -436,20 +415,11 @@ Bvec SimpleOfdmWimaxPhy::ConvertBurstToBits(Ptr<const PacketBurst> burst) {
   return buffer;
 }
 
-/*
- Converts back the bit buffer (Bvec) to the actual burst.
- Actually creates byte buffer from the Bvec and resets the buffer
- of each packet in the copy of the original burst stored before transmitting.
- By doing this it preserves the metadata and tags in the packet.
- Function could also be named DeserializeBurst because actually it
- copying to the burst's byte buffer.
- */
 Ptr<PacketBurst> SimpleOfdmWimaxPhy::ConvertBitsToBurst(Bvec buffer) {
   uint8_t init[buffer.size() / 8];
   uint8_t *pstart = init;
   uint8_t temp;
   int32_t j = 0;
-  // recreating byte buffer from bit buffer (Bvec)
   for (uint32_t i = 0; i < buffer.size(); i += 8) {
     temp = 0;
     for (int l = 0; l < 8; l++) {
@@ -465,18 +435,15 @@ Ptr<PacketBurst> SimpleOfdmWimaxPhy::ConvertBitsToBurst(Bvec buffer) {
   Ptr<PacketBurst> RecvBurst = Create<PacketBurst>();
   while (pos < bufferSize) {
     uint16_t packetSize = 0;
-    // Get the header type: first bit
     uint8_t ht = (pstart[pos] >> 7) & 0x01;
     if (ht == 1) {
-      // BW request header. Size is always 8 bytes
       packetSize = 6;
     } else {
-      // Read the size
       uint8_t Len_MSB = pstart[pos + 1] & 0x07;
       packetSize =
           (uint16_t)((uint16_t)(Len_MSB << 8) | (uint16_t)(pstart[pos + 2]));
       if (packetSize == 0) {
-        break; // padding
+        break;
       }
     }
 
@@ -491,9 +458,7 @@ void SimpleOfdmWimaxPhy::CreateFecBlocks(
     const Bvec &buffer, WimaxPhy::ModulationType modulationType) {
   Bvec fecBlock(m_blockSize);
   for (uint32_t i = 0, j = m_nrBlocks; j > 0; i += m_blockSize, j--) {
-    if (j == 1 &&
-        m_paddingBits > 0) // last block can be smaller than block size
-    {
+    if (j == 1 && m_paddingBits > 0) {
       fecBlock = Bvec(buffer.begin() + i, buffer.end());
       fecBlock.resize(m_blockSize, false);
     } else {
@@ -519,13 +484,13 @@ Bvec SimpleOfdmWimaxPhy::RecreateBuffer() {
 }
 
 void SimpleOfdmWimaxPhy::DoSetDataRates() {
-  m_dataRateBpsk12 = CalculateDataRate(MODULATION_TYPE_BPSK_12); // 6912000 bps
-  m_dataRateQpsk12 = CalculateDataRate(MODULATION_TYPE_QPSK_12); // 13824000
-  m_dataRateQpsk34 = CalculateDataRate(MODULATION_TYPE_QPSK_34); // 20736000
-  m_dataRateQam16_12 = CalculateDataRate(MODULATION_TYPE_QAM16_12); // 27648000
-  m_dataRateQam16_34 = CalculateDataRate(MODULATION_TYPE_QAM16_34); // 41472000
-  m_dataRateQam64_23 = CalculateDataRate(MODULATION_TYPE_QAM64_23); // 55224000
-  m_dataRateQam64_34 = CalculateDataRate(MODULATION_TYPE_QAM64_34); // 62208000
+  m_dataRateBpsk12 = CalculateDataRate(MODULATION_TYPE_BPSK_12);
+  m_dataRateQpsk12 = CalculateDataRate(MODULATION_TYPE_QPSK_12);
+  m_dataRateQpsk34 = CalculateDataRate(MODULATION_TYPE_QPSK_34);
+  m_dataRateQam16_12 = CalculateDataRate(MODULATION_TYPE_QAM16_12);
+  m_dataRateQam16_34 = CalculateDataRate(MODULATION_TYPE_QAM16_34);
+  m_dataRateQam64_23 = CalculateDataRate(MODULATION_TYPE_QAM64_23);
+  m_dataRateQam64_34 = CalculateDataRate(MODULATION_TYPE_QAM64_34);
 }
 
 void SimpleOfdmWimaxPhy::GetModulationFecParams(
@@ -571,8 +536,6 @@ uint32_t SimpleOfdmWimaxPhy::CalculateDataRate(
   double symbolsPerSecond = 1 / GetSymbolDuration().GetSeconds();
   auto bitsTransmittedPerSymbol =
       (uint16_t)(bitsPerSymbol * GetNrCarriers() * fecCode);
-  // 96, 192, 288, 384, 576, 767 and 864 bits per symbol for the seven
-  // modulations, respectively
 
   return (uint32_t)symbolsPerSecond * bitsTransmittedPerSymbol;
 }
@@ -607,10 +570,6 @@ Time SimpleOfdmWimaxPhy::GetBlockTransmissionTime(
 
 Time SimpleOfdmWimaxPhy::DoGetTransmissionTime(
     uint32_t size, WimaxPhy::ModulationType modulationType) const {
-  /*adding 3 extra nano second to cope with the loss of precision problem.
-   the time is internally stored in a 64 bit hence a floating-point time would
-   loss precision, e.g., 0.00001388888888888889 seconds will become 13888888888
-   femtoseconds.*/
   return Seconds(DoGetNrSymbols(size, modulationType) *
                  GetSymbolDuration().GetSeconds()) +
          NanoSeconds(3);
@@ -661,10 +620,9 @@ uint32_t SimpleOfdmWimaxPhy::GetFecBlockSize(
     NS_FATAL_ERROR("Invalid modulation type");
     break;
   }
-  return blockSize * 8; // in bits
+  return blockSize * 8;
 }
 
-// Channel coding block size, Table 215, page 434
 uint32_t SimpleOfdmWimaxPhy::GetCodedFecBlockSize(
     WimaxPhy::ModulationType modulationType) const {
   uint32_t blockSize = 0;
@@ -694,7 +652,7 @@ uint32_t SimpleOfdmWimaxPhy::GetCodedFecBlockSize(
     NS_FATAL_ERROR("Invalid modulation type");
     break;
   }
-  return blockSize * 8; // in bits
+  return blockSize * 8;
 }
 
 void SimpleOfdmWimaxPhy::SetBlockParameters(
@@ -708,15 +666,9 @@ void SimpleOfdmWimaxPhy::SetBlockParameters(
                 "Size of padding bytes < 0");
 }
 
-uint16_t SimpleOfdmWimaxPhy::DoGetTtg() const {
-  // assumed equal to 2 symbols
-  return 2 * GetPsPerSymbol();
-}
+uint16_t SimpleOfdmWimaxPhy::DoGetTtg() const { return 2 * GetPsPerSymbol(); }
 
-uint16_t SimpleOfdmWimaxPhy::DoGetRtg() const {
-  // assumed equal to 2 symbols
-  return 2 * GetPsPerSymbol();
-}
+uint16_t SimpleOfdmWimaxPhy::DoGetRtg() const { return 2 * GetPsPerSymbol(); }
 
 uint8_t SimpleOfdmWimaxPhy::DoGetFrameDurationCode() const {
   uint16_t duration = 0;
@@ -781,10 +733,6 @@ Time SimpleOfdmWimaxPhy::DoGetFrameDuration(uint8_t frameDurationCode) const {
   return Seconds(0);
 }
 
-/*
- Returns number of blocks (FEC blocks) the burst will be split in.
- The size of the block is specific for each modulation type.
- */
 uint16_t
 SimpleOfdmWimaxPhy::GetNrBlocks(uint32_t burstSize,
                                 WimaxPhy::ModulationType modulationType) const {
@@ -798,19 +746,7 @@ SimpleOfdmWimaxPhy::GetNrBlocks(uint32_t burstSize,
   return nrBlocks;
 }
 
-/*---------------------PHY parameters functions-----------------------*/
-
 void SimpleOfdmWimaxPhy::DoSetPhyParameters() {
-  /*Calculations as per section 8.3.2.
-   Currently assuming license-exempt 5 GHz band. For channel bandwidth 20 MHz
-   (Table B.28, page 812) and frame duration 10 ms (Table 232, page 460) i.e,
-   100 frames per second, sampling frequency is 23040000, symbol (OFDM symbol)
-   duration is 1.388888888888889e-05 seconds, PS duration
-   is 1.7361111111111112e-07 seconds. Hence PSs per frame is 57600, symbols per
-   frame is 720 and PSs per symbol is 80. Note that defining these parameters
-   (symbol and PS duration) as Time may not result in exactly these values
-   therefore lrint has been used (otherwise should be defined as double). For
-   licensed bands set channel bandwidth according to Table B.26, page 810.*/
 
   double samplingFrequency = DoGetSamplingFrequency();
   Time psDuration = Seconds(4.0 / samplingFrequency);
@@ -820,9 +756,9 @@ void SimpleOfdmWimaxPhy::DoSetPhyParameters() {
       (uint16_t)(GetFrameDuration().GetSeconds() / psDuration.GetSeconds());
   SetPsPerFrame(psPerFrame);
   double subcarrierSpacing = samplingFrequency / DoGetNfft();
-  double tb = 1.0 / subcarrierSpacing;    // Tb (useful symbol time)
-  double tg = DoGetGValue() * tb;         // Tg (cyclic prefix time)
-  Time symbolDuration = Seconds(tb + tg); // OFDM Symbol Time
+  double tb = 1.0 / subcarrierSpacing;
+  double tg = DoGetGValue() * tb;
+  Time symbolDuration = Seconds(tb + tg);
   SetSymbolDuration(symbolDuration);
   uint16_t psPerSymbol =
       lrint(symbolDuration.GetSeconds() / psDuration.GetSeconds());
@@ -837,7 +773,6 @@ void SimpleOfdmWimaxPhy::DoSetNfft(uint16_t nfft) { m_nfft = nfft; }
 uint16_t SimpleOfdmWimaxPhy::DoGetNfft() const { return m_nfft; }
 
 double SimpleOfdmWimaxPhy::DoGetSamplingFactor() const {
-  // sampling factor (n), see Table 213, page 429
 
   uint32_t channelBandwidth = GetChannelBandwidth();
 
@@ -860,7 +795,6 @@ double SimpleOfdmWimaxPhy::DoGetSamplingFactor() const {
 }
 
 double SimpleOfdmWimaxPhy::DoGetSamplingFrequency() const {
-  // sampling frequency (Fs), see 8.3.2.2
 
   return (DoGetSamplingFactor() * GetChannelBandwidth() / 8000) * 8000;
 }

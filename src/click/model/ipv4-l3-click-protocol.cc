@@ -1,22 +1,3 @@
-//
-// Copyright (c) 2006 Georgia Tech Research Corporation
-//
-// This program is free software; you can redistribute it and/or modify
-// it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation;
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software
-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-//
-// Author: George F. Riley <riley@ece.gatech.edu>
-// Author: Lalith Suresh <suresh.lalith@gmail.com>
-//
 
 #include "ipv4-l3-click-protocol.h"
 
@@ -91,8 +72,6 @@ void Ipv4L3ClickProtocol::DoDispose() {
 void Ipv4L3ClickProtocol::NotifyNewAggregate() {
   if (!m_node) {
     Ptr<Node> node = this->GetObject<Node>();
-    // verify that it's a valid node and that
-    // the node has not been set before
     if (node) {
       this->SetNode(node);
     }
@@ -174,7 +153,6 @@ bool Ipv4L3ClickProtocol::IsDestinationAddress(Ipv4Address address,
                                                uint32_t iif) const {
   NS_LOG_FUNCTION(this << address << " " << iif);
 
-  // First check the incoming interface for a unicast address match
   for (uint32_t i = 0; i < GetNAddresses(iif); i++) {
     Ipv4InterfaceAddress iaddr = GetAddress(iif, i);
     if (address == iaddr.GetLocal()) {
@@ -202,8 +180,7 @@ bool Ipv4L3ClickProtocol::IsDestinationAddress(Ipv4Address address,
     return true;
   }
 
-  if (GetWeakEsModel()) // Check other interfaces
-  {
+  if (GetWeakEsModel()) {
     for (uint32_t j = 0; j < GetNInterfaces(); j++) {
       if (j == uint32_t(iif)) {
         continue;
@@ -215,8 +192,6 @@ bool Ipv4L3ClickProtocol::IsDestinationAddress(Ipv4Address address,
                        << address << " match) on another interface");
           return true;
         }
-        //  This is a small corner case:  match another interface's broadcast
-        //  address
         if (address == iaddr.GetBroadcast()) {
           NS_LOG_LOGIC(
               "For me (interface broadcast address on another interface)");
@@ -257,7 +232,6 @@ void Ipv4L3ClickProtocol::SetupLoopback() {
 
   Ptr<Ipv4Interface> interface = CreateObject<Ipv4Interface>();
   Ptr<LoopbackNetDevice> device = nullptr;
-  // First check whether an existing LoopbackNetDevice exists on the node
   for (uint32_t i = 0; i < m_node->GetNDevices(); i++) {
     if ((device = DynamicCast<LoopbackNetDevice>(m_node->GetDevice(i)))) {
       break;
@@ -303,7 +277,6 @@ void Ipv4L3ClickProtocol::DeleteRawSocket(Ptr<Socket> socket) {
 
 void Ipv4L3ClickProtocol::SetNode(Ptr<Node> node) {
   m_node = node;
-  // Add a LoopbackNetDevice if needed, and an Ipv4Interface on top of it
   SetupLoopback();
 }
 
@@ -365,14 +338,9 @@ bool Ipv4L3ClickProtocol::RemoveAddress(uint32_t i, Ipv4Address address) {
 Ipv4Address Ipv4L3ClickProtocol::SourceAddressSelection(uint32_t interfaceIdx,
                                                         Ipv4Address dest) {
   NS_LOG_FUNCTION(this << interfaceIdx << " " << dest);
-  if (GetNAddresses(interfaceIdx) == 1) // common case
-  {
+  if (GetNAddresses(interfaceIdx) == 1) {
     return GetAddress(interfaceIdx, 0).GetLocal();
   }
-  // no way to determine the scope of the destination, so adopt the
-  // following rule:  pick the first available address (index 0) unless
-  // a subsequent address is on link (in which case, pick the primary
-  // address if there are multiple)
   Ipv4Address candidate = GetAddress(interfaceIdx, 0).GetLocal();
   for (uint32_t i = 0; i < GetNAddresses(interfaceIdx); i++) {
     Ipv4InterfaceAddress test = GetAddress(interfaceIdx, i);
@@ -419,7 +387,6 @@ Ipv4Address Ipv4L3ClickProtocol::SelectSourceAddress(
     return addr;
   }
 
-  // Iterate among all interfaces
   for (uint32_t i = 0; i < GetNInterfaces(); i++) {
     for (uint32_t j = 0; j < GetNAddresses(i); j++) {
       iaddr = GetAddress(i, j);
@@ -529,9 +496,6 @@ uint32_t Ipv4L3ClickProtocol::AddIpv4Interface(Ptr<Ipv4Interface> interface) {
   return index;
 }
 
-/// \todo when should we set ip_id?   check whether we are incrementing
-/// m_identification on packets that may later be dropped in this stack
-/// and whether that deviates from Linux
 Ipv4Header Ipv4L3ClickProtocol::BuildHeader(Ipv4Address source,
                                             Ipv4Address destination,
                                             uint8_t protocol,
@@ -550,7 +514,6 @@ Ipv4Header Ipv4L3ClickProtocol::BuildHeader(Ipv4Address source,
     m_identification++;
   } else {
     ipHeader.SetDontFragment();
-    // TBD:  set to zero here; will cause traces to change
     ipHeader.SetIdentification(m_identification);
     m_identification++;
   }
@@ -601,12 +564,6 @@ void Ipv4L3ClickProtocol::SendWithHeader(Ptr<Packet> packet,
 }
 
 void Ipv4L3ClickProtocol::SendDown(Ptr<Packet> p, int ifid) {
-  // Called by Ipv4ClickRouting.
-
-  // NetDevice::Send () attaches ethernet headers,
-  // so the one that Click attaches isn't required
-  // but we need the destination address and
-  // protocol values from the header.
 
   Ptr<NetDevice> netdev = GetNetDevice(ifid);
 
@@ -623,8 +580,6 @@ void Ipv4L3ClickProtocol::SendDown(Ptr<Packet> p, int ifid) {
     protocol = header.GetLengthType();
   }
 
-  // Use the destination address and protocol obtained
-  // from above to send the packet.
   netdev->Send(p, header.GetDestination(), protocol);
 }
 
@@ -637,7 +592,6 @@ void Ipv4L3ClickProtocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
   NS_LOG_LOGIC("Packet from " << from << " received on node "
                               << m_node->GetId());
 
-  // Forward packet to raw sockets, if any
   if (protocol == Ipv4L3ClickProtocol::PROT_NUMBER && !m_sockets.empty()) {
     Ptr<Packet> packetForRawSocket = p->Copy();
     int32_t interface = GetInterfaceForDevice(device);
@@ -665,8 +619,6 @@ void Ipv4L3ClickProtocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
 
   Ptr<Packet> packet = p->Copy();
 
-  // Add an ethernet frame. This allows
-  // Click to work with csma and wifi
   EthernetHeader hdr;
   hdr.SetSource(Mac48Address::ConvertFrom(from));
   hdr.SetDestination(Mac48Address::ConvertFrom(to));
@@ -683,29 +635,24 @@ void Ipv4L3ClickProtocol::Receive(Ptr<NetDevice> device, Ptr<const Packet> p,
 void Ipv4L3ClickProtocol::LocalDeliver(Ptr<const Packet> packet,
                                        const Ipv4Header &ip, uint32_t iif) {
   NS_LOG_FUNCTION(this << packet << &ip);
-  Ptr<Packet> p = packet->Copy(); // need to pass a non-const packet up
+  Ptr<Packet> p = packet->Copy();
 
   m_localDeliverTrace(ip, packet, iif);
 
   Ptr<IpL4Protocol> protocol = GetProtocol(ip.GetProtocol());
   if (protocol) {
-    // we need to make a copy in the unlikely event we hit the
-    // RX_ENDPOINT_UNREACH codepath
     Ptr<Packet> copy = p->Copy();
     IpL4Protocol::RxStatus status = protocol->Receive(p, ip, GetInterface(iif));
     switch (status) {
     case IpL4Protocol::RX_OK:
-    // fall through
     case IpL4Protocol::RX_ENDPOINT_CLOSED:
-    // fall through
     case IpL4Protocol::RX_CSUM_FAILED:
       break;
     case IpL4Protocol::RX_ENDPOINT_UNREACH:
       if (ip.GetDestination().IsBroadcast() ||
           ip.GetDestination().IsMulticast()) {
-        break; // Do not reply to broadcast or multicast
+        break;
       }
-      // Another case to suppress ICMP is a subnet-directed broadcast
       bool subnetDirected = false;
       for (uint32_t i = 0; i < GetNAddresses(iif); i++) {
         Ipv4InterfaceAddress addr = GetAddress(iif, i);
@@ -798,14 +745,12 @@ Ipv4L3ClickProtocol::GetProtocol(int protocolNumber,
 
   L4ListKey_t key;
   if (interfaceIndex >= 0) {
-    // try the interface-specific protocol.
     key = std::make_pair(protocolNumber, interfaceIndex);
     auto i = m_protocols.find(key);
     if (i != m_protocols.end()) {
       return i->second;
     }
   }
-  // try the generic protocol.
   key = std::make_pair(protocolNumber, -1);
   auto i = m_protocols.find(key);
   if (i != m_protocols.end()) {

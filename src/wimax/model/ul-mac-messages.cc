@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2007,2008,2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                               <amine.ismail@UDcast.com>
- */
 
 #include "ul-mac-messages.h"
 
@@ -70,8 +50,6 @@ Buffer::Iterator UcdChannelEncodings::Read(Buffer::Iterator start) {
   return DoRead(i);
 }
 
-// ----------------------------------------------------------------------------------------------------------
-
 OfdmUcdChannelEncodings::OfdmUcdChannelEncodings()
     : m_sbchnlReqRegionFullParams(0), m_sbchnlFocContCodes(0) {}
 
@@ -113,8 +91,6 @@ Buffer::Iterator OfdmUcdChannelEncodings::DoRead(Buffer::Iterator start) {
   m_sbchnlFocContCodes = i.ReadU8();
   return i;
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 OfdmUlBurstProfile::OfdmUlBurstProfile()
     : m_type(0), m_length(0), m_uiuc(0), m_fecCodeType(0) {}
@@ -159,8 +135,6 @@ Buffer::Iterator OfdmUlBurstProfile::Read(Buffer::Iterator start) {
   return i;
 }
 
-// ----------------------------------------------------------------------------------------------------------
-
 Ucd::Ucd()
     : m_configurationChangeCount(0), m_rangingBackoffStart(0),
       m_rangingBackoffEnd(0), m_requestBackoffStart(0), m_requestBackoffEnd(0),
@@ -197,8 +171,6 @@ void Ucd::AddUlBurstProfile(OfdmUlBurstProfile ulBurstProfile) {
 }
 
 void Ucd::SetNrUlBurstProfiles(uint8_t nrUlBurstProfiles) {
-  // number of burst profiles is set to number of UL-MAP IEs after processing
-  // UL-MAP
   m_nrUlBurstProfiles = nrUlBurstProfiles;
 }
 
@@ -287,8 +259,6 @@ uint32_t Ucd::Deserialize(Buffer::Iterator start) {
   return i.GetDistanceFrom(start);
 }
 
-// ----------------------------------------------------------------------------------------------------------
-
 OfdmUlMapIe::OfdmUlMapIe()
     : m_cid(), m_startTime(0), m_subchannelIndex(0), m_uiuc(0), m_duration(0),
       m_midambleRepetitionInterval(0) {}
@@ -349,8 +319,6 @@ Buffer::Iterator OfdmUlMapIe::Read(Buffer::Iterator start) {
   m_midambleRepetitionInterval = i.ReadU8();
   return i;
 }
-
-// ----------------------------------------------------------------------------------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(UlMap);
 
@@ -421,8 +389,7 @@ uint32_t UlMap::Deserialize(Buffer::Iterator start) {
   m_ucdCount = i.ReadU8();
   m_allocationStartTime = i.ReadU32();
 
-  m_ulMapElements.clear(); // only for printing, otherwise it shows wrong number
-                           // of elements
+  m_ulMapElements.clear();
 
   while (true) {
     OfdmUlMapIe ulMapIe;
@@ -430,8 +397,7 @@ uint32_t UlMap::Deserialize(Buffer::Iterator start) {
 
     AddUlMapElement(ulMapIe);
 
-    if (ulMapIe.GetUiuc() == 14) // End of Map IE
-    {
+    if (ulMapIe.GetUiuc() == 14) {
       break;
     }
   }

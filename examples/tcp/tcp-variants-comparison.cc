@@ -1,38 +1,3 @@
-/*
- * Copyright (c) 2013 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Justin P. Rohrer, Truc Anh N. Nguyen <annguyen@ittc.ku.edu>,
- * Siddharth Gangadhar <siddharth@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- *
- * "TCP Westwood(+) Protocol Implementation in ns-3"
- * Siddharth Gangadhar, Trúc Anh Ngọc Nguyễn , Greeshma Umapathi, and James P.G.
- * Sterbenz, ICST SIMUTools Workshop on ns-3 (WNS3), Cannes, France, March 2013
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -56,47 +21,26 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpVariantsComparison");
 
-static std::map<uint32_t, bool> firstCwnd;   //!< First congestion window.
-static std::map<uint32_t, bool> firstSshThr; //!< First SlowStart threshold.
-static std::map<uint32_t, bool> firstRtt;    //!< First RTT.
-static std::map<uint32_t, bool> firstRto;    //!< First RTO.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    cWndStream; //!< Congstion window output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    ssThreshStream; //!< SlowStart threshold output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    rttStream; //!< RTT output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    rtoStream; //!< RTO output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    nextTxStream; //!< Next TX output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    nextRxStream; //!< Next RX output stream.
-static std::map<uint32_t, Ptr<OutputStreamWrapper>>
-    inFlightStream;                            //!< In flight output stream.
-static std::map<uint32_t, uint32_t> cWndValue; //!< congestion window value.
-static std::map<uint32_t, uint32_t>
-    ssThreshValue; //!< SlowStart threshold value.
+static std::map<uint32_t, bool> firstCwnd;
+static std::map<uint32_t, bool> firstSshThr;
+static std::map<uint32_t, bool> firstRtt;
+static std::map<uint32_t, bool> firstRto;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> cWndStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> ssThreshStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> rttStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> rtoStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextTxStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> nextRxStream;
+static std::map<uint32_t, Ptr<OutputStreamWrapper>> inFlightStream;
+static std::map<uint32_t, uint32_t> cWndValue;
+static std::map<uint32_t, uint32_t> ssThreshValue;
 
-/**
- * Get the Node Id From Context.
- *
- * \param context The context.
- * \return the node ID.
- */
 static uint32_t GetNodeIdFromContext(std::string context) {
   const std::size_t n1 = context.find_first_of('/', 1);
   const std::size_t n2 = context.find_first_of('/', n1 + 1);
   return std::stoul(context.substr(n1 + 1, n2 - n1 - 1));
 }
 
-/**
- * Congestion window tracer.
- *
- * \param context The context.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void CwndTracer(std::string context, uint32_t oldval, uint32_t newval) {
   uint32_t nodeId = GetNodeIdFromContext(context);
 
@@ -114,13 +58,6 @@ static void CwndTracer(std::string context, uint32_t oldval, uint32_t newval) {
   }
 }
 
-/**
- * Slow start threshold tracer.
- *
- * \param context The context.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void SsThreshTracer(std::string context, uint32_t oldval,
                            uint32_t newval) {
   uint32_t nodeId = GetNodeIdFromContext(context);
@@ -139,13 +76,6 @@ static void SsThreshTracer(std::string context, uint32_t oldval,
   }
 }
 
-/**
- * RTT tracer.
- *
- * \param context The context.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void RttTracer(std::string context, Time oldval, Time newval) {
   uint32_t nodeId = GetNodeIdFromContext(context);
 
@@ -158,13 +88,6 @@ static void RttTracer(std::string context, Time oldval, Time newval) {
                                   << newval.GetSeconds() << std::endl;
 }
 
-/**
- * RTO tracer.
- *
- * \param context The context.
- * \param oldval Old value.
- * \param newval New value.
- */
 static void RtoTracer(std::string context, Time oldval, Time newval) {
   uint32_t nodeId = GetNodeIdFromContext(context);
 
@@ -177,13 +100,6 @@ static void RtoTracer(std::string context, Time oldval, Time newval) {
                                   << newval.GetSeconds() << std::endl;
 }
 
-/**
- * Next TX tracer.
- *
- * \param context The context.
- * \param old Old sequence number.
- * \param nextTx Next sequence number.
- */
 static void NextTxTracer(std::string context,
                          SequenceNumber32 old [[maybe_unused]],
                          SequenceNumber32 nextTx) {
@@ -193,13 +109,6 @@ static void NextTxTracer(std::string context,
       << Simulator::Now().GetSeconds() << " " << nextTx << std::endl;
 }
 
-/**
- * In-flight tracer.
- *
- * \param context The context.
- * \param old Old value.
- * \param inFlight In flight value.
- */
 static void InFlightTracer(std::string context, uint32_t old [[maybe_unused]],
                            uint32_t inFlight) {
   uint32_t nodeId = GetNodeIdFromContext(context);
@@ -208,13 +117,6 @@ static void InFlightTracer(std::string context, uint32_t old [[maybe_unused]],
       << Simulator::Now().GetSeconds() << " " << inFlight << std::endl;
 }
 
-/**
- * Next RX tracer.
- *
- * \param context The context.
- * \param old Old sequence number.
- * \param nextRx Next sequence number.
- */
 static void NextRxTracer(std::string context,
                          SequenceNumber32 old [[maybe_unused]],
                          SequenceNumber32 nextRx) {
@@ -224,12 +126,6 @@ static void NextRxTracer(std::string context,
       << Simulator::Now().GetSeconds() << " " << nextRx << std::endl;
 }
 
-/**
- * Congestion window trace connection.
- *
- * \param cwnd_tr_file_name Congestion window trace file name.
- * \param nodeId Node ID.
- */
 static void TraceCwnd(std::string cwnd_tr_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   cWndStream[nodeId] = ascii.CreateFileStream(cwnd_tr_file_name);
@@ -238,12 +134,6 @@ static void TraceCwnd(std::string cwnd_tr_file_name, uint32_t nodeId) {
                   MakeCallback(&CwndTracer));
 }
 
-/**
- * Slow start threshold trace connection.
- *
- * \param ssthresh_tr_file_name Slow start threshold trace file name.
- * \param nodeId Node ID.
- */
 static void TraceSsThresh(std::string ssthresh_tr_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   ssThreshStream[nodeId] = ascii.CreateFileStream(ssthresh_tr_file_name);
@@ -252,12 +142,6 @@ static void TraceSsThresh(std::string ssthresh_tr_file_name, uint32_t nodeId) {
                   MakeCallback(&SsThreshTracer));
 }
 
-/**
- * RTT trace connection.
- *
- * \param rtt_tr_file_name RTT trace file name.
- * \param nodeId Node ID.
- */
 static void TraceRtt(std::string rtt_tr_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   rttStream[nodeId] = ascii.CreateFileStream(rtt_tr_file_name);
@@ -266,12 +150,6 @@ static void TraceRtt(std::string rtt_tr_file_name, uint32_t nodeId) {
                   MakeCallback(&RttTracer));
 }
 
-/**
- * RTO trace connection.
- *
- * \param rto_tr_file_name RTO trace file name.
- * \param nodeId Node ID.
- */
 static void TraceRto(std::string rto_tr_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   rtoStream[nodeId] = ascii.CreateFileStream(rto_tr_file_name);
@@ -280,12 +158,6 @@ static void TraceRto(std::string rto_tr_file_name, uint32_t nodeId) {
                   MakeCallback(&RtoTracer));
 }
 
-/**
- * Next TX trace connection.
- *
- * \param next_tx_seq_file_name Next TX trace file name.
- * \param nodeId Node ID.
- */
 static void TraceNextTx(std::string &next_tx_seq_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   nextTxStream[nodeId] = ascii.CreateFileStream(next_tx_seq_file_name);
@@ -294,12 +166,6 @@ static void TraceNextTx(std::string &next_tx_seq_file_name, uint32_t nodeId) {
                   MakeCallback(&NextTxTracer));
 }
 
-/**
- * In flight trace connection.
- *
- * \param in_flight_file_name In flight trace file name.
- * \param nodeId Node ID.
- */
 static void TraceInFlight(std::string &in_flight_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   inFlightStream[nodeId] = ascii.CreateFileStream(in_flight_file_name);
@@ -308,12 +174,6 @@ static void TraceInFlight(std::string &in_flight_file_name, uint32_t nodeId) {
                   MakeCallback(&InFlightTracer));
 }
 
-/**
- * Next RX trace connection.
- *
- * \param next_rx_seq_file_name Next RX trace file name.
- * \param nodeId Node ID.
- */
 static void TraceNextRx(std::string &next_rx_seq_file_name, uint32_t nodeId) {
   AsciiTraceHelper ascii;
   nextRxStream[nodeId] = ascii.CreateFileStream(next_rx_seq_file_name);
@@ -379,12 +239,6 @@ int main(int argc, char *argv[]) {
   SeedManager::SetSeed(1);
   SeedManager::SetRun(run);
 
-  // User may find it convenient to enable logging
-  // LogComponentEnable("TcpVariantsComparison", LOG_LEVEL_ALL);
-  // LogComponentEnable("BulkSendApplication", LOG_LEVEL_INFO);
-  // LogComponentEnable("PfifoFastQueueDisc", LOG_LEVEL_ALL);
-
-  // Calculate the ADU size
   Header *temp_header = new Ipv4Header();
   uint32_t ip_header = temp_header->GetSerializedSize();
   NS_LOG_LOGIC("IP Header size is: " << ip_header);
@@ -396,25 +250,21 @@ int main(int argc, char *argv[]) {
   uint32_t tcp_adu_size = mtu_bytes - 20 - (ip_header + tcp_header);
   NS_LOG_LOGIC("TCP ADU size is: " << tcp_adu_size);
 
-  // Set the simulation start and stop time
   double start_time = 0.1;
   double stop_time = start_time + duration;
 
-  // 2 MB of TCP buffer
   Config::SetDefault("ns3::TcpSocket::RcvBufSize", UintegerValue(1 << 21));
   Config::SetDefault("ns3::TcpSocket::SndBufSize", UintegerValue(1 << 21));
   Config::SetDefault("ns3::TcpSocketBase::Sack", BooleanValue(sack));
 
   Config::SetDefault("ns3::TcpL4Protocol::RecoveryType",
                      TypeIdValue(TypeId::LookupByName(recovery)));
-  // Select TCP variant
   TypeId tcpTid;
   NS_ABORT_MSG_UNLESS(TypeId::LookupByNameFailSafe(transport_prot, &tcpTid),
                       "TypeId " << transport_prot << " not found");
   Config::SetDefault("ns3::TcpL4Protocol::SocketType",
                      TypeIdValue(TypeId::LookupByName(transport_prot)));
 
-  // Create gateways, sources, and sinks
   NodeContainer gateways;
   gateways.Create(1);
   NodeContainer sources;
@@ -422,8 +272,6 @@ int main(int argc, char *argv[]) {
   NodeContainer sinks;
   sinks.Create(num_flows);
 
-  // Configure the error model
-  // Here we use RateErrorModel with packet error rate
   Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
   uv->SetStream(50);
   RateErrorModel error_model;
@@ -448,8 +296,6 @@ int main(int argc, char *argv[]) {
   Ipv4AddressHelper address;
   address.SetBase("10.0.0.0", "255.255.255.0");
 
-  // Configure the sources and sinks net devices
-  // and the channels between the sources/sinks and the gateways
   PointToPointHelper LocalLink;
   LocalLink.SetDeviceAttribute("DataRate", StringValue(access_bandwidth));
   LocalLink.SetChannelAttribute("Delay", StringValue(access_delay));
@@ -521,7 +367,6 @@ int main(int argc, char *argv[]) {
     sinkApp.Stop(Seconds(stop_time));
   }
 
-  // Set up tracing if enabled
   if (tracing) {
     std::ofstream ascii;
     Ptr<OutputStreamWrapper> ascii_wrap;
@@ -570,7 +415,6 @@ int main(int argc, char *argv[]) {
     LocalLink.EnablePcapAll(prefix_file_name, true);
   }
 
-  // Flow monitor
   FlowMonitorHelper flowHelper;
   if (flow_monitor) {
     flowHelper.InstallAll();

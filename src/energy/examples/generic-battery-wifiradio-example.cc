@@ -1,41 +1,4 @@
-/*
- * Copyright (c) 2023 Tokushima University, Japan
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Alberto Gallegos Ramonet <alramonet@is.tokushima-u.ac.jp>
- */
 
-/*
- *  Node 1 <-------------- distanceToRx ------------> Node2
- *  (SoC 89%)                                        (SoC 95%)
- *
- *  This example is based on the basic-energy-model-test created by He Wu.
- *  The objective is to demonstrate the use of a GenericBatteryModel with
- *  the WifiRadioEnergyModel. The WifiRadioEnergyModel was created to work
- *  specifically with the BasicEnergySource, therefore, the current example
- *  should be considered a prototype until WifiRadioEnergyModel can be
- *  revised and thoroughly tested with the GenericBatterySource.
- *
- *  In the example, 2 wifi nodes are created each with a GenericBatterySource
- *  (Li-Ion battery type) is created with 4 cells (2 series, 2 parallel).
- *  The simulation runs for 3600 secs. Tx, Rx and Idle consumption values
- *  have been exaggerated for demonstration purposes. At the end of the
- * simulation, the State of Charge (Soc %) and remaining capacity in Jouls for
- * each node is displayed.
- *
- */
 
 #include <ns3/core-module.h>
 #include <ns3/energy-module.h>
@@ -51,12 +14,6 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("GenericBatteryWifiRadioExample");
 
-/**
- * Print a received packet
- *
- * \param from sender address
- * \return a string with the details of the packet: dst {IP, port}, time.
- */
 inline std::string PrintReceivedPacket(Address &from) {
   InetSocketAddress iaddr = InetSocketAddress::ConvertFrom(from);
 
@@ -67,11 +24,6 @@ inline std::string PrintReceivedPacket(Address &from) {
   return oss.str();
 }
 
-/**
- * \param socket Pointer to socket.
- *
- * Packet receiving sink.
- */
 void ReceivePacket(Ptr<Socket> socket) {
   Ptr<Packet> packet;
   Address from;
@@ -82,15 +34,6 @@ void ReceivePacket(Ptr<Socket> socket) {
   }
 }
 
-/**
- * \param socket Pointer to socket.
- * \param pktSize Packet size.
- * \param n Pointer to node.
- * \param pktCount Number of packets to generate.
- * \param pktInterval Packet sending interval.
- *
- * Generate Traffic
- */
 static void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize, Ptr<Node> n,
                             uint32_t pktCount, Time pktInterval) {
   if (pktCount > 0) {
@@ -102,12 +45,6 @@ static void GenerateTraffic(Ptr<Socket> socket, uint32_t pktSize, Ptr<Node> n,
   }
 }
 
-/**
- * Trace function for remaining energy at node.
- *
- * \param oldValue Old value
- * \param remainingEnergy New value
- */
 void RemainingEnergy(double oldValue, double remainingEnergy) {
   NS_LOG_DEBUG(" Remaining energy Node 1 = " << remainingEnergy << " J");
 }
@@ -117,15 +54,14 @@ int main(int argc, char *argv[]) {
   LogComponentEnable("GenericBatteryWifiRadioExample", LOG_LEVEL_DEBUG);
 
   std::string phyMode("DsssRate1Mbps");
-  double rss = -80;          // dBm
-  uint32_t packetSize = 200; // bytes
+  double rss = -80;
+  uint32_t packetSize = 200;
   bool verbose = false;
 
-  // simulation parameters
-  uint32_t numPackets = 10000; // number of packets to send
-  double interval = 1;         // seconds
-  double startTime = 0.0;      // seconds
-  double distanceToRx = 100.0; // meters
+  uint32_t numPackets = 10000;
+  double interval = 1;
+  double startTime = 0.0;
+  double distanceToRx = 100.0;
 
   CommandLine cmd(__FILE__);
   cmd.AddValue("phyMode", "Wifi Phy mode", phyMode);
@@ -157,10 +93,6 @@ int main(int argc, char *argv[]) {
   }
   wifi.SetStandard(WIFI_STANDARD_80211b);
 
-  ////////////////////////
-  // Wifi PHY and MAC   //
-  ////////////////////////
-
   YansWifiPhyHelper wifiPhy;
   YansWifiChannelHelper wifiChannel;
   wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
@@ -177,10 +109,6 @@ int main(int argc, char *argv[]) {
   wifiMac.SetType("ns3::AdhocWifiMac");
   NetDeviceContainer devices = wifi.Install(wifiPhy, wifiMac, nodeContainer);
 
-  //////////////////
-  //   Mobility   //
-  //////////////////
-
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> positionAlloc =
       CreateObject<ListPositionAllocator>();
@@ -190,12 +118,6 @@ int main(int argc, char *argv[]) {
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(nodeContainer);
 
-  //////////////////////
-  //  Energy Model    //
-  //////////////////////
-
-  // Use a preset PANASONIC Li-Ion batteries arranged in a cell pack (2 series,
-  // 2 parallel)
   GenericBatteryModelHelper batteryHelper;
   EnergySourceContainer energySourceContainer =
       batteryHelper.Install(nodeContainer, PANASONIC_CGR18650DA_LION);
@@ -206,18 +128,12 @@ int main(int argc, char *argv[]) {
   Ptr<GenericBatteryModel> battery1 =
       DynamicCast<GenericBatteryModel>(energySourceContainer.Get(1));
 
-  // Energy consumption quantities have been exaggerated for
-  // demonstration purposes, real consumption values are much smaller.
   WifiRadioEnergyModelHelper radioEnergyHelper;
   radioEnergyHelper.Set("TxCurrentA", DoubleValue(4.66));
   radioEnergyHelper.Set("RxCurrentA", DoubleValue(0.466));
   radioEnergyHelper.Set("IdleCurrentA", DoubleValue(0.466));
   DeviceEnergyModelContainer deviceModels =
       radioEnergyHelper.Install(devices, energySourceContainer);
-
-  /////////////////////
-  // Internet stack  //
-  /////////////////////
 
   InternetStackHelper internet;
   internet.Install(nodeContainer);
@@ -227,21 +143,15 @@ int main(int argc, char *argv[]) {
   Ipv4InterfaceContainer i = ipv4.Assign(devices);
 
   TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-  Ptr<Socket> recvSink =
-      Socket::CreateSocket(nodeContainer.Get(1), tid); // node 1, receiver
+  Ptr<Socket> recvSink = Socket::CreateSocket(nodeContainer.Get(1), tid);
   InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), 80);
   recvSink->Bind(local);
   recvSink->SetRecvCallback(MakeCallback(&ReceivePacket));
 
-  Ptr<Socket> source =
-      Socket::CreateSocket(nodeContainer.Get(0), tid); // node 0, sender
+  Ptr<Socket> source = Socket::CreateSocket(nodeContainer.Get(0), tid);
   InetSocketAddress remote = InetSocketAddress(Ipv4Address::GetBroadcast(), 80);
   source->SetAllowBroadcast(true);
   source->Connect(remote);
-
-  /////////////////////
-  // Trace Sources   //
-  /////////////////////
 
   battery1->TraceConnectWithoutContext("RemainingEnergy",
                                        MakeCallback(&RemainingEnergy));
@@ -249,9 +159,6 @@ int main(int argc, char *argv[]) {
   Ptr<DeviceEnergyModel> radioConsumptionModel =
       battery1->FindDeviceEnergyModels("ns3::WifiRadioEnergyModel").Get(0);
 
-  /////////////////////
-  // Traffic Setup   //
-  /////////////////////
   Simulator::Schedule(Seconds(startTime), &GenerateTraffic, source, packetSize,
                       nodeContainer.Get(0), numPackets, interPacketInterval);
 

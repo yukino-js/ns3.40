@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2018 Universita' degli Studi di Napoli Federico II
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Stefano Avallone <stavallo@unina.it>
- *
- */
 
 #include "ns3/drop-tail-queue.h"
 #include "ns3/packet.h"
@@ -28,19 +9,8 @@
 
 using namespace ns3;
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Queue Disc Test Item
- */
 class QdTestItem : public QueueDiscItem {
 public:
-  /**
-   * Constructor
-   *
-   * \param p the packet
-   * \param addr the address
-   */
   QdTestItem(Ptr<Packet> p, const Address &addr);
   ~QdTestItem() override;
   void AddHeader() override;
@@ -56,17 +26,8 @@ void QdTestItem::AddHeader() {}
 
 bool QdTestItem::Mark() { return false; }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test Child Queue Disc that may drop packets before enqueue or after
- * dequeue
- */
 class TestChildQueueDisc : public QueueDisc {
 public:
-  /**
-   * Constructor
-   */
   TestChildQueueDisc();
   ~TestChildQueueDisc() override;
   bool DoEnqueue(Ptr<QueueDiscItem> item) override;
@@ -74,11 +35,8 @@ public:
   bool CheckConfig() override;
   void InitializeParams() override;
 
-  // Reasons for dropping packets
-  static constexpr const char *BEFORE_ENQUEUE =
-      "Before enqueue"; //!< Drop before enqueue
-  static constexpr const char *AFTER_DEQUEUE =
-      "After dequeue"; //!< Drop after dequeue
+  static constexpr const char *BEFORE_ENQUEUE = "Before enqueue";
+  static constexpr const char *AFTER_DEQUEUE = "After dequeue";
 };
 
 TestChildQueueDisc::TestChildQueueDisc()
@@ -87,7 +45,6 @@ TestChildQueueDisc::TestChildQueueDisc()
 TestChildQueueDisc::~TestChildQueueDisc() {}
 
 bool TestChildQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
-  // Drop the packet if there are already 4 packets queued
   if (GetNPackets() >= 4) {
     DropBeforeEnqueue(item, BEFORE_ENQUEUE);
     return false;
@@ -98,7 +55,6 @@ bool TestChildQueueDisc::DoEnqueue(Ptr<QueueDiscItem> item) {
 Ptr<QueueDiscItem> TestChildQueueDisc::DoDequeue() {
   Ptr<QueueDiscItem> item = GetInternalQueue(0)->Dequeue();
 
-  // Drop the packet if at least 2 packets remain in the queue
   while (GetNPackets() >= 2) {
     DropAfterDequeue(item, AFTER_DEQUEUE);
     item = GetInternalQueue(0)->Dequeue();
@@ -113,16 +69,8 @@ bool TestChildQueueDisc::CheckConfig() {
 
 void TestChildQueueDisc::InitializeParams() {}
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Test Parent Queue Disc having a child of type TestChildQueueDisc
- */
 class TestParentQueueDisc : public QueueDisc {
 public:
-  /**
-   * Constructor
-   */
   TestParentQueueDisc();
   ~TestParentQueueDisc() override;
   bool DoEnqueue(Ptr<QueueDiscItem> item) override;
@@ -153,57 +101,27 @@ bool TestParentQueueDisc::CheckConfig() {
 
 void TestParentQueueDisc::InitializeParams() {}
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Keep statistics based on traces
- */
 class TestCounter {
 public:
-  /**
-   * Constructor
-   */
   TestCounter();
   virtual ~TestCounter();
 
-  /**
-   * Connect private methods to the queue disc traces
-   * \param qd the queue disc
-   */
   void ConnectTraces(Ptr<QueueDisc> qd);
 
 private:
-  /**
-   * Update statistics after a packet has been enqueued
-   * \param item the enqueued packet
-   */
   void PacketEnqueued(Ptr<const QueueDiscItem> item);
-  /**
-   * Update statistics after a packet has been dequeued
-   * \param item the dequeued packet
-   */
   void PacketDequeued(Ptr<const QueueDiscItem> item);
-  /**
-   * Update statistics after a packet has been dropped before enqueue
-   * \param item the dropped packet
-   * \param reason the reason why the packet was dropped
-   */
   void PacketDbe(Ptr<const QueueDiscItem> item, const char *reason);
-  /**
-   * Update statistics after a packet has been dropped after dequeue
-   * \param item the dropped packet
-   * \param reason the reason why the packet was dropped
-   */
   void PacketDad(Ptr<const QueueDiscItem> item, const char *reason);
 
-  uint32_t m_nPackets;    //!< Number of queued packets
-  uint32_t m_nBytes;      //!< Number of queued bytes
-  uint32_t m_nDbePackets; //!< Number of packets dropped before enqueue
-  uint32_t m_nDbeBytes;   //!< Number of packets dropped before enqueue
-  uint32_t m_nDadPackets; //!< Number of packets dropped after dequeue
-  uint32_t m_nDadBytes;   //!< Number of packets dropped after dequeue
+  uint32_t m_nPackets;
+  uint32_t m_nBytes;
+  uint32_t m_nDbePackets;
+  uint32_t m_nDbeBytes;
+  uint32_t m_nDadPackets;
+  uint32_t m_nDadBytes;
 
-  friend class QueueDiscTracesTestCase; //!< Needs to access private members
+  friend class QueueDiscTracesTestCase;
 };
 
 TestCounter::TestCounter()
@@ -243,51 +161,19 @@ void TestCounter::ConnectTraces(Ptr<QueueDisc> qd) {
                                  MakeCallback(&TestCounter::PacketDad, this));
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Queue Disc Traces Test Case
- *
- * This test case makes use of a test queue disc acting as root queue disc and
- * having a single child queue disc, which has a single DropTail queue. The
- * Enqueue, Dequeue, DropBeforeEnqueue and DropAfterDequeue traces of both queue
- * discs are connected to the methods of TestCounter objects that keep track of
- * the amount of packets/bytes queued inside each queue disc and the cumulative
- * amount of packets/bytes dropped before enqueue and after dequeue. A series of
- * enqueue, dequeue and peek operations are performed on the root queue disc and
- * both the statistics kept by the QueueDisc class and the values computed by
- * the TestCounter objects are compared with the expected values.
- */
 class QueueDiscTracesTestCase : public TestCase {
 public:
   QueueDiscTracesTestCase();
   void DoRun() override;
 
-  /**
-   * Check that queued packets/bytes are consistent with what is expected
-   * \param qd the queue disc
-   * \param nPackets the expected number of packets
-   * \param nBytes the expected number of bytes
-   */
   void CheckQueued(Ptr<QueueDisc> qd, uint32_t nPackets, uint32_t nBytes);
-  /**
-   * Check that packets/bytes dropped before enqueue are consistent with what is
-   * expected \param qd the queue disc \param nDbePackets the expected number of
-   * packets \param nDbeBytes the expected number of bytes
-   */
   void CheckDroppedBeforeEnqueue(Ptr<QueueDisc> qd, uint32_t nDbePackets,
                                  uint32_t nDbeBytes);
-  /**
-   * Check that packets/bytes dropped after dequeue are consistent with what is
-   * expected \param qd the queue disc \param nDadPackets the expected number of
-   * packets \param nDadBytes the expected number of bytes
-   */
   void CheckDroppedAfterDequeue(Ptr<QueueDisc> qd, uint32_t nDadPackets,
                                 uint32_t nDadBytes);
 
 private:
-  std::map<Ptr<QueueDisc>, TestCounter>
-      m_counter; //!< counters for the queue discs
+  std::map<Ptr<QueueDisc>, TestCounter> m_counter;
 };
 
 QueueDiscTracesTestCase::QueueDiscTracesTestCase()
@@ -355,7 +241,6 @@ void QueueDiscTracesTestCase::DoRun() {
   uint32_t pktSizeUnit = 100;
   Ptr<const QueueDiscItem> item;
 
-  // Create queue discs
   Ptr<QueueDisc> root = CreateObject<TestParentQueueDisc>();
   root->Initialize();
 
@@ -364,14 +249,12 @@ void QueueDiscTracesTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_NE(child, nullptr,
                         "The child queue disc has not been created");
 
-  // Create counters and connect traces to the counters
   m_counter.emplace(root, TestCounter());
   m_counter.emplace(child, TestCounter());
 
   m_counter[root].ConnectTraces(root);
   m_counter[child].ConnectTraces(child);
 
-  // Enqueue 4 packets. They must all be enqueued
   for (uint16_t i = 1; i <= 4; i++) {
     root->Enqueue(Create<QdTestItem>(Create<Packet>(pktSizeUnit * i), dest));
 
@@ -384,8 +267,6 @@ void QueueDiscTracesTestCase::DoRun() {
     CheckDroppedAfterDequeue(child, 0, 0);
   }
 
-  // The fifth packet is dropped before enqueue by the child queue disc.
-  // The packet drop is notified to the root queue disc.
   root->Enqueue(Create<QdTestItem>(Create<Packet>(pktSizeUnit * 5), dest));
 
   CheckQueued(root, 4, pktSizeUnit * 10);
@@ -396,15 +277,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 0, 0);
 
-  // Peek one packet. The default DoPeek method asks the root queue disc to
-  // dequeue a packet, even though the statistics are not updated and the
-  // dequeue trace is not fired. The root queue disc asks the child queue disc
-  // to dequeue a packet. In this case, two packets (those having size of 100
-  // and 200 bytes) are dequeued and dropped by the child queue disc. Therefore,
-  // the dequeue trace of the root queue disc is fired twice and the packet
-  // drops are notified to the root queue disc to reflect the fact that two
-  // packets are no longer in the queue disc. The peeked packet is still part of
-  // the root queue disc, but no longer part of the child queue disc.
   item = root->Peek();
 
   NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet must have been returned");
@@ -419,7 +291,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Peek again. Nothing changes.
   item = root->Peek();
 
   NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet must have been returned");
@@ -434,8 +305,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Dequeue one packet. The root queue disc returns the previously peeked
-  // packet.
   item = root->Dequeue();
 
   NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet must have been returned");
@@ -450,7 +319,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Dequeue the last packet.
   item = root->Dequeue();
 
   NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet must have been returned");
@@ -465,7 +333,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Peek a packet. No packet is left.
   item = root->Peek();
 
   NS_TEST_ASSERT_MSG_EQ(item, nullptr, "No packet must have been returned");
@@ -478,7 +345,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Enqueue one packet.
   root->Enqueue(Create<QdTestItem>(Create<Packet>(pktSizeUnit), dest));
 
   CheckQueued(root, 1, pktSizeUnit);
@@ -489,7 +355,6 @@ void QueueDiscTracesTestCase::DoRun() {
   CheckDroppedBeforeEnqueue(child, 1, pktSizeUnit * 5);
   CheckDroppedAfterDequeue(child, 2, pktSizeUnit * 3);
 
-  // Dequeue one packet.
   item = root->Dequeue();
 
   NS_TEST_ASSERT_MSG_NE(item, nullptr, "A packet must have been returned");
@@ -507,14 +372,9 @@ void QueueDiscTracesTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup traffic-control-test
- *
- * \brief Queue Disc Traces Test Suite
- */
 static class QueueDiscTracesTestSuite : public TestSuite {
 public:
   QueueDiscTracesTestSuite() : TestSuite("queue-disc-traces", UNIT) {
     AddTestCase(new QueueDiscTracesTestCase(), TestCase::QUICK);
   }
-} g_queueDiscTracesTestSuite; ///< the test suite
+} g_queueDiscTracesTestSuite;

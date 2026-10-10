@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "spectrum-error-model.h"
 
@@ -31,9 +13,7 @@ NS_OBJECT_ENSURE_REGISTERED(SpectrumErrorModel);
 TypeId SpectrumErrorModel::GetTypeId() {
   static TypeId tid = TypeId("ns3::SpectrumErrorModel")
                           .SetParent<Object>()
-                          .SetGroupName("Spectrum")
-      // No AddConstructor because this is an abstract class.
-      ;
+                          .SetGroupName("Spectrum");
   return tid;
 }
 
@@ -41,7 +21,6 @@ SpectrumErrorModel::~SpectrumErrorModel() {}
 
 NS_OBJECT_ENSURE_REGISTERED(ShannonSpectrumErrorModel);
 
-/* static */
 TypeId ShannonSpectrumErrorModel::GetTypeId() {
   static TypeId tid = TypeId("ns3::ShannonSpectrumErrorModel")
                           .SetParent<SpectrumErrorModel>()

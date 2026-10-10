@@ -1,25 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es> (re-wrote from scratch this helper)
- *         Giuseppe Piro <g.piro@poliba.it> (parts of the PHY & channel creation
- * & configuration copied from the GSoC 2011 code) Modified by: Danilo Abrignani
- * <danilo.abrignani@unibo.it> (Carrier Aggregation - GSoC 2015) Biljana Bojovic
- * <biljana.bojovic@cttc.es> (Carrier Aggregation)
- */
 
 #include "lte-helper.h"
 
@@ -224,9 +202,6 @@ Ptr<SpectrumChannel> LteHelper::GetDownlinkSpectrumChannel() const {
 }
 
 void LteHelper::ChannelModelInitialization() {
-  // Channel Object (i.e. Ptr<SpectrumChannel>) are within a vector
-  // PathLossModel Objects are vectors --> in InstallSingleEnb we will set the
-  // frequency
   NS_LOG_FUNCTION(this << m_noOfCcs);
 
   m_downlinkChannel = m_channelFactory.Create<SpectrumChannel>();
@@ -425,7 +400,7 @@ void LteHelper::SetSpectrumChannelAttribute(std::string n,
 
 NetDeviceContainer LteHelper::InstallEnbDevice(NodeContainer c) {
   NS_LOG_FUNCTION(this);
-  Initialize(); // will run DoInitialize () if necessary
+  Initialize();
   NetDeviceContainer devices;
   for (auto i = c.Begin(); i != c.End(); ++i) {
     Ptr<Node> node = *i;
@@ -448,7 +423,7 @@ NetDeviceContainer LteHelper::InstallUeDevice(NodeContainer c) {
 
 Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
   NS_LOG_FUNCTION(this << n);
-  uint16_t cellId = m_cellIdCounter; // \todo Remove, eNB has no cell ID
+  uint16_t cellId = m_cellIdCounter;
 
   Ptr<LteEnbNetDevice> dev = m_enbNetDeviceFactory.Create<LteEnbNetDevice>();
   Ptr<LteHandoverAlgorithm> handoverAlgorithm =
@@ -461,7 +436,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
                   "CC map size (" << m_componentCarrierPhyParams.size()
                                   << ") must be equal to number of carriers ("
                                   << m_noOfCcs << ")");
-  // create component carrier map for this eNb device
   std::map<uint8_t, Ptr<ComponentCarrierBaseStation>> ccMap;
   for (auto it = m_componentCarrierPhyParams.begin();
        it != m_componentCarrierPhyParams.end(); ++it) {
@@ -475,7 +449,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
     cc->SetCellId(m_cellIdCounter++);
     ccMap[it->first] = cc;
   }
-  // CC map is not needed anymore
   m_componentCarrierPhyParams.clear();
 
   NS_ABORT_MSG_IF(
@@ -497,18 +470,17 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
 
     Ptr<LteChunkProcessor> pCtrl = Create<LteChunkProcessor>();
     pCtrl->AddCallback(MakeCallback(&LteEnbPhy::GenerateCtrlCqiReport, phy));
-    ulPhy->AddCtrlSinrChunkProcessor(pCtrl); // for evaluating SRS UL-CQI
+    ulPhy->AddCtrlSinrChunkProcessor(pCtrl);
 
     Ptr<LteChunkProcessor> pData = Create<LteChunkProcessor>();
     pData->AddCallback(MakeCallback(&LteEnbPhy::GenerateDataCqiReport, phy));
     pData->AddCallback(
         MakeCallback(&LteSpectrumPhy::UpdateSinrPerceived, ulPhy));
-    ulPhy->AddDataSinrChunkProcessor(pData); // for evaluating PUSCH UL-CQI
+    ulPhy->AddDataSinrChunkProcessor(pData);
 
     Ptr<LteChunkProcessor> pInterf = Create<LteChunkProcessor>();
     pInterf->AddCallback(MakeCallback(&LteEnbPhy::ReportInterference, phy));
-    ulPhy->AddInterferenceDataChunkProcessor(
-        pInterf); // for interference power tracing
+    ulPhy->AddInterferenceDataChunkProcessor(pInterf);
 
     dlPhy->SetChannel(m_downlinkChannel);
     ulPhy->SetChannel(m_uplinkChannel);
@@ -540,11 +512,8 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
       m_enbComponentCarrierManagerFactory
           .Create<LteEnbComponentCarrierManager>();
 
-  // ComponentCarrierManager SAP
   rrc->SetLteCcmRrcSapProvider(ccmEnbManager->GetLteCcmRrcSapProvider());
   ccmEnbManager->SetLteCcmRrcSapUser(rrc->GetLteCcmRrcSapUser());
-  // Set number of component carriers. Note: eNB CCM would also set the
-  // number of component carriers in eNB RRC
   ccmEnbManager->SetNumberOfComponentCarriers(m_noOfCcs);
 
   rrc->ConfigureCarriers(ccMap);
@@ -568,7 +537,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
   if (m_epcHelper) {
     EnumValue epsBearerToRlcMapping;
     rrc->GetAttribute("EpsBearerToRlcMapping", epsBearerToRlcMapping);
-    // it does not make sense to use RLC/SM when also using the EPC
     if (epsBearerToRlcMapping.Get() == LteEnbRrc::RLC_SM_ALWAYS) {
       rrc->SetAttribute("EpsBearerToRlcMapping",
                         EnumValue(LteEnbRrc::RLC_UM_ALWAYS));
@@ -580,16 +548,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
   handoverAlgorithm->SetLteHandoverManagementSapUser(
       rrc->GetLteHandoverManagementSapUser());
 
-  // This RRC attribute is used to connect each new RLC instance with the MAC
-  // layer (for function such as TransmitPdu, ReportBufferStatusReport). Since
-  // in this new architecture, the component carrier manager acts a proxy, it
-  // will have its own LteMacSapProvider interface, RLC will see it as through
-  // original MAC interface LteMacSapProvider, but the function call will go now
-  // through LteEnbComponentCarrierManager instance that needs to implement
-  // functions of this interface, and its task will be to forward these calls to
-  // the specific MAC of some of the instances of component carriers. This
-  // decision will depend on the specific implementation of the component
-  // carrier manager.
   rrc->SetLteMacSapProvider(ccmEnbManager->GetLteMacSapProvider());
 
   bool ccmTest;
@@ -616,7 +574,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetMac()
         ->SetComponentCarrierId(it->first);
-    // FFR SAP
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetFfMacScheduler()
         ->SetLteFfrSapProvider(DynamicCast<ComponentCarrierEnb>(it->second)
@@ -634,9 +591,7 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetFfrAlgorithm()
         ->SetLteFfrRrcSapUser(rrc->GetLteFfrRrcSapUser(it->first));
-    // FFR SAP END
 
-    // PHY <--> MAC SAP
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetPhy()
         ->SetLteEnbPhySapUser(DynamicCast<ComponentCarrierEnb>(it->second)
@@ -647,9 +602,7 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
         ->SetLteEnbPhySapProvider(DynamicCast<ComponentCarrierEnb>(it->second)
                                       ->GetPhy()
                                       ->GetLteEnbPhySapProvider());
-    // PHY <--> MAC SAP END
 
-    // Scheduler SAP
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetMac()
         ->SetFfMacSchedSapProvider(DynamicCast<ComponentCarrierEnb>(it->second)
@@ -671,7 +624,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
         ->SetFfMacCschedSapUser(DynamicCast<ComponentCarrierEnb>(it->second)
                                     ->GetMac()
                                     ->GetFfMacCschedSapUser());
-    // Scheduler SAP END
 
     DynamicCast<ComponentCarrierEnb>(it->second)
         ->GetMac()
@@ -681,8 +633,6 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
                        ->GetMac()
                        ->GetLteCcmMacSapProvider());
 
-    // insert the pointer to the LteMacSapProvider interface of the MAC layer of
-    // the specific component carrier
     ccmTest = ccmEnbManager->SetMacSapProvider(
         it->first, DynamicCast<ComponentCarrierEnb>(it->second)
                        ->GetMac()
@@ -744,7 +694,7 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
     if (!ulFreqOk) {
       NS_LOG_WARN("UL propagation model does not have a Frequency attribute");
     }
-  } // end for
+  }
   rrc->SetForwardUpCallback(MakeCallback(&LteEnbNetDevice::Receive, dev));
   dev->Initialize();
   n->AddDevice(dev);
@@ -762,11 +712,9 @@ Ptr<NetDevice> LteHelper::InstallSingleEnbDevice(Ptr<Node> n) {
         n->GetApplication(0)->GetObject<EpcEnbApplication>();
     NS_ASSERT_MSG(enbApp, "cannot retrieve EpcEnbApplication");
 
-    // S1 SAPs
     rrc->SetS1SapProvider(enbApp->GetS1SapProvider());
     enbApp->SetS1SapUser(rrc->GetS1SapUser());
 
-    // X2 SAPs
     Ptr<EpcX2> x2 = n->GetObject<EpcX2>();
     x2->SetEpcX2SapUser(rrc->GetEpcX2SapUser());
     rrc->SetEpcX2SapProvider(x2->GetEpcX2SapProvider());
@@ -780,11 +728,6 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
 
   Ptr<LteUeNetDevice> dev = m_ueNetDeviceFactory.Create<LteUeNetDevice>();
 
-  // Initialize the component carriers with default values in order to
-  // initialize MACs and PHYs of each component carrier. These values must be
-  // updated once the UE is attached to the eNB and receives RRC Connection
-  // Reconfiguration message. In case of primary carrier or a single carrier,
-  // these values will be updated once the UE will receive SIB2 and MIB.
   NS_ABORT_MSG_IF(!m_componentCarrierPhyParams.empty(), "CC map is not clean");
   DoComponentCarrierConfigure(dev->GetDlEarfcn() + 18000, dev->GetDlEarfcn(),
                               25, 25);
@@ -804,11 +747,8 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
     cc->SetAsPrimary(it->second.IsPrimary());
     Ptr<LteUeMac> mac = CreateObject<LteUeMac>();
     cc->SetMac(mac);
-    // cc->GetPhy ()->Initialize (); // it is initialized within the
-    // LteUeNetDevice::DoInitialize ()
     ueCcMap.insert(std::pair<uint8_t, Ptr<ComponentCarrierUe>>(it->first, cc));
   }
-  // CC map is not needed anymore
   m_componentCarrierPhyParams.clear();
 
   for (auto it = ueCcMap.begin(); it != ueCcMap.end(); ++it) {
@@ -828,8 +768,7 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
 
     Ptr<LteChunkProcessor> pInterf = Create<LteChunkProcessor>();
     pInterf->AddCallback(MakeCallback(&LteUePhy::ReportInterference, phy));
-    dlPhy->AddInterferenceCtrlChunkProcessor(
-        pInterf); // for RSRQ evaluation of UE Measurements
+    dlPhy->AddInterferenceCtrlChunkProcessor(pInterf);
 
     Ptr<LteChunkProcessor> pCtrl = Create<LteChunkProcessor>();
     pCtrl->AddCallback(
@@ -842,16 +781,12 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
     dlPhy->AddDataSinrChunkProcessor(pData);
 
     if (m_usePdschForCqiGeneration) {
-      // CQI calculation based on PDCCH for signal and PDSCH for interference
-      // NOTE: Change in pCtrl chunk processor could impact the RLF detection
-      // since it is based on CTRL SINR.
       pCtrl->AddCallback(MakeCallback(&LteUePhy::GenerateMixedCqiReport, phy));
       Ptr<LteChunkProcessor> pDataInterf = Create<LteChunkProcessor>();
       pDataInterf->AddCallback(
           MakeCallback(&LteUePhy::ReportDataInterference, phy));
       dlPhy->AddInterferenceDataChunkProcessor(pDataInterf);
     } else {
-      // CQI calculation based on PDCCH for both signal and interference
       pCtrl->AddCallback(MakeCallback(&LteUePhy::GenerateCtrlCqiReport, phy));
     }
 
@@ -877,15 +812,10 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
 
   Ptr<LteUeRrc> rrc = CreateObject<LteUeRrc>();
   rrc->SetLteMacSapProvider(ccmUe->GetLteMacSapProvider());
-  // setting ComponentCarrierManager SAP
   rrc->SetLteCcmRrcSapProvider(ccmUe->GetLteCcmRrcSapProvider());
   ccmUe->SetLteCcmRrcSapUser(rrc->GetLteCcmRrcSapUser());
-  // Set number of component carriers. Note: UE CCM would also set the
-  // number of component carriers in UE RRC
   ccmUe->SetNumberOfComponentCarriers(m_noOfCcs);
 
-  // run initializeSap to create the proper number of MAC and PHY control sap
-  // provider/users
   rrc->InitializeSap();
 
   if (m_useIdealRrc) {
@@ -946,8 +876,6 @@ Ptr<NetDevice> LteHelper::InstallSingleUeDevice(Ptr<Node> n) {
   dev->SetAttribute("LteUeRrc", PointerValue(rrc));
   dev->SetAttribute("EpcUeNas", PointerValue(nas));
   dev->SetAttribute("LteUeComponentCarrierManager", PointerValue(ccmUe));
-  // \todo The UE identifier should be dynamically set by the EPC
-  // when the default PDP context is created. This is a simplification.
   dev->SetAddress(Mac64Address::Allocate());
 
   for (auto it = ueCcMap.begin(); it != ueCcMap.end(); ++it) {
@@ -1000,16 +928,13 @@ void LteHelper::Attach(Ptr<NetDevice> ueDevice) {
     NS_FATAL_ERROR("The passed NetDevice must be an LteUeNetDevice");
   }
 
-  // initiate cell selection
   Ptr<EpcUeNas> ueNas = ueLteDevice->GetNas();
   NS_ASSERT(ueNas);
   uint32_t dlEarfcn = ueLteDevice->GetDlEarfcn();
   ueNas->StartCellSelection(dlEarfcn);
 
-  // instruct UE to immediately enter CONNECTED mode after camping
   ueNas->Connect();
 
-  // activate default EPS bearer
   m_epcHelper->ActivateEpsBearer(ueDevice, ueLteDevice->GetImsi(),
                                  EpcTft::Default(),
                                  EpsBearer(EpsBearer::NGBR_VIDEO_TCP_DEFAULT));
@@ -1025,7 +950,6 @@ void LteHelper::Attach(NetDeviceContainer ueDevices, Ptr<NetDevice> enbDevice) {
 void LteHelper::Attach(Ptr<NetDevice> ueDevice, Ptr<NetDevice> enbDevice,
                        uint8_t componentCarrierId) {
   NS_LOG_FUNCTION(this);
-  // enbRrc->SetCellId (enbDevice->GetObject<LteEnbNetDevice> ()->GetCellId ());
 
   Ptr<LteUeNetDevice> ueLteDevice = ueDevice->GetObject<LteUeNetDevice>();
   Ptr<LteEnbNetDevice> enbLteDevice = enbDevice->GetObject<LteEnbNetDevice>();
@@ -1037,13 +961,11 @@ void LteHelper::Attach(Ptr<NetDevice> ueDevice, Ptr<NetDevice> enbDevice,
                  componentCarrier->GetDlEarfcn());
 
   if (m_epcHelper) {
-    // activate default EPS bearer
     m_epcHelper->ActivateEpsBearer(
         ueDevice, ueLteDevice->GetImsi(), EpcTft::Default(),
         EpsBearer(EpsBearer::NGBR_VIDEO_TCP_DEFAULT));
   }
 
-  // tricks needed for the simplified LTE-only simulations
   if (!m_epcHelper) {
     ueDevice->GetObject<LteUeNetDevice>()->SetTargetEnb(
         enbDevice->GetObject<LteEnbNetDevice>());
@@ -1103,68 +1025,19 @@ uint8_t LteHelper::ActivateDedicatedEpsBearer(Ptr<NetDevice> ueDevice,
   return bearerId;
 }
 
-/**
- * \ingroup lte
- *
- * DrbActivatior allows user to activate bearers for UEs
- * when EPC is not used. Activation function is hooked to
- * the Enb RRC Connection Established trace source. When
- * UE change its RRC state to CONNECTED_NORMALLY, activation
- * function is called and bearer is activated.
- */
 class DrbActivator : public SimpleRefCount<DrbActivator> {
 public:
-  /**
-   * DrbActivator Constructor
-   *
-   * \param ueDevice the UeNetDevice for which bearer will be activated
-   * \param bearer the bearer configuration
-   */
   DrbActivator(Ptr<NetDevice> ueDevice, EpsBearer bearer);
 
-  /**
-   * Function hooked to the Enb RRC Connection Established trace source
-   * Fired upon successful RRC connection establishment.
-   *
-   * \param a DrbActivator object
-   * \param context
-   * \param imsi
-   * \param cellId
-   * \param rnti
-   */
   static void ActivateCallback(Ptr<DrbActivator> a, std::string context,
                                uint64_t imsi, uint16_t cellId, uint16_t rnti);
 
-  /**
-   * Procedure firstly checks if bearer was not activated, if IMSI
-   * from trace source equals configured one and if UE is really
-   * in RRC connected state. If all requirements are met, it performs
-   * bearer activation.
-   *
-   * \param imsi
-   * \param cellId
-   * \param rnti
-   */
   void ActivateDrb(uint64_t imsi, uint16_t cellId, uint16_t rnti);
 
 private:
-  /**
-   * Bearer can be activated only once. This value stores state of
-   * bearer. Initially is set to false and changed to true during
-   * bearer activation.
-   */
   bool m_active;
-  /**
-   * UeNetDevice for which bearer will be activated
-   */
   Ptr<NetDevice> m_ueDevice;
-  /**
-   * Configuration of bearer which will be activated
-   */
   EpsBearer m_bearer;
-  /**
-   * imsi the unique UE identifier
-   */
   uint64_t m_imsi;
 };
 
@@ -1197,7 +1070,7 @@ void DrbActivator::ActivateDrb(uint64_t imsi, uint16_t cellId, uint16_t rnti) {
     params.rnti = rnti;
     params.bearer = m_bearer;
     params.bearerId = 0;
-    params.gtpTeid = 0; // don't care
+    params.gtpTeid = 0;
     enbRrc->GetS1SapUser()->DataRadioBearerSetupRequest(params);
     m_active = true;
   }
@@ -1208,11 +1081,6 @@ void LteHelper::ActivateDataRadioBearer(Ptr<NetDevice> ueDevice,
   NS_LOG_FUNCTION(this << ueDevice);
   NS_ASSERT_MSG(!m_epcHelper,
                 "this method must not be used when the EPC is being used");
-
-  // Normally it is the EPC that takes care of activating DRBs
-  // when the UE gets connected. When the EPC is not used, we achieve
-  // the same behavior by hooking a dedicated DRB activation function
-  // to the Enb RRC Connection Established trace source
 
   Ptr<LteEnbNetDevice> enbLteDevice =
       ueDevice->GetObject<LteUeNetDevice>()->GetTargetEnb();
@@ -1298,7 +1166,6 @@ void LteHelper::DoDeActivateDedicatedEpsBearer(Ptr<NetDevice> ueDevice,
                                                uint8_t bearerId) {
   NS_LOG_FUNCTION(this << ueDevice << bearerId);
 
-  // Extract IMSI and rnti
   uint64_t imsi = ueDevice->GetObject<LteUeNetDevice>()->GetImsi();
   uint16_t rnti = ueDevice->GetObject<LteUeNetDevice>()->GetRrc()->GetRnti();
 
@@ -1335,7 +1202,6 @@ void LteHelper::EnableLogComponents() {
   LogComponentEnableAll(LOG_PREFIX_TIME);
   LogComponentEnableAll(LOG_PREFIX_FUNC);
   LogComponentEnableAll(LOG_PREFIX_NODE);
-  // Model directory
   LogComponentEnable("A2A4RsrqHandoverAlgorithm", LOG_LEVEL_ALL);
   LogComponentEnable("A3RsrpHandoverAlgorithm", LOG_LEVEL_ALL);
   LogComponentEnable("Asn1Header", LOG_LEVEL_ALL);
@@ -1414,7 +1280,6 @@ void LteHelper::EnableLogComponents() {
   LogComponentEnable("TdTbfqFfMacScheduler", LOG_LEVEL_ALL);
   LogComponentEnable("TraceFadingLossModel", LOG_LEVEL_ALL);
   LogComponentEnable("TtaFfMacScheduler", LOG_LEVEL_ALL);
-  // Helper directory
   LogComponentEnable("CcHelper", LOG_LEVEL_ALL);
   LogComponentEnable("EmuEpcHelper", LOG_LEVEL_ALL);
   LogComponentEnable("EpcHelper", LOG_LEVEL_ALL);

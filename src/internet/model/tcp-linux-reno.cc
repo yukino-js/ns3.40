@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2019 NITK Surathkal
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Apoorva Bhargava <apoorvabhargava13@gmail.com>
- *         Mohit P. Tahiliani <tahiliani@nitk.edu.in>
- *
- */
 
 #include "tcp-linux-reno.h"
 
@@ -67,7 +47,6 @@ void TcpLinuxReno::CongestionAvoidance(Ptr<TcpSocketState> tcb,
 
   uint32_t w = tcb->m_cWnd / tcb->m_segmentSize;
 
-  // Floor w to 1 if w == 0
   if (w == 0) {
     w = 1;
   }
@@ -97,7 +76,6 @@ void TcpLinuxReno::IncreaseWindow(Ptr<TcpSocketState> tcb,
                                   uint32_t segmentsAcked) {
   NS_LOG_FUNCTION(this << tcb << segmentsAcked);
 
-  // Linux tcp_in_slow_start() condition
   if (tcb->m_cWnd < tcb->m_ssThresh) {
     NS_LOG_DEBUG("In slow start, m_cWnd " << tcb->m_cWnd << " m_ssThresh "
                                           << tcb->m_ssThresh);
@@ -115,7 +93,6 @@ uint32_t TcpLinuxReno::GetSsThresh(Ptr<const TcpSocketState> state,
                                    uint32_t bytesInFlight) {
   NS_LOG_FUNCTION(this << state << bytesInFlight);
 
-  // In Linux, it is written as:  return max(tp->snd_cwnd >> 1U, 2U);
   return std::max<uint32_t>(2 * state->m_segmentSize, state->m_cWnd / 2);
 }
 

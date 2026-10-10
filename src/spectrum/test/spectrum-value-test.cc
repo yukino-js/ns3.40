@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "spectrum-test.h"
 
@@ -30,38 +12,19 @@
 
 using namespace ns3;
 
-// NS_LOG_COMPONENT_DEFINE ("SpectrumValueTest");
-
 #define TOLERANCE 1e-6
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Spectrum Value Test
- */
 class SpectrumValueTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param a first SpectrumValue
-   * \param b second SpectrumValue
-   * \param name test name
-   */
   SpectrumValueTestCase(SpectrumValue a, SpectrumValue b, std::string name);
   ~SpectrumValueTestCase() override;
   void DoRun() override;
 
 private:
-  /**
-   * Check that two SpectrumValue are equal within a tolerance
-   * \param x first SpectrumValue
-   * \param y second SpectrumValue
-   * \return true if the two values are within the tolerance
-   */
   bool MoreOrLessEqual(SpectrumValue x, SpectrumValue y);
 
-  SpectrumValue m_a; //!< first SpectrumValue
-  SpectrumValue m_b; //!< second SpectrumValue
+  SpectrumValue m_a;
+  SpectrumValue m_b;
 };
 
 SpectrumValueTestCase::SpectrumValueTestCase(SpectrumValue a, SpectrumValue b,
@@ -81,11 +44,6 @@ void SpectrumValueTestCase::DoRun() {
   NS_TEST_ASSERT_MSG_SPECTRUM_VALUE_EQ_TOL(m_a, m_b, TOLERANCE, "");
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Spectrum Value TestSuite
- */
 class SpectrumValueTestSuite : public TestSuite {
 public:
   SpectrumValueTestSuite();
@@ -93,7 +51,6 @@ public:
 
 SpectrumValueTestSuite::SpectrumValueTestSuite()
     : TestSuite("spectrum-value", UNIT) {
-  // NS_LOG_INFO("creating SpectrumValueTestSuite");
 
   std::vector<double> freqs;
 
@@ -197,9 +154,6 @@ SpectrumValueTestSuite::SpectrumValueTestSuite()
   AddTestCase(new SpectrumValueTestCase(tv6, v6, "tv6 = v1 div v2"),
               TestCase::QUICK);
 
-  // std::cerr << v6 << std::endl;
-  // std::cerr << tv6 << std::endl;
-
   tv3 = v1;
   tv4 = v1;
   tv5 = v1;
@@ -270,11 +224,6 @@ SpectrumValueTestSuite::SpectrumValueTestSuite()
               TestCase::QUICK);
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Spectrum Converter TestSuite
- */
 class SpectrumConverterTestSuite : public TestSuite {
 public:
   SpectrumConverterTestSuite();
@@ -306,12 +255,8 @@ SpectrumConverterTestSuite::SpectrumConverterTestSuite()
   t12 = 4;
   t12[0] = 2;
   t12[6] = 2;
-  //   NS_LOG_LOGIC(*v1);
-  //   NS_LOG_LOGIC(t12);
-  //   NS_LOG_LOGIC(*res);
 
   AddTestCase(new SpectrumValueTestCase(t12, *res, ""), TestCase::QUICK);
-  // TEST_ASSERT(MoreOrLessEqual(t12, *res));
 
   Ptr<SpectrumValue> v2a = Create<SpectrumValue>(sof2);
   *v2a = -2;
@@ -319,11 +264,7 @@ SpectrumConverterTestSuite::SpectrumConverterTestSuite()
   res = c21.Convert(v2a);
   SpectrumValue t21a(sof1);
   t21a = -2;
-  //   NS_LOG_LOGIC(*v2a);
-  //   NS_LOG_LOGIC(t21a);
-  //   NS_LOG_LOGIC(*res);
   AddTestCase(new SpectrumValueTestCase(t21a, *res, ""), TestCase::QUICK);
-  // TEST_ASSERT(MoreOrLessEqual(t21a, *res));
 
   Ptr<SpectrumValue> v2b = Create<SpectrumValue>(sof2);
   (*v2b)[0] = 3;
@@ -338,13 +279,8 @@ SpectrumConverterTestSuite::SpectrumConverterTestSuite()
   t21b[0] = 3 * 0.25 + 5 * 0.5 + 1 * 0.25;
   t21b[1] = 1 * 0.25 + 2 * 0.5 + 4 * 0.25;
   t21b[2] = 4 * 0.25 + 6 * 0.5 + 3 * 0.25;
-  //   NS_LOG_LOGIC(*v2b);
-  //   NS_LOG_LOGIC(t21b);
-  //   NS_LOG_LOGIC(*res);
   AddTestCase(new SpectrumValueTestCase(t21b, *res, ""), TestCase::QUICK);
 }
 
-/// Static variable for test initialization
 static SpectrumValueTestSuite g_SpectrumValueTestSuite;
-/// Static variable for test initialization
 static SpectrumConverterTestSuite g_SpectrumConverterTestSuite;

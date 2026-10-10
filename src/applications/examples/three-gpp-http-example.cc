@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2016 Magister Solutions
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Lauri Sormunen <lauri.sormunen@magister.fi>
- */
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -93,12 +75,8 @@ int main(int argc, char *argv[]) {
 
   Time::SetResolution(Time::NS);
   LogComponentEnableAll(LOG_PREFIX_TIME);
-  // LogComponentEnableAll (LOG_PREFIX_FUNC);
-  // LogComponentEnable ("ThreeGppHttpClient", LOG_INFO);
-  /// LogComponentEnable ("ThreeGppHttpServer", LOG_INFO);
   LogComponentEnable("ThreeGppHttpExample", LOG_INFO);
 
-  // Setup two nodes
   NodeContainer nodes;
   nodes.Create(2);
 
@@ -119,15 +97,12 @@ int main(int argc, char *argv[]) {
 
   Ipv4Address serverAddress = interfaces.GetAddress(1);
 
-  // Create HTTP server helper
   ThreeGppHttpServerHelper serverHelper(serverAddress);
 
-  // Install HTTP server
   ApplicationContainer serverApps = serverHelper.Install(nodes.Get(1));
   Ptr<ThreeGppHttpServer> httpServer =
       serverApps.Get(0)->GetObject<ThreeGppHttpServer>();
 
-  // Example of connecting to the trace sources
   httpServer->TraceConnectWithoutContext(
       "ConnectionEstablished", MakeCallback(&ServerConnectionEstablished));
   httpServer->TraceConnectWithoutContext("MainObject",
@@ -136,23 +111,19 @@ int main(int argc, char *argv[]) {
       "EmbeddedObject", MakeCallback(&EmbeddedObjectGenerated));
   httpServer->TraceConnectWithoutContext("Tx", MakeCallback(&ServerTx));
 
-  // Setup HTTP variables for the server
   PointerValue varPtr;
   httpServer->GetAttribute("Variables", varPtr);
   Ptr<ThreeGppHttpVariables> httpVariables =
       varPtr.Get<ThreeGppHttpVariables>();
-  httpVariables->SetMainObjectSizeMean(102400);  // 100kB
-  httpVariables->SetMainObjectSizeStdDev(40960); // 40kB
+  httpVariables->SetMainObjectSizeMean(102400);
+  httpVariables->SetMainObjectSizeStdDev(40960);
 
-  // Create HTTP client helper
   ThreeGppHttpClientHelper clientHelper(serverAddress);
 
-  // Install HTTP client
   ApplicationContainer clientApps = clientHelper.Install(nodes.Get(0));
   Ptr<ThreeGppHttpClient> httpClient =
       clientApps.Get(0)->GetObject<ThreeGppHttpClient>();
 
-  // Example of connecting to the trace sources
   httpClient->TraceConnectWithoutContext(
       "RxMainObject", MakeCallback(&ClientMainObjectReceived));
   httpClient->TraceConnectWithoutContext(
@@ -161,7 +132,6 @@ int main(int argc, char *argv[]) {
   httpClient->TraceConnectWithoutContext("RxPage",
                                          MakeCallback(&ClientPageReceived));
 
-  // Stop browsing after 30 minutes
   clientApps.Stop(Seconds(simTimeSec));
 
   Simulator::Run();

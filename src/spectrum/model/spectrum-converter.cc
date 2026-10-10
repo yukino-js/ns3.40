@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "spectrum-converter.h"
 
@@ -74,7 +56,7 @@ SpectrumConverter::Convert(Ptr<const SpectrumValue> fvvf) const {
   Ptr<SpectrumValue> tvvf = Create<SpectrumValue>(m_toSpectrumModel);
 
   auto tvit = tvvf->ValuesBegin();
-  size_t i = 0; // Index of conversion coefficient
+  size_t i = 0;
 
   for (auto convIt = m_conversionRowPtr.begin();
        convIt != m_conversionRowPtr.end(); ++convIt) {

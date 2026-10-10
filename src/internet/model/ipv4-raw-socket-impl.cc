@@ -1,16 +1,3 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
 #include "ipv4-raw-socket-impl.h"
 
@@ -56,14 +43,6 @@ TypeId Ipv4RawSocketImpl::GetTypeId() {
                         UintegerValue(0),
                         MakeUintegerAccessor(&Ipv4RawSocketImpl::m_icmpFilter),
                         MakeUintegerChecker<uint32_t>())
-          //
-          //  from raw (7), linux, returned length of Send/Recv should be
-          //
-          //            | IP_HDRINC on  |      off    |
-          //  ----------+---------------+-------------+-
-          //  Send(Ipv4)| hdr + payload | payload     |
-          //  Recv(Ipv4)| hdr + payload | hdr+payload |
-          //  ----------+---------------+-------------+-
           .AddAttribute(
               "IpHeaderInclude",
               "Include IP Header information (a.k.a setsockopt (IP_HDRINCL)).",
@@ -226,7 +205,6 @@ int Ipv4RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
   if (tos) {
     SocketIpTosTag ipTosTag;
     ipTosTag.SetTos(tos);
-    // This packet may already have a SocketIpTosTag (see BUG 2440)
     p->ReplacePacketTag(ipTosTag);
     priority = IpTos2Priority(tos);
   }
@@ -309,11 +287,9 @@ int Ipv4RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
       dst = header.GetDestination();
       src = header.GetSource();
     }
-    SocketErrno errno_ = ERROR_NOTERROR; // do not use errno as it is the
-                                         // standard C last error number
+    SocketErrno errno_ = ERROR_NOTERROR;
     Ptr<Ipv4Route> route;
-    Ptr<NetDevice> oif =
-        m_boundnetdevice; // specify non-zero if bound to a source address
+    Ptr<NetDevice> oif = m_boundnetdevice;
     if (!oif && src != Ipv4Address::GetAny()) {
       int32_t index = ipv4->GetInterfaceForAddress(src);
       NS_ASSERT(index >= 0);
@@ -321,7 +297,6 @@ int Ipv4RawSocketImpl::SendTo(Ptr<Packet> p, uint32_t flags,
       NS_LOG_LOGIC("Set index " << oif << "from source " << src);
     }
 
-    // TBD-- we could cache the route and just check its validity
     route = ipv4->GetRoutingProtocol()->RouteOutput(p, header, oif, errno_);
     if (route) {
       NS_LOG_LOGIC("Route exists");
@@ -403,7 +378,6 @@ bool Ipv4RawSocketImpl::ForwardUp(Ptr<const Packet> p, Ipv4Header ipHeader,
       (m_dst == Ipv4Address::GetAny() || ipHeader.GetSource() == m_dst) &&
       ipHeader.GetProtocol() == m_protocol) {
     Ptr<Packet> copy = p->Copy();
-    // Should check via getsockopt ()..
     if (IsRecvPktInfo()) {
       Ipv4PacketInfoTag tag;
       copy->RemovePacketTag(tag);
@@ -413,7 +387,6 @@ bool Ipv4RawSocketImpl::ForwardUp(Ptr<const Packet> p, Ipv4Header ipHeader,
       copy->AddPacketTag(tag);
     }
 
-    // Check only version 4 options
     if (IsIpRecvTos()) {
       SocketIpTosTag ipTosTag;
       ipTosTag.SetTos(ipHeader.GetTos());
@@ -431,7 +404,6 @@ bool Ipv4RawSocketImpl::ForwardUp(Ptr<const Packet> p, Ipv4Header ipHeader,
       copy->PeekHeader(icmpHeader);
       uint8_t type = icmpHeader.GetType();
       if (type < 32 && ((uint32_t(1) << type) & m_icmpFilter)) {
-        // filter out icmp packet.
         return false;
       }
     }

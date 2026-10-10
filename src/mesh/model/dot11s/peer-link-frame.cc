@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Kirill Andreev <andreev@iitp.ru>
- */
 
 #include "peer-link-frame.h"
 
@@ -45,7 +27,6 @@ void PeerLinkOpenStart::SetPlinkOpenStart(
 
 PeerLinkOpenStart::PlinkOpenStartFields PeerLinkOpenStart::GetFields() const {
   PlinkOpenStartFields retval;
-  /// \todo protocol version:
   retval.capability = m_capability;
   retval.rates = m_rates;
   retval.extendedRates = m_extendedRates;
@@ -74,8 +55,8 @@ void PeerLinkOpenStart::Print(std::ostream &os) const {
 }
 
 uint32_t PeerLinkOpenStart::GetSerializedSize() const {
-  uint32_t size = 0; // Peering protocol
-  size += 2;         // capability
+  uint32_t size = 0;
+  size += 2;
   size += m_rates.GetSerializedSize();
   if (m_extendedRates) {
     size += m_extendedRates->GetSerializedSize();
@@ -145,7 +126,6 @@ void PeerLinkCloseStart::SetPlinkCloseStart(
 PeerLinkCloseStart::PlinkCloseStartFields
 PeerLinkCloseStart::GetFields() const {
   PlinkCloseStartFields retval;
-  /// \todo protocol version:
   retval.meshId = m_meshId;
 
   return retval;
@@ -164,7 +144,7 @@ TypeId PeerLinkCloseStart::GetInstanceTypeId() const { return GetTypeId(); }
 void PeerLinkCloseStart::Print(std::ostream &os) const { m_meshId.Print(os); }
 
 uint32_t PeerLinkCloseStart::GetSerializedSize() const {
-  uint32_t size = 0; // Peering protocol
+  uint32_t size = 0;
   size += m_meshId.GetInformationFieldSize() + 2;
   return size;
 }
@@ -209,7 +189,6 @@ void PeerLinkConfirmStart::SetPlinkConfirmStart(
 PeerLinkConfirmStart::PlinkConfirmStartFields
 PeerLinkConfirmStart::GetFields() const {
   PlinkConfirmStartFields retval;
-  /// \todo protocol version:
   retval.capability = m_capability;
   retval.aid = m_aid;
   retval.rates = m_rates;
@@ -235,9 +214,9 @@ void PeerLinkConfirmStart::Print(std::ostream &os) const {
 }
 
 uint32_t PeerLinkConfirmStart::GetSerializedSize() const {
-  uint32_t size = 0; // Peering protocol
-  size += 2;         // capability
-  size += 2;         // AID of remote peer
+  uint32_t size = 0;
+  size += 2;
+  size += 2;
   size += m_rates.GetSerializedSize();
   if (m_extendedRates) {
     size += m_extendedRates->GetSerializedSize();

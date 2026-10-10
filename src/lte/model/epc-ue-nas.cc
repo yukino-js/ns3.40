@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include "epc-ue-nas.h"
 
@@ -30,15 +12,10 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("EpcUeNas");
 
-/// Map each of UE NAS states to its string representation.
 static const std::string g_ueNasStateName[EpcUeNas::NUM_STATES] = {
     "OFF", "ATTACHING", "IDLE_REGISTERED", "CONNECTING_TO_EPC", "ACTIVE",
 };
 
-/**
- * \param s The UE NAS state.
- * \return The string representation of the given state.
- */
 static inline const std::string &ToString(EpcUeNas::State s) {
   return g_ueNasStateName[s];
 }
@@ -115,17 +92,14 @@ void EpcUeNas::StartCellSelection(uint32_t dlEarfcn) {
 void EpcUeNas::Connect() {
   NS_LOG_FUNCTION(this);
 
-  // tell RRC to go into connected mode
   m_asSapProvider->Connect();
 }
 
 void EpcUeNas::Connect(uint16_t cellId, uint32_t dlEarfcn) {
   NS_LOG_FUNCTION(this << cellId << dlEarfcn);
 
-  // force the UE RRC to be camped on a specific eNB
   m_asSapProvider->ForceCampedOnEnb(cellId, dlEarfcn);
 
-  // tell RRC to go into connected mode
   m_asSapProvider->Connect();
 }
 
@@ -180,13 +154,12 @@ bool EpcUeNas::Send(Ptr<Packet> packet, uint16_t protocolNumber) {
 void EpcUeNas::DoNotifyConnectionSuccessful() {
   NS_LOG_FUNCTION(this);
 
-  SwitchToState(ACTIVE); // will eventually activate dedicated bearers
+  SwitchToState(ACTIVE);
 }
 
 void EpcUeNas::DoNotifyConnectionFailed() {
   NS_LOG_FUNCTION(this);
 
-  // immediately retry the connection
   Simulator::ScheduleNow(&LteAsSapProvider::Connect, m_asSapProvider);
 }
 
@@ -197,12 +170,10 @@ void EpcUeNas::DoRecvData(Ptr<Packet> packet) {
 
 void EpcUeNas::DoNotifyConnectionReleased() {
   NS_LOG_FUNCTION(this);
-  // remove tfts
   while (m_bidCounter > 0) {
     m_tftClassifier.Delete(m_bidCounter);
     m_bidCounter--;
   }
-  // restore the bearer list to be activated for the next RRC connection
   m_bearersToBeActivatedList = m_bearersToBeActivatedListForReconnection;
 
   Disconnect();
@@ -228,7 +199,6 @@ void EpcUeNas::SwitchToState(State newState) {
                       << ToString(newState));
   m_stateTransitionCallback(oldState, newState);
 
-  // actions to be done when entering a new state:
   switch (m_state) {
   case ACTIVE:
     for (auto it = m_bearersToBeActivatedList.begin();

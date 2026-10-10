@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2005,2006,2007 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 
 #include "wifi-remote-station-manager.h"
 
@@ -170,11 +152,6 @@ void WifiRemoteStationManager::DoDispose() {
 
 void WifiRemoteStationManager::SetupPhy(const Ptr<WifiPhy> phy) {
   NS_LOG_FUNCTION(this << phy);
-  // We need to track our PHY because it is the object that knows the
-  // full set of transmit rates that are supported. We need to know
-  // this in order to find the relevant mandatory rates when choosing a
-  // transmit rate for automatic control responses like
-  // acknowledgments.
   m_wifiPhy = phy;
   m_defaultTxMode = phy->GetDefaultMode();
   NS_ASSERT(m_defaultTxMode.IsMandatory());
@@ -186,8 +163,6 @@ void WifiRemoteStationManager::SetupPhy(const Ptr<WifiPhy> phy) {
 
 void WifiRemoteStationManager::SetupMac(const Ptr<WifiMac> mac) {
   NS_LOG_FUNCTION(this << mac);
-  // We need to track our MAC because it is the object that knows the
-  // full set of interframe spaces.
   m_wifiMac = mac;
   Reset();
 }
@@ -256,8 +231,7 @@ bool WifiRemoteStationManager::GetLdpcSupported() const {
   if (GetHtSupported()) {
     Ptr<HtConfiguration> htConfiguration =
         m_wifiPhy->GetDevice()->GetHtConfiguration();
-    NS_ASSERT(htConfiguration); // If HT is supported, we should have a HT
-                                // configuration attached
+    NS_ASSERT(htConfiguration);
     return htConfiguration->GetLdpcSupported();
   }
   return false;
@@ -267,8 +241,7 @@ bool WifiRemoteStationManager::GetShortGuardIntervalSupported() const {
   if (GetHtSupported()) {
     Ptr<HtConfiguration> htConfiguration =
         m_wifiPhy->GetDevice()->GetHtConfiguration();
-    NS_ASSERT(htConfiguration); // If HT is supported, we should have a HT
-                                // configuration attached
+    NS_ASSERT(htConfiguration);
     if (htConfiguration->GetShortGuardIntervalSupported()) {
       return true;
     }
@@ -281,8 +254,7 @@ uint16_t WifiRemoteStationManager::GetGuardInterval() const {
   if (GetHeSupported()) {
     Ptr<HeConfiguration> heConfiguration =
         m_wifiPhy->GetDevice()->GetHeConfiguration();
-    NS_ASSERT(heConfiguration); // If HE is supported, we should have a HE
-                                // configuration attached
+    NS_ASSERT(heConfiguration);
     gi = static_cast<uint16_t>(
         heConfiguration->GetGuardInterval().GetNanoSeconds());
   }
@@ -314,7 +286,7 @@ void WifiRemoteStationManager::AddSupportedMode(Mac48Address address,
   auto state = LookupState(address);
   for (const auto &i : state->m_operationalRateSet) {
     if (i == mode) {
-      return; // already in
+      return;
     }
   }
   if ((mode.GetModulationClass() == WIFI_MOD_CLASS_DSSS) ||
@@ -363,7 +335,7 @@ void WifiRemoteStationManager::AddSupportedMcs(Mac48Address address,
   auto state = LookupState(address);
   for (const auto &i : state->m_operationalMcsSet) {
     if (i == mcs) {
-      return; // already in
+      return;
     }
   }
   state->m_operationalMcsSet.push_back(mcs);
@@ -495,7 +467,6 @@ std::optional<Mac48Address> WifiRemoteStationManager::GetAffiliatedStaAddress(
   auto stateIt = m_states.find(mldAddress);
 
   if (stateIt == m_states.end() || !stateIt->second->m_mleCommonInfo) {
-    // MLD address not found
     return std::nullopt;
   }
 
@@ -525,7 +496,6 @@ WifiRemoteStationManager::GetDataTxVector(const WifiMacHeader &header,
   }
   WifiTxVector txVector;
   if (header.IsMgt()) {
-    // Use the lowest basic rate for management frames
     WifiMode mgtMode;
     if (GetNBasicModes() > 0) {
       mgtMode = GetBasicMode(0);
@@ -558,9 +528,6 @@ WifiRemoteStationManager::GetDataTxVector(const WifiMacHeader &header,
   if (heConfiguration) {
     txVector.SetBssColor(heConfiguration->GetBssColor());
   }
-  // If both the allowed width and the TXVECTOR channel width are integer
-  // multiple of 20 MHz, then the TXVECTOR channel width must not exceed the
-  // allowed width
   NS_ASSERT_MSG((txVector.GetChannelWidth() % 20 != 0) ||
                     (allowedWidth % 20 != 0) ||
                     (txVector.GetChannelWidth() <= allowedWidth),
@@ -691,24 +658,9 @@ WifiTxVector WifiRemoteStationManager::GetBlockAckTxVector(
 
 WifiMode
 WifiRemoteStationManager::GetControlAnswerMode(WifiMode reqMode) const {
-  /**
-   * The standard has relatively unambiguous rules for selecting a
-   * control response rate (the below is quoted from IEEE 802.11-2012,
-   * Section 9.7):
-   *
-   * To allow the transmitting STA to calculate the contents of the
-   * Duration/ID field, a STA responding to a received frame shall
-   * transmit its Control Response frame (either CTS or Ack), other
-   * than the BlockAck control frame, at the highest rate in the
-   * BSSBasicRateSet parameter that is less than or equal to the
-   * rate of the immediately previous frame in the frame exchange
-   * sequence (as defined in Annex G) and that is of the same
-   * modulation class (see Section 9.7.8) as the received frame...
-   */
   NS_LOG_FUNCTION(this << reqMode);
   WifiMode mode = GetDefaultMode();
   bool found = false;
-  // First, search the BSS Basic Rate set
   for (uint8_t i = 0; i < GetNBasicModes(); i++) {
     WifiMode testMode = GetBasicMode(i);
     if ((!found || testMode.IsHigherDataRate(mode)) &&
@@ -716,9 +668,6 @@ WifiRemoteStationManager::GetControlAnswerMode(WifiMode reqMode) const {
         (IsAllowedControlAnswerModulationClass(
             reqMode.GetModulationClass(), testMode.GetModulationClass()))) {
       mode = testMode;
-      // We've found a potentially-suitable transmit rate, but we
-      // need to continue and consider all the basic rates before
-      // we can be sure we've got the right one.
       found = true;
     }
   }
@@ -731,57 +680,23 @@ WifiRemoteStationManager::GetControlAnswerMode(WifiMode reqMode) const {
             (!testMode.IsHigherDataRate(reqMode)) &&
             (testMode.GetModulationClass() == reqMode.GetModulationClass())) {
           mode = testMode;
-          // We've found a potentially-suitable transmit rate, but we
-          // need to continue and consider all the basic rates before
-          // we can be sure we've got the right one.
           found = true;
         }
       }
     }
   }
-  // If we found a suitable rate in the BSSBasicRateSet, then we are
-  // done and can return that mode.
   if (found) {
     NS_LOG_DEBUG("WifiRemoteStationManager::GetControlAnswerMode returning "
                  << mode);
     return mode;
   }
 
-  /**
-   * If no suitable basic rate was found, we search the mandatory
-   * rates. The standard (IEEE 802.11-2007, Section 9.6) says:
-   *
-   *   ...If no rate contained in the BSSBasicRateSet parameter meets
-   *   these conditions, then the control frame sent in response to a
-   *   received frame shall be transmitted at the highest mandatory
-   *   rate of the PHY that is less than or equal to the rate of the
-   *   received frame, and that is of the same modulation class as the
-   *   received frame. In addition, the Control Response frame shall
-   *   be sent using the same PHY options as the received frame,
-   *   unless they conflict with the requirement to use the
-   *   BSSBasicRateSet parameter.
-   *
-   * \todo Note that we're ignoring the last sentence for now, because
-   * there is not yet any manipulation here of PHY options.
-   */
   for (const auto &thismode : m_wifiPhy->GetModeList()) {
-    /* If the rate:
-     *
-     *  - is a mandatory rate for the PHY, and
-     *  - is equal to or faster than our current best choice, and
-     *  - is less than or equal to the rate of the received frame, and
-     *  - is of the same modulation class as the received frame
-     *
-     * ...then it's our best choice so far.
-     */
     if (thismode.IsMandatory() && (!found || thismode.IsHigherDataRate(mode)) &&
         (!thismode.IsHigherDataRate(reqMode)) &&
         (IsAllowedControlAnswerModulationClass(
             reqMode.GetModulationClass(), thismode.GetModulationClass()))) {
       mode = thismode;
-      // As above; we've found a potentially-suitable transmit
-      // rate, but we need to continue and consider all the
-      // mandatory rates before we can be sure we've got the right one.
       found = true;
     }
   }
@@ -792,23 +707,11 @@ WifiRemoteStationManager::GetControlAnswerMode(WifiMode reqMode) const {
           (!thismode.IsHigherCodeRate(reqMode)) &&
           (thismode.GetModulationClass() == reqMode.GetModulationClass())) {
         mode = thismode;
-        // As above; we've found a potentially-suitable transmit
-        // rate, but we need to continue and consider all the
-        // mandatory rates before we can be sure we've got the right one.
         found = true;
       }
     }
   }
 
-  /**
-   * If we still haven't found a suitable rate for the response then
-   * someone has messed up the simulation configuration. This probably means
-   * that the WifiPhyStandard is not set correctly, or that a rate that
-   * is not supported by the PHY has been explicitly requested.
-   *
-   * Either way, it is serious - we can either disobey the standard or
-   * fail, and I have chosen to do the latter...
-   */
   if (!found) {
     NS_FATAL_ERROR("Can't find response rate for " << reqMode);
   }
@@ -993,8 +896,6 @@ bool WifiRemoteStationManager::NeedCtsToSelf(WifiTxVector txVector) {
                  "protect non-HT stations");
     return true;
   } else if (!m_useNonErpProtection) {
-    // search for the BSS Basic Rate set, if the used mode is in the basic set
-    // then there is no need for CTS To Self
     for (auto i = m_bssBasicRateSet.begin(); i != m_bssBasicRateSet.end();
          i++) {
       if (mode == *i) {
@@ -1003,8 +904,6 @@ bool WifiRemoteStationManager::NeedCtsToSelf(WifiTxVector txVector) {
       }
     }
     if (GetHtSupported()) {
-      // search for the BSS Basic MCS set, if the used mode is in the basic set
-      // then there is no need for CTS To Self
       for (auto i = m_bssBasicMcsSet.begin(); i != m_bssBasicMcsSet.end();
            i++) {
         if (mode == *i) {
@@ -1075,18 +974,10 @@ bool WifiRemoteStationManager::NeedFragmentation(Ptr<const WifiMpdu> mpdu) {
 void WifiRemoteStationManager::DoSetFragmentationThreshold(uint32_t threshold) {
   NS_LOG_FUNCTION(this << threshold);
   if (threshold < 256) {
-    /*
-     * ASN.1 encoding of the MAC and PHY MIB (256 ... 8000)
-     */
     NS_LOG_WARN(
         "Fragmentation threshold should be larger than 256. Setting to 256.");
     m_fragmentationThreshold = 256;
   } else {
-    /*
-     * The length of each fragment shall be an even number of octets, except for
-     * the last fragment if an MSDU or MMPDU, which may be either an even or an
-     * odd number of octets.
-     */
     if (threshold % 2 != 0) {
       NS_LOG_WARN(
           "Fragmentation threshold should be an even number. Setting to "
@@ -1104,13 +995,10 @@ uint32_t WifiRemoteStationManager::DoGetFragmentationThreshold() const {
 
 uint32_t WifiRemoteStationManager::GetNFragments(Ptr<const WifiMpdu> mpdu) {
   NS_LOG_FUNCTION(this << *mpdu);
-  // The number of bytes a fragment can support is (Threshold - WIFI_HEADER_SIZE
-  // - WIFI_FCS).
   uint32_t nFragments = (mpdu->GetPacket()->GetSize() /
                          (GetFragmentationThreshold() -
                           mpdu->GetHeader().GetSize() - WIFI_MAC_FCS_LENGTH));
 
-  // If the size of the last fragment is not 0.
   if ((mpdu->GetPacket()->GetSize() %
        (GetFragmentationThreshold() - mpdu->GetHeader().GetSize() -
         WIFI_MAC_FCS_LENGTH)) > 0) {
@@ -1130,7 +1018,6 @@ uint32_t WifiRemoteStationManager::GetFragmentSize(Ptr<const WifiMpdu> mpdu,
     NS_LOG_DEBUG("WifiRemoteStationManager::GetFragmentSize returning 0");
     return 0;
   }
-  // Last fragment
   if (fragmentNumber == nFragment - 1) {
     uint32_t lastFragmentSize =
         mpdu->GetPacket()->GetSize() -
@@ -1139,10 +1026,7 @@ uint32_t WifiRemoteStationManager::GetFragmentSize(Ptr<const WifiMpdu> mpdu,
     NS_LOG_DEBUG("WifiRemoteStationManager::GetFragmentSize returning "
                  << lastFragmentSize);
     return lastFragmentSize;
-  }
-  // All fragments but the last, the number of bytes is (Threshold -
-  // WIFI_HEADER_SIZE - WIFI_FCS).
-  else {
+  } else {
     uint32_t fragmentSize = GetFragmentationThreshold() -
                             mpdu->GetHeader().GetSize() - WIFI_MAC_FCS_LENGTH;
     NS_LOG_DEBUG("WifiRemoteStationManager::GetFragmentSize returning "
@@ -1268,7 +1152,6 @@ void WifiRemoteStationManager::SetEmlsrEnabled(const Mac48Address &from,
 
 void WifiRemoteStationManager::AddStationHtCapabilities(
     Mac48Address from, HtCapabilities htCapabilities) {
-  // Used by all stations to record HT capabilities of remote stations
   NS_LOG_FUNCTION(this << from << htCapabilities);
   auto state = LookupState(from);
   if (htCapabilities.GetSupportedChannelWidth() == 1) {
@@ -1287,7 +1170,6 @@ void WifiRemoteStationManager::AddStationHtCapabilities(
 
 void WifiRemoteStationManager::AddStationVhtCapabilities(
     Mac48Address from, VhtCapabilities vhtCapabilities) {
-  // Used by all stations to record VHT capabilities of remote stations
   NS_LOG_FUNCTION(this << from << vhtCapabilities);
   auto state = LookupState(from);
   if (vhtCapabilities.GetSupportedChannelWidthSet() == 1) {
@@ -1307,7 +1189,6 @@ void WifiRemoteStationManager::AddStationVhtCapabilities(
 
 void WifiRemoteStationManager::AddStationHeCapabilities(
     Mac48Address from, HeCapabilities heCapabilities) {
-  // Used by all stations to record HE capabilities of remote stations
   NS_LOG_FUNCTION(this << from << heCapabilities);
   auto state = LookupState(from);
   if ((m_wifiPhy->GetPhyBand() == WIFI_PHY_BAND_5GHZ) ||
@@ -1317,8 +1198,6 @@ void WifiRemoteStationManager::AddStationHeCapabilities(
     } else if (heCapabilities.GetChannelWidthSet() & 0x02) {
       state->m_channelWidth = 80;
     }
-    // For other cases at 5 GHz, the supported channel width is set by the VHT
-    // capabilities
   } else if (m_wifiPhy->GetPhyBand() == WIFI_PHY_BAND_2_4GHZ) {
     if (heCapabilities.GetChannelWidthSet() & 0x01) {
       state->m_channelWidth = 40;
@@ -1329,7 +1208,6 @@ void WifiRemoteStationManager::AddStationHeCapabilities(
   if (heCapabilities.GetHeSuPpdu1xHeLtf800nsGi()) {
     state->m_guardInterval = 800;
   } else {
-    // todo: Using 3200ns, default value for HeConfiguration::GuardInterval
     state->m_guardInterval = 3200;
   }
   for (const auto &mcs : m_wifiPhy->GetMcsList(WIFI_MOD_CLASS_HE)) {
@@ -1343,7 +1221,6 @@ void WifiRemoteStationManager::AddStationHeCapabilities(
 
 void WifiRemoteStationManager::AddStationEhtCapabilities(
     Mac48Address from, EhtCapabilities ehtCapabilities) {
-  // Used by all stations to record EHT capabilities of remote stations
   NS_LOG_FUNCTION(this << from << ehtCapabilities);
   auto state = LookupState(from);
   for (const auto &mcs : m_wifiPhy->GetMcsList(WIFI_MOD_CLASS_EHT)) {
@@ -1366,8 +1243,6 @@ void WifiRemoteStationManager::AddStationMleCommonInfo(
   NS_LOG_FUNCTION(this << from);
   auto state = LookupState(from);
   state->m_mleCommonInfo = mleCommonInfo;
-  // insert another entry in m_states indexed by the MLD address and pointing to
-  // the same state
   const_cast<WifiRemoteStationManager *>(this)->m_states.insert(
       {mleCommonInfo->m_mldMacAddress, state});
 }
@@ -1446,7 +1321,6 @@ WifiMode WifiRemoteStationManager::GetDefaultModeForSta(
     return GetDefaultMode();
   }
 
-  // find the highest modulation class supported by both stations
   WifiModulationClass modClass = WIFI_MOD_CLASS_HT;
   if (GetHeSupported() && GetHeSupported(st)) {
     modClass = WIFI_MOD_CLASS_HE;
@@ -1454,7 +1328,6 @@ WifiMode WifiRemoteStationManager::GetDefaultModeForSta(
     modClass = WIFI_MOD_CLASS_VHT;
   }
 
-  // return the MCS with lowest index
   return *m_wifiPhy->GetPhyEntity(modClass)->begin();
 }
 
@@ -1598,11 +1471,6 @@ WifiMode
 WifiRemoteStationManager::GetNonErpSupported(const WifiRemoteStation *station,
                                              uint8_t i) const {
   NS_ASSERT(i < GetNNonErpSupported(station));
-  // IEEE 802.11g standard defines that if the protection mechanism is enabled,
-  // RTS, CTS and CTS-To-Self frames should select a rate in the BSSBasicRateSet
-  // that corresponds to an 802.11b basic rate. This is a implemented here to
-  // avoid changes in every RAA, but should maybe be moved in case it breaks
-  // standard rules.
   uint32_t index = 0;
   bool found = false;
   for (auto j = station->m_state->m_operationalRateSet.begin();

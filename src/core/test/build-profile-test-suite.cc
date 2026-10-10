@@ -1,46 +1,11 @@
-/*
- * Copyright (c) 2015 LLNL
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Peter D. Barnes, Jr. <pdbarnes@llnl.gov>
- */
 
 #include "ns3/build-profile.h"
 #include "ns3/test.h"
-
-/**
- * \file
- * \ingroup core-tests
- * \ingroup debugging
- * \ingroup build-profile-tests
- * NS_BUILD_PROFILE macros test suite.
- */
-
-/**
- * \ingroup core-tests
- * \defgroup build-profile-tests NS_BUILD_PROFILE macros test suite
- */
 
 namespace ns3 {
 
 namespace tests {
 
-/**
- * \ingroup build-profile-tests
- * Build profile test
- */
 class BuildProfileTestCase : public TestCase {
 public:
   BuildProfileTestCase();
@@ -83,10 +48,6 @@ void BuildProfileTestCase::DoRun() {
                         "build profile failed to execute second statement");
 }
 
-/**
- * \ingroup build-profile-tests
- * Build profile test suite
- */
 class BuildProfileTestSuite : public TestSuite {
 public:
   BuildProfileTestSuite();
@@ -96,10 +57,6 @@ BuildProfileTestSuite::BuildProfileTestSuite() : TestSuite("build-profile") {
   AddTestCase(new BuildProfileTestCase);
 }
 
-/**
- * \ingroup build-profile-tests
- * BuildProfileTestSuite instance variable.
- */
 static BuildProfileTestSuite g_BuildProfileTestSuite;
 
 } // namespace tests

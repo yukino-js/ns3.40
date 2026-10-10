@@ -1,34 +1,3 @@
-/*
- * Copyright (c) 2010 Hemanth Narra, Yufei Cheng
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Hemanth Narra <hemanth@ittc.ku.com>
- * Author: Yufei Cheng   <yfcheng@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- *
- * Work supported in part by NSF FIND (Future Internet Design) Program
- * under grant CNS-0626918 (Postmodern Internet Architecture),
- * NSF grant CNS-1050226 (Multilayer Network Resilience Analysis and
- * Experimentation on GENI), US Department of Defense (DoD), and ITTC at The
- * University of Kansas.
- */
 
 #include "dsdv-routing-protocol.h"
 
@@ -48,25 +17,13 @@ namespace dsdv {
 
 NS_OBJECT_ENSURE_REGISTERED(RoutingProtocol);
 
-/// UDP Port for DSDV control traffic
 const uint32_t RoutingProtocol::DSDV_PORT = 269;
 
-/// Tag used by DSDV implementation
 struct DeferredRouteOutputTag : public Tag {
-  /// Positive if output device is fixed in RouteOutput
   int32_t oif;
 
-  /**
-   * Constructor
-   *
-   * \param o outgoing interface (OIF)
-   */
   DeferredRouteOutputTag(int32_t o = -1) : Tag(), oif(o) {}
 
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId() {
     static TypeId tid = TypeId("ns3::dsdv::DeferredRouteOutputTag")
                             .SetParent<Tag>()
@@ -112,8 +69,7 @@ TypeId RoutingProtocol::GetTypeId() {
               "MaxQueueLen",
               "Maximum number of packets that we allow a routing protocol to "
               "buffer.",
-              UintegerValue(
-                  500 /*assuming maximum nodes in simulation is 100*/),
+              UintegerValue(500),
               MakeUintegerAccessor(&RoutingProtocol::m_maxQueueLen),
               MakeUintegerChecker<uint32_t>())
           .AddAttribute(
@@ -337,19 +293,16 @@ bool RoutingProtocol::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
     return false;
   }
   NS_ASSERT(m_ipv4);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv4->GetInterfaceForDevice(idev) >= 0);
   int32_t iif = m_ipv4->GetInterfaceForDevice(idev);
 
   Ipv4Address dst = header.GetDestination();
   Ipv4Address origin = header.GetSource();
 
-  // DSDV is not a multicast routing protocol
   if (dst.IsMulticast()) {
     return false;
   }
 
-  // Deferred route request
   if (EnableBuffering && idev == m_lo) {
     DeferredRouteOutputTag tag;
     if (p->PeekPacketTag(tag)) {
@@ -363,7 +316,6 @@ bool RoutingProtocol::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
       return true;
     }
   }
-  // LOCAL DELIVARY TO DSDV INTERFACES
   for (auto j = m_socketAddresses.begin(); j != m_socketAddresses.end(); ++j) {
     Ipv4InterfaceAddress iface = j->second;
     if (m_ipv4->GetInterfaceForAddress(iface.GetLocal()) == iif) {
@@ -372,7 +324,6 @@ bool RoutingProtocol::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
         if (!lcb.IsNull()) {
           NS_LOG_LOGIC("Broadcast local delivery to " << iface.GetLocal());
           lcb(p, header, iif);
-          // Fall through to additional processing
         } else {
           NS_LOG_ERROR("Unable to deliver packet locally due to null callback "
                        << p->GetUid() << " from " << origin);
@@ -405,7 +356,6 @@ bool RoutingProtocol::RouteInput(Ptr<const Packet> p, const Ipv4Header &header,
     return true;
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv4->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     ecb(p, header, Socket::ERROR_NOROUTETOHOST);
@@ -435,26 +385,8 @@ Ptr<Ipv4Route> RoutingProtocol::LoopbackRoute(const Ipv4Header &hdr,
   NS_ASSERT(m_lo);
   Ptr<Ipv4Route> rt = Create<Ipv4Route>();
   rt->SetDestination(hdr.GetDestination());
-  // rt->SetSource (hdr.GetSource ());
-  //
-  // Source address selection here is tricky.  The loopback route is
-  // returned when DSDV does not have a route; this causes the packet
-  // to be looped back and handled (cached) in RouteInput() method
-  // while a route is found. However, connection-oriented protocols
-  // like TCP need to create an endpoint four-tuple (src, src port,
-  // dst, dst port) and create a pseudo-header for checksumming.  So,
-  // DSDV needs to guess correctly what the eventual source address
-  // will be.
-  //
-  // For single interface, single address nodes, this is not a problem.
-  // When there are possibly multiple outgoing interfaces, the policy
-  // implemented here is to pick the first available DSDV interface.
-  // If RouteOutput() caller specified an outgoing interface, that
-  // further constrains the selection of source address
-  //
   auto j = m_socketAddresses.begin();
   if (oif) {
-    // Iterate to find an address on the oif device
     for (j = m_socketAddresses.begin(); j != m_socketAddresses.end(); ++j) {
       Ipv4Address addr = j->second.GetLocal();
       int32_t interface = m_ipv4->GetInterfaceForAddress(addr);
@@ -494,8 +426,6 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
     DsdvHeader tempDsdvHeader;
     packet->RemoveHeader(dsdvHeader);
     NS_LOG_DEBUG("Processing new update for " << dsdvHeader.GetDst());
-    /*Verifying if the packets sent by me were returned back to me. If yes,
-     * discarding them!*/
     for (auto j = m_socketAddresses.begin(); j != m_socketAddresses.end();
          ++j) {
       Ipv4InterfaceAddress interface = j->second;
@@ -528,23 +458,15 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
       if (dsdvHeader.GetDstSeqno() % 2 != 1) {
         NS_LOG_DEBUG("Received New Route!");
         RoutingTableEntry newEntry(
-            /*dev=*/dev,
-            /*dst=*/dsdvHeader.GetDst(),
-            /*seqNo=*/dsdvHeader.GetDstSeqno(),
-            /*iface=*/
+            dev, dsdvHeader.GetDst(), dsdvHeader.GetDstSeqno(),
             m_ipv4->GetAddress(m_ipv4->GetInterfaceForAddress(receiver), 0),
-            /*hops=*/dsdvHeader.GetHopCount(),
-            /*nextHop=*/sender,
-            /*lifetime=*/Simulator::Now(),
-            /*settlingTime=*/m_settlingTime,
-            /*changedEntries=*/true);
+            dsdvHeader.GetHopCount(), sender, Simulator::Now(), m_settlingTime,
+            true);
         newEntry.SetFlag(VALID);
         m_routingTable.AddRoute(newEntry);
         NS_LOG_DEBUG("New Route added to both tables");
         m_advRoutingTable.AddRoute(newEntry);
       } else {
-        // received update not present in main routing table and also with
-        // infinite metric
         NS_LOG_DEBUG("Discarding this update as this route is not present in "
                      "main routing table and received with infinite metric");
       }
@@ -556,20 +478,15 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
         for (auto i = allRoutes.begin(); i != allRoutes.end(); ++i) {
           NS_LOG_DEBUG("ADV table routes are:" << i->second.GetDestination());
         }
-        // present in fwd table and not in advtable
         m_advRoutingTable.AddRoute(fwdTableEntry);
         m_advRoutingTable.LookupRoute(dsdvHeader.GetDst(), advTableEntry);
       }
       if (dsdvHeader.GetDstSeqno() % 2 != 1) {
         if (dsdvHeader.GetDstSeqno() > advTableEntry.GetSeqNo()) {
-          // Received update with better seq number. Clear any old events that
-          // are running
           if (m_advRoutingTable.ForceDeleteIpv4Event(dsdvHeader.GetDst())) {
             NS_LOG_DEBUG(
                 "Canceling the timer to update route with better seq number");
           }
-          // if its a changed metric *nomatter* where the update came from, wait
-          // for WST
           if (dsdvHeader.GetHopCount() != advTableEntry.GetHop()) {
             advTableEntry.SetSeqNo(dsdvHeader.GetDstSeqno());
             advTableEntry.SetLifeTime(Simulator::Now());
@@ -589,11 +506,9 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
                 tempSettlingtime, &RoutingProtocol::SendTriggeredUpdate, this);
             m_advRoutingTable.AddIpv4Event(dsdvHeader.GetDst(), event);
             NS_LOG_DEBUG("EventCreated EventUID: " << event.GetUid());
-            // if received changed metric, use it but adv it only after wst
             m_routingTable.Update(advTableEntry);
             m_advRoutingTable.Update(advTableEntry);
           } else {
-            // Received update with better seq number and same metric.
             advTableEntry.SetSeqNo(dsdvHeader.GetDstSeqno());
             advTableEntry.SetLifeTime(Simulator::Now());
             advTableEntry.SetFlag(VALID);
@@ -607,10 +522,6 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
           }
         } else if (dsdvHeader.GetDstSeqno() == advTableEntry.GetSeqNo()) {
           if (dsdvHeader.GetHopCount() < advTableEntry.GetHop()) {
-            /*Received update with same seq number and better hop count.
-             * As the metric is changed, we will have to wait for WST before
-             * sending out this update.
-             */
             NS_LOG_DEBUG(
                 "Canceling any existing timer to update route with same "
                 "sequence number "
@@ -632,17 +543,10 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
                 tempSettlingtime, &RoutingProtocol::SendTriggeredUpdate, this);
             m_advRoutingTable.AddIpv4Event(dsdvHeader.GetDst(), event);
             NS_LOG_DEBUG("EventCreated EventUID: " << event.GetUid());
-            // if received changed metric, use it but adv it only after wst
             m_routingTable.Update(advTableEntry);
             m_advRoutingTable.Update(advTableEntry);
           } else {
-            /*Received update with same seq number but with same or greater hop
-             * count. Discard that update.
-             */
             if (!m_advRoutingTable.AnyRunningEvent(dsdvHeader.GetDst())) {
-              /*update the timer only if nexthop address matches thus discarding
-               * updates to that destination from other nodes.
-               */
               if (advTableEntry.GetNextHop() == sender) {
                 advTableEntry.SetLifeTime(Simulator::Now());
                 m_routingTable.Update(advTableEntry);
@@ -654,7 +558,6 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
                          << dsdvHeader.GetDst() << ". Discarding the update.");
           }
         } else {
-          // Received update with an old sequence number. Discard the update
           if (!m_advRoutingTable.AnyRunningEvent(dsdvHeader.GetDst())) {
             m_advRoutingTable.DeleteRoute(dsdvHeader.GetDst());
           }
@@ -664,7 +567,6 @@ void RoutingProtocol::RecvDsdv(Ptr<Socket> socket) {
       } else {
         NS_LOG_DEBUG("Route with infinite metric received for "
                      << dsdvHeader.GetDst() << " from " << sender);
-        // Delete route only if update was received from my nexthop neighbor
         if (sender == advTableEntry.GetNextHop()) {
           NS_LOG_DEBUG("Triggering an update for this unreachable route:");
           std::map<Ipv4Address, RoutingTableEntry> dstsWithNextHopSrc;
@@ -750,7 +652,6 @@ void RoutingProtocol::SendTriggeredUpdate() {
       dsdvHeader.SetHopCount(temp2.GetHop() + 1);
       NS_LOG_DEBUG("Adding my update as well to the packet");
       packet->AddHeader(dsdvHeader);
-      // Send to all-hosts broadcast if on /32 addr, subnet-directed otherwise
       Ipv4Address destination;
       if (iface.GetMask() == Ipv4Mask::GetOnes()) {
         destination = Ipv4Address("255.255.255.255");
@@ -821,7 +722,6 @@ void RoutingProtocol::SendPeriodicUpdate() {
                    << " HopCount:" << removedHeader.GetHopCount());
     }
     socket->Send(packet);
-    // Send to all-hosts broadcast if on /32 addr, subnet-directed otherwise
     Ipv4Address destination;
     if (iface.GetMask() == Ipv4Mask::GetOnes()) {
       destination = Ipv4Address("255.255.255.255");
@@ -840,22 +740,14 @@ void RoutingProtocol::SetIpv4(Ptr<Ipv4> ipv4) {
   NS_ASSERT(ipv4);
   NS_ASSERT(!m_ipv4);
   m_ipv4 = ipv4;
-  // Create lo route. It is asserted that the only one interface up for now is
-  // loopback
   NS_ASSERT(m_ipv4->GetNInterfaces() == 1 &&
             m_ipv4->GetAddress(0, 0).GetLocal() == Ipv4Address("127.0.0.1"));
   m_lo = m_ipv4->GetNetDevice(0);
   NS_ASSERT(m_lo);
-  // Remember lo route
   RoutingTableEntry rt(
-      /*dev=*/m_lo,
-      /*dst=*/Ipv4Address::GetLoopback(),
-      /*seqNo=*/0,
-      /*iface=*/
+      m_lo, Ipv4Address::GetLoopback(), 0,
       Ipv4InterfaceAddress(Ipv4Address::GetLoopback(), Ipv4Mask("255.0.0.0")),
-      /*hops=*/0,
-      /*nextHop=*/Ipv4Address::GetLoopback(),
-      /*lifetime=*/Simulator::GetMaximumSimulationTime());
+      0, Ipv4Address::GetLoopback(), Simulator::GetMaximumSimulationTime());
   rt.SetFlag(INVALID);
   rt.SetEntriesChanged(false);
   m_routingTable.AddRoute(rt);
@@ -870,7 +762,6 @@ void RoutingProtocol::NotifyInterfaceUp(uint32_t i) {
   if (iface.GetLocal() == Ipv4Address("127.0.0.1")) {
     return;
   }
-  // Create a socket to listen only on this interface
   Ptr<Socket> socket =
       Socket::CreateSocket(GetObject<Node>(), UdpSocketFactory::GetTypeId());
   NS_ASSERT(socket);
@@ -880,16 +771,11 @@ void RoutingProtocol::NotifyInterfaceUp(uint32_t i) {
   socket->SetAllowBroadcast(true);
   socket->SetAttribute("IpTtl", UintegerValue(1));
   m_socketAddresses.insert(std::make_pair(socket, iface));
-  // Add local broadcast record to the routing table
   Ptr<NetDevice> dev =
       m_ipv4->GetNetDevice(m_ipv4->GetInterfaceForAddress(iface.GetLocal()));
-  RoutingTableEntry rt(/*dev=*/dev,
-                       /*dst=*/iface.GetBroadcast(),
-                       /*seqNo=*/0,
-                       /*iface=*/iface,
-                       /*hops=*/0,
-                       /*nextHop=*/iface.GetBroadcast(),
-                       /*lifetime=*/Simulator::GetMaximumSimulationTime());
+  RoutingTableEntry rt(dev, iface.GetBroadcast(), 0, iface, 0,
+                       iface.GetBroadcast(),
+                       Simulator::GetMaximumSimulationTime());
   m_routingTable.AddRoute(rt);
   if (m_mainAddress == Ipv4Address()) {
     m_mainAddress = iface.GetLocal();
@@ -930,20 +816,15 @@ void RoutingProtocol::NotifyAddAddress(uint32_t i,
         Socket::CreateSocket(GetObject<Node>(), UdpSocketFactory::GetTypeId());
     NS_ASSERT(socket);
     socket->SetRecvCallback(MakeCallback(&RoutingProtocol::RecvDsdv, this));
-    // Bind to any IP address so that broadcasts can be received
     socket->BindToNetDevice(l3->GetNetDevice(i));
     socket->Bind(InetSocketAddress(Ipv4Address::GetAny(), DSDV_PORT));
     socket->SetAllowBroadcast(true);
     m_socketAddresses.insert(std::make_pair(socket, iface));
     Ptr<NetDevice> dev =
         m_ipv4->GetNetDevice(m_ipv4->GetInterfaceForAddress(iface.GetLocal()));
-    RoutingTableEntry rt(/*dev=*/dev,
-                         /*dst=*/iface.GetBroadcast(),
-                         /*seqNo=*/0,
-                         /*iface=*/iface,
-                         /*hops=*/0,
-                         /*nextHop=*/iface.GetBroadcast(),
-                         /*lifetime=*/Simulator::GetMaximumSimulationTime());
+    RoutingTableEntry rt(dev, iface.GetBroadcast(), 0, iface, 0,
+                         iface.GetBroadcast(),
+                         Simulator::GetMaximumSimulationTime());
     m_routingTable.AddRoute(rt);
   }
 }
@@ -956,12 +837,10 @@ void RoutingProtocol::NotifyRemoveAddress(uint32_t i,
     Ptr<Ipv4L3Protocol> l3 = m_ipv4->GetObject<Ipv4L3Protocol>();
     if (l3->GetNAddresses(i)) {
       Ipv4InterfaceAddress iface = l3->GetAddress(i, 0);
-      // Create a socket to listen only on this interface
       Ptr<Socket> socket = Socket::CreateSocket(GetObject<Node>(),
                                                 UdpSocketFactory::GetTypeId());
       NS_ASSERT(socket);
       socket->SetRecvCallback(MakeCallback(&RoutingProtocol::RecvDsdv, this));
-      // Bind to any IP address so that broadcasts can be received
       socket->Bind(InetSocketAddress(Ipv4Address::GetAny(), DSDV_PORT));
       socket->SetAllowBroadcast(true);
       m_socketAddresses.insert(std::make_pair(socket, iface));
@@ -1045,8 +924,7 @@ void RoutingProtocol::SendPacketFromQueue(Ipv4Address dst,
     UnicastForwardCallback ucb = queueEntry.GetUnicastForwardCallback();
     Ipv4Header header = queueEntry.GetIpv4Header();
     header.SetSource(route->GetSource());
-    header.SetTtl(header.GetTtl() +
-                  1); // compensate extra TTL decrement by fake loopback routing
+    header.SetTtl(header.GetTtl() + 1);
     ucb(route, p, header);
     if (m_queue.GetSize() != 0 && m_queue.Find(dst)) {
       Simulator::Schedule(

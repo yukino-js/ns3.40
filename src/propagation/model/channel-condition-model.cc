@@ -1,20 +1,3 @@
-/*
- * Copyright (c) 2019 SIGNET Lab, Department of Information Engineering,
- * University of Padova
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "channel-condition-model.h"
 
@@ -125,8 +108,6 @@ std::ostream &operator<<(std::ostream &os,
   return os;
 }
 
-// ------------------------------------------------------------------------- //
-
 NS_OBJECT_ENSURE_REGISTERED(ChannelConditionModel);
 
 TypeId ChannelConditionModel::GetTypeId() {
@@ -139,8 +120,6 @@ TypeId ChannelConditionModel::GetTypeId() {
 ChannelConditionModel::ChannelConditionModel() {}
 
 ChannelConditionModel::~ChannelConditionModel() {}
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(AlwaysLosChannelConditionModel);
 
@@ -157,7 +136,7 @@ AlwaysLosChannelConditionModel::AlwaysLosChannelConditionModel() {}
 AlwaysLosChannelConditionModel::~AlwaysLosChannelConditionModel() {}
 
 Ptr<ChannelCondition> AlwaysLosChannelConditionModel::GetChannelCondition(
-    Ptr<const MobilityModel> /* a */, Ptr<const MobilityModel> /* b */) const {
+    Ptr<const MobilityModel>, Ptr<const MobilityModel>) const {
   Ptr<ChannelCondition> c =
       CreateObject<ChannelCondition>(ChannelCondition::LOS);
 
@@ -167,8 +146,6 @@ Ptr<ChannelCondition> AlwaysLosChannelConditionModel::GetChannelCondition(
 int64_t AlwaysLosChannelConditionModel::AssignStreams(int64_t stream) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(NeverLosChannelConditionModel);
 
@@ -185,7 +162,7 @@ NeverLosChannelConditionModel::NeverLosChannelConditionModel() {}
 NeverLosChannelConditionModel::~NeverLosChannelConditionModel() {}
 
 Ptr<ChannelCondition> NeverLosChannelConditionModel::GetChannelCondition(
-    Ptr<const MobilityModel> /* a */, Ptr<const MobilityModel> /* b */) const {
+    Ptr<const MobilityModel>, Ptr<const MobilityModel>) const {
   Ptr<ChannelCondition> c =
       CreateObject<ChannelCondition>(ChannelCondition::NLOS);
 
@@ -195,8 +172,6 @@ Ptr<ChannelCondition> NeverLosChannelConditionModel::GetChannelCondition(
 int64_t NeverLosChannelConditionModel::AssignStreams(int64_t stream) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(NeverLosVehicleChannelConditionModel);
 
@@ -214,19 +189,16 @@ NeverLosVehicleChannelConditionModel::NeverLosVehicleChannelConditionModel() {}
 NeverLosVehicleChannelConditionModel::~NeverLosVehicleChannelConditionModel() {}
 
 Ptr<ChannelCondition> NeverLosVehicleChannelConditionModel::GetChannelCondition(
-    Ptr<const MobilityModel> /* a */, Ptr<const MobilityModel> /* b */) const {
+    Ptr<const MobilityModel>, Ptr<const MobilityModel>) const {
   Ptr<ChannelCondition> c =
       CreateObject<ChannelCondition>(ChannelCondition::NLOSv);
 
   return c;
 }
 
-int64_t
-NeverLosVehicleChannelConditionModel::AssignStreams(int64_t /* stream */) {
+int64_t NeverLosVehicleChannelConditionModel::AssignStreams(int64_t) {
   return 0;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppChannelConditionModel);
 
@@ -295,20 +267,16 @@ Ptr<ChannelCondition> ThreeGppChannelConditionModel::GetChannelCondition(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
   Ptr<ChannelCondition> cond;
 
-  // get the key for this channel
   uint32_t key = GetKey(a, b);
 
-  bool notFound =
-      false; // indicates if the channel condition is not present in the map
-  bool update = false; // indicates if the channel condition has to be updated
+  bool notFound = false;
+  bool update = false;
 
-  // look for the channel condition in m_channelConditionMap
   auto mapItem = m_channelConditionMap.find(key);
   if (mapItem != m_channelConditionMap.end()) {
     NS_LOG_DEBUG("found the channel condition in the map");
     cond = mapItem->second.m_condition;
 
-    // check if it has to be updated
     if (!m_updatePeriod.IsZero() &&
         Simulator::Now() - mapItem->second.m_generatedTime > m_updatePeriod) {
       NS_LOG_DEBUG("it has to be updated");
@@ -319,12 +287,8 @@ Ptr<ChannelCondition> ThreeGppChannelConditionModel::GetChannelCondition(
     notFound = true;
   }
 
-  // if the channel condition was not found or if it has to be updated
-  // generate a new channel condition
   if (notFound || update) {
     cond = ComputeChannelCondition(a, b);
-    // store the channel condition in m_channelConditionMap, used as cache.
-    // For this reason you see a const_cast.
     Item mapItem;
     mapItem.m_condition = cond;
     mapItem.m_generatedTime = Simulator::Now();
@@ -362,33 +326,24 @@ Ptr<ChannelCondition> ThreeGppChannelConditionModel::ComputeChannelCondition(
   NS_LOG_FUNCTION(this << a << b);
   Ptr<ChannelCondition> cond = CreateObject<ChannelCondition>();
 
-  // compute the LOS probability
   double pLos = ComputePlos(a, b);
   double pNlos = ComputePnlos(a, b);
 
-  // draw a random value
   double pRef = m_uniformVar->GetValue();
 
   NS_LOG_DEBUG("pRef " << pRef << " pLos " << pLos << " pNlos " << pNlos);
 
-  // get the channel condition
   if (pRef <= pLos) {
-    // LOS
     cond->SetLosCondition(ChannelCondition::LosConditionValue::LOS);
   } else if (pRef <= pLos + pNlos) {
-    // NLOS
     cond->SetLosCondition(ChannelCondition::LosConditionValue::NLOS);
   } else {
-    // NLOSv (added to support vehicular scenarios)
     cond->SetLosCondition(ChannelCondition::LosConditionValue::NLOSv);
   }
 
   cond->SetO2iCondition(ComputeO2i(a, b));
 
   if (cond->GetO2iCondition() == ChannelCondition::O2iConditionValue::O2I) {
-    // Since we have O2I penetration losses, we should choose based on the
-    // threshold if it will be low or high penetration losses
-    // (see TR38.901 Table 7.4.3)
     double o2iLowHighLossProb = m_uniformO2iLowHighLossVar->GetValue(0, 1);
     ChannelCondition::O2iLowHighConditionValue lowHighLossCondition;
 
@@ -407,7 +362,6 @@ double
 ThreeGppChannelConditionModel::ComputePnlos(Ptr<const MobilityModel> a,
                                             Ptr<const MobilityModel> b) const {
   NS_LOG_FUNCTION(this << a << b);
-  // by default returns 1 - PLOS
   return (1 - ComputePlos(a, b));
 }
 
@@ -430,20 +384,15 @@ double ThreeGppChannelConditionModel::Calculate2dDistance(const Vector &a,
 
 uint32_t ThreeGppChannelConditionModel::GetKey(Ptr<const MobilityModel> a,
                                                Ptr<const MobilityModel> b) {
-  // use the nodes ids to obtain a unique key for the channel between a and b
-  // sort the nodes ids so that the key is reciprocal
   uint32_t x1 =
       std::min(a->GetObject<Node>()->GetId(), b->GetObject<Node>()->GetId());
   uint32_t x2 =
       std::max(a->GetObject<Node>()->GetId(), b->GetObject<Node>()->GetId());
 
-  // use the cantor function to obtain the key
   uint32_t key = (((x1 + x2) * (x1 + x2 + 1)) / 2) + x2;
 
   return key;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppRmaChannelConditionModel);
 
@@ -462,13 +411,8 @@ ThreeGppRmaChannelConditionModel::~ThreeGppRmaChannelConditionModel() {}
 
 double ThreeGppRmaChannelConditionModel::ComputePlos(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
-  // compute the 2D distance between a and b
   double distance2D = Calculate2dDistance(a->GetPosition(), b->GetPosition());
 
-  // NOTE: no indication is given about the heights of the BS and the UT used
-  // to derive the LOS probability
-
-  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
   double pLos = 0.0;
   if (distance2D <= 10.0) {
     pLos = 1.0;
@@ -478,8 +422,6 @@ double ThreeGppRmaChannelConditionModel::ComputePlos(
 
   return pLos;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppUmaChannelConditionModel);
 
@@ -498,17 +440,14 @@ ThreeGppUmaChannelConditionModel::~ThreeGppUmaChannelConditionModel() {}
 
 double ThreeGppUmaChannelConditionModel::ComputePlos(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
-  // compute the 2D distance between a and b
   double distance2D = Calculate2dDistance(a->GetPosition(), b->GetPosition());
 
-  // retrieve h_UT, it should be smaller than 23 m
   double h_UT = std::min(a->GetPosition().z, b->GetPosition().z);
   if (h_UT > 23.0) {
     NS_LOG_WARN("The height of the UT should be smaller than 23 m (see TR "
                 "38.901, Table 7.4.2-1)");
   }
 
-  // retrieve h_BS, it should be equal to 25 m
   double h_BS = std::max(a->GetPosition().z, b->GetPosition().z);
   if (h_BS != 25.0) {
     NS_LOG_WARN("The LOS probability was derived assuming BS antenna heights "
@@ -516,12 +455,10 @@ double ThreeGppUmaChannelConditionModel::ComputePlos(
                 "38.901, Table 7.4.2-1)");
   }
 
-  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
   double pLos = 0.0;
   if (distance2D <= 18.0) {
     pLos = 1.0;
   } else {
-    // compute C'(h_UT)
     double c = 0.0;
     if (h_UT <= 13.0) {
       c = 0;
@@ -537,8 +474,6 @@ double ThreeGppUmaChannelConditionModel::ComputePlos(
 
   return pLos;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppUmiStreetCanyonChannelConditionModel);
 
@@ -560,21 +495,14 @@ ThreeGppUmiStreetCanyonChannelConditionModel::
 
 double ThreeGppUmiStreetCanyonChannelConditionModel::ComputePlos(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
-  // compute the 2D distance between a and b
   double distance2D = Calculate2dDistance(a->GetPosition(), b->GetPosition());
 
-  // NOTE: no idication is given about the UT height used to derive the
-  // LOS probability
-
-  // h_BS should be equal to 10 m. We check if at least one of the two
-  // nodes has height equal to 10 m
   if (a->GetPosition().z != 10.0 && b->GetPosition().z != 10.0) {
     NS_LOG_WARN("The LOS probability was derived assuming BS antenna heights "
                 "of 10 m (see TR "
                 "38.901, Table 7.4.2-1)");
   }
 
-  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
   double pLos = 0.0;
   if (distance2D <= 18.0) {
     pLos = 1.0;
@@ -585,8 +513,6 @@ double ThreeGppUmiStreetCanyonChannelConditionModel::ComputePlos(
 
   return pLos;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppIndoorMixedOfficeChannelConditionModel);
 
@@ -608,13 +534,8 @@ ThreeGppIndoorMixedOfficeChannelConditionModel::
 
 double ThreeGppIndoorMixedOfficeChannelConditionModel::ComputePlos(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
-  // compute the 2D distance between a and b
   double distance2D = Calculate2dDistance(a->GetPosition(), b->GetPosition());
 
-  // NOTE: no idication is given about the UT height used to derive the
-  // LOS probability
-
-  // retrieve h_BS, it should be equal to 3 m
   double h_BS = std::max(a->GetPosition().z, b->GetPosition().z);
   if (h_BS != 3.0) {
     NS_LOG_WARN("The LOS probability was derived assuming BS antenna heights "
@@ -622,7 +543,6 @@ double ThreeGppIndoorMixedOfficeChannelConditionModel::ComputePlos(
                 "38.901, Table 7.4.2-1)");
   }
 
-  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
   double pLos = 0.0;
   if (distance2D <= 1.2) {
     pLos = 1.0;
@@ -634,8 +554,6 @@ double ThreeGppIndoorMixedOfficeChannelConditionModel::ComputePlos(
 
   return pLos;
 }
-
-// ------------------------------------------------------------------------- //
 
 NS_OBJECT_ENSURE_REGISTERED(ThreeGppIndoorOpenOfficeChannelConditionModel);
 
@@ -657,13 +575,8 @@ ThreeGppIndoorOpenOfficeChannelConditionModel::
 
 double ThreeGppIndoorOpenOfficeChannelConditionModel::ComputePlos(
     Ptr<const MobilityModel> a, Ptr<const MobilityModel> b) const {
-  // compute the 2D distance between a and b
   double distance2D = Calculate2dDistance(a->GetPosition(), b->GetPosition());
 
-  // NOTE: no idication is given about the UT height used to derive the
-  // LOS probability
-
-  // retrieve h_BS, it should be equal to 3 m
   double h_BS = std::max(a->GetPosition().z, b->GetPosition().z);
   if (h_BS != 3.0) {
     NS_LOG_WARN("The LOS probability was derived assuming BS antenna heights "
@@ -671,7 +584,6 @@ double ThreeGppIndoorOpenOfficeChannelConditionModel::ComputePlos(
                 "38.901, Table 7.4.2-1)");
   }
 
-  // compute the LOS probability (see 3GPP TR 38.901, Sec. 7.4.2)
   double pLos = 0.0;
   if (distance2D <= 5.0) {
     pLos = 1.0;
@@ -684,4 +596,4 @@ double ThreeGppIndoorOpenOfficeChannelConditionModel::ComputePlos(
   return pLos;
 }
 
-} // end namespace ns3
+} // namespace ns3

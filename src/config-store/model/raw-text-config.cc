@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@cutebugs.net>
- */
 
 #include "raw-text-config.h"
 
@@ -267,32 +249,26 @@ bool RawTextConfigLoad::ParseLine(const std::string &line, std::string &type,
                                   std::string &name, std::string &value) {
   NS_LOG_FUNCTION(this << line << type << name << value);
 
-  // check for blank line
   {
     std::istringstream iss(line);
-    iss >> std::ws;  // remove all blanks line
-    if (!iss.good()) // eofbit set if no non-blanks
-    {
+    iss >> std::ws;
+    if (!iss.good()) {
       return false;
     }
   }
 
   if (line.front() == '#') {
-    return false; // comment line
+    return false;
   }
 
-  // for multiline values, append line to value if type and name not empty
   if (type.empty() && name.empty()) {
     std::istringstream iss(line);
     iss >> type >> name >> std::ws;
-    std::getline(iss, value); // remaining line, includes embedded spaces
+    std::getline(iss, value);
   } else {
     value.append(line);
   }
 
-  // two quotes in value signifies a completed (possibly multi-line)
-  // config-store entry, return True to signal load function to
-  // validate value (see Strip method) and set attribute
   return std::count(value.begin(), value.end(), '"') == 2;
 }
 

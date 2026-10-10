@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2011 CTTC
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Nicola Baldo <nbaldo@cttc.es>
- */
 
 #include <ns3/adhoc-aloha-noack-ideal-phy-helper.h>
 #include <ns3/config.h>
@@ -54,46 +36,27 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("SpectrumIdealPhyTest");
 
 static uint64_t g_rxBytes;
-static double g_bandwidth = 20e6; // Hz
+static double g_bandwidth = 20e6;
 
 void PhyRxEndOkTrace(std::string context, Ptr<const Packet> p) {
   g_rxBytes += p->GetSize();
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Ideal Spectrum PHY Test
- */
 class SpectrumIdealPhyTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   * \param snrLinear SNR (linear)
-   * \param phyRate PHY rate (bps)
-   * \param rateIsAchievable Check if the rate is achievable
-   * \param channelType Channel type
-   */
   SpectrumIdealPhyTestCase(double snrLinear, uint64_t phyRate,
                            bool rateIsAchievable, std::string channelType);
   ~SpectrumIdealPhyTestCase() override;
 
 private:
   void DoRun() override;
-  /**
-   * Get the test name
-   * \param channelType Channel type
-   * \param snrLinear SNR (linear)
-   * \param phyRate PHY rate (bps)
-   * \return the test name
-   */
   static std::string Name(std::string channelType, double snrLinear,
                           uint64_t phyRate);
 
-  double m_snrLinear;        //!< SNR (linear)
-  uint64_t m_phyRate;        //!< PHY rate (bps)
-  bool m_rateIsAchievable;   //!< Check if the rate is achievable
-  std::string m_channelType; //!< Channel type
+  double m_snrLinear;
+  uint64_t m_phyRate;
+  bool m_rateIsAchievable;
+  std::string m_channelType;
 };
 
 std::string SpectrumIdealPhyTestCase::Name(std::string channelType,
@@ -117,20 +80,15 @@ SpectrumIdealPhyTestCase::~SpectrumIdealPhyTestCase() {}
 void SpectrumIdealPhyTestCase::DoRun() {
   NS_LOG_FUNCTION(m_snrLinear << m_phyRate);
   double txPowerW = 0.1;
-  // for the noise, we use the Power Spectral Density of thermal noise
-  // at room temperature. The value of the PSD will be constant over the band of
-  // interest.
-  const double k = 1.381e-23;   // Boltzmann's constant
-  const double T = 290;         // temperature in Kelvin
-  double noisePsdValue = k * T; // W/Hz
+  const double k = 1.381e-23;
+  const double T = 290;
+  double noisePsdValue = k * T;
   double lossLinear = (txPowerW) / (m_snrLinear * noisePsdValue * g_bandwidth);
   double lossDb = 10 * std::log10(lossLinear);
-  uint64_t phyRate = m_phyRate; // bps
-  uint32_t pktSize = 50;        // bytes
+  uint64_t phyRate = m_phyRate;
+  uint32_t pktSize = 50;
 
-  uint32_t numPkts = 200; // desired number of packets in the
-                          // test. Directly related with the accuracy
-                          // of the measurement.
+  uint32_t numPkts = 200;
 
   double testDuration = (numPkts * pktSize * 8.0) / phyRate;
   NS_LOG_INFO("test duration = " << std::fixed << testDuration);
@@ -213,11 +171,6 @@ void SpectrumIdealPhyTestCase::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup spectrum-tests
- *
- * \brief Ideal Spectrum PHY TestSuite
- */
 class SpectrumIdealPhyTestSuite : public TestSuite {
 public:
   SpectrumIdealPhyTestSuite();
@@ -283,5 +236,4 @@ SpectrumIdealPhyTestSuite::SpectrumIdealPhyTestSuite()
   }
 }
 
-/// Static variable for test initialization
 static SpectrumIdealPhyTestSuite g_spectrumIdealPhyTestSuite;

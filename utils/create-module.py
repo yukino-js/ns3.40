@@ -1,17 +1,4 @@
 #! /usr/bin/env python3
-# Copyright 2026 hangtiancheng
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import sys
 import argparse
@@ -350,7 +337,6 @@ references to outside published work may help here.
 def create_file(path, template, **kwargs):
     artifact_path = Path(path)
 
-    # open file for (w)rite and in (t)ext mode
     with artifact_path.open("wt", encoding="utf-8") as f:
         f.write(template.format(**kwargs))
 
@@ -430,8 +416,6 @@ def make_doc(moduledir, modname):
     docpath = Path(moduledir, "doc")
     docpath.mkdir(parents=True)
 
-    # the module_dir template parameter must be a relative path
-    # instead of an absolute path
     mod_relpath = os.path.relpath(str(moduledir))
 
     file_name = "{}.rst".format(modname)
@@ -608,37 +592,24 @@ def main(argv):
                 "script from the top level of the ns3 directory".format(p)
             )
 
-    #
-    # Error check the arguments
-    #
-
-    # Alphanumeric and '-' only
     allowedRE = re.compile("^(\w|-)+$")
 
     project_path = None
 
     if project:
-        # project may be a path in the form a/b/c
-        # remove any leading or trailing path separators
         project_path = Path(project)
 
         if project_path.is_absolute():
-            # remove leading separator
             project_path = project_path.relative_to(os.sep)
 
         if not all(allowedRE.match(part) for part in project_path.parts):
             parser.error("Project path may only contain the characters [a-zA-Z0-9_-].")
-    #
-    # Create each module, if it doesn't exist
-    #
     modules = []
     for name in modnames:
         if name:
-            # remove any leading or trailing directory separators
             name = name.strip(os.sep)
 
         if not name:
-            # skip empty modules
             continue
 
         name_path = Path(name)
@@ -647,7 +618,6 @@ def main(argv):
             print("Skipping {}: module name can not be a path".format(name))
             continue
 
-        # default target directory is contrib
         modpath = contrib_path
 
         if name_path.parts[0] == "src":
@@ -660,18 +630,14 @@ def main(argv):
 
             modpath = src_path
 
-            # create a new path without the src part
             name_path = name_path.relative_to("src")
 
         elif name_path.parts[0] == "contrib":
             modpath = contrib_path
 
-            # create a new path without the contrib part
             name_path = name_path.relative_to("contrib")
 
         if project_path:
-            # if a project path was specified, that overrides other paths
-            # project paths are always relative to the contrib path
             modpath = contrib_path.joinpath(project_path)
 
         modname = name_path.parts[0]

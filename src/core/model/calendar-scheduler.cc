@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2009 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- * Author: Alexander Krotov <krotov@iitp.ru>
- */
 
 #include "calendar-scheduler.h"
 
@@ -29,12 +10,6 @@
 #include <list>
 #include <string>
 #include <utility>
-
-/**
- * \file
- * \ingroup scheduler
- * ns3::CalendarScheduler class implementation.
- */
 
 namespace ns3 {
 
@@ -118,11 +93,9 @@ uint32_t CalendarScheduler::Hash(uint64_t ts) const {
 
 void CalendarScheduler::DoInsert(const Event &ev) {
   NS_LOG_FUNCTION(this << ev.key.m_ts << ev.key.m_uid);
-  // calculate bucket index.
   uint32_t bucket = Hash(ev.key.m_ts);
   NS_LOG_LOGIC("insert in bucket=" << bucket);
 
-  // insert in bucket list.
   auto end = m_buckets[bucket].end();
   for (auto i = m_buckets[bucket].begin(); i != end; ++i) {
     if (Order(ev.key, i->key)) {
@@ -228,7 +201,6 @@ Scheduler::Event CalendarScheduler::RemoveNext() {
 void CalendarScheduler::Remove(const Event &ev) {
   NS_LOG_FUNCTION(this << &ev);
   NS_ASSERT(!IsEmpty());
-  // bucket index of event
   uint32_t bucket = Hash(ev.key.m_ts);
 
   auto end = m_buckets[bucket].end();
@@ -277,28 +249,22 @@ uint64_t CalendarScheduler::CalculateNewWidth() {
     nSamples = 25;
   }
 
-  // we gather the first nSamples from the queue
   std::list<Scheduler::Event> samples;
-  // save state
   uint32_t lastBucket = m_lastBucket;
   uint64_t bucketTop = m_bucketTop;
   uint64_t lastPrio = m_lastPrio;
 
-  // gather requested events
   for (uint32_t i = 0; i < nSamples; i++) {
     samples.push_back(DoRemoveNext());
   }
-  // put them back
   for (auto i = samples.begin(); i != samples.end(); ++i) {
     DoInsert(*i);
   }
 
-  // restore state.
   m_lastBucket = lastBucket;
   m_bucketTop = bucketTop;
   m_lastPrio = lastPrio;
 
-  // finally calculate inter-time average over samples.
   uint64_t totalSeparation = 0;
   auto end = samples.end();
   auto cur = samples.begin();
@@ -347,7 +313,6 @@ void CalendarScheduler::DoResize(uint32_t newSize, uint64_t newWidth) {
 void CalendarScheduler::Resize(uint32_t newSize) {
   NS_LOG_FUNCTION(this << newSize);
 
-  // PrintInfo ();
   uint64_t newWidth = CalculateNewWidth();
   DoResize(newSize, newWidth);
 }

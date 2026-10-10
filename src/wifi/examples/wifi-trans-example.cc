@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2017 Orange Labs
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Rediet <getachew.redieteab@orange.com>
- */
 
 #include "ns3/command-line.h"
 #include "ns3/gnuplot.h"
@@ -29,32 +11,15 @@
 
 using namespace ns3;
 
-/**
- * This example (inspired from tv-trans-example) enables to generate the
- * transmitted spectra of Wi-Fi stations, so as to model transmit mask
- * imperfections of OFDM-based Wi-Fi standards. Only one data packet is sent
- * from access point to station (once association has been performed) so as to
- * reduce execution time.
- *
- * A spectrum analyzer is used to measure the transmitted spectra from Wi-Fi
- * stations. The file
- * "spectrum-analyzer-wifi-[standard]-[bandwidth]MHz-sim-2-0.tr" contains its
- * output post simulation and use it to plot transmitted spectra with Gnuplot.
- *
- * The wifi-trans-example.sh script runs this example for all combinations,
- * plots transmitted spectra, and puts resulting png images in
- * wifi-trans-results folder.
- */
-
 void SendPacket(Ptr<NetDevice> sourceDevice, Address &destination) {
-  Ptr<Packet> pkt = Create<Packet>(100); // dummy bytes of data
+  Ptr<Packet> pkt = Create<Packet>(100);
   sourceDevice->Send(pkt, destination, 0);
 }
 
 int main(int argc, char **argv) {
   std::string standard = "11a";
   int bw = 20;
-  double pow = 23; // dBm
+  double pow = 23;
   bool verbose = false;
   CommandLine cmd(__FILE__);
   cmd.AddValue("standard",
@@ -74,10 +39,8 @@ int main(int argc, char **argv) {
   Ssid ssid;
   std::string dataRate;
   int freq;
-  Time dataStartTime = MicroSeconds(
-      800); // leaving enough time for beacon and association procedure
-  Time dataDuration = MicroSeconds(
-      300); // leaving enough time for data transfer (+ acknowledgment)
+  Time dataStartTime = MicroSeconds(800);
+  Time dataDuration = MicroSeconds(300);
   if (standard == "11a") {
     wifi.SetStandard(WIFI_STANDARD_80211a);
     ssid = Ssid("ns380211a");
@@ -113,7 +76,7 @@ int main(int argc, char **argv) {
     wifi.SetStandard(WIFI_STANDARD_80211n);
     ssid = Ssid("ns380211n_2_4GHZ");
     dataRate = "HtMcs0";
-    freq = 2402 + (bw / 2); // so as to have 2412/2422 for 20/40
+    freq = 2402 + (bw / 2);
     dataStartTime = MicroSeconds(4700);
     dataDuration = MicroSeconds(400);
     if (bw != 20 && bw != 40) {
@@ -124,7 +87,7 @@ int main(int argc, char **argv) {
     wifi.SetStandard(WIFI_STANDARD_80211n);
     ssid = Ssid("ns380211n_5GHZ");
     dataRate = "HtMcs0";
-    freq = 5170 + (bw / 2); // so as to have 5180/5190 for 20/40
+    freq = 5170 + (bw / 2);
     dataStartTime = MicroSeconds(1000);
     if (bw != 20 && bw != 40) {
       std::cout << "Bandwidth is not compatible with standard" << std::endl;
@@ -134,10 +97,9 @@ int main(int argc, char **argv) {
     wifi.SetStandard(WIFI_STANDARD_80211ac);
     ssid = Ssid("ns380211ac");
     dataRate = "VhtMcs0";
-    freq =
-        5170 + (bw / 2); // so as to have 5180/5190/5210/5250 for 20/40/80/160
+    freq = 5170 + (bw / 2);
     dataStartTime = MicroSeconds(1100);
-    dataDuration += MicroSeconds(400); // account for ADDBA procedure
+    dataDuration += MicroSeconds(400);
     if (bw != 20 && bw != 40 && bw != 80 && bw != 160) {
       std::cout << "Bandwidth is not compatible with standard" << std::endl;
       return 1;
@@ -146,9 +108,9 @@ int main(int argc, char **argv) {
     wifi.SetStandard(WIFI_STANDARD_80211ax);
     ssid = Ssid("ns380211ax_2_4GHZ");
     dataRate = "HeMcs0";
-    freq = 2402 + (bw / 2); // so as to have 2412/2422/2442 for 20/40/80
+    freq = 2402 + (bw / 2);
     dataStartTime = MicroSeconds(5500);
-    dataDuration += MicroSeconds(2000); // account for ADDBA procedure
+    dataDuration += MicroSeconds(2000);
     if (bw != 20 && bw != 40 && bw != 80) {
       std::cout << "Bandwidth is not compatible with standard" << std::endl;
       return 1;
@@ -157,10 +119,9 @@ int main(int argc, char **argv) {
     wifi.SetStandard(WIFI_STANDARD_80211ax);
     ssid = Ssid("ns380211ax_5GHZ");
     dataRate = "HeMcs0";
-    freq =
-        5170 + (bw / 2); // so as to have 5180/5190/5210/5250 for 20/40/80/160
+    freq = 5170 + (bw / 2);
     dataStartTime = MicroSeconds(1200);
-    dataDuration += MicroSeconds(500); // account for ADDBA procedure
+    dataDuration += MicroSeconds(500);
     if (bw != 20 && bw != 40 && bw != 80 && bw != 160) {
       std::cout << "Bandwidth is not compatible with standard" << std::endl;
       return 1;
@@ -178,7 +139,6 @@ int main(int argc, char **argv) {
     LogComponentEnable("SpectrumWifiPhy", LOG_LEVEL_ALL);
   }
 
-  /* nodes and positions */
   NodeContainer wifiNodes;
   NodeContainer spectrumAnalyzerNodes;
   NodeContainer allNodes;
@@ -191,24 +151,18 @@ int main(int argc, char **argv) {
   wifiApNode.Add(wifiNodes.Get(0));
   wifiStaNode.Add(wifiNodes.Get(1));
 
-  /* channel and propagation */
   SpectrumChannelHelper channelHelper = SpectrumChannelHelper::Default();
   channelHelper.SetChannel("ns3::MultiModelSpectrumChannel");
-  // constant path loss added just to show capability to set different
-  // propagation loss models FriisSpectrumPropagationLossModel already added by
-  // default in SpectrumChannelHelper
   channelHelper.AddSpectrumPropagationLoss(
       "ns3::ConstantSpectrumPropagationLossModel");
   Ptr<SpectrumChannel> channel = channelHelper.Create();
-
-  /* Wi-Fi transmitter setup */
 
   SpectrumWifiPhyHelper spectrumPhy;
   spectrumPhy.SetChannel(channel);
   spectrumPhy.SetErrorRateModel("ns3::NistErrorRateModel");
   spectrumPhy.Set("Frequency", UintegerValue(freq));
   spectrumPhy.Set("ChannelWidth", UintegerValue(bw));
-  spectrumPhy.Set("TxPowerStart", DoubleValue(pow)); // dBm
+  spectrumPhy.Set("TxPowerStart", DoubleValue(pow));
   spectrumPhy.Set("TxPowerEnd", DoubleValue(pow));
 
   WifiMacHelper mac;
@@ -220,100 +174,76 @@ int main(int argc, char **argv) {
               BooleanValue(false));
   NetDeviceContainer staDevice = wifi.Install(spectrumPhy, mac, wifiStaNode);
   mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid), "EnableBeaconJitter",
-              BooleanValue(
-                  false)); // so as to be sure that first beacon arrives quickly
+              BooleanValue(false));
   NetDeviceContainer apDevice = wifi.Install(spectrumPhy, mac, wifiApNode);
 
   MobilityHelper mobility;
   Ptr<ListPositionAllocator> nodePositionList =
       CreateObject<ListPositionAllocator>();
-  nodePositionList->Add(Vector(0.0, 1.0, 0.0)); // AP
-  nodePositionList->Add(Vector(1.0, 0.0, 0.0)); // STA
-  nodePositionList->Add(Vector(0.0, 0.0, 0.0)); // Spectrum Analyzer
+  nodePositionList->Add(Vector(0.0, 1.0, 0.0));
+  nodePositionList->Add(Vector(1.0, 0.0, 0.0));
+  nodePositionList->Add(Vector(0.0, 0.0, 0.0));
   mobility.SetPositionAllocator(nodePositionList);
   mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
   mobility.Install(allNodes);
 
-  /* Need to send data packet because beacon and association frames shall be
-   * sent using lowest rate */
-  // Send one data packet (this packet is sent using data rate / MCS defined
-  // above) once association is done (otherwise dropped)
   Simulator::Schedule(dataStartTime, &SendPacket, apDevice.Get(0),
                       staDevice.Get(0)->GetAddress());
 
-  /* frequency range for spectrum analyzer */
   std::vector<double> freqs;
-  int margin = 2; // 1MHz margin on each side
+  int margin = 2;
   int band = (bw + margin);
   freqs.reserve((4 * 10 * band));
-  for (int i = 0; i < (4 * 10 * band); ++i) // conversion to 100kHz scale
-  {
+  for (int i = 0; i < (4 * 10 * band); ++i) {
     freqs.push_back(i * 1e5 + (freq - 2 * band) * 1e6);
   }
   Ptr<SpectrumModel> spectrumAnalyzerFreqModel = Create<SpectrumModel>(freqs);
 
-  /* spectrum analyzer setup */
   SpectrumAnalyzerHelper spectrumAnalyzerHelper;
   spectrumAnalyzerHelper.SetChannel(channel);
   spectrumAnalyzerHelper.SetRxSpectrumModel(spectrumAnalyzerFreqModel);
-  spectrumAnalyzerHelper.SetPhyAttribute(
-      "Resolution",
-      TimeValue(
-          MicroSeconds(4))); // enough resolution to distinguish OFDM symbols
-                             // (default 1ms too long even for PPDUs)
+  spectrumAnalyzerHelper.SetPhyAttribute("Resolution",
+                                         TimeValue(MicroSeconds(4)));
   std::ostringstream ossFileName;
   ossFileName << "spectrum-analyzer-wifi-" << standard << "-" << bw << "MHz";
   spectrumAnalyzerHelper.EnableAsciiAll(ossFileName.str());
   NetDeviceContainer spectrumAnalyzerDevices =
       spectrumAnalyzerHelper.Install(spectrumAnalyzerNodes);
 
-  /* Let enough time for first beacon, association procedure, and first data
-   * (+acknowledgment and eventually preceding ADDBA procedure) */
   Simulator::Stop(dataStartTime + dataDuration);
 
   Simulator::Run();
 
-  /* Plot transmitted spectra with Gnuplot */
-  ossFileName << "-2-0"; // append node-interface info
+  ossFileName << "-2-0";
   std::ostringstream ossPlt;
   ossPlt << ossFileName.str() << ".plt";
   std::ofstream plotFile(ossPlt.str());
   std::ostringstream ossPng;
   ossPng << ossFileName.str() << ".png";
   Gnuplot plot = Gnuplot(ossPng.str());
-  // Prepare 3D plot (reset previous values)
   std::ostringstream ossExtra;
   ossExtra << "file = '" << ossFileName.str() << "'";
   plot.SetExtra(ossExtra.str());
   plot.AppendExtra("unset surface");
   plot.AppendExtra("set key off");
-  // Configure output file as png
   plot.AppendExtra("set term png");
   plot.AppendExtra("set output file . '.png'");
-  // Switch to 3D plot
   plot.AppendExtra("set pm3d at s");
   plot.AppendExtra("set palette");
-  // Orient view
   plot.AppendExtra("set view 50,50");
-  // Add legends
   plot.AppendExtra("set xlabel \"time (ms)\"");
   plot.AppendExtra("set ylabel \"freq (MHz)\" offset 15,0,0");
   plot.AppendExtra("set zlabel \"PSD (dBW/Hz)\" offset 15,0,0");
-  // Define grid
   plot.AppendExtra("set ytics");
   plot.AppendExtra("set mytics 2");
   plot.AppendExtra("set ztics");
   plot.AppendExtra("set mztics 5");
   plot.AppendExtra("set grid ytics mytics ztics mztics");
-  // tr file name
   plot.AppendExtra("filename = file . '.tr'");
-  // Extract max power using stats (so as to normalize during display)
   plot.AppendExtra("stats filename using 3");
   plot.AppendExtra("refW = STATS_max");
-  // Plot graph (file being defined upon gnuplot call)
   plot.AppendExtra(
       "splot filename using ($1*1000.0):($2/1e6):(10*log10($3/refW))");
-  // Generate output and close file
   plot.GenerateOutput(plotFile);
   plotFile.close();
 

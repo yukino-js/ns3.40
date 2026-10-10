@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 Universita' di Firenze, Italy
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Tommaso Pecorella <tommaso.pecorella@unifi.it>
- */
 
 #include "ripng.h"
 
@@ -190,12 +172,6 @@ Ptr<Ipv6Route> RipNg::RouteOutput(Ptr<Packet> p, const Ipv6Header &header,
   Ptr<Ipv6Route> rtentry = nullptr;
 
   if (destination.IsMulticast()) {
-    // Note:  Multicast routes for outbound packets are stored in the
-    // normal unicast table.  An implication of this is that it is not
-    // possible to source multicast datagrams on multiple interfaces.
-    // This is a well-known property of sockets implementation on
-    // many Unix variants.
-    // So, we just log it and fall through to LookupStatic ()
     NS_LOG_LOGIC("RouteOutput (): Multicast destination");
   }
 
@@ -218,14 +194,13 @@ bool RipNg::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
                        << header.GetDestination() << idev);
 
   NS_ASSERT(m_ipv6);
-  // Check if input device supports IP
   NS_ASSERT(m_ipv6->GetInterfaceForDevice(idev) >= 0);
   uint32_t iif = m_ipv6->GetInterfaceForDevice(idev);
   Ipv6Address dst = header.GetDestination();
 
   if (dst.IsMulticast()) {
     NS_LOG_LOGIC("Multicast route not supported by RIPng");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 
   if (header.GetDestination().IsLinkLocal() ||
@@ -237,7 +212,6 @@ bool RipNg::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
     return false;
   }
 
-  // Check if input device supports IP forwarding
   if (!m_ipv6->IsForwarding(iif)) {
     NS_LOG_LOGIC("Forwarding disabled for this interface");
     if (!ecb.IsNull()) {
@@ -245,17 +219,16 @@ bool RipNg::RouteInput(Ptr<const Packet> p, const Ipv6Header &header,
     }
     return true;
   }
-  // Next, try to find a route
   NS_LOG_LOGIC("Unicast destination");
   Ptr<Ipv6Route> rtentry = Lookup(header.GetDestination(), false);
 
   if (rtentry) {
     NS_LOG_LOGIC("Found unicast destination - calling unicast callback");
-    ucb(idev, rtentry, p, header); // unicast forwarding callback
+    ucb(idev, rtentry, p, header);
     return true;
   } else {
     NS_LOG_LOGIC("Did not find unicast destination - returning false");
-    return false; // Let other routing protocols try to handle this
+    return false;
   }
 }
 
@@ -330,7 +303,6 @@ void RipNg::NotifyInterfaceUp(uint32_t i) {
 void RipNg::NotifyInterfaceDown(uint32_t interface) {
   NS_LOG_FUNCTION(this << interface);
 
-  /* remove all routes that are going through this interface */
   for (auto it = m_routes.begin(); it != m_routes.end(); it++) {
     if (it->first->GetInterface() == interface) {
       InvalidateRoute(it->first);
@@ -391,8 +363,6 @@ void RipNg::NotifyRemoveAddress(uint32_t interface,
       address.GetAddress().CombinePrefix(address.GetPrefix());
   Ipv6Prefix networkMask = address.GetPrefix();
 
-  // Remove all routes that are going through this interface
-  // which reference this network
   for (auto it = m_routes.begin(); it != m_routes.end(); it++) {
     if (it->first->GetInterface() == interface && it->first->IsNetwork() &&
         it->first->GetDestNetwork() == networkAddress &&
@@ -410,14 +380,12 @@ void RipNg::NotifyAddRoute(Ipv6Address dst, Ipv6Prefix mask,
                            Ipv6Address nextHop, uint32_t interface,
                            Ipv6Address prefixToUse) {
   NS_LOG_INFO(this << dst << mask << nextHop << interface << prefixToUse);
-  // \todo this can be used to add delegate routes
 }
 
 void RipNg::NotifyRemoveRoute(Ipv6Address dst, Ipv6Prefix mask,
                               Ipv6Address nextHop, uint32_t interface,
                               Ipv6Address prefixToUse) {
   NS_LOG_FUNCTION(this << dst << mask << nextHop << interface);
-  // \todo this can be used to delete delegate routes
 }
 
 void RipNg::SetIpv6(Ptr<Ipv6> ipv6) {
@@ -476,10 +444,8 @@ void RipNg::PrintRoutingTable(Ptr<OutputStreamWrapper> stream,
         }
         *os << std::setw(5) << flags.str();
         *os << std::setw(4) << int(route->GetRouteMetric());
-        // Ref ct not implemented
         *os << "-"
             << "   ";
-        // Use not implemented
         *os << "-"
             << "   ";
         if (!Names::FindName(m_ipv6->GetNetDevice(route->GetInterface()))
@@ -529,8 +495,6 @@ Ptr<Ipv6Route> RipNg::Lookup(Ipv6Address dst, bool setSource,
   Ptr<Ipv6Route> rtentry = nullptr;
   uint16_t longestMask = 0;
 
-  /* when sending on link-local multicast, there have to be interface specified
-   */
   if (dst.IsLinkLocalMulticast()) {
     NS_ASSERT_MSG(interface, "Try to send on link-local multicast address, and "
                              "no interface index is given!");
@@ -558,8 +522,6 @@ Ptr<Ipv6Route> RipNg::Lookup(Ipv6Address dst, bool setSource,
         NS_LOG_LOGIC("Found global network route " << j << ", mask length "
                                                    << maskLen);
 
-        /* if interface is given, check the route will output on this interface
-         */
         if (!interface ||
             interface == m_ipv6->GetNetDevice(j->GetInterface())) {
           if (maskLen < longestMask) {
@@ -577,8 +539,7 @@ Ptr<Ipv6Route> RipNg::Lookup(Ipv6Address dst, bool setSource,
             if (route->GetGateway().IsAny()) {
               rtentry->SetSource(m_ipv6->SourceAddressSelection(
                   interfaceIdx, route->GetDest()));
-            } else if (route->GetDest().IsAny()) /* default route */
-            {
+            } else if (route->GetDest().IsAny()) {
               rtentry->SetSource(m_ipv6->SourceAddressSelection(
                   interfaceIdx, route->GetPrefixToUse().IsAny()
                                     ? dst
@@ -725,17 +686,12 @@ void RipNg::HandleRequests(RipNgHeader requestHdr, Ipv6Address senderAddress,
     return;
   }
 
-  // check if it's a request for the full table from a neighbor
   if (rtes.size() == 1 && senderAddress.IsLinkLocal()) {
     if (rtes.begin()->GetPrefix() == Ipv6Address::GetAny() &&
         rtes.begin()->GetPrefixLen() == 0 &&
         rtes.begin()->GetRouteMetric() == m_linkDown) {
-      // Output whole thing. Use Split Horizon
       if (m_interfaceExclusions.find(incomingInterface) ==
           m_interfaceExclusions.end()) {
-        // we use one of the sending sockets, as they're bound to the right
-        // interface and the local address might be used on different
-        // interfaces.
         Ptr<Socket> sendingSocket;
         for (auto iter = m_unicastSocketList.begin();
              iter != m_unicastSocketList.end(); iter++) {
@@ -815,11 +771,7 @@ void RipNg::HandleRequests(RipNgHeader requestHdr, Ipv6Address senderAddress,
       }
     }
   } else {
-    // note: we got the request as a single packet, so no check is necessary for
-    // MTU limit
 
-    // we use one of the sending sockets, as they're bound to the right
-    // interface and the local address might be used on different interfaces.
     Ptr<Socket> sendingSocket;
     if (senderAddress.IsLinkLocal()) {
       for (auto iter = m_unicastSocketList.begin();
@@ -902,7 +854,6 @@ void RipNg::HandleResponses(RipNgHeader hdr, Ipv6Address senderAddress,
 
   std::list<RipNgRte> rtes = hdr.GetRteList();
 
-  // validate the RTEs before processing
   for (auto iter = rtes.begin(); iter != rtes.end(); iter++) {
     if (iter->GetRouteMetric() == 0 || iter->GetRouteMetric() > m_linkDown) {
       NS_LOG_LOGIC("Ignoring an update message with malformed metric: "
@@ -1108,22 +1059,6 @@ void RipNg::SendTriggeredRouteUpdate() {
     return;
   }
 
-  // DoSendRouteUpdate (false);
-
-  // note: The RFC states:
-  //     After a triggered
-  //     update is sent, a timer should be set for a random interval between 1
-  //     and 5 seconds.  If other changes that would trigger updates occur
-  //     before the timer expires, a single update is triggered when the timer
-  //     expires.  The timer is then reset to another random value between 1
-  //     and 5 seconds.  Triggered updates may be suppressed if a regular
-  //     update is due by the time the triggered update would be sent.
-  // Here we rely on this:
-  // When an update occurs (either Triggered or Periodic) the "IsChanged ()"
-  // route field will be cleared.
-  // Hence, the following Triggered Update will be fired, but will not send
-  // any route update.
-
   Time delay = Seconds(m_rng->GetValue(m_minTriggeredUpdateDelay.GetSeconds(),
                                        m_maxTriggeredUpdateDelay.GetSeconds()));
   m_nextTriggeredUpdate =
@@ -1211,10 +1146,6 @@ void RipNg::AddDefaultRouteTo(Ipv6Address nextHop, uint32_t interface) {
   AddNetworkRouteTo(Ipv6Address("::"), Ipv6Prefix::GetZero(), nextHop,
                     interface, Ipv6Address("::"));
 }
-
-/*
- * RipNgRoutingTableEntry
- */
 
 RipNgRoutingTableEntry::RipNgRoutingTableEntry()
     : m_tag(0), m_metric(0), m_status(RIPNG_INVALID), m_changed(false) {}

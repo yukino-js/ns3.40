@@ -1,31 +1,4 @@
-// Copyright 2026 hangtiancheng
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 
-/*
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 #include "ns3/core-module.h"
 
@@ -37,16 +10,6 @@
 
 using namespace ns3;
 
-/**
- * \ingroup system-tests-perf
- *
- * Check the performance of writing to file.
- *
- * \param file The file to write to.
- * \param n The number of writes to perform.
- * \param buffer The buffer to write.
- * \param size The buffer size.
- */
 void PerfFile(FILE *file, uint32_t n, const char *buffer, uint32_t size) {
   for (uint32_t i = 0; i < n; ++i) {
     if (std::fwrite(buffer, 1, size, file) != size) {
@@ -55,16 +18,6 @@ void PerfFile(FILE *file, uint32_t n, const char *buffer, uint32_t size) {
   }
 }
 
-/**
- * \ingroup system-tests-perf
- *
- * Check the performance of writing to an output stream.
- *
- * \param stream The output stream to write to.
- * \param n The number of writes to perform.
- * \param buffer The buffer to write.
- * \param size The buffer size.
- */
 void PerfStream(std::ostream &stream, uint32_t n, const char *buffer,
                 uint32_t size) {
   for (uint32_t i = 0; i < n; ++i) {
@@ -98,11 +51,6 @@ int main(int argc, char *argv[]) {
   char buffer[1024];
 
   if (doStream) {
-    //
-    // This will probably run on a machine doing other things.  Run it some
-    // relatively large number of times and try to find a minimum, which
-    // will hopefully represent a time when it runs free of interference.
-    //
     for (uint32_t i = 0; i < iter; ++i) {
       std::ofstream stream;
       if (binmode) {
@@ -124,11 +72,6 @@ int main(int argc, char *argv[]) {
 
     std::cout << std::endl;
   } else {
-    //
-    // This will probably run on a machine doing other things.  Run it some
-    // relatively large number of times and try to find a minimum, which
-    // will hopefully represent a time when it runs free of interference.
-    //
     for (uint32_t i = 0; i < iter; ++i) {
       FILE *file = fopen("filetest", "w");
 

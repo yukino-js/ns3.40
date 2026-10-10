@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2020
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Stefano Avallone <stavallo@unina.it>
- *          Rémy Grünblatt <remy@grunblatt.org>
- */
 
 #include "ns3/ap-wifi-mac.h"
 #include "ns3/boolean.h"
@@ -37,44 +18,20 @@
 
 using namespace ns3;
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Test for issue 211 (https://gitlab.com/nsnam/ns-3-dev/-/issues/211)
- *
- * This test aims to check that the transmission of data frames (under a
- * Block Ack agreement) resumes after a period in which the connectivity
- * between originator and recipient is interrupted (e.g., the station
- * moves away and comes back). Issue 211 revealed that MSDUs with expired
- * lifetime were not removed from the wifi MAC queue if the station had
- * to transmit a Block Ack Request. If the connectivity was lost for enough
- * time, the wifi MAC queue could become full of MSDUs with expired lifetime,
- * thus preventing the traffic control layer to forward down new packets.
- * At this point, the station gave up transmitting the Block Ack Request
- * and did not request channel access anymore.
- */
 class Issue211Test : public TestCase {
 public:
-  /**
-   * \brief Constructor
-   */
   Issue211Test();
   ~Issue211Test() override;
 
   void DoRun() override;
 
 private:
-  /**
-   * Compute the average throughput since the last check-point
-   * \param server the UDP server
-   */
   void CalcThroughput(Ptr<UdpServer> server);
 
-  std::vector<double> m_tputValues; ///< throughput in sub-intervals
-  uint64_t m_lastRxBytes;           ///< RX bytes at last check-point
-  Time m_lastCheckPointTime;        ///< time of last check-point
-  uint32_t m_payloadSize;           ///< payload size in bytes
+  std::vector<double> m_tputValues;
+  uint64_t m_lastRxBytes;
+  Time m_lastCheckPointTime;
+  uint32_t m_payloadSize;
 };
 
 Issue211Test::Issue211Test()
@@ -86,9 +43,8 @@ Issue211Test::~Issue211Test() {}
 
 void Issue211Test::CalcThroughput(Ptr<UdpServer> server) {
   uint64_t rxBytes = m_payloadSize * server->GetReceived();
-  double tput =
-      (rxBytes - m_lastRxBytes) * 8. /
-      (Simulator::Now() - m_lastCheckPointTime).ToDouble(Time::US); // Mb/s
+  double tput = (rxBytes - m_lastRxBytes) * 8. /
+                (Simulator::Now() - m_lastCheckPointTime).ToDouble(Time::US);
   m_tputValues.push_back(tput);
   m_lastRxBytes = rxBytes;
   m_lastCheckPointTime = Simulator::Now();
@@ -140,7 +96,6 @@ void Issue211Test::DoRun() {
 
   NetDeviceContainer apDevices = wifi.Install(phy, mac, wifiApNode);
 
-  // Assign fixed streams to random variables in use
   wifi.AssignStreams(apDevices, streamNumber);
 
   MobilityHelper mobility;
@@ -155,7 +110,6 @@ void Issue211Test::DoRun() {
   mobility.Install(wifiApNode);
   mobility.Install(wifiStaNode);
 
-  /* Internet stack*/
   InternetStackHelper stack;
   stack.Install(wifiApNode);
   stack.Install(wifiStaNode);
@@ -169,7 +123,7 @@ void Issue211Test::DoRun() {
   apNodeInterface = address.Assign(apDevices.Get(0));
 
   ApplicationContainer serverApp;
-  Time warmup(Seconds(1.0)); // to account for association
+  Time warmup(Seconds(1.0));
 
   uint16_t port = 9;
   UdpServerHelper server(port);
@@ -180,7 +134,7 @@ void Issue211Test::DoRun() {
   UdpClientHelper client(staNodeInterface.GetAddress(0), port);
   client.SetAttribute("MaxPackets", UintegerValue(4294967295U));
   client.SetAttribute("Interval", TimeValue(MilliSeconds(1)));
-  client.SetAttribute("PacketSize", UintegerValue(m_payloadSize)); // 16 Mb/s
+  client.SetAttribute("PacketSize", UintegerValue(m_payloadSize));
   ApplicationContainer clientApp = client.Install(wifiApNode.Get(0));
   clientApp.Start(warmup);
   clientApp.Stop(warmup + simulationTime);
@@ -188,20 +142,17 @@ void Issue211Test::DoRun() {
   Ptr<MobilityModel> staMobility =
       wifiStaNode.Get(0)->GetObject<MobilityModel>();
 
-  // First check-point: station moves away
   Simulator::Schedule(warmup + moveAwayTime, &MobilityModel::SetPosition,
                       staMobility, Vector(10000.0, 0.0, 0.0));
   Simulator::Schedule(warmup + moveAwayTime + MilliSeconds(10),
                       &Issue211Test::CalcThroughput, this,
                       DynamicCast<UdpServer>(serverApp.Get(0)));
 
-  // Second check-point: station moves back
   Simulator::Schedule(warmup + moveBackTime, &MobilityModel::SetPosition,
                       staMobility, Vector(5.0, 0.0, 0.0));
   Simulator::Schedule(warmup + moveBackTime, &Issue211Test::CalcThroughput,
                       this, DynamicCast<UdpServer>(serverApp.Get(0)));
 
-  // Last check-point: simulation finish time
   Simulator::Schedule(warmup + simulationTime, &Issue211Test::CalcThroughput,
                       this, DynamicCast<UdpServer>(serverApp.Get(0)));
 
@@ -218,7 +169,6 @@ void Issue211Test::DoRun() {
   NS_TEST_EXPECT_MSG_GT(m_tputValues[2], 0,
                         "Throughput must be non null when the station is back");
 
-  // Print throughput values when the test is run through test-runner
   for (const auto &t : m_tputValues) {
     std::cout << "Throughput = " << t << " Mb/s" << std::endl;
   }
@@ -226,12 +176,6 @@ void Issue211Test::DoRun() {
   Simulator::Destroy();
 }
 
-/**
- * \ingroup wifi-test
- * \ingroup tests
- *
- * \brief Block Ack Test Suite
- */
 class Issue211TestSuite : public TestSuite {
 public:
   Issue211TestSuite();
@@ -241,4 +185,4 @@ Issue211TestSuite::Issue211TestSuite() : TestSuite("wifi-issue-211", UNIT) {
   AddTestCase(new Issue211Test, TestCase::QUICK);
 }
 
-static Issue211TestSuite g_issue211TestSuite; ///< the test suite
+static Issue211TestSuite g_issue211TestSuite;

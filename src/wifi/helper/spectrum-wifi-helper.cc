@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Sébastien Deronne <sebastien.deronne@gmail.com>
- */
 
 #include "spectrum-wifi-helper.h"
 
@@ -137,7 +118,6 @@ SpectrumWifiPhyHelper::Create(Ptr<Node> node, Ptr<WifiNetDevice> device) const {
 void SpectrumWifiPhyHelper::InstallPhyInterfaces(
     uint8_t linkId, Ptr<SpectrumWifiPhy> phy) const {
   if (m_interfacesMap.count(linkId) == 0) {
-    // default setup: set all interfaces to this link
     for (const auto &[freqRange, channel] : m_channels) {
       phy->AddChannel(channel, freqRange);
     }
@@ -155,17 +135,14 @@ void SpectrumWifiPhyHelper::SpectrumChannelSwitched(
     auto spectrumPhy = DynamicCast<SpectrumWifiPhy>(otherPhy);
     NS_ASSERT(spectrumPhy);
     if (spectrumPhy == phy) {
-      // this is the PHY that has switched
       continue;
     }
     if (spectrumPhy->GetCurrentFrequencyRange() ==
         phy->GetCurrentFrequencyRange()) {
-      // this is the active interface
       continue;
     }
     if (const auto &interfaces = spectrumPhy->GetSpectrumPhyInterfaces();
         interfaces.count(phy->GetCurrentFrequencyRange()) == 0) {
-      // no interface attached to that channel
       continue;
     }
     spectrumPhy->ConfigureInterface(phy->GetFrequency(),

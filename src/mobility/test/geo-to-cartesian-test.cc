@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2014 University of Washington
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Benjamin Cizdziel <ben.cizdziel@gmail.com>
- */
 
 #include <ns3/geographic-positions.h>
 #include <ns3/log.h>
@@ -25,8 +7,6 @@ NS_LOG_COMPONENT_DEFINE("GeoToCartesianTest");
 
 using namespace ns3;
 
-// 10 meter tolerance for testing, which is very small with respect to ECEF
-// Cartesian coordinates on or above earth's surface
 const double TOLERANCE = 10;
 
 const double XSPHERE_MATLAB[216] = {
@@ -1514,39 +1494,8 @@ const double ZWGS84_MATLAB[216] = {
     -1.55198002803211e-09,
 };
 
-/**
- * \ingroup mobility
- * \ingroup tests
- * \defgroup mobility-test mobility module tests
- */
-
-/**
- * \ingroup mobility-test
- *
- * \brief Geo To Cartesian Test Case
- *
- * This test verifies the accuracy of the GeographicToCartesianCoordinates()
- * method in the GeographicPositions class, which converts earth
- * geographic/geodetic coordinates to ECEF Cartesian coordinates. To do so, it
- * compares the values generated from the method to values generated from the
- * MATLAB function geodetic2ecef(), which is part of the MATLAB Mapping Toolbox,
- * using the built-in earth referenceSphere, GRS80 referenceEllipsoid, and WGS84
- * referenceEllipsoid in MATLAB. A description of the MATLAB function can be
- * found at this webpage:
- * http://www.mathworks.com/help/map/ref/geodetic2ecef.html Values are compared
- * using 216 test cases for each of the three earth spheroid models.
- */
 class GeoToCartesianTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param latitude latitude (deg)
-   * \param longitude longitude (deg)
-   * \param altitude altitude (m)
-   * \param sphType sphere type
-   * \param i index
-   */
   GeoToCartesianTestCase(double latitude, double longitude, double altitude,
                          GeographicPositions::EarthSpheroidType sphType, int i);
   ~GeoToCartesianTestCase() override;
@@ -1554,21 +1503,13 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Name function
-   * \param latitude the latitude (deg)
-   * \param longitude the longitude (deg)
-   * \param altitude the altitude (m)
-   * \param sphType the sphere type
-   * \returns the name string
-   */
   static std::string Name(double latitude, double longitude, double altitude,
                           GeographicPositions::EarthSpheroidType sphType);
-  double m_latitude;                                ///< latitude (deg)
-  double m_longitude;                               ///< longitude (deg)
-  double m_altitude;                                ///< altitude (m)
-  GeographicPositions::EarthSpheroidType m_sphType; ///< spheroid type
-  int m_i;                                          ///< index
+  double m_latitude;
+  double m_longitude;
+  double m_altitude;
+  GeographicPositions::EarthSpheroidType m_sphType;
+  int m_i;
 };
 
 std::string
@@ -1643,8 +1584,7 @@ void GeoToCartesianTestCase::DoRun() {
                                   << ") is incorrect "
                                      "for GRS80 model in iteration "
                                   << m_i);
-  } else // if m_sphType == GeographicPositions::WGS84
-  {
+  } else {
     NS_TEST_ASSERT_MSG_EQ_TOL(cart.x, XWGS84_MATLAB[m_i], TOLERANCE,
                               "x coordinate ("
                                   << cart.x
@@ -1666,29 +1606,8 @@ void GeoToCartesianTestCase::DoRun() {
   }
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Cartesian to Geo Test Case
- *
- * This test verifies the accuracy of the CartesianToGeographicCoordinates()
- * method in the GeographicPositions class, which converts earth
- * ECEF Cartesian coordinates to geographic/geodetic coordinates. To do so, it
- * compares the values generated from the method and converted back to
- * geographic coordinates.  Values are compared using 216 test cases for each of
- * the three earth spheroid models.
- */
 class CartesianToGeoTestCase : public TestCase {
 public:
-  /**
-   * Constructor
-   *
-   * \param latitude latitude (deg)
-   * \param longitude longitude (deg)
-   * \param altitude altitude (m)
-   * \param sphType sphere type
-   * \param i index
-   */
   CartesianToGeoTestCase(double latitude, double longitude, double altitude,
                          GeographicPositions::EarthSpheroidType sphType, int i);
   ~CartesianToGeoTestCase() override;
@@ -1696,20 +1615,12 @@ public:
 private:
   void DoRun() override;
 
-  /**
-   * Name function
-   * \param latitude the latitude (deg)
-   * \param longitude the longitude (deg)
-   * \param altitude the altitude (m)
-   * \param sphType the sphere type
-   * \returns the name string
-   */
   static std::string Name(double latitude, double longitude, double altitude,
                           GeographicPositions::EarthSpheroidType sphType);
-  double m_latitude;                                ///< latitude (deg)
-  double m_longitude;                               ///< longitude (deg)
-  double m_altitude;                                ///< altitude (m)
-  GeographicPositions::EarthSpheroidType m_sphType; ///< spheroid type
+  double m_latitude;
+  double m_longitude;
+  double m_altitude;
+  GeographicPositions::EarthSpheroidType m_sphType;
 };
 
 std::string
@@ -1749,23 +1660,15 @@ void CartesianToGeoTestCase::DoRun() {
   Vector geo =
       GeographicPositions::CartesianToGeographicCoordinates(cart, m_sphType);
 
-  // geographic coords are ambiguous due to angular wrapping, convert to
-  // rectangular for comparison
   Vector geocart = GeographicPositions::GeographicToCartesianCoordinates(
       geo.x, geo.y, geo.z, m_sphType);
 
   NS_TEST_ASSERT_MSG_LT_OR_EQ(
-      CalculateDistance(cart, geocart),
-      2.5, // minimum passing tolerance (m)
+      CalculateDistance(cart, geocart), 2.5,
       "Double conversion out-of-tolerance: "
           << geo << " <> " << Vector({m_latitude, m_longitude, m_altitude}));
 }
 
-/**
- * \ingroup mobility-test
- *
- * \brief Geo To Cartesian Test Suite
- */
 class GeoToCartesianTestSuite : public TestSuite {
 public:
   GeoToCartesianTestSuite();
@@ -1774,7 +1677,7 @@ public:
 GeoToCartesianTestSuite::GeoToCartesianTestSuite()
     : TestSuite("geo-to-cartesian", UNIT) {
   NS_LOG_INFO("creating GeoToCartesianTestSuite");
-  int i = 0; // iteration number
+  int i = 0;
   for (double altitude = 0; altitude <= 1000; altitude += 200) {
     for (double latitude = 0; latitude <= 360; latitude += 72) {
       for (double longitude = 0; longitude <= 360; longitude += 72) {
@@ -1818,8 +1721,4 @@ GeoToCartesianTestSuite::GeoToCartesianTestSuite()
   }
 }
 
-/**
- * \ingroup mobility-test
- * Static variable for test initialization
- */
 static GeoToCartesianTestSuite g_GeoToCartesianTestSuite;

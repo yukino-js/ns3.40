@@ -1,29 +1,4 @@
-/*
- *  Copyright 2013. Lawrence Livermore National Security, LLC.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Steven Smith <smith84@llnl.gov>
- *
- */
 
-/**
- * \file
- * \ingroup mpi
- * Implementation of classes ns3::NullMessageSentBuffer and
- * ns3::NullMessageMpiInterface.
- */
 
 #include "null-message-mpi-interface.h"
 
@@ -50,47 +25,21 @@ NS_LOG_COMPONENT_DEFINE("NullMessageMpiInterface");
 
 NS_OBJECT_ENSURE_REGISTERED(NullMessageMpiInterface);
 
-/**
- * \ingroup mpi
- *
- * \brief Non-blocking send buffers for Null Message implementation.
- *
- * One buffer is allocated for each non-blocking send.
- */
 class NullMessageSentBuffer {
 public:
   NullMessageSentBuffer();
   ~NullMessageSentBuffer();
 
-  /**
-   * \return pointer to sent buffer
-   */
   uint8_t *GetBuffer();
-  /**
-   * \param buffer pointer to sent buffer
-   */
   void SetBuffer(uint8_t *buffer);
-  /**
-   * \return MPI request
-   */
   MPI_Request *GetRequest();
 
 private:
-  /**
-   * Buffer for send.
-   */
   uint8_t *m_buffer;
 
-  /**
-   * MPI request posted for the send.
-   */
   MPI_Request m_request;
 };
 
-/**
- * maximum MPI message size for easy
- * buffer creation
- */
 const uint32_t NULL_MESSAGE_MAX_MPI_MSG_SIZE = 2000;
 
 NullMessageSentBuffer::NullMessageSentBuffer() {
@@ -154,7 +103,6 @@ void NullMessageMpiInterface::Enable(int *pargc, char ***pargv) {
 
   NS_ASSERT(g_enabled == false);
 
-  // Initialize the MPI interface
   MPI_Init(pargc, pargv);
   Enable(MPI_COMM_WORLD);
   g_mpiInitCalled = true;
@@ -165,13 +113,9 @@ void NullMessageMpiInterface::Enable(MPI_Comm communicator) {
 
   NS_ASSERT(g_enabled == false);
 
-  // Standard MPI practice is to duplicate the communicator for
-  // library to use.  Library communicates in isolated communication
-  // context.
   MPI_Comm_dup(communicator, &g_communicator);
   g_freeCommunicator = true;
 
-  // SystemId and Size are unit32_t in interface but MPI uses int so convert.
   int mpiSystemId;
   int mpiSize;
   MPI_Comm_rank(g_communicator, &mpiSystemId);
@@ -191,7 +135,6 @@ void NullMessageMpiInterface::InitializeSendReceiveBuffers() {
 
   g_numNeighbors = RemoteChannelBundleManager::Size();
 
-  // Post a non-blocking receive for all peers
   g_requests = new MPI_Request[g_numNeighbors];
   g_pRxBuffers = new char *[g_numNeighbors];
   int index = 0;
@@ -212,20 +155,18 @@ void NullMessageMpiInterface::SendPacket(Ptr<Packet> p, const Time &rxTime,
 
   NS_ASSERT(g_enabled);
 
-  // Find the system id for the destination node
   Ptr<Node> destNode = NodeList::GetNode(node);
   uint32_t nodeSysId = destNode->GetSystemId();
 
   NullMessageSentBuffer sendBuf;
   g_pendingTx.push_back(sendBuf);
-  auto iter = g_pendingTx.rbegin(); // Points to the last element
+  auto iter = g_pendingTx.rbegin();
 
   uint32_t serializedSize = p->GetSerializedSize();
   uint32_t bufferSize =
       serializedSize + (2 * sizeof(uint64_t)) + (2 * sizeof(uint32_t));
   auto buffer = new uint8_t[bufferSize];
   iter->SetBuffer(buffer);
-  // Add the time, dest node and dest device
   uint64_t t = rxTime.GetInteger();
   auto pTime = reinterpret_cast<uint64_t *>(buffer);
   *pTime++ = t;
@@ -238,7 +179,6 @@ void NullMessageMpiInterface::SendPacket(Ptr<Packet> p, const Time &rxTime,
   auto pData = reinterpret_cast<uint32_t *>(pTime);
   *pData++ = node;
   *pData++ = dev;
-  // Serialize the packet
   p->Serialize(reinterpret_cast<uint8_t *>(pData), serializedSize);
 
   MPI_Isend(reinterpret_cast<void *>(iter->GetBuffer()), bufferSize, MPI_CHAR,
@@ -256,12 +196,11 @@ void NullMessageMpiInterface::SendNullMessage(const Time &guarantee_update,
 
   NullMessageSentBuffer sendBuf;
   g_pendingTx.push_back(sendBuf);
-  auto iter = g_pendingTx.rbegin(); // Points to the last element
+  auto iter = g_pendingTx.rbegin();
 
   uint32_t bufferSize = 2 * sizeof(uint64_t) + 2 * sizeof(uint32_t);
   auto buffer = new uint8_t[bufferSize];
   iter->SetBuffer(buffer);
-  // Add the time, dest node and dest device
   auto pTime = reinterpret_cast<uint64_t *>(buffer);
   *pTime++ = 0;
   *pTime++ = guarantee_update.GetInteger();
@@ -269,7 +208,6 @@ void NullMessageMpiInterface::SendNullMessage(const Time &guarantee_update,
   *pData++ = 0;
   *pData++ = 0;
 
-  // Find the system id for the destination MPI rank
   uint32_t nodeSysId = bundle->GetSystemId();
 
   MPI_Isend(reinterpret_cast<void *>(iter->GetBuffer()), bufferSize, MPI_CHAR,
@@ -293,12 +231,9 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
 
   NS_ASSERT(g_enabled);
 
-  // stop flag set to true when no more messages are found to
-  // process.
   bool stop = false;
 
   if (!g_numNeighbors) {
-    // Not communicating with anyone.
     return;
   }
 
@@ -309,7 +244,7 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
 
     if (blocking) {
       MPI_Waitany(g_numNeighbors, g_requests, &index, &status);
-      messageReceived = 1; /* Wait always implies message was received */
+      messageReceived = 1;
       stop = true;
     } else {
       MPI_Testany(g_numNeighbors, g_requests, &index, &messageReceived,
@@ -320,7 +255,6 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
       int count;
       MPI_Get_count(&status, MPI_CHAR, &count);
 
-      // Get the meta data first
       auto pTime = reinterpret_cast<uint64_t *>(g_pRxBuffers[index]);
       uint64_t time = *pTime++;
       uint64_t guaranteeUpdate = *pTime++;
@@ -331,7 +265,6 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
 
       Time rxTime(time);
 
-      // rxtime == 0 means this is a Null Message
       if (rxTime > Time(0)) {
         count -=
             sizeof(time) + sizeof(guaranteeUpdate) + sizeof(node) + sizeof(dev);
@@ -339,7 +272,6 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
         Ptr<Packet> p =
             Create<Packet>(reinterpret_cast<uint8_t *>(pData), count, true);
 
-        // Find the correct node/device to schedule receive event
         Ptr<Node> pNode = NodeList::GetNode(node);
         Ptr<MpiReceiver> pMpiRec = nullptr;
         uint32_t nDevices = pNode->GetNDevices();
@@ -352,25 +284,20 @@ void NullMessageMpiInterface::ReceiveMessages(bool blocking) {
         }
         NS_ASSERT(pNode && pMpiRec);
 
-        // Schedule the rx event
         Simulator::ScheduleWithContext(pNode->GetId(),
                                        rxTime - Simulator::Now(),
                                        &MpiReceiver::Receive, pMpiRec, p);
       }
 
-      // Update guarantee time for both packet receives and Null Messages.
       Ptr<RemoteChannelBundle> bundle =
           RemoteChannelBundleManager::Find(status.MPI_SOURCE);
       NS_ASSERT(bundle);
 
       bundle->SetGuaranteeTime(Time(guaranteeUpdate));
 
-      // Re-queue the next read
       MPI_Irecv(g_pRxBuffers[index], NULL_MESSAGE_MAX_MPI_MSG_SIZE, MPI_CHAR,
                 status.MPI_SOURCE, 0, g_communicator, &g_requests[index]);
     } else {
-      // if non-blocking and no message received in testany then stop message
-      // loop
       stop = true;
     }
   } while (!stop);
@@ -386,9 +313,9 @@ void NullMessageMpiInterface::TestSendComplete() {
     MPI_Status status;
     int flag = 0;
     MPI_Test(iter->GetRequest(), &flag, &status);
-    auto current = iter; // Save current for erasing
-    ++iter;              // Advance to next
-    if (flag) {          // This message is complete
+    auto current = iter;
+    ++iter;
+    if (flag) {
       g_pendingTx.erase(current);
     }
   }

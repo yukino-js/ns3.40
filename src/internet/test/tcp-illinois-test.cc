@@ -1,27 +1,3 @@
-/*
- * Copyright (c) 2016 ResiliNets, ITTC, University of Kansas
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Truc Anh N. Nguyen <annguyen@ittc.ku.edu>
- *
- * James P.G. Sterbenz <jpgs@ittc.ku.edu>, director
- * ResiliNets Research Group  https://resilinets.org/
- * Information and Telecommunication Technology Center (ITTC)
- * and Department of Electrical Engineering and Computer Science
- * The University of Kansas Lawrence, KS USA.
- */
 
 #include "ns3/log.h"
 #include "ns3/tcp-congestion-ops.h"
@@ -33,25 +9,8 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("TcpIllinoisTestSuite");
 
-/**
- * \ingroup internet-test
- *
- * \brief TcpIllinois C-AIMD algorithm tests.
- */
 class TcpIllinoisTest : public TestCase {
 public:
-  /**
-   * \brief Constructor.
-   * \param cWnd Congestion window.
-   * \param ssThresh Slow Start Threshold.
-   * \param segmentSize Segment size.
-   * \param cntRtt RTT counter.
-   * \param maxRtt Max RTT.
-   * \param segmentsAcked Number of segments ACKed.
-   * \param nextTxSeq Next Tx sequence number.
-   * \param lastAckedSeq Last ACKed sequence number.
-   * \param name Test description.
-   */
   TcpIllinoisTest(uint32_t cWnd, uint32_t ssThresh, uint32_t segmentSize,
                   uint32_t cntRtt, Time maxRtt, uint32_t segmentsAcked,
                   SequenceNumber32 nextTxSeq, SequenceNumber32 lastAckedSeq,
@@ -59,60 +18,29 @@ public:
 
 private:
   void DoRun() override;
-  /**
-   * \brief Increases the TCP window.
-   * \param cong The congestion control.
-   */
   void IncreaseWindow(Ptr<TcpIllinois> cong);
-  /**
-   * \brief Recalculate the internal TCP Illinois params.
-   * \param cong The congestion control.
-   */
   void RecalcParam(Ptr<TcpIllinois> cong);
-  /**
-   * \brief Calculate the maximum delay.
-   * \returns The maximum delay.
-   */
   Time CalculateMaxDelay();
-  /**
-   * \brief Calculate the average delay.
-   * \returns The average delay.
-   */
   Time CalculateAvgDelay();
-  /**
-   * \brief Calculate the TCP Illinois alpha param.
-   * \param cong The congestion control.
-   * \param da Average delay (in milliseconds).
-   * \param dm Maximum delay (in milliseconds).
-   */
   void CalculateAlpha(Ptr<TcpIllinois> cong, double da, double dm);
-  /**
-   * \brief Calculate the TCP Illinois beta param.
-   * \param cong The congestion control.
-   * \param da Average delay (in milliseconds).
-   * \param dm Maximum delay (in milliseconds).
-   */
   void CalculateBeta(Ptr<TcpIllinois> cong, double da, double dm);
-  /**
-   * brief Get and check the SSH threshold.
-   */
   void GetSsThresh();
 
-  uint32_t m_cWnd;                 //!< Congestion window.
-  uint32_t m_ssThresh;             //!< Slow Start Threshold.
-  uint32_t m_segmentSize;          //!< Segment size.
-  Time m_baseRtt;                  //!< Base RTT.
-  Time m_maxRtt;                   //!< Max RTT.
-  uint32_t m_segmentsAcked;        //!< Number of segments ACKed.
-  SequenceNumber32 m_nextTxSeq;    //!< Next Tx sequence number.
-  SequenceNumber32 m_lastAckedSeq; //!< Last ACKed sequence number.
-  double m_alpha;                  //!< TCP Illinois alpha parameter.
-  double m_beta;                   //!< TCP Illinois beta parameter.
-  uint32_t m_cntRtt;               //!< RTT counter.
-  Time m_sumRtt;                   //!< Sum of all the RTTs.
-  bool m_rttAbove;                 //!< RTT above threshold.
-  uint8_t m_rttLow;                //!< RTT low counter.
-  uint32_t m_ackCnt;               //!< ACK counter.
+  uint32_t m_cWnd;
+  uint32_t m_ssThresh;
+  uint32_t m_segmentSize;
+  Time m_baseRtt;
+  Time m_maxRtt;
+  uint32_t m_segmentsAcked;
+  SequenceNumber32 m_nextTxSeq;
+  SequenceNumber32 m_lastAckedSeq;
+  double m_alpha;
+  double m_beta;
+  uint32_t m_cntRtt;
+  Time m_sumRtt;
+  bool m_rttAbove;
+  uint8_t m_rttLow;
+  uint32_t m_ackCnt;
 };
 
 TcpIllinoisTest::TcpIllinoisTest(uint32_t cWnd, uint32_t ssThresh,
@@ -137,28 +65,20 @@ void TcpIllinoisTest::DoRun() {
 
   Ptr<TcpIllinois> cong = CreateObject<TcpIllinois>();
 
-  // Set baseRtt to 100 ms
   cong->PktsAcked(state, m_segmentsAcked, m_baseRtt);
 
   m_sumRtt += m_baseRtt;
 
-  // Set maxRtt and update sumRtt based on cntRtt value
   for (uint32_t count = 1; count < m_cntRtt; ++count) {
     cong->PktsAcked(state, m_segmentsAcked, m_maxRtt);
     m_sumRtt += m_maxRtt;
   }
 
-  /*
-   * Test cWnd modification during additive increase
-   */
   cong->IncreaseWindow(state, m_segmentsAcked);
   IncreaseWindow(cong);
   NS_TEST_ASSERT_MSG_EQ(state->m_cWnd.Get(), m_cWnd,
                         "CWnd has not updated correctly");
 
-  /*
-   * Test ssThresh modification during multiplicative decrease
-   */
   uint32_t ssThresh = cong->GetSsThresh(state, m_cWnd);
   GetSsThresh();
   NS_TEST_ASSERT_MSG_EQ(ssThresh, m_ssThresh,
@@ -171,7 +91,7 @@ void TcpIllinoisTest::IncreaseWindow(Ptr<TcpIllinois> cong) {
   if (m_lastAckedSeq >= m_nextTxSeq) {
     RecalcParam(cong);
   }
-  if (m_cWnd < m_ssThresh) { // NewReno slow start
+  if (m_cWnd < m_ssThresh) {
     if (m_segmentsAcked >= 1) {
       m_cWnd += m_segmentSize;
       m_segmentsAcked -= 1;
@@ -289,11 +209,6 @@ void TcpIllinoisTest::GetSsThresh() {
   m_ssThresh = ssThresh * m_segmentSize;
 }
 
-/**
- * \ingroup internet-test
- *
- * \brief TCP Illinois TestSuite
- */
 class TcpIllinoisTestSuite : public TestSuite {
 public:
   TcpIllinoisTestSuite() : TestSuite("tcp-illinois-test", UNIT) {
@@ -323,5 +238,4 @@ public:
   }
 };
 
-static TcpIllinoisTestSuite
-    g_tcpIllinoisTest; //!< Static variable for test initialization
+static TcpIllinoisTestSuite g_tcpIllinoisTest;

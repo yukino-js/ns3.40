@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2020 Ritsumeikan University, Shiga, Japan.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- *  Author: Alberto Gallegos Ramonet <ramonet@fc.ritsumei.ac.jp>
- */
 
 #include "lr-wpan-mac-pl-headers.h"
 
@@ -23,10 +5,6 @@
 #include <ns3/simulator.h>
 
 namespace ns3 {
-
-/***********************************************************
- *                Beacon MAC Payload
- ***********************************************************/
 
 BeaconPayloadHeader::BeaconPayloadHeader() {}
 
@@ -95,10 +73,6 @@ PendingAddrFields BeaconPayloadHeader::GetPndAddrFields() const {
   return m_pndAddrFields;
 }
 
-/***********************************************************
- *                Command MAC Payload
- ***********************************************************/
-
 CommandPayloadHeader::CommandPayloadHeader() {
   SetCommandFrameType(CMD_RESERVED);
 }
@@ -121,13 +95,12 @@ TypeId CommandPayloadHeader::GetInstanceTypeId() const { return GetTypeId(); }
 
 uint32_t CommandPayloadHeader::GetSerializedSize() const {
   uint32_t size = 1;
-  // TODO: add missing serialize commands size when other commands are added.
   switch (m_cmdFrameId) {
   case ASSOCIATION_REQ:
     size += m_capabilityInfo.GetSerializedSize();
     break;
   case ASSOCIATION_RESP:
-    size += 3; // (short address + Association Status)
+    size += 3;
     break;
   case DISASSOCIATION_NOTIF:
     break;
@@ -153,7 +126,6 @@ uint32_t CommandPayloadHeader::GetSerializedSize() const {
 void CommandPayloadHeader::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
   i.WriteU8(m_cmdFrameId);
-  // TODO: add missing serialize commands when other commands are added.
   switch (m_cmdFrameId) {
   case ASSOCIATION_REQ:
     i = m_capabilityInfo.Serialize(i);
@@ -189,7 +161,6 @@ void CommandPayloadHeader::Serialize(Buffer::Iterator start) const {
 uint32_t CommandPayloadHeader::Deserialize(Buffer::Iterator start) {
   Buffer::Iterator i = start;
   m_cmdFrameId = static_cast<MacCommand>(i.ReadU8());
-  // TODO: add missing deserialize commands when other commands are added.
   switch (m_cmdFrameId) {
   case ASSOCIATION_REQ:
     i = m_capabilityInfo.Deserialize(i);

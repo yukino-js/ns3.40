@@ -1,22 +1,3 @@
-/*
- *  Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- *                              <amine.ismail@udcast.com>
- */
 #include "udp-trace-client.h"
 
 #include "seq-ts-header.h"
@@ -44,9 +25,6 @@ NS_LOG_COMPONENT_DEFINE("UdpTraceClient");
 
 NS_OBJECT_ENSURE_REGISTERED(UdpTraceClient);
 
-/**
- * \brief Default trace to send
- */
 UdpTraceClient::TraceEntry UdpTraceClient::g_defaultEntries[] = {
     {0, 534, 'I'},   {40, 1542, 'P'}, {120, 134, 'B'}, {80, 390, 'B'},
     {240, 765, 'P'}, {160, 407, 'B'}, {200, 504, 'B'}, {360, 903, 'P'},
@@ -257,7 +235,7 @@ void UdpTraceClient::SendPacket(uint32_t size) {
   Ptr<Packet> p;
   uint32_t packetSize;
   if (size > 12) {
-    packetSize = size - 12; // 12 is the size of the SeqTsHeader
+    packetSize = size - 12;
   } else {
     packetSize = 0;
   }
@@ -316,4 +294,4 @@ void UdpTraceClient::Send() {
 
 void UdpTraceClient::SetTraceLoop(bool traceLoop) { m_traceLoop = traceLoop; }
 
-} // Namespace ns3
+} // namespace ns3

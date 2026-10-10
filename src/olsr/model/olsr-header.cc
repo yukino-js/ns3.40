@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2007 INESC Porto
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Gustavo J. A. M. Carneiro  <gjc@inescporto.pt>
- */
 
 #include "olsr-header.h"
 
@@ -34,15 +16,8 @@ NS_LOG_COMPONENT_DEFINE("OlsrHeader");
 
 namespace olsr {
 
-/// Scaling factor used in RFC 3626.
 #define OLSR_C 0.0625
 
-///
-/// \brief Converts a decimal number of seconds to the mantissa/exponent format.
-///
-/// \param seconds decimal number of seconds we want to convert.
-/// \return the number of seconds in mantissa/exponent format.
-///
 uint8_t SecondsToEmf(double seconds) {
   int a;
   int b = 0;
@@ -50,48 +25,32 @@ uint8_t SecondsToEmf(double seconds) {
   NS_ASSERT_MSG(seconds >= OLSR_C,
                 "SecondsToEmf - Can not convert a value less than OLSR_C");
 
-  // find the largest integer 'b' such that: T/C >= 2^b
   for (b = 1; (seconds / OLSR_C) >= (1 << b); ++b) {
   }
   NS_ASSERT((seconds / OLSR_C) < (1 << b));
   b--;
   NS_ASSERT((seconds / OLSR_C) >= (1 << b));
 
-  // compute the expression 16*(T/(C*(2^b))-1), which may not be a integer
   double tmp = 16 * (seconds / (OLSR_C * (1 << b)) - 1);
 
-  // round it up.  This results in the value for 'a'
   a = (int)std::ceil(tmp - 0.5);
 
-  // if 'a' is equal to 16: increment 'b' by one, and set 'a' to 0
   if (a == 16) {
     b += 1;
     a = 0;
   }
 
-  // now, 'a' and 'b' should be integers between 0 and 15,
   NS_ASSERT(a >= 0 && a < 16);
   NS_ASSERT(b >= 0 && b < 16);
 
-  // the field will be a byte holding the value a*16+b
   return (uint8_t)((a << 4) | b);
 }
 
-///
-/// \brief Converts a number of seconds in the mantissa/exponent format to a
-/// decimal number.
-///
-/// \param olsrFormat number of seconds in mantissa/exponent format.
-/// \return the decimal number of seconds.
-///
 double EmfToSeconds(uint8_t olsrFormat) {
   int a = (olsrFormat >> 4);
   int b = (olsrFormat & 0xf);
-  // value = C*(1+a/16)*2^b [in seconds]
   return OLSR_C * (1 + a / 16.0) * (1 << b);
 }
-
-// ---------------- OLSR Packet -------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(PacketHeader);
 
@@ -129,8 +88,6 @@ uint32_t PacketHeader::Deserialize(Buffer::Iterator start) {
   m_packetSequenceNumber = i.ReadNtohU16();
   return GetSerializedSize();
 }
-
-// ---------------- OLSR Message -------------------------------
 
 NS_OBJECT_ENSURE_REGISTERED(MessageHeader);
 
@@ -272,8 +229,6 @@ uint32_t MessageHeader::Deserialize(Buffer::Iterator start) {
   return size;
 }
 
-// ---------------- OLSR MID Message -------------------------------
-
 uint32_t MessageHeader::Mid::GetSerializedSize() const {
   return this->interfaceAddresses.size() * IPV4_ADDRESS_SIZE;
 }
@@ -317,8 +272,6 @@ uint32_t MessageHeader::Mid::Deserialize(Buffer::Iterator start,
   return GetSerializedSize();
 }
 
-// ---------------- OLSR HELLO Message -------------------------------
-
 uint32_t MessageHeader::Hello::GetSerializedSize() const {
   uint32_t size = 4;
   for (auto iter = this->linkMessages.begin(); iter != this->linkMessages.end();
@@ -354,7 +307,7 @@ void MessageHeader::Hello::Print(std::ostream &os) const {
 void MessageHeader::Hello::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
 
-  i.WriteU16(0); // Reserved
+  i.WriteU16(0);
   i.WriteU8(this->hTime);
   i.WriteU8(static_cast<uint8_t>(this->willingness));
 
@@ -363,12 +316,8 @@ void MessageHeader::Hello::Serialize(Buffer::Iterator start) const {
     const LinkMessage &lm = *iter;
 
     i.WriteU8(lm.linkCode);
-    i.WriteU8(0); // Reserved
+    i.WriteU8(0);
 
-    // The size of the link message, counted in bytes and measured
-    // from the beginning of the "Link Code" field and until the
-    // next "Link Code" field (or - if there are no more link types
-    // - the end of the message).
     i.WriteHtonU16(4 +
                    lm.neighborInterfaceAddresses.size() * IPV4_ADDRESS_SIZE);
 
@@ -389,7 +338,7 @@ uint32_t MessageHeader::Hello::Deserialize(Buffer::Iterator start,
 
   uint16_t helloSizeLeft = messageSize;
 
-  i.ReadNtohU16(); // Reserved
+  i.ReadNtohU16();
   this->hTime = i.ReadU8();
   this->willingness = Willingness(i.ReadU8());
 
@@ -399,7 +348,7 @@ uint32_t MessageHeader::Hello::Deserialize(Buffer::Iterator start,
     LinkMessage lm;
     NS_ASSERT(helloSizeLeft >= 4);
     lm.linkCode = i.ReadU8();
-    i.ReadU8(); // Reserved
+    i.ReadU8();
     uint16_t lmSize = i.ReadNtohU16();
     NS_ASSERT((lmSize - 4) % IPV4_ADDRESS_SIZE == 0);
     for (int n = (lmSize - 4) / IPV4_ADDRESS_SIZE; n; --n) {
@@ -411,8 +360,6 @@ uint32_t MessageHeader::Hello::Deserialize(Buffer::Iterator start,
 
   return messageSize;
 }
-
-// ---------------- OLSR TC Message -------------------------------
 
 uint32_t MessageHeader::Tc::GetSerializedSize() const {
   return 4 + this->neighborAddresses.size() * IPV4_ADDRESS_SIZE;
@@ -437,7 +384,7 @@ void MessageHeader::Tc::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
 
   i.WriteHtonU16(this->ansn);
-  i.WriteHtonU16(0); // Reserved
+  i.WriteHtonU16(0);
 
   for (auto iter = this->neighborAddresses.begin();
        iter != this->neighborAddresses.end(); iter++) {
@@ -453,7 +400,7 @@ uint32_t MessageHeader::Tc::Deserialize(Buffer::Iterator start,
   NS_ASSERT(messageSize >= 4);
 
   this->ansn = i.ReadNtohU16();
-  i.ReadNtohU16(); // Reserved
+  i.ReadNtohU16();
 
   NS_ASSERT((messageSize - 4) % IPV4_ADDRESS_SIZE == 0);
   int numAddresses = (messageSize - 4) / IPV4_ADDRESS_SIZE;
@@ -464,8 +411,6 @@ uint32_t MessageHeader::Tc::Deserialize(Buffer::Iterator start,
 
   return messageSize;
 }
-
-// ---------------- OLSR HNA Message -------------------------------
 
 uint32_t MessageHeader::Hna::GetSerializedSize() const {
   return 2 * this->associations.size() * IPV4_ADDRESS_SIZE;

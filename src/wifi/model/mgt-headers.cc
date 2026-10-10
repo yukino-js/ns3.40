@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2006 INRIA
- * Copyright (c) 2009 MIRKO BANCHI
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- *          Mirko Banchi <mk.banchi@gmail.com>
- */
 
 #include "mgt-headers.h"
 
@@ -26,10 +6,6 @@
 #include "ns3/simulator.h"
 
 namespace ns3 {
-
-/***********************************************************
- *          Probe Request
- ***********************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(MgtProbeRequestHeader);
 
@@ -42,10 +18,6 @@ TypeId MgtProbeRequestHeader::GetTypeId() {
 }
 
 TypeId MgtProbeRequestHeader::GetInstanceTypeId() const { return GetTypeId(); }
-
-/***********************************************************
- *          Probe Response
- ***********************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(MgtProbeResponseHeader);
 
@@ -78,7 +50,7 @@ CapabilityInformation &MgtProbeResponseHeader::Capabilities() {
 uint64_t MgtProbeResponseHeader::GetTimestamp() const { return m_timestamp; }
 
 uint32_t MgtProbeResponseHeader::GetSerializedSizeImpl() const {
-  uint32_t size = 8 /* timestamp */ + 2 /* beacon interval */;
+  uint32_t size = 8 + 2;
   size += m_capability.GetSerializedSize();
   size += WifiMgtHeader<MgtProbeResponseHeader,
                         ProbeResponseElems>::GetSerializedSizeImpl();
@@ -104,13 +76,8 @@ uint32_t MgtProbeResponseHeader::DeserializeImpl(Buffer::Iterator start) {
                                   ProbeResponseElems>::DeserializeImpl(i);
 }
 
-/***********************************************************
- *          Beacons
- ***********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtBeaconHeader);
 
-/* static */
 TypeId MgtBeaconHeader::GetTypeId() {
   static TypeId tid = TypeId("ns3::MgtBeaconHeader")
                           .SetParent<MgtProbeResponseHeader>()
@@ -118,10 +85,6 @@ TypeId MgtBeaconHeader::GetTypeId() {
                           .AddConstructor<MgtBeaconHeader>();
   return tid;
 }
-
-/***********************************************************
- *          Assoc Request
- ***********************************************************/
 
 NS_OBJECT_ENSURE_REGISTERED(MgtAssocRequestHeader);
 
@@ -156,7 +119,7 @@ uint32_t MgtAssocRequestHeader::GetSerializedSizeImpl() const {
 
   uint32_t size = 0;
   size += m_capability.GetSerializedSize();
-  size += 2; // listen interval
+  size += 2;
   size += WifiMgtHeader<MgtAssocRequestHeader,
                         AssocRequestElems>::GetSerializedSizeImpl();
   return size;
@@ -226,10 +189,6 @@ uint32_t MgtAssocRequestHeader::DeserializeFromPerStaProfileImpl(
              DeserializeFromPerStaProfileImpl(i, length - distance, frame);
 }
 
-/***********************************************************
- *          Ressoc Request
- ***********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtReassocRequestHeader);
 
 TypeId MgtReassocRequestHeader::GetTypeId() {
@@ -269,8 +228,8 @@ uint32_t MgtReassocRequestHeader::GetSerializedSizeImpl() const {
 
   uint32_t size = 0;
   size += m_capability.GetSerializedSize();
-  size += 2; // listen interval
-  size += 6; // current AP address
+  size += 2;
+  size += 6;
   size += WifiMgtHeader<MgtReassocRequestHeader,
                         AssocRequestElems>::GetSerializedSizeImpl();
   return size;
@@ -347,10 +306,6 @@ uint32_t MgtReassocRequestHeader::DeserializeFromPerStaProfileImpl(
              DeserializeFromPerStaProfileImpl(i, length - distance, frame);
 }
 
-/***********************************************************
- *          Assoc/Reassoc Response
- ***********************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtAssocResponseHeader);
 
 TypeId MgtAssocResponseHeader::GetTypeId() {
@@ -385,7 +340,7 @@ uint32_t MgtAssocResponseHeader::GetSerializedSizeImpl() const {
   uint32_t size = 0;
   size += m_capability.GetSerializedSize();
   size += m_code.GetSerializedSize();
-  size += 2; // aid
+  size += 2;
   size += WifiMgtHeader<MgtAssocResponseHeader,
                         AssocResponseElems>::GetSerializedSizeImpl();
   return size;
@@ -462,9 +417,6 @@ uint32_t MgtAssocResponseHeader::DeserializeFromPerStaProfileImpl(
              DeserializeFromPerStaProfileImpl(i, length - distance, frame);
 }
 
-/**********************************************************
- *   ActionFrame
- **********************************************************/
 WifiActionHeader::WifiActionHeader() {}
 
 WifiActionHeader::~WifiActionHeader() {}
@@ -557,9 +509,7 @@ WifiActionHeader::CategoryValue WifiActionHeader::GetCategory() const {
 
 WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
   ActionValue retval;
-  retval.selfProtectedAction =
-      PEER_LINK_OPEN; // Needs to be initialized to something to quiet valgrind
-                      // in default cases
+  retval.selfProtectedAction = PEER_LINK_OPEN;
   switch (m_category) {
   case QOS:
     switch (m_actionValue) {
@@ -580,7 +530,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown qos action code");
-      retval.qos = ADDTS_REQUEST; /* quiet compiler */
+      retval.qos = ADDTS_REQUEST;
     }
     break;
 
@@ -597,7 +547,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown block ack action code");
-      retval.blockAck = BLOCK_ACK_ADDBA_REQUEST; /* quiet compiler */
+      retval.blockAck = BLOCK_ACK_ADDBA_REQUEST;
     }
     break;
 
@@ -611,7 +561,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown public action code");
-      retval.publicAction = QAB_REQUEST; /* quiet compiler */
+      retval.publicAction = QAB_REQUEST;
     }
     break;
 
@@ -637,8 +587,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown radio measurement action code");
-      retval.radioMeasurementAction =
-          RADIO_MEASUREMENT_REQUEST; /* quiet compiler */
+      retval.radioMeasurementAction = RADIO_MEASUREMENT_REQUEST;
     }
     break;
 
@@ -661,7 +610,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown mesh peering management action code");
-      retval.selfProtectedAction = PEER_LINK_OPEN; /* quiet compiler */
+      retval.selfProtectedAction = PEER_LINK_OPEN;
     }
     break;
 
@@ -702,21 +651,21 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown mesh peering management action code");
-      retval.meshAction = LINK_METRIC_REPORT; /* quiet compiler */
+      retval.meshAction = LINK_METRIC_REPORT;
     }
     break;
 
-  case MULTIHOP: // not yet supported
+  case MULTIHOP:
     switch (m_actionValue) {
-    case PROXY_UPDATE: // not used so far
+    case PROXY_UPDATE:
       retval.multihopAction = PROXY_UPDATE;
       break;
-    case PROXY_UPDATE_CONFIRMATION: // not used so far
+    case PROXY_UPDATE_CONFIRMATION:
       retval.multihopAction = PROXY_UPDATE;
       break;
     default:
       NS_FATAL_ERROR("Unknown mesh peering management action code");
-      retval.multihopAction = PROXY_UPDATE; /* quiet compiler */
+      retval.multihopAction = PROXY_UPDATE;
     }
     break;
 
@@ -790,8 +739,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown DMG management action code");
-      retval.dmgAction =
-          DMG_POWER_SAVE_CONFIGURATION_REQUEST; /* quiet compiler */
+      retval.dmgAction = DMG_POWER_SAVE_CONFIGURATION_REQUEST;
     }
     break;
 
@@ -817,7 +765,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown FST management action code");
-      retval.fstAction = FST_SETUP_REQUEST; /* quiet compiler */
+      retval.fstAction = FST_SETUP_REQUEST;
     }
     break;
 
@@ -843,8 +791,7 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown Unprotected DMG action code");
-      retval.unprotectedDmgAction =
-          UNPROTECTED_DMG_ANNOUNCE; /* quiet compiler */
+      retval.unprotectedDmgAction = UNPROTECTED_DMG_ANNOUNCE;
     }
     break;
 
@@ -886,14 +833,13 @@ WifiActionHeader::ActionValue WifiActionHeader::GetAction() const {
       break;
     default:
       NS_FATAL_ERROR("Unknown Protected EHT action code");
-      retval.protectedEhtAction =
-          PROTECTED_EHT_TID_TO_LINK_MAPPING_REQUEST; /* quiet compiler */
+      retval.protectedEhtAction = PROTECTED_EHT_TID_TO_LINK_MAPPING_REQUEST;
     }
     break;
 
   default:
     NS_FATAL_ERROR("Unsupported action");
-    retval.selfProtectedAction = PEER_LINK_OPEN; /* quiet compiler */
+    retval.selfProtectedAction = PEER_LINK_OPEN;
   }
   return retval;
 }
@@ -994,8 +940,8 @@ void WifiActionHeader::Print(std::ostream &os) const {
   case MULTIHOP:
     os << "MULTIHOP[";
     switch (m_actionValue) {
-      CASE_ACTION_VALUE(PROXY_UPDATE);              // not used so far
-      CASE_ACTION_VALUE(PROXY_UPDATE_CONFIRMATION); // not used so far
+      CASE_ACTION_VALUE(PROXY_UPDATE);
+      CASE_ACTION_VALUE(PROXY_UPDATE_CONFIRMATION);
     default:
       NS_FATAL_ERROR("Unknown mesh peering management action code");
     }
@@ -1107,10 +1053,6 @@ uint32_t WifiActionHeader::Deserialize(Buffer::Iterator start) {
   return i.GetDistanceFrom(start);
 }
 
-/***************************************************
- *                 ADDBARequest
- ****************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtAddBaRequestHeader);
 
 MgtAddBaRequestHeader::MgtAddBaRequestHeader()
@@ -1130,10 +1072,10 @@ void MgtAddBaRequestHeader::Print(std::ostream &os) const {}
 
 uint32_t MgtAddBaRequestHeader::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 1; // Dialog token
-  size += 2; // Block ack parameter set
-  size += 2; // Block ack timeout value
-  size += 2; // Starting sequence control
+  size += 1;
+  size += 2;
+  size += 2;
+  size += 2;
   return size;
 }
 
@@ -1221,10 +1163,6 @@ void MgtAddBaRequestHeader::SetParameterSet(uint16_t params) {
   m_bufferSize = (params >> 6) & 0x03ff;
 }
 
-/***************************************************
- *                 ADDBAResponse
- ****************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtAddBaResponseHeader);
 
 MgtAddBaResponseHeader::MgtAddBaResponseHeader()
@@ -1246,10 +1184,10 @@ void MgtAddBaResponseHeader::Print(std::ostream &os) const {
 
 uint32_t MgtAddBaResponseHeader::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 1;                          // Dialog token
-  size += m_code.GetSerializedSize(); // Status code
-  size += 2;                          // Block ack parameter set
-  size += 2;                          // Block ack timeout value
+  size += 1;
+  size += m_code.GetSerializedSize();
+  size += 2;
+  size += 2;
   return size;
 }
 
@@ -1325,10 +1263,6 @@ void MgtAddBaResponseHeader::SetParameterSet(uint16_t params) {
   m_bufferSize = (params >> 6) & 0x03ff;
 }
 
-/***************************************************
- *                     DelBa
- ****************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtDelBaHeader);
 
 MgtDelBaHeader::MgtDelBaHeader() : m_reasonCode(1) {}
@@ -1347,8 +1281,8 @@ void MgtDelBaHeader::Print(std::ostream &os) const {}
 
 uint32_t MgtDelBaHeader::GetSerializedSize() const {
   uint32_t size = 0;
-  size += 2; // DelBa parameter set
-  size += 2; // Reason code
+  size += 2;
+  size += 2;
   return size;
 }
 
@@ -1394,10 +1328,6 @@ void MgtDelBaHeader::SetParameterSet(uint16_t params) {
   m_tid = (params >> 12) & 0x0f;
 }
 
-/***************************************************
- *     EMLSR Operating Mode Notification
- ****************************************************/
-
 NS_OBJECT_ENSURE_REGISTERED(MgtEmlOmn);
 
 TypeId MgtEmlOmn::GetTypeId() {
@@ -1431,16 +1361,15 @@ void MgtEmlOmn::Print(std::ostream &os) const {
 }
 
 uint32_t MgtEmlOmn::GetSerializedSize() const {
-  uint32_t size = 2; // Dialog Token (1) + first byte of EML Control
+  uint32_t size = 2;
   if (m_emlControl.linkBitmap) {
     size += 2;
   }
   if (m_emlControl.mcsMapCountCtrl) {
     size += 1;
   }
-  // TODO add size of EMLMR Supported MCS And NSS Set subfield when implemented
   if (m_emlsrParamUpdate) {
-    size += 1; // EMLSR Parameter Update field
+    size += 1;
   }
   return size;
 }
@@ -1463,8 +1392,6 @@ void MgtEmlOmn::Serialize(Buffer::Iterator start) const {
   if (m_emlControl.linkBitmap) {
     start.WriteHtolsbU16(*m_emlControl.linkBitmap);
   }
-  // TODO serialize MCS Map Count Control and EMLMR Supported MCS And NSS Set
-  // subfields when implemented
 
   NS_ABORT_MSG_IF(m_emlsrParamUpdate.has_value() !=
                       (m_emlControl.emlsrParamUpdateCtrl == 1),
@@ -1496,8 +1423,6 @@ uint32_t MgtEmlOmn::Deserialize(Buffer::Iterator start) {
   if (m_emlControl.emlsrMode == 1 || m_emlControl.emlmrMode == 1) {
     m_emlControl.linkBitmap = i.ReadLsbtohU16();
   }
-  // TODO deserialize MCS Map Count Control and EMLMR Supported MCS And NSS Set
-  // subfields when implemented
 
   if (m_emlControl.emlsrParamUpdateCtrl == 1) {
     val = i.ReadU8();

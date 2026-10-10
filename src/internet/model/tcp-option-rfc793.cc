@@ -1,23 +1,4 @@
-/*
- * Copyright (c) 2011 Adrian Sai-wah Tam
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Adrian Sai-wah Tam <adrian.sw.tam@gmail.com>
- */
 
-// TCP options that are specified in RFC 793 (kinds 0, 1, and 2)
 
 #include "tcp-option-rfc793.h"
 
@@ -67,8 +48,6 @@ uint32_t TcpOptionEnd::Deserialize(Buffer::Iterator start) {
 
 uint8_t TcpOptionEnd::GetKind() const { return TcpOption::END; }
 
-// Tcp Option NOP
-
 NS_OBJECT_ENSURE_REGISTERED(TcpOptionNOP);
 
 TcpOptionNOP::TcpOptionNOP() : TcpOption() {}
@@ -108,8 +87,6 @@ uint32_t TcpOptionNOP::Deserialize(Buffer::Iterator start) {
 
 uint8_t TcpOptionNOP::GetKind() const { return TcpOption::NOP; }
 
-// Tcp Option MSS
-
 NS_OBJECT_ENSURE_REGISTERED(TcpOptionMSS);
 
 TcpOptionMSS::TcpOptionMSS() : TcpOption(), m_mss(1460) {}
@@ -132,9 +109,9 @@ uint32_t TcpOptionMSS::GetSerializedSize() const { return 4; }
 
 void TcpOptionMSS::Serialize(Buffer::Iterator start) const {
   Buffer::Iterator i = start;
-  i.WriteU8(GetKind());  // Kind
-  i.WriteU8(4);          // Length
-  i.WriteHtonU16(m_mss); // Max segment size
+  i.WriteU8(GetKind());
+  i.WriteU8(4);
+  i.WriteHtonU16(m_mss);
 }
 
 uint32_t TcpOptionMSS::Deserialize(Buffer::Iterator start) {

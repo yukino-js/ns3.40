@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2008 INRIA
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
- */
 #include "simple-net-device.h"
 
 #include "error-model.h"
@@ -36,16 +18,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE("SimpleNetDevice");
 
-/**
- * \brief SimpleNetDevice tag to store source, destination and protocol of each
- * packet.
- */
 class SimpleTag : public Tag {
 public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
   static TypeId GetTypeId();
   TypeId GetInstanceTypeId() const override;
 
@@ -53,45 +27,21 @@ public:
   void Serialize(TagBuffer i) const override;
   void Deserialize(TagBuffer i) override;
 
-  /**
-   * Set the source address
-   * \param src source address
-   */
   void SetSrc(Mac48Address src);
-  /**
-   * Get the source address
-   * \return the source address
-   */
   Mac48Address GetSrc() const;
 
-  /**
-   * Set the destination address
-   * \param dst destination address
-   */
   void SetDst(Mac48Address dst);
-  /**
-   * Get the destination address
-   * \return the destination address
-   */
   Mac48Address GetDst() const;
 
-  /**
-   * Set the protocol number
-   * \param proto protocol number
-   */
   void SetProto(uint16_t proto);
-  /**
-   * Get the protocol number
-   * \return the protocol number
-   */
   uint16_t GetProto() const;
 
   void Print(std::ostream &os) const override;
 
 private:
-  Mac48Address m_src;        //!< source address
-  Mac48Address m_dst;        //!< destination address
-  uint16_t m_protocolNumber; //!< protocol number
+  Mac48Address m_src;
+  Mac48Address m_dst;
+  uint16_t m_protocolNumber;
 };
 
 NS_OBJECT_ENSURE_REGISTERED(SimpleTag);
@@ -261,9 +211,6 @@ void SimpleNetDevice::SetAddress(Address address) {
 }
 
 Address SimpleNetDevice::GetAddress() const {
-  //
-  // Implicit conversion from Mac48Address to Address
-  //
   NS_LOG_FUNCTION(this);
   return m_address;
 }
@@ -367,18 +314,6 @@ void SimpleNetDevice::StartTransmission() {
       "Tried to transmit a packet while another transmission was in progress");
   Ptr<Packet> packet = m_queue->Dequeue();
 
-  /**
-   * SimpleChannel will deliver the packet to the far end(s) of the link as soon
-   * as Send is called (or after its fixed delay, if one is configured). So we
-   * have to handle the rate of the link here, which we do by scheduling
-   * FinishTransmission (packetSize / linkRate) time in the future. While that
-   * event is running, the transmit path of this NetDevice is busy, so we can't
-   * send other packets.
-   *
-   * SimpleChannel doesn't have a locking mechanism, and doesn't check for
-   * collisions, so there's nothing we need to do with the channel until the
-   * transmission has "completed" from the perspective of this NetDevice.
-   */
   Time txTime = Time(0);
   if (m_bps > DataRate(0)) {
     txTime = m_bps.CalculateBytesTxTime(packet->GetSize());

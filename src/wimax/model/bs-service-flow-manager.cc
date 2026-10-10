@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2007,2008, 2009 INRIA, UDcast
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Jahanzeb Farooq <jahanzeb.farooq@sophia.inria.fr>
- *          Mohamed Amine Ismail <amine.ismail@sophia.inria.fr>
- */
 
 #include "bs-net-device.h"
 #include "bs-uplink-scheduler.h"
@@ -44,21 +25,16 @@ namespace ns3 {
 NS_LOG_COMPONENT_DEFINE("BsServiceFlowManager");
 
 BsServiceFlowManager::BsServiceFlowManager(Ptr<BaseStationNetDevice> device)
-    : m_device(device), m_sfidIndex(100),
-      m_maxDsaRspRetries(100) // default value
-{
+    : m_device(device), m_sfidIndex(100), m_maxDsaRspRetries(100) {
   m_inuseScheduleDsaRspCid = Cid::InitialRanging();
 }
 
 BsServiceFlowManager::~BsServiceFlowManager() {}
 
-/* static */
 TypeId BsServiceFlowManager::GetTypeId() {
   static TypeId tid = TypeId("ns3::BsServiceFlowManager")
                           .SetParent<ServiceFlowManager>()
-                          .SetGroupName("Wifi")
-      // No AddConstructor because this class has no default constructor.
-      ;
+                          .SetGroupName("Wifi");
   return tid;
 }
 
@@ -98,7 +74,6 @@ DsaRsp BsServiceFlowManager::CreateDsaRsp(const ServiceFlow *serviceFlow,
   DsaRsp dsaRsp;
   dsaRsp.SetTransactionId(transactionId);
   dsaRsp.SetServiceFlow(*serviceFlow);
-  // assuming SS can supports all of the service flow parameters
   dsaRsp.SetConfirmationCode(CONFIRMATION_CODE_SUCCESS);
 
   return dsaRsp;
@@ -159,7 +134,6 @@ ServiceFlow *BsServiceFlowManager::ProcessDsaReq(const DsaReq &dsaReq,
 
   NS_LOG_INFO("BsServiceFlowManager: Processing DSA-REQ...");
   if (ssRecord->GetSfTransactionId() != 0) {
-    // had already received DSA-REQ. DSA-RSP was lost
     NS_ASSERT_MSG(dsaReq.GetTransactionId() == ssRecord->GetSfTransactionId(),
                   "Error while processing DSA request:the received transaction "
                   "ID is not expected");
@@ -221,7 +195,6 @@ void BsServiceFlowManager::ProcessDsaAck(const DsaAck &dsaAck, Cid cid) {
   ssRecord->SetDsaRspRetries(0);
   ssRecord->SetSfTransactionId(0);
 
-  // check if all service flow have been initiated
   if (AreServiceFlowsAllocated(
           ssRecord->GetServiceFlows(ServiceFlow::SF_TYPE_ALL))) {
     ssRecord->SetAreServiceFlowsAllocated(true);

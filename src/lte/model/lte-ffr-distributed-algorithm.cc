@@ -1,22 +1,3 @@
-/*
- * Copyright (c) 2014 Piotr Gawlowicz
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Piotr Gawlowicz <gawlowicz.p@gmail.com>
- *
- */
 
 #include "lte-ffr-distributed-algorithm.h"
 
@@ -167,7 +148,7 @@ void LteFfrDistributedAlgorithm::DoInitialize() {
   LteRrcSap::ReportConfigEutra reportConfigA4;
   reportConfigA4.eventId = LteRrcSap::ReportConfigEutra::EVENT_A4;
   reportConfigA4.threshold1.choice = LteRrcSap::ThresholdEutra::THRESHOLD_RSRP;
-  reportConfigA4.threshold1.range = 0; // intentionally very low threshold
+  reportConfigA4.threshold1.range = 0;
   reportConfigA4.triggerQuantity = LteRrcSap::ReportConfigEutra::RSRP;
   reportConfigA4.reportInterval = LteRrcSap::ReportConfigEutra::MS120;
   m_rsrpMeasId = m_ffrRrcSapUser->AddUeMeasReportConfigForFfr(reportConfigA4);
@@ -303,19 +284,8 @@ uint8_t LteFfrDistributedAlgorithm::DoGetTpc(uint16_t rnti) {
   NS_LOG_FUNCTION(this);
 
   if (!m_enabledInUplink) {
-    return 1; // 1 is mapped to 0 for Accumulated mode, and to -1 in Absolute
-              // mode TS36.213 Table 5.1.1.1-2
+    return 1;
   }
-
-  // TS36.213 Table 5.1.1.1-2
-  //    TPC   |   Accumulated Mode  |  Absolute Mode
-  //------------------------------------------------
-  //     0    |         -1          |      -4
-  //     1    |          0          |      -1
-  //     2    |          1          |       1
-  //     3    |          3          |       4
-  //------------------------------------------------
-  //  here Absolute mode is used
 
   auto it = m_ues.find(rnti);
   if (it == m_ues.end()) {
@@ -358,7 +328,6 @@ void LteFfrDistributedAlgorithm::DoReportUeMeas(
                          << (uint16_t)measResults.measResultPCell.rsrqResult);
 
   if (measResults.measId == m_rsrqMeasId) {
-    // check if it is center or edge UE
     auto it = m_ues.find(rnti);
     if (it == m_ues.end()) {
       m_ues.insert(std::pair<uint16_t, uint8_t>(rnti, AreaUnset));
@@ -606,7 +575,6 @@ void LteFfrDistributedAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
   auto it1 = m_ueMeasures.find(rnti);
 
   if (it1 == m_ueMeasures.end()) {
-    // insert a new UE entry
     MeasurementRow_t row;
     auto ret =
         m_ueMeasures.insert(std::pair<uint16_t, MeasurementRow_t>(rnti, row));
@@ -622,14 +590,12 @@ void LteFfrDistributedAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
     it2->second->m_rsrp = rsrp;
     it2->second->m_rsrq = rsrq;
   } else {
-    // insert a new cell entry
     Ptr<UeMeasure> cellMeasures = Create<UeMeasure>();
     cellMeasures->m_cellId = cellId;
     cellMeasures->m_rsrp = rsrp;
     cellMeasures->m_rsrq = rsrq;
     it1->second[cellId] = cellMeasures;
   }
+}
 
-} // end of UpdateNeighbourMeasurements
-
-} // end of namespace ns3
+} // namespace ns3

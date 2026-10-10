@@ -1,21 +1,3 @@
-/*
- * Copyright (c) 2009 IITP RAS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Authors: Pavel Boyko <boyko@iitp.ru>
- */
 
 #include "hello-regression-test.h"
 
@@ -61,28 +43,22 @@ void HelloRegressionTest::DoRun() {
 }
 
 void HelloRegressionTest::CreateNodes() {
-  // create 2 nodes
   NodeContainer c;
   c.Create(2);
-  // install TCP/IP & OLSR
   OlsrHelper olsr;
   InternetStackHelper internet;
   internet.SetRoutingHelper(olsr);
   internet.Install(c);
-  // Assign OLSR RVs to specific streams
   int64_t streamsUsed = olsr.AssignStreams(c, 0);
   NS_TEST_ASSERT_MSG_EQ(streamsUsed, 2, "Should have assigned 2 streams");
-  // create channel & devices
   SimpleNetDeviceHelper simpleNetHelper;
   simpleNetHelper.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
   simpleNetHelper.SetChannelAttribute("Delay", StringValue("2ms"));
   NetDeviceContainer nd = simpleNetHelper.Install(c);
-  // setup IP addresses
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   ipv4.Assign(nd);
 
-  // Create the sockets
   Ptr<SocketFactory> rxSocketFactoryA =
       c.Get(0)->GetObject<Ipv4RawSocketFactory>();
   m_rxSocketA =

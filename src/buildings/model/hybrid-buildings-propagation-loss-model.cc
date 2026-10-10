@@ -1,23 +1,3 @@
-/*
- * Copyright (c) 2011 Centre Tecnologic de Telecomunicacions de Catalunya (CTTC)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation;
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *
- * Author: Marco Miozzo <marco.miozzo@cttc.es>
- *         Nicola Baldo <nbaldo@cttc.es>
- *
- */
 
 #include "hybrid-buildings-propagation-loss-model.h"
 
@@ -136,7 +116,6 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
 
   double distance = a->GetDistanceFrom(b);
 
-  // get the MobilityBuildingInfo pointers
   Ptr<MobilityBuildingInfo> a1 = a->GetObject<MobilityBuildingInfo>();
   Ptr<MobilityBuildingInfo> b1 = b->GetObject<MobilityBuildingInfo>();
   NS_ASSERT_MSG(a1 && b1, "HybridBuildingsPropagationLossModel only works with "
@@ -146,10 +125,8 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
   bool isAIndoor = a1->IsIndoor();
   bool isBIndoor = b1->IsIndoor();
 
-  if (!isAIndoor) // a is outdoor
-  {
-    if (!isBIndoor) // b is outdoor
-    {
+  if (!isAIndoor) {
+    if (!isBIndoor) {
       if (distance > 1000) {
         NS_LOG_INFO(this << a->GetPosition().z << b->GetPosition().z
                          << m_rooftopHeight);
@@ -159,18 +136,15 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
           NS_LOG_INFO(this << " 0-0 (>1000): below rooftop -> ITUR1411 : "
                            << loss);
         } else {
-          // Over the rooftop transmission -> Okumura Hata
           loss = OkumuraHata(a, b);
           NS_LOG_INFO(this << " O-O (>1000): above rooftop -> OH : " << loss);
         }
       } else {
-        // short range outdoor communication
         loss = ItuR1411(a, b);
         NS_LOG_INFO(this << " 0-0 (<1000) Street canyon -> ITUR1411 : "
                          << loss);
       }
     } else {
-      // b indoor
       if (distance > 1000) {
         if ((a->GetPosition().z < m_rooftopHeight) &&
             (b->GetPosition().z < m_rooftopHeight)) {
@@ -186,22 +160,17 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
         loss = ItuR1411(a, b) + ExternalWallLoss(b1) + HeightLoss(b1);
         NS_LOG_INFO(this << " 0-I (<1000) ITUR1411 + BEL : " << loss);
       }
-    } // end b1->isIndoor ()
+    }
   } else {
-    // a is indoor
-    if (isBIndoor) // b is indoor
-    {
+    if (isBIndoor) {
       if (a1->GetBuilding() == b1->GetBuilding()) {
-        // nodes are in same building -> indoor communication ITU-R P.1238
         loss = ItuR1238(a, b) + InternalWallsLoss(a1, b1);
         NS_LOG_INFO(this << " I-I (same building) ITUR1238 : " << loss);
       } else {
-        // nodes are in different buildings
         loss = ItuR1411(a, b) + ExternalWallLoss(a1) + ExternalWallLoss(b1);
         NS_LOG_INFO(this << " I-I (different) ITUR1238 + 2*BEL : " << loss);
       }
     } else {
-      // b is outdoor
       if (distance > 1000) {
         if ((a->GetPosition().z < m_rooftopHeight) &&
             (b->GetPosition().z < m_rooftopHeight)) {
@@ -209,7 +178,6 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
           NS_LOG_INFO(this << " I-O (>1000): down rooftop -> ITUR1411 : "
                            << loss);
         } else {
-          // above rooftop -> OH
           loss = OkumuraHata(a, b) + ExternalWallLoss(a1) + HeightLoss(a1);
           NS_LOG_INFO(this << " =I-O (>1000) over rooftop OH + BEL + HG: "
                            << loss);
@@ -218,8 +186,8 @@ HybridBuildingsPropagationLossModel::GetLoss(Ptr<MobilityModel> a,
         loss = ItuR1411(a, b) + ExternalWallLoss(a1) + HeightLoss(a1);
         NS_LOG_INFO(this << " I-O (<1000)  ITUR1411 + BEL + HG: " << loss);
       }
-    } // end if (isBIndoor)
-  } // end if (!isAIndoor)
+    }
+  }
 
   loss = std::max(loss, 0.0);
 
